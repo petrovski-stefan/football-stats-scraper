@@ -6,15 +6,15 @@ from selenium.webdriver import Chrome
 from selenium.webdriver.remote.webelement import WebElement
 
 from constants import STAGE_KEYWORDS
-from driver import config_driver
-from utils import find_element_by_css, get_match_metadata
+from driver import find_element_by_css, get_driver
+from parsers import get_match_metadata
 
 
 def get_matches_ids_from_league_and_league_name(
     league_link: str,
 ) -> tuple[list[str], str]:
     # TODO: handle exception
-    driver = config_driver()
+    driver = get_driver()
 
     driver.get(league_link)
     time.sleep(2)
@@ -47,17 +47,17 @@ def get_matches_ids_from_league_and_league_name(
     ]
 
     stages_links.insert(0, league_link)
-    league_matches_ids = []
+    league_matches = []
     [
-        league_matches_ids.extend(process_stage(driver, stage_link))
+        league_matches.extend(process_stage(driver, stage_link))
         for stage_link in stages_links
     ]
 
     driver.quit()
 
-    print(f"Total league: {len(league_matches_ids)}")
+    print(f"Total league: {len(league_matches)}")
 
-    return league_matches_ids, league_name
+    return league_matches, league_name
 
 
 def process_stage(driver: Chrome, stage_link: str) -> list[str]:
@@ -73,21 +73,17 @@ def process_stage(driver: Chrome, stage_link: str) -> list[str]:
 
     rounds: list[WebElement] = find_element_by_css(driver, "table td.lsm2", many=True)
 
-    stage_matches_metadata = []
-    [
-        stage_matches_metadata.extend(get_matches_metadata_from_round(driver, r))
-        for r in rounds
-    ]
-    print(f"Stage: {len(stage_matches_metadata)}")
+    stage_matches = []
+    [stage_matches.extend(get_matches_metadata_from_round(driver, r)) for r in rounds]
+    print(f"Stage: {len(stage_matches)}")
 
-    for match_metadata in stage_matches_metadata:
+    for match_metadata in stage_matches:
         match_metadata["stage"] = stage_name
 
-    return stage_matches_metadata
+    return stage_matches
 
 
 def get_matches_metadata_from_round(driver: Chrome, round: WebElement) -> list[dict]:
-
     round.click()
 
     time.sleep(2)

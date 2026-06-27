@@ -65,55 +65,40 @@ PORTUGUESE_TO_ENGLISH_LETTERS = {
 }
 
 ORDERED_DF_COLUMNS = [
+    # Match metadata
+    "league_name",
+    "year",
+    "period",
+    "stage",
+    "round",
     "id",
-    # "first_team_name",  # Maybe not needed
-    # "second_team_name",  # Maybe not needed
+    "date",
+    "first_team_name",
+    "second_team_name",
+    # Match position in round
+    "is_first_match_in_round",
+    "is_before_last_match_in_round",
+    "is_last_match_in_round",
+    # Odds
+    "has_odds",
+    "odds_company",
     "home_team_win_initial_odds",
+    "draw_initial_odds",
     "away_team_win_initial_odds",
-    "home_team_win_updated_odds",
-    "away_team_win_updated_odds",
+    # Teams positions
+    "first_team_position",  # TODO: TBD
+    "second_team_position",  # TODO: TBD
+    # Goals statistics
     "first_team_final_goals",
     "second_team_final_goals",
     "first_team_first_half_goals",
     "second_team_first_half_goals",
-    "first_team_second_half_goals",
-    "second_team_second_half_goals",
-    "has_odds",
-    "is_first_match_in_round",
-    "is_before_last_match_in_round",
-    "is_last_match_in_round",
-    "stage",
-    "round",
-    "last1_head_to_head_match_half_time_score",
-    "last2_head_to_head_match_half_time_score",
-    "last3_head_to_head_match_half_time_score",
-    "last4_head_to_head_match_half_time_score",
-    "last5_head_to_head_match_half_time_score",
-    "last1_head_to_head_match_full_time_score",
-    "last2_head_to_head_match_full_time_score",
-    "last3_head_to_head_match_full_time_score",
-    "last4_head_to_head_match_full_time_score",
-    "last5_head_to_head_match_full_time_score",
-    "last1_home_match_half_time_score",
-    "last2_home_match_half_time_score",
-    "last3_home_match_half_time_score",
-    "last4_home_match_half_time_score",
-    "last5_home_match_half_time_score",
-    "last1_home_match_full_time_score",
-    "last2_home_match_full_time_score",
-    "last3_home_match_full_time_score",
-    "last4_home_match_full_time_score",
-    "last5_home_match_full_time_score",
-    "last1_away_match_half_time_score",
-    "last2_away_match_half_time_score",
-    "last3_away_match_half_time_score",
-    "last4_away_match_half_time_score",
-    "last5_away_match_half_time_score",
-    "last1_away_match_full_time_score",
-    "last2_away_match_full_time_score",
-    "last3_away_match_full_time_score",
-    "last4_away_match_full_time_score",
-    "last5_away_match_full_time_score",
+    # "first_team_second_half_goals", # TODO: TBD
+    # "second_team_second_half_goals", # TODO: TBD
+    # Bet games
+    "is_match_7plus",
+    "is_match_transition",
+    # TODO: add more
 ]
 
 ODDS_REGEX = r"\d{1,3}.\d{2}"

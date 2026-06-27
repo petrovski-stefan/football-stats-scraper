@@ -3,60 +3,12 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Lock
 from typing import Callable
 
-from bs4 import BeautifulSoup
-from selenium.webdriver.common.by import By
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.support.wait import WebDriverWait
-
 from df import save_df_to_csv
-from driver import config_driver
 from exceptions import SoupNoSuchElementException
 from ids import get_matches_ids_from_league_and_league_name
-from scrapers import (
-    get_current_match_goals,
-    get_head_to_head_information,
-    get_initial_odds,
-    get_team_games_information,
-    get_teams_names,
-    get_updated_odds,
-)
 from utils import get_leagues_links
 
 logger = logging.getLogger(__name__)
-
-
-def process_match(match_id: str) -> dict:
-    driver = config_driver()
-
-    driver.get(f"https://www.futebolscore.com/jogos/computador-{match_id}")
-
-    try:
-        WebDriverWait(driver, 35).until(
-            EC.presence_of_element_located((By.ID, "sp_2_8_1_1"))
-        )
-        WebDriverWait(driver, 35).until(
-            EC.presence_of_element_located((By.ID, "sp_2_8_3_1"))
-        )
-    except Exception:
-        print(f"Couldn't locate the odds for match {match_id} .")
-        driver.quit()
-
-    html = driver.page_source
-    driver.quit()
-
-    match_data = dict()
-
-    bs = BeautifulSoup(html, "html.parser")
-
-    match_data.update(get_teams_names(bs, match_id))
-    match_data.update(get_initial_odds(bs, match_id))
-    match_data.update(get_updated_odds(bs, match_id))
-    match_data.update(get_current_match_goals(bs, match_id))
-    match_data.update(get_head_to_head_information(bs, match_id))
-    match_data.update(get_team_games_information(bs, match_id, "home"))
-    match_data.update(get_team_games_information(bs, match_id, "away"))
-
-    return match_data
 
 
 def run(
@@ -101,15 +53,13 @@ def main() -> None:
         # TODO: remove [:3] after testing
         with ThreadPoolExecutor(max_workers=5) as executor:
             executor.map(
-                lambda match_id: run(
-                    process_match, match_id, lock, league_matches_data
-                ),
+                lambda match_id: print(match_id),
                 league_matches_metadata[:1],
             )
 
         print(f"Scraped total of {len(league_matches_data)} matches from {link} .")
 
-        save_df_to_csv(league_matches_data, league_name)
+        # save_df_to_csv(league_matches_data, league_name)
 
 
 if __name__ == "__main__":

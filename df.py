@@ -3,16 +3,14 @@ import os
 import pandas as pd
 
 from constants import ORDERED_DF_COLUMNS
-from utils import clean_string
+from parsers import clean_string
 
 
 def save_df_to_csv(league_matches_data: list[dict], league_name: str) -> None:
-
     df = pd.DataFrame(league_matches_data)
 
     # df.columns = df.columns.str.strip()
-
-    df = df[ORDERED_DF_COLUMNS]
+    df = df[[column for column in ORDERED_DF_COLUMNS if column in df.columns]]
 
     csv_file_path = f"data/{clean_string(league_name)}.csv"
 
