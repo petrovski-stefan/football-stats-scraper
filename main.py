@@ -6,7 +6,7 @@ from typing import Callable
 from df import save_df_to_csv
 from exceptions import SoupNoSuchElementException
 from ids import get_matches_ids_from_league_and_league_name
-from utils import get_leagues_links
+from links import get_leagues_links
 
 logger = logging.getLogger(__name__)
 
