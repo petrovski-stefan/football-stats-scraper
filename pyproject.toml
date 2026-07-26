@@ -6,13 +6,53 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "bs4==0.0.2",
-    "flake8==7.1.1",
     "ipykernel==6.29.5",
     "mypy==1.14.1",
     "pandas==2.2.3",
     "pandas-stubs==2.2.3.241126",
     "pydantic==2.11.7",
-    "python-dotenv==1.0.1",
+    "ruff==0.15.22",
+    "scikit-learn==1.6.1",
+    "scipy==1.15.1",
     "selenium==4.27.1",
     "types-beautifulsoup4==4.12.0.20241020",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+exclude = [".venv", "data", "config"]
+
+[tool.ruff.lint]
+# Pragmatic, bug-focused set: pycodestyle/pyflakes (flake8 parity) + isort,
+# bugbear, comprehensions, simplify, pyupgrade, plus a low-noise stricter tier:
+# Ruff-native (RUF), misc-lints (PIE), logging hygiene (LOG/G), no-blanket-ignore
+# (PGH), and relative-import ban (TID).
+select = ["E", "W", "F", "I", "B", "C4", "SIM", "UP", "RUF", "PIE", "LOG", "G", "PGH", "TID"]
+ignore = ["E203"]  # whitespace-before-punctuation; conflicts with the formatter
+
+[tool.ruff.lint.isort]
+# Layered packages, imported absolutely: domain -> scrapers -> features -> modelling,
+# with qa off to the side. See CLAUDE.md "Architecture".
+known-first-party = ["domain", "scrapers", "features", "modelling", "qa"]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Enforce the documented convention: absolute package imports only, never relative.
+ban-relative-imports = "all"
+
+[tool.ruff.lint.per-file-ignores]
+# A data module: long user-agent / selector string literals.
+"scrapers/constants.py" = ["E501"]
+
+[tool.ruff.format]
+# Defaults are black-compatible (double quotes), matching the existing style.
+
+[tool.mypy]
+python_version = "3.13"
+plugins = ["pydantic.mypy"]
+ignore_missing_imports = true
+strict = true
+warn_unreachable = true  # not part of --strict
+# mypy flags stacked @computed_field/@property (the standard pydantic idiom).
+disable_error_code = ["prop-decorator"]
+
