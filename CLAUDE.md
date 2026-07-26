@@ -79,7 +79,7 @@ Key DOM facts (nowgoal26): only one round renders at a time (`div.round span[rou
 
 ## Conventions
 
-- Commit directly to the `dev` branch (main branch for releases is `main`).
+- Work directly on `main`. There is no `dev` or feature-branch flow — `dev` was merged into `main` and retired on 2026-07-26. Since nothing isolates a bad commit from the default branch, run `uv run ruff check && uv run ruff format --check && uv run mypy .` before committing.
 - Pin dependency versions exactly in `pyproject.toml` (matches existing style); update `uv.lock` via `uv`.
 - Absolute package imports only (`from domain import stats`), never relative — enforced by Ruff `TID`. Respect the layer direction in the table above.
 - Older `notes/` entries written before 2026-07-26 cite the pre-refactor flat module paths (`features.py`, `constants.py`, `df.py`, `stats.py`). Their findings stand; only the paths moved — see the amendment log in `notes/PREREGISTRATION.md`.
