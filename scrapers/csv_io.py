@@ -4,16 +4,18 @@ from typing import Any
 
 import pandas as pd
 
+from domain import paths
 from domain.columns import ORDERED_DF_COLUMNS
 from scrapers.parsers import clean_string
 
 logger = logging.getLogger(__name__)
 
-DATA_DIR = "data"
-
 
 def league_csv_path(league_name: str, season: str) -> str:
-    return os.path.join(DATA_DIR, f"{clean_string(league_name)}_{season}.csv")
+    """Where a freshly-scraped league season lands. Stays here rather than in
+    `domain/paths.py` because it needs `clean_string`, and `domain` may not import
+    from `scrapers`."""
+    return os.path.join(paths.RAW_DIR, f"{clean_string(league_name)}_{season}.csv")
 
 
 def write_ordered_csv(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -> None:

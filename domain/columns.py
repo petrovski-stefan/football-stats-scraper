@@ -1,4 +1,6 @@
-"""CSV output schema: the column order of every file written to `data/`.
+"""CSV output schema: the column order of every file the pipeline writes.
+
+Where those files live is the companion contract in `domain/paths.py`.
 
 Split out of the old flat `constants.py`, whose other half (DOM selectors, user
 agents) is scraper-internal and now lives in `scrapers/constants.py`. These names

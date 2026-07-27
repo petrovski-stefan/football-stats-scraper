@@ -3,7 +3,14 @@ import re
 LEAGUES_FILE = "config/LEAGUES.txt"
 
 # https://football.nowgoal26.com/league/2025-2026/36 -> season "2025-2026", id 36
-_LEAGUE_URL_RE = re.compile(r"/league/(?P<season>\d{4}-\d{4})/(?P<league_id>\d+)")
+# https://football.nowgoal26.com/league/2025/71      -> season "2025",      id 71
+#
+# Two season conventions, both kept verbatim. European leagues run across two calendar
+# years and nowgoal labels them "2025-2026"; calendar-year leagues (Scandinavia, Brazil,
+# Japan, MLS, Russia's summer format...) play inside one year and are labelled "2025".
+# Normalising the second into a range would state something false, so anything that needs
+# to order or split seasons compares `domain.match.season_start_year`, not the string.
+_LEAGUE_URL_RE = re.compile(r"/league/(?P<season>\d{4}(?:-\d{4})?)/(?P<league_id>\d+)")
 
 
 def get_leagues_links() -> list[str]:

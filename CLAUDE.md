@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Selenium + BeautifulSoup scraper that collects finished football match data (teams, date, round, standings positions, HT/FT goals) from **nowgoal26.com** league pages, validates it with a Pydantic `Match` model (`domain/match.py`), and writes per-league CSVs to `data/`. Purpose: analytics for two betting markets — comebacks (`is_match_transition`) and over 6.5 goals (`is_match_7plus`). Package manager is **uv**; requires **Python 3.13** (pinned in `.python-version`).
+Selenium + BeautifulSoup scraper that collects finished football match data (teams, date, round, standings positions, HT/FT goals) from **nowgoal26.com** league pages, validates it with a Pydantic `Match` model (`domain/match.py`), and writes per-league CSVs to `data/raw/`. Purpose: analytics for two betting markets — comebacks (`is_match_transition`) and over 6.5 goals (`is_match_7plus`). Package manager is **uv**; requires **Python 3.13** (pinned in `.python-version`).
 
 Never call the site's data/API endpoints directly — always render pages in Selenium and parse the DOM.
 
@@ -13,8 +13,9 @@ Never call the site's data/API endpoints directly — always render pages in Sel
 ## Commands
 
 - Install deps: `uv sync`
-- Run the league scraper: `uv run python -m scrapers.schedule`
-- Run the detail enricher: `uv run python -m scrapers.detail [--limit N]` (resumable; `--limit` caps the batch)
+- Run the league scraper: `uv run python -m scrapers.schedule` → `data/raw/`
+- Run the detail enricher: `uv run python -m scrapers.detail [--limit N]` → `data/raw/` (resumable; `--limit` caps the batch)
+- Build the enriched join: `uv run python -m features.enrich` → `data/processed/` — the third pipeline step, required after either scrape before anything in `features/` or `modelling/` sees new data. Cheap and idempotent (no browser), so re-run it freely.
 - Validate the corpus: `uv run python -m qa.validate` — internal self-consistency, **exits non-zero on any failure**. No exemptions: it currently reports FAIL on all six league-seasons for the known-stale `home_next_fixture_days` column (see `notes/PREREGISTRATION.md` §9); that clears on a detail re-scrape. The cross-source check was retired with the football-data corpus on 2026-07-26.
 - Build the feature matrix: `uv run python -m features.engine` (`--self-check` proves the as-of-round invariant)
 - Validate the imported F11 completion curve: `uv run python -m features.chain --replicate-f11`
@@ -22,8 +23,8 @@ Never call the site's data/API endpoints directly — always render pages in Sel
 - Validate the scoreline model: `uv run python -m modelling.scoreline --self-check --leak-check`
 - Run the exclusion-filter study: `uv run python -m modelling.filter_study --curve` / `--bar`
 
-All commands run from the repo root — the data/notes/config paths are relative to the
-working directory, not to the module.
+All commands run from the repo root — the `data/raw/`, `data/processed/`, `notes/` and
+`config/` paths are relative to the working directory, not to the module.
 - Lint: `uv run ruff check` (autofix: `uv run ruff check --fix`)
 - Format: `uv run ruff format` (check only: `uv run ruff format --check`)
 - Type-check: `uv run mypy .`
@@ -32,8 +33,8 @@ working directory, not to the module.
 
 ## Required runtime setup
 
-- `config/LEAGUES.txt` — one nowgoal26 league URL per line, format `/league/<season>/<id>` (e.g. `https://football.nowgoal26.com/league/2025-2026/36`). Committed with the PL example.
-- `data/` — output dir for `<league>.csv`; auto-created by `scrapers/csv_io.py:save_df_to_csv()`.
+- `config/LEAGUES.txt` — one nowgoal26 league URL per line, format `/league/<season>/<id>`. **`<season>` takes two forms**, both accepted: `2025-2026` for a cross-year European league (`.../league/2025-2026/36`) and `2025` for a calendar-year one — Scandinavia, Brazil, Japan, MLS, and others that play inside a single year (`.../league/2025/71`). See "Season labels" below.
+- `data/` — one gitignored tree, split by provenance: **`data/raw/`** is scraper output only (`<league>_<season>.csv` and `_detail.csv`), **`data/processed/`** is derived (`_enriched.csv`, written by `features/enrich.py`). Both auto-create on write. Both are declared in **`domain/paths.py`**, the only place a data directory or a sibling-file path is constructed — never rebuild one by hand from a filename.
 - A locally installed **Chrome** — Selenium 4 auto-manages the driver and runs headless.
 
 ## Architecture
@@ -44,15 +45,17 @@ Four layers, imported **absolutely** and strictly one-directional — `domain` �
 
 | package | holds | may import |
 |---|---|---|
-| `domain/` | `match.py`, `match_detail.py` (Pydantic contracts), `columns.py` (CSV column order), `stats.py` (pure derived-stat kernel) | nothing internal |
+| `domain/` | `match.py`, `match_detail.py` (Pydantic contracts; `match.py` also holds the date and **season-label** parsers), `columns.py` (CSV column order), `paths.py` (where files live, and filename↔league/season), `stats.py` (pure derived-stat kernel) | nothing internal |
 | `scrapers/` | `driver`, `links`, `parsers`, `schedule`, `detail`, `detail_parsers`, `csv_io`, `constants` (DOM selectors) | `domain` |
-| `features/` | `engine.py` (the as-of-round feature matrix), `chain.py` | `domain` |
+| `features/` | `enrich.py` (the base+detail join), `engine.py` (the as-of-round feature matrix), `chain.py` | `domain` |
 | `modelling/` | `scoreline`, `experiment`, `filter_study`, `analysis` | everything below |
 | `qa/` | `report.py`, `universal.py` (dataset-agnostic checks), `league.py`, `detail.py`, `validate.py` (orchestrator) | `domain` |
 
 Every entry point is a module inside its package, run as `python -m <package>.<module>` from the repo root — there are no top-level scripts. Do **not** use relative (`from .x import`) imports anywhere — Ruff's `TID` rule bans them. Import as `from scrapers.parsers import ...`, `from domain import stats`, `from features import engine`.
 
 Two names moved and are easy to mis-search for: the old `constants.py` split into `scrapers/constants.py` (DOM selectors, user agents, transliteration table) and `domain/columns.py` (`ORDERED_DF_COLUMNS`, `DETAIL_ORDERED_COLUMNS`, `per_match_columns()`); the old `df.py` is `scrapers/csv_io.py` and the old `features.py` is `features/engine.py` (renamed because `features.matrix` would have collided with the pervasive local `matrix` variable). Two further changes landed the same day, both worth knowing when reading anything written earlier: a short-lived `core/` package was collapsed — `stats.py` moved into the base layer (its consumers span three packages, and it defines the meaning of the derived columns `domain/columns.py` declares) while `exceptions.py` was deleted as dead code with zero references anywhere in the repo — and that base layer, briefly called `schemas/`, was renamed **`domain/`**, because it holds the pure `stats.py` kernel alongside the Pydantic contracts and "schema" only described three of its four modules. Anything citing `core.stats`, `schemas.columns`, or `schemas/match.py` predates 2026-07-26.
+
+One day later, on **2026-07-27**, the flat `data/` directory gained two provenance subdirectories — `data/raw/` (scraper output) and `data/processed/` (derived) — the enriched join moved from `scrapers/detail.py` to the new `features/enrich.py`, and directory/sibling-path construction was consolidated into the new `domain/paths.py`, previously five separate `DATA_DIR = "data"` definitions. The one-off `scripts/backfill_round_index.py` was deleted the same day, its migration having been applied, leaving the repo with no `scripts/` package. Anything naming a CSV **directly** under `data/` (rather than in `data/raw/` or `data/processed/`), or citing `scripts.` or `detail._write_enriched`, predates 2026-07-27.
 
 ### Scrape flow
 
@@ -64,7 +67,9 @@ Key DOM facts (nowgoal26): only one round renders at a time (`div.round span[rou
 
 ### Detail enrichment (second stage)
 
-`scrapers/detail.py` scrapes each finished match's detail page (`https://live10.nowgoal26.com/match/h2h-<match_id>` — same id as the schedule row) into **one wide feature row** per match, joined to the base league CSV. `scrape_match_detail(driver, match_id)` is **mode-agnostic** (a future prediction mode can feed upcoming ids); `enrich_finished(limit)` reads ids from `data/*.csv`, **reuses one browser**, and is **resumable** — it skips ids already in `data/<league>_detail.csv` and appends incrementally, then writes `data/<league>_enriched.csv` (base left-joined to detail; base CSV untouched). Detail is ~1 page render **per match** (heavy: ~380/season) — always run it resumable, not from scratch.
+`scrapers/detail.py` scrapes each finished match's detail page (`https://live10.nowgoal26.com/match/h2h-<match_id>` — same id as the schedule row) into **one wide feature row** per match. `scrape_match_detail(driver, match_id)` is **mode-agnostic** (a future prediction mode can feed upcoming ids); `enrich_finished(limit)` reads ids from `data/raw/*.csv`, **reuses one browser**, and is **resumable** — it skips ids already in `data/raw/<league>_detail.csv` and appends incrementally. Detail is ~1 page render **per match** (heavy: ~380/season) — always run it resumable, not from scratch.
+
+The scraper writes **nothing but that detail file**. Joining it back to the base league CSV is `features/enrich.py` (third stage), which left-joins on `match_id` into `data/processed/<league>_enriched.csv` — both raw files untouched. It was moved out of `scrapers/detail.py` on 2026-07-27 because a join is not a scrape; the practical gain is that a stale or deleted enriched file is now rebuilt in seconds without starting Selenium. Anything describing the detail scraper as writing `_enriched.csv` predates that.
 
 `scrapers/detail_parsers.py` parses each section: `parse_odds_1x2` (Bet365-or-first 1X2, initial+live; the 1X2 cells are `td[data-e="1"]`), and the H2H widget tables `tr[id^='tr1_'/'tr2_'/'tr3_']` (v1=home recent, v2=away recent, v3=H2H; score span class is indexed per table so match on prefix `span[class^='fscore']`, and each row is 15 cells — league/date/teams/score/**corner**/1X2 odds). Those rows feed two outputs: **aggregates** (`aggregate_recent`/`aggregate_h2h` → `*_recent_*`, `h2h_*`) and **per-match column blocks** (`flatten_history` → `home_lastN_*`/`away_lastN_*`/`h2h_lastN_*`, last1 = most recent, `N` up to `domain.columns.MATCHES_PER_SECTION`, oriented to the section's subject team). Plus best-effort strength/guess/standings/fixtures. Per-match derived stats (over2.5, BTTS, comeback, 1X2 result, implied prob) live in **`domain/stats.py`**, shared by the `Match` model and the detail records. Aggregate/odds fields are validated by `domain/match_detail.py:MatchDetail`; the per-match blocks are merged in as plain data. Full column order (incl. generated per-match names) comes from `domain.columns.DETAIL_ORDERED_COLUMNS` / `domain.columns.per_match_columns()`.
 
@@ -75,6 +80,8 @@ Key DOM facts (nowgoal26): only one round renders at a time (`div.round span[rou
 - 1X2 odds: the schedule odds column defaults to Asian Handicap, so `driver.switch_odds_to_1x2()` clicks the header selectbox (`li[type='O']`) once after load — the choice persists across round clicks. Odds cells are then home/draw/away; missing odds parse to `None` (`has_odds=False`). Odds fields on `Match` are nullable.
 - Markets: `is_seven_or_more_goals` (over 6.5), `is_comeback` (HT-loser wins at FT) split into `is_comeback_home`/`is_comeback_away`. Raw score strings (`ht_score`, `ft_score`) are kept alongside the derived goal ints.
 - **Position within a round.** `match_index_in_round` is 1..`matches_in_round`, ordered by kickoff datetime then home name then away name (`domain/match.py:round_sort_key`). It is assigned in `scrapers/schedule.py:_order_round` over **every scheduled match in the round including unplayed ones**, then only finished rows are written — so `matches_in_round` can exceed the row count for a partially-played round, and the position cannot be recomputed downstream (unplayed rows never reach the CSV). This is the one derived column that cannot be a `@computed_field` on `Match`, because it depends on the round's other rows.
+- **Season labels come in two shapes and are stored verbatim.** `2025-2026` for cross-year leagues, `2025` for calendar-year ones. They are **not** normalised into a common form, because an English 2025-2026 season (Aug–May) and a Norwegian 2025 season (Mar–Nov) are different things and writing `2025-2025` would invent a fact. Consequences, all real bugs that have been fixed but are easy to reintroduce: (a) never slice a season out of a filename by fixed width — use `domain/paths.py:split_league_season`, since a 9-char assumption turns `norway_eliteserien_2025` into `("norway_elites", "rien_2025")`; (b) labels from the two conventions **never compare equal** even when contemporaneous, so `groupby("season")` splits them and an `isin([...])` season list matches neither — use `domain/match.py:season_start_year` when you mean "which seasons overlap in time". Sorting is safe as strings (the start year is a fixed-width prefix). `is_cross_year_season` distinguishes the two.
+- **`TRAIN_SEASONS` / `TEST_SEASONS` (`features/engine.py`) are literal labels fixed by `notes/PREREGISTRATION.md` §2, and a calendar-year league can never match them.** That exclusion is correct — the preregistered corpus is closed, and widening it is a protocol amendment, not a code change. `load_enriched` now emits a `UserWarning` naming any league-season in neither split, so a newly scraped league cannot sit in `data/` contributing to nothing unnoticed.
 - **Never read `match_index_in_round == 1` as "the first match of the round".** 15.6% of matches share their round's earliest kickoff and the tiebreak between them is alphabetical, i.e. meaningless. Use `features/engine.py:round_position`, which derives tie-aware `earlier` / `later` / `slot` / `slots` from `date`: joint-first is `earlier == 0` (321 matches in the current corpus), joint-last is `later == 0` (263). These are derived, not stored, because they are pure functions of a column that is already there. The three former DOM-order booleans (`is_first_match_in_round`, `is_before_last_match_in_round`, `is_last_match_in_round`) were removed on 2026-07-26 for exactly this reason.
 
 ## Conventions
@@ -82,4 +89,6 @@ Key DOM facts (nowgoal26): only one round renders at a time (`div.round span[rou
 - Work directly on `main`. There is no `dev` or feature-branch flow — `dev` was merged into `main` and retired on 2026-07-26. Since nothing isolates a bad commit from the default branch, run `uv run ruff check && uv run ruff format --check && uv run mypy .` before committing.
 - Pin dependency versions exactly in `pyproject.toml` (matches existing style); update `uv.lock` via `uv`.
 - Absolute package imports only (`from domain import stats`), never relative — enforced by Ruff `TID`. Respect the layer direction in the table above.
-- Older `notes/` entries written before 2026-07-26 cite the pre-refactor flat module paths (`features.py`, `constants.py`, `df.py`, `stats.py`). Their findings stand; only the paths moved — see the amendment log in `notes/PREREGISTRATION.md`.
+- Never hardcode a data directory or build a CSV's sibling by string surgery (`base_path.replace(".csv", "_enriched.csv")` was the old idiom and silently resolves to the wrong directory now). Go through `domain/paths.py`.
+- Only `scrapers/` may write to `data/raw/`. Everything else derives into `data/processed/` and must be reproducible from the raw files — that is what makes the raw corpus safe to treat as ground truth and a derived file safe to delete.
+- Older `notes/` entries written before 2026-07-27 cite the earlier flat layout — module paths (`features.py`, `constants.py`, `df.py`, `stats.py`) and the single `data/` directory. Their findings stand; only the paths moved — see the amendment log in `notes/PREREGISTRATION.md`.

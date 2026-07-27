@@ -24,24 +24,19 @@ league scraper, detail odds/strength/guess, or detail form/h2h.
 Run: `uv run python -m modelling.analysis`
 """
 
-import glob
 import math
-import os
 
 import pandas as pd
 
-DATA_DIR = "data"
+from domain import paths
+
 TRAIN_SEASONS = {"2023-2024", "2024-2025"}
 TEST_SEASONS = {"2025-2026"}
 
 
-def _enriched_csvs() -> list[str]:
-    return sorted(glob.glob(os.path.join(DATA_DIR, "*_enriched.csv")))
-
-
 def load_corpus() -> pd.DataFrame:
     frames = []
-    for path in _enriched_csvs():
+    for path in paths.enriched_csvs():
         df = pd.read_csv(path)
         df["split"] = df["season"].map(
             lambda s: "train" if s in TRAIN_SEASONS else ("test" if s in TEST_SEASONS else None)

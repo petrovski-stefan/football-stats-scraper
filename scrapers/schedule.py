@@ -1,5 +1,5 @@
 """First-stage scraper: render each configured league season's schedule and write one
-row per finished match to `data/<league>_<season>.csv`.
+row per finished match to `data/raw/<league>_<season>.csv`.
 
 Structured like `scrapers/detail.py`, the second stage: a unit function
 (`scrape_league`) that renders one league, an orchestration function (`scrape_all`) that
@@ -173,7 +173,7 @@ def _validate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def scrape_all() -> None:
-    """Scrape every league season listed in `config/LEAGUES.txt` into `data/`."""
+    """Scrape every league season listed in `config/LEAGUES.txt` into `data/raw/`."""
     for url in get_leagues_links():
         try:
             season, league_id = parse_league_url(url)

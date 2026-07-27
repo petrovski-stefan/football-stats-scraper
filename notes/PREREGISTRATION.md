@@ -252,3 +252,26 @@ the move, all four offline gates reproduce their previously recorded numbers exa
 1,600 comparisons / 0 mismatches; `modelling.scoreline --self-check --leak-check` PASS with
 predictions bit-identical; `features.chain --replicate-f11` max absolute error 2.1%, 8.8%
 predicted vs 9.0% observed. The holdout was **not** opened by this work.
+
+**A5 — 2026-07-27. Data locations only: no statistical content.** The flat `data/`
+directory was split by provenance — `data/raw/` holds scraper output
+(`<league>_<season>.csv`, `_detail.csv`), `data/processed/` holds derived files
+(`_enriched.csv`) — and directory/sibling-path construction was consolidated into the new
+`domain/paths.py`, which is now the only module that names a data directory; five modules
+had each carried their own `DATA_DIR = "data"`. The base+detail
+join moved from `scrapers/detail.py:_write_enriched` to the new `features/enrich.py`, run as
+a third pipeline step, so no scraper writes a derived file. `scripts/backfill_round_index.py`
+was deleted, its A4-era migration having been applied.
+
+**No feature definition, family list, bar, split, or measurement changed.** The join is
+byte-identical: an enriched file was copied aside before the move and `diff` against the
+rebuild by `features/enrich.py` reported no difference. All four offline gates reproduce
+their recorded numbers: `qa.validate` — 12/12 base+joins subjects PASS across the two
+directories, the 6 detail subjects still FAIL on the known-stale `home_next_fixture_days`
+canary (§9) and the run still exits 1; `features.engine --self-check` 1,600 comparisons /
+0 mismatches; `modelling.scoreline --self-check --leak-check` PASS with predictions
+bit-identical; `features.chain --replicate-f11` 8.8% predicted vs 9.0% observed. Earlier
+`notes/` documents naming a CSV directly under `data/` (e.g. §2's corpus,
+`data/*_enriched.csv`) refer to the same file one level deeper — `data/processed/` for
+enriched, `data/raw/` otherwise; the findings are unaffected. The holdout was **not**
+opened by this work.

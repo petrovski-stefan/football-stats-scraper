@@ -1,24 +1,28 @@
 """Second-stage scraper: render each match's detail page and produce one wide
-feature row per match, joined back to the base league CSV by `match_id`.
+feature row per match, keyed by `match_id`.
 
-Enrichment (now): match ids come from the finished-match league CSVs in `data/`.
+Enrichment (now): match ids come from the finished-match league CSVs in `data/raw/`.
 A future prediction mode can feed upcoming ids to `scrape_match_detail` unchanged.
+
+Writes only `data/raw/<league>_<season>_detail.csv`. The join against the base league
+CSV is not a scrape and lives in `features/enrich.py` — run that afterwards to refresh
+`data/processed/<league>_<season>_enriched.csv`.
 
 Run: `uv run python -m scrapers.detail [--limit N]`
 """
 
-import glob
 import logging
 import os
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any, cast
+from typing import Any
 
 import pandas as pd
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
+from domain import paths
 from domain.columns import DETAIL_ORDERED_COLUMNS
 from domain.match_detail import MatchDetail
 from scrapers import detail_parsers as dp
@@ -27,7 +31,7 @@ from scrapers.constants import (
     DETAIL_H2H_ROWS,
     DETAIL_HOME_RECENT_ROWS,
 )
-from scrapers.csv_io import DATA_DIR, append_rows, write_ordered_csv
+from scrapers.csv_io import append_rows
 from scrapers.driver import get_detail_page, get_driver
 
 logging.basicConfig(
@@ -92,15 +96,6 @@ def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, An
     return row
 
 
-def _base_league_csvs() -> list[str]:
-    """Base league CSVs in data/ (exclude generated _detail / _enriched files)."""
-    return [
-        p
-        for p in sorted(glob.glob(os.path.join(DATA_DIR, "*.csv")))
-        if not p.endswith("_detail.csv") and not p.endswith("_enriched.csv")
-    ]
-
-
 def _done_ids(detail_path: str) -> set[str]:
     if not os.path.exists(detail_path):
         return set()
@@ -124,7 +119,7 @@ def enrich_league(
     csv_lock: threading.Lock,
 ) -> None:
     league = os.path.splitext(os.path.basename(base_path))[0]
-    detail_path = base_path.replace(".csv", "_detail.csv")
+    detail_path = paths.detail_path(base_path)
 
     base = pd.read_csv(base_path)
     base["match_id"] = base["match_id"].astype(str)
@@ -162,29 +157,16 @@ def enrich_league(
             row.get("h2h_played"),
         )
 
-    _write_enriched(base, detail_path, base_path.replace(".csv", "_enriched.csv"))
-
-
-def _write_enriched(base: pd.DataFrame, detail_path: str, enriched_path: str) -> None:
-    if not os.path.exists(detail_path):
-        return
-    detail = pd.read_csv(detail_path)
-    detail["match_id"] = detail["match_id"].astype(str)
-    detail = detail.drop_duplicates("match_id", keep="last")
-    merged = base.merge(detail, on="match_id", how="left", suffixes=("", "_detail"))
-    feature_cols = [c for c in DETAIL_ORDERED_COLUMNS if c != "match_id"]
-    rows = cast(list[dict[str, Any]], merged.to_dict("records"))
-    write_ordered_csv(rows, enriched_path, list(base.columns) + feature_cols)
-
 
 def enrich_finished(limit: int | None = None) -> None:
     csv_lock = threading.Lock()
     try:
         with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-            for base_path in _base_league_csvs():
+            for base_path in paths.base_league_csvs():
                 enrich_league(pool, base_path, limit, csv_lock)
     finally:
         _quit_all_drivers()
+    logger.info("done — run `python -m features.enrich` to rebuild the enriched join")
 
 
 def _parse_limit(argv: list[str]) -> int | None:

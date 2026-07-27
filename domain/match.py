@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 from pydantic import BaseModel, computed_field
@@ -5,6 +6,32 @@ from pydantic import BaseModel, computed_field
 from domain import stats
 
 _DATE_FORMATS = ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S")
+
+# "2025-2026" (European, cross-year) or "2025" (calendar-year league).
+_SEASON_RE = re.compile(r"^(?P<start>\d{4})(?:-(?P<end>\d{4}))?$")
+
+
+def season_start_year(season: str) -> int | None:
+    """The calendar year a season began, for either label convention. None if unparseable.
+
+    Season labels come from the nowgoal URL and are stored verbatim, because the two
+    conventions describe genuinely different things: an English "2025-2026" runs Aug-May,
+    a Norwegian "2025" runs Mar-Nov. Rewriting the latter as a range would invent a fact.
+
+    Sorting is safe either way (the start year is a fixed-width prefix, so lexicographic
+    order already agrees). What is *not* safe is **equality across conventions**: "2025"
+    and "2025-2026" describe seasons starting in the same year but never compare equal, so
+    `groupby("season")` splits them and an `isin([...])` season list silently matches
+    neither. Anything asking "which seasons are contemporaneous?" must compare this.
+    """
+    match = _SEASON_RE.match(season.strip())
+    return int(match.group("start")) if match else None
+
+
+def is_cross_year_season(season: str) -> bool:
+    """Whether the label spans two calendar years ("2025-2026") or one ("2025")."""
+    match = _SEASON_RE.match(season.strip())
+    return match is not None and match.group("end") is not None
 
 
 def parse_match_datetime(raw: str) -> datetime | None:
@@ -47,7 +74,7 @@ class Match(BaseModel):
     """
 
     # Match metadata
-    season: str  # e.g. "2025-2026"
+    season: str  # verbatim from the URL: "2025-2026" (cross-year) or "2025" (calendar-year)
     league_id: int
     league_name: str
     stage: str  # group/stage label; "" for single-table leagues

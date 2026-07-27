@@ -1,9 +1,10 @@
 """Post-scrape data validator.
 
-Discovers every scraped league-season in `data/` and validates three subjects per
+Discovers every scraped league-season in `data/raw/` and validates three subjects per
 league-season: the base league CSV, its detail CSV, and the relationship between them
-and the enriched join. Dataset-agnostic rules come from `qa/universal.py`; rules that
-need to know what a column means come from `qa/league.py` and `qa/detail.py`.
+and the enriched join in `data/processed/`. Dataset-agnostic rules come from
+`qa/universal.py`; rules that need to know what a column means come from `qa/league.py`
+and `qa/detail.py`.
 
 There are no exemptions. A column that is empty because a parser broke fails, whether
 or not the breakage is already known — the only declared allowance is
@@ -13,11 +14,11 @@ or not the breakage is already known — the only declared allowance is
 Run: `uv run python -m qa.validate`
 """
 
-import glob
 import os
 
 import pandas as pd
 
+from domain import paths
 from domain.columns import (
     DETAIL_ORDERED_COLUMNS,
     OPTIONAL_BASE_COLUMNS,
@@ -28,23 +29,6 @@ from qa import league as league_checks
 from qa import universal
 from qa.report import Report
 
-DATA_DIR = "data"
-
-
-def _base_league_csvs() -> list[str]:
-    return [
-        p
-        for p in sorted(glob.glob(os.path.join(DATA_DIR, "*.csv")))
-        if not p.endswith("_detail.csv") and not p.endswith("_enriched.csv")
-    ]
-
-
-def _league_season(path: str) -> tuple[str, str]:
-    name = os.path.splitext(os.path.basename(path))[0]
-    season = name[-9:]  # "YYYY-YYYY"
-    league = name[:-10]
-    return league, season
-
 
 def _ids(df: pd.DataFrame) -> list[str]:
     return df["match_id"].dropna().astype(str).str.strip().tolist()
@@ -52,7 +36,7 @@ def _ids(df: pd.DataFrame) -> list[str]:
 
 def validate_league_season(base_path: str) -> bool:
     """Validate one league-season across its base, detail and enriched files."""
-    league, season = _league_season(base_path)
+    league, season = paths.split_league_season(base_path)
     subject = f"{league} {season}"
     reports: list[Report] = []
 
@@ -65,8 +49,8 @@ def validate_league_season(base_path: str) -> bool:
     league_checks.validate(r, base)
     reports.append(r)
 
-    detail_path = base_path.replace(".csv", "_detail.csv")
-    enriched_path = base_path.replace(".csv", "_enriched.csv")
+    detail_path = paths.detail_path(base_path)
+    enriched_path = paths.enriched_path(base_path)
     detail = pd.read_csv(detail_path, low_memory=False) if os.path.exists(detail_path) else None
 
     if detail is not None:
@@ -99,12 +83,12 @@ def validate_league_season(base_path: str) -> bool:
 
 
 def main() -> None:
-    paths = _base_league_csvs()
-    if not paths:
-        print(f"no league CSVs found in {DATA_DIR}/")
+    base_paths = paths.base_league_csvs()
+    if not base_paths:
+        print(f"no league CSVs found in {paths.RAW_DIR}/")
         raise SystemExit(1)
 
-    results = [validate_league_season(path) for path in paths]
+    results = [validate_league_season(path) for path in base_paths]
     failed = results.count(False)
     print(f"\n{len(results) - failed}/{len(results)} league-seasons passed")
     if failed:

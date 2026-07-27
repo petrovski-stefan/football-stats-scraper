@@ -1,6 +1,6 @@
 """Feature engine shared by both comeback studies.
 
-Builds, one row per match from `data/*_enriched.csv`:
+Builds, one row per match from `data/processed/*_enriched.csv`:
   - `FAMILIES` — the six nowgoal-exclusive families of the F12 re-test
     (notes/PREREGISTRATION.md), plus the mandatory market and totals controls;
   - `FILTER_FAMILIES` — the goal-focused G1/G2/G3 families of the exclusion-filter
@@ -18,16 +18,18 @@ Run: `uv run python -m features.engine` (summary) or `--self-check` (invariant p
 """
 
 import argparse
-import glob
-import os
+import warnings
 from typing import Any
 
 import numpy as np
 import pandas as pd
 
+from domain import paths
 from domain.columns import MATCHES_PER_SECTION
 
-DATA_DIR = "data"
+# Literal season labels, fixed by PREREGISTRATION.md §2. Only cross-year labels appear
+# here because the preregistered corpus is 2 European leagues; a calendar-year league
+# ("2025") therefore matches neither and is excluded — see `_warn_unassigned`.
 TRAIN_SEASONS = ("2023-2024", "2024-2025")
 TEST_SEASONS = ("2025-2026",)
 
@@ -177,20 +179,45 @@ def round_position(df: pd.DataFrame) -> pd.DataFrame:
 
 def load_enriched() -> pd.DataFrame:
     """Load every enriched league-season into one frame, tagged with its split."""
-    paths = sorted(glob.glob(os.path.join(DATA_DIR, "*_enriched.csv")))
-    if not paths:
+    files = paths.enriched_csvs()
+    if not files:
         raise FileNotFoundError(
-            f"no *_enriched.csv in {DATA_DIR}/ — "
-            "run `python -m scrapers.schedule` then `python -m scrapers.detail`"
+            f"no *_enriched.csv in {paths.PROCESSED_DIR}/ — run `python -m scrapers.schedule`, "
+            "then `python -m scrapers.detail`, then `python -m features.enrich`"
         )
-    df = pd.concat([pd.read_csv(p) for p in paths], ignore_index=True)
-    return df.assign(
+    df = pd.concat([pd.read_csv(p) for p in files], ignore_index=True)
+    out = df.assign(
         split=np.where(
             df["season"].isin(TRAIN_SEASONS),
             "dev",
             np.where(df["season"].isin(TEST_SEASONS), "holdout", ""),
         ),
         date=pd.to_datetime(df["date"], errors="coerce"),
+    )
+    _warn_unassigned(out)
+    return out
+
+
+def _warn_unassigned(df: pd.DataFrame) -> None:
+    """Announce league-seasons that fall in neither split, instead of dropping them mutely.
+
+    `TRAIN_SEASONS` / `TEST_SEASONS` are literal labels fixed by
+    `notes/PREREGISTRATION.md` §2, so a newly scraped league-season — and in particular a
+    calendar-year league, whose labels ("2025") can never match a cross-year list —
+    correctly lands outside both. That exclusion is the *right* behaviour: the
+    preregistered corpus is closed. Silence about it is not, because a whole league can
+    then sit in `data/` contributing nothing to any result with no sign it was ignored.
+    """
+    unassigned = df.loc[df["split"] == "", ["league_name", "season"]].drop_duplicates()
+    if unassigned.empty:
+        return
+    listed = ", ".join(f"{r.league_name} {r.season}" for r in unassigned.itertuples())
+    warnings.warn(
+        f"{len(unassigned)} league-season(s) match neither TRAIN_SEASONS nor TEST_SEASONS "
+        f"and are excluded from dev and holdout: {listed}. This is expected for anything "
+        "outside the preregistered corpus (PREREGISTRATION.md §2); widening the splits is "
+        "a protocol amendment, not a code change.",
+        stacklevel=3,
     )
 
 

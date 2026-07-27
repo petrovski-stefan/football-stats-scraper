@@ -1,4 +1,4 @@
-"""Checks specific to a base league CSV (`data/<league>_<season>.csv`).
+"""Checks specific to a base league CSV (`data/raw/<league>_<season>.csv`).
 
 These need to know what the columns mean: what a round is, that half-time goals cannot
 exceed full-time goals, what a plausible 1X2 overround looks like. Dataset-agnostic
