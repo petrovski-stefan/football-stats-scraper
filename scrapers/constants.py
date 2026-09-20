@@ -19,12 +19,10 @@ AGENTS = [
 
 # --- nowgoal26 league page selectors -----------------------------------------
 # Schedule section
-SCHEDULE_CONTAINER = "div#schedule.plates.schedule"
 ROUND_SPANS = "div#schedule div.round span[round]"
 ROUND_SPAN = "div#schedule div.round span[round='{round}']"
 ROUND_ACTIVE_CLASS = "on"  # clicked round gets 'on'; the live round is 'current on'
 ROUND_CURRENT_CLASS = "current"
-STAGE_BOX = "div#schedule div.stage"
 SCHEDULE_ROWS = "div#schedule div.list div.schedulis"
 
 # Odds-type selector in the schedule header (AH / 1X2 / OU). We switch it to 1X2.
@@ -43,7 +41,6 @@ STANDING_ROWS = "div#standingPlates ul#standingList li.standlis"
 # --- Detail page (live10.nowgoal26.com/match/h2h-<id>) ------------------------
 # Detail page uses the same match id as the schedule row's @matchid.
 DETAIL_URL = "https://live10.nowgoal26.com/match/h2h-{match_id}"
-DETAIL_INFO = "#fbheader, #info"  # league / round / result header
 # Head-to-head widget tables: v1 = home team's recent, v2 = away team's recent, v3 = H2H.
 DETAIL_HOME_RECENT_ROWS = "tr[id^='tr1_']"
 DETAIL_AWAY_RECENT_ROWS = "tr[id^='tr2_']"

@@ -18,6 +18,7 @@ from scrapers.constants import (
     ODDS_1X2_ITEM,
     ODDS_1X2_LABEL,
     ODDS_LABEL,
+    ROUND_ACTIVE_CLASS,
     ROUND_SPAN,
     ROUND_SPANS,
     ROW_ODDS_CELLS,
@@ -154,7 +155,10 @@ def click_round(
     driver.execute_script(_CLICK_JS, span)  # type: ignore[no-untyped-call]
 
     WebDriverWait(driver, timeout).until(
-        lambda d: "on" in (d.find_element(By.CSS_SELECTOR, selector).get_attribute("class") or "")
+        lambda d: (
+            ROUND_ACTIVE_CLASS
+            in (d.find_element(By.CSS_SELECTOR, selector).get_attribute("class") or "")
+        )
     )
     # Wait for the row list to actually swap (unless the round was already active).
     with contextlib.suppress(TimeoutException):

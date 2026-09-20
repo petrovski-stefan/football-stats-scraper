@@ -72,11 +72,11 @@ def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, An
     get_detail_page(driver, match_id)
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
-    home_records = dp._rows_to_records(soup.select(DETAIL_HOME_RECENT_ROWS))
-    away_records = dp._rows_to_records(soup.select(DETAIL_AWAY_RECENT_ROWS))
-    h2h_records = dp._rows_to_records(soup.select(DETAIL_H2H_ROWS))
-    home_id = dp._subject_team_id(home_records)
-    away_id = dp._subject_team_id(away_records)
+    home_records = dp.rows_to_records(soup.select(DETAIL_HOME_RECENT_ROWS))
+    away_records = dp.rows_to_records(soup.select(DETAIL_AWAY_RECENT_ROWS))
+    h2h_records = dp.rows_to_records(soup.select(DETAIL_H2H_ROWS))
+    home_id = dp.subject_team_id(home_records)
+    away_id = dp.subject_team_id(away_records)
 
     # Aggregate + odds/strength features go through the validated MatchDetail model.
     agg: dict[str, Any] = {"match_id": str(match_id)}

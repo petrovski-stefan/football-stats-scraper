@@ -22,14 +22,14 @@ Run: `uv run python -m modelling.scoreline --self-check` / `--leak-check`.
 """
 
 import argparse
-from typing import Any
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
 from scipy.stats import poisson
-from sklearn.linear_model import PoissonRegressor
 
 from features import engine
+from features.ratepair import RatePair
 
 # Goals per team per half considered in the enumeration. Fitted second-half rates
 # reach ~2.0 on the highest-scoring fixtures, where Poisson mass above 5 is ~1.7% —
@@ -81,35 +81,6 @@ def _fit_rho(
     return best_rho
 
 
-class _RatePair:
-    """Two Poisson regressions (home, away) sharing a standardised design matrix."""
-
-    def __init__(self, feature_names: list[str], alpha: float = 1.0):
-        self.feature_names = feature_names
-        self.home = PoissonRegressor(alpha=alpha, max_iter=1000)
-        self.away = PoissonRegressor(alpha=alpha, max_iter=1000)
-        self.means: pd.Series[Any] | None = None
-        self.stds: pd.Series[Any] | None = None
-
-    def _design(self, x: pd.DataFrame, fit: bool = False) -> np.ndarray:
-        x = x[self.feature_names].astype(float)
-        if fit:
-            self.means = x.mean()
-            self.stds = x.std().replace(0.0, 1.0)
-        assert self.means is not None and self.stds is not None
-        return ((x - self.means) / self.stds).fillna(0.0).to_numpy()
-
-    def fit(self, x: pd.DataFrame, y_home: np.ndarray, y_away: np.ndarray) -> "_RatePair":
-        design = self._design(x, fit=True)
-        self.home.fit(design, y_home)
-        self.away.fit(design, y_away)
-        return self
-
-    def rates(self, x: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
-        design = self._design(x)
-        return self.home.predict(design), self.away.predict(design)
-
-
 # Half-time state, as the second-half model sees it. Two columns carry both
 # direction and magnitude; at predict time they are set to a hypothetical scoreline.
 HT_STATE_COLUMNS = ["ht_lead_home", "ht_lead_away"]
@@ -127,13 +98,107 @@ def _ht_state_frame(x: pd.DataFrame, lead_home: np.ndarray, lead_away: np.ndarra
     )
 
 
+@dataclass(frozen=True)
+class _Grid:
+    """Second-half grid geometry: each cell's goal difference and total goals.
+
+    Fixed by MAX_GOALS, so it is built once rather than per prediction. Grouped into
+    one object because the two arrays are only ever used together, to index the same
+    (home goals, away goals) grid.
+    """
+
+    diff: np.ndarray
+    total: np.ndarray
+
+
+def _build_grid() -> _Grid:
+    axis = np.arange(MAX_GOALS + 1)
+    return _Grid(diff=axis[:, None] - axis[None, :], total=axis[:, None] + axis[None, :])
+
+
+_SECOND_HALF_GRID = _build_grid()
+
+
+def _comeback_mask(margin: int) -> np.ndarray:
+    """Second-half grid cells in which the half-time leader ends up losing.
+
+    With the half-time margin fixed, "the leader finishes behind" is a fixed region of
+    the second-half grid. A level half-time can produce no comeback by definition.
+    """
+    if margin > 0:
+        return _SECOND_HALF_GRID.diff < -margin
+    if margin < 0:
+        return _SECOND_HALF_GRID.diff > -margin
+    return np.zeros_like(_SECOND_HALF_GRID.diff, dtype=bool)
+
+
+@dataclass
+class _Totals:
+    """Running totals as the enumeration walks every half-time scoreline.
+
+    One object rather than seven loose arrays, so a half-time scoreline's contribution
+    can be folded in by a single call instead of unpacking a seven-tuple per cell.
+    """
+
+    mass: np.ndarray
+    p_comeback: np.ndarray
+    p_total_le2: np.ndarray
+    p_ft_draw: np.ndarray
+    # Structural audit: comeback mass arriving from scorelines under 3 goals. Must stay
+    # exactly zero — that is the mechanical floor being respected.
+    p_comeback_impossible: np.ndarray
+    p_by_total: np.ndarray
+    cb_by_total: np.ndarray
+
+    @classmethod
+    def zeros(cls, n: int) -> "_Totals":
+        bands = 4 * MAX_GOALS + 2
+        return cls(
+            mass=np.zeros(n),
+            p_comeback=np.zeros(n),
+            p_total_le2=np.zeros(n),
+            p_ft_draw=np.zeros(n),
+            p_comeback_impossible=np.zeros(n),
+            p_by_total=np.zeros((bands, n)),
+            cb_by_total=np.zeros((bands, n)),
+        )
+
+    def add(self, p_ht: np.ndarray, joint: np.ndarray, h1: int, a1: int) -> None:
+        """Fold one half-time scoreline's contribution into the totals.
+
+        `p_ht` is that scoreline's probability per match; `joint` is the second-half
+        distribution conditioned on it, indexed (home goals, away goals, match).
+        """
+        margin, ht_total = h1 - a1, h1 + a1
+        cb_mask = _comeback_mask(margin)
+
+        self.mass += p_ht * joint.sum(axis=(0, 1))
+        if cb_mask.any():
+            self.p_comeback += p_ht * joint[cb_mask].sum(axis=0)
+        self.p_ft_draw += p_ht * joint[_SECOND_HALF_GRID.diff == -margin].sum(axis=0)
+
+        le2_mask = (_SECOND_HALF_GRID.total + ht_total) <= 2
+        if le2_mask.any():
+            self.p_total_le2 += p_ht * joint[le2_mask].sum(axis=0)
+            overlap = le2_mask & cb_mask
+            if overlap.any():
+                self.p_comeback_impossible += p_ht * joint[overlap].sum(axis=0)
+
+        for k in range(2 * MAX_GOALS + 1):
+            band = _SECOND_HALF_GRID.total == k
+            self.p_by_total[ht_total + k] += p_ht * joint[band].sum(axis=0)
+            both = band & cb_mask
+            if both.any():
+                self.cb_by_total[ht_total + k] += p_ht * joint[both].sum(axis=0)
+
+
 class ScorelineModel:
     """Fit goal rates per half; predict a full joint distribution over scorelines."""
 
     def __init__(self, feature_names: list[str] | None = None, alpha: float = 1.0):
         self.feature_names = list(feature_names or engine.filter_feature_names())
-        self.first_half = _RatePair(self.feature_names, alpha=alpha)
-        self.second_half = _RatePair(self.feature_names + HT_STATE_COLUMNS, alpha=alpha)
+        self.first_half = RatePair(self.feature_names, alpha=alpha)
+        self.second_half = RatePair(self.feature_names + HT_STATE_COLUMNS, alpha=alpha)
         self.rho_first = 0.0
         self.rho_second = 0.0
 
@@ -154,30 +219,32 @@ class ScorelineModel:
         self.rho_second = _fit_rho(h2_home, h2_away, mu2_home, mu2_away)
         return self
 
+    def _second_half_joint(self, x: pd.DataFrame, margin: int) -> np.ndarray:
+        """Second-half distribution given a hypothetical half-time margin.
+
+        Indexed (home goals, away goals, match). The half-time state fed to the model is
+        the enumerated one, never the match's own — that is what `--leak-check` proves.
+        """
+        n = len(x)
+        state = _ht_state_frame(x, np.full(n, float(margin)), np.full(n, float(-margin)))
+        mu2_home, mu2_away = self.second_half.rates(state)
+        pmf2_home, pmf2_away = _pmf_matrix(mu2_home), _pmf_matrix(mu2_away)
+
+        joint: np.ndarray = pmf2_home[:, None, :] * pmf2_away[None, :, :]
+        for gh in (0, 1):
+            for ga in (0, 1):
+                joint[gh, ga] *= dixon_coles_tau(gh, ga, mu2_home, mu2_away, self.rho_second)
+        return joint
+
     def predict(self, x: pd.DataFrame) -> pd.DataFrame:
         """Enumerate the joint scoreline distribution; return the derived quantities.
 
         Never reads the target match's own goals: the half-time state is enumerated,
         not observed.
         """
-        n = len(x)
         mu1_home, mu1_away = self.first_half.rates(x)
         pmf1_home, pmf1_away = _pmf_matrix(mu1_home), _pmf_matrix(mu1_away)
-
-        mass = np.zeros(n)
-        p_comeback = np.zeros(n)
-        p_total_le2 = np.zeros(n)
-        p_ft_draw = np.zeros(n)
-        # Structural audit: comeback mass arriving from scorelines under 3 goals.
-        # Must stay exactly zero — that is the mechanical floor being respected.
-        p_comeback_impossible = np.zeros(n)
-        p_by_total = np.zeros((4 * MAX_GOALS + 2, n))
-        cb_by_total = np.zeros((4 * MAX_GOALS + 2, n))
-
-        # Second-half grid geometry, fixed once: goal difference and total per cell.
-        grid = np.arange(MAX_GOALS + 1)
-        diff2 = grid[:, None] - grid[None, :]
-        total2 = grid[:, None] + grid[None, :]
+        totals = _Totals.zeros(len(x))
 
         for h1 in range(MAX_GOALS + 1):
             for a1 in range(MAX_GOALS + 1):
@@ -188,66 +255,24 @@ class ScorelineModel:
                 )
                 if not np.any(p_ht > 0):
                     continue
-                margin = h1 - a1
-                state = _ht_state_frame(x, np.full(n, float(margin)), np.full(n, float(-margin)))
-                mu2_home, mu2_away = self.second_half.rates(state)
-                pmf2_home, pmf2_away = _pmf_matrix(mu2_home), _pmf_matrix(mu2_away)
-
-                # Joint second-half distribution, (goals_home, goals_away, match).
-                joint = pmf2_home[:, None, :] * pmf2_away[None, :, :]
-                for gh in (0, 1):
-                    for ga in (0, 1):
-                        joint[gh, ga] *= dixon_coles_tau(
-                            gh, ga, mu2_home, mu2_away, self.rho_second
-                        )
-
-                mass += p_ht * joint.sum(axis=(0, 1))
-
-                # A comeback is the half-time leader losing; with the half-time margin
-                # fixed, that is a fixed region of the second-half grid.
-                if margin > 0:
-                    cb_mask = diff2 < -margin
-                elif margin < 0:
-                    cb_mask = diff2 > -margin
-                else:
-                    cb_mask = np.zeros_like(diff2, dtype=bool)
-
-                if cb_mask.any():
-                    p_comeback += p_ht * joint[cb_mask].sum(axis=0)
-                p_ft_draw += p_ht * joint[diff2 == -margin].sum(axis=0)
-
-                ht_total = h1 + a1
-                le2_mask = (total2 + ht_total) <= 2
-                if le2_mask.any():
-                    p_total_le2 += p_ht * joint[le2_mask].sum(axis=0)
-                    overlap = le2_mask & cb_mask
-                    if overlap.any():
-                        p_comeback_impossible += p_ht * joint[overlap].sum(axis=0)
-
-                for k in range(2 * MAX_GOALS + 1):
-                    band = total2 == k
-                    contribution = p_ht * joint[band].sum(axis=0)
-                    p_by_total[ht_total + k] += contribution
-                    both = band & cb_mask
-                    if both.any():
-                        cb_by_total[ht_total + k] += p_ht * joint[both].sum(axis=0)
+                totals.add(p_ht, self._second_half_joint(x, h1 - a1), h1, a1)
 
         out = pd.DataFrame(
             {
                 "match_id": x["match_id"].to_numpy(),
-                "p_comeback": p_comeback / mass,
-                "p_total_le2": p_total_le2 / mass,
-                "p_ft_draw": p_ft_draw / mass,
-                "mass": mass,
-                "p_comeback_impossible": p_comeback_impossible,
+                "p_comeback": totals.p_comeback / totals.mass,
+                "p_total_le2": totals.p_total_le2 / totals.mass,
+                "p_ft_draw": totals.p_ft_draw / totals.mass,
+                "mass": totals.mass,
+                "p_comeback_impossible": totals.p_comeback_impossible,
                 "mu1_home": mu1_home,
                 "mu1_away": mu1_away,
             },
             index=x.index,
         )
         # Diagnostics for the self-check's shape test, kept out of the columns.
-        out.attrs["p_by_total"] = p_by_total
-        out.attrs["cb_by_total"] = cb_by_total
+        out.attrs["p_by_total"] = totals.p_by_total
+        out.attrs["cb_by_total"] = totals.cb_by_total
         return out
 
 

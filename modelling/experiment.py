@@ -57,7 +57,10 @@ def log_loss(p: np.ndarray, y: np.ndarray) -> float:
 
 
 def wilson_ci(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:
-    """Wilson score interval — safe at small n / rare events. (from analysis.py)"""
+    """Wilson score interval — safe at small n / rare events.
+
+    Originally in `modelling/analysis.py`, which was deleted 2026-09-20.
+    """
     if n == 0:
         return (0.0, 0.0)
     p = successes / n
@@ -70,8 +73,8 @@ def wilson_ci(successes: int, n: int, z: float = 1.96) -> tuple[float, float]:
 def required_n(base_rate: float, target_rate: float) -> int:
     """Approx n to detect base_rate -> target_rate at 80% power, alpha .05 (Cohen's h).
 
-    Kept from the retired analysis.py: the rare-event power check HANDOFF S6 demands
-    before any claim that a gate "works" or "fails".
+    Kept from `modelling/analysis.py` (deleted 2026-09-20): the rare-event power check
+    HANDOFF S6 demands before any claim that a gate "works" or "fails".
     """
     h = 2 * math.asin(math.sqrt(target_rate)) - 2 * math.asin(math.sqrt(base_rate))
     if h == 0:

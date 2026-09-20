@@ -177,6 +177,40 @@ Established 2026-07-25, before modelling:
   the stored corpus**, failing all six league-seasons on this one column. That is the
   known defect described here, not new breakage; it clears when the detail files are
   re-scraped with the corrected parser.
+
+  **Update 2026-09-20 — the re-scrape is now known to be sufficient, and was not before.**
+  The 2026-07-25 entry recorded that the parser had been "verified working against live
+  pages", but never established what the widget means on a *past* match, which is the
+  case a re-scrape of 2023-26 actually depends on. Measured directly, three read-only
+  detail renders:
+
+  - current season (EPL 2026-27, round 4): `home_next_fixture_days=5`,
+    `away_next_fixture_days=3` — both columns populate, and the away column is no longer
+    carrying the home team's countdown;
+  - **the widget is match-anchored, not today-anchored**: an EPL 2025-26 round-10 match
+    (2025-11-01), re-rendered in September 2026, still reports 5 / 7 days, and its
+    `last1` dates precede its own kickoff. This is the same anchoring property HANDOFF §4
+    established for the history blocks, now confirmed for the fixture block;
+  - a season-final match correctly reports `None` for both, which is the true value and
+    stays far below the 95%-empty canary threshold.
+
+  Consequence: a detail re-scrape restores both columns as **valid pre-match features**,
+  clears the standing `qa.validate` exit-1, and un-quarantines the forward-looking half of
+  Family E. "Not worth it for this study" stands for *this* study — the F12 re-test is
+  closed and its record is fixed either way. It no longer applies to future work.
+
+  **Decision 2026-09-20 (user): do not re-scrape now. Leave the defect standing.** The
+  reasoning is that the fault is in the stored data only, the code is correct, and a
+  wider re-scrape is certain to happen anyway — so an hour of renders spent on this
+  corpus today buys nothing that the next scrape does not deliver for free. Until then:
+
+  - `uv run python -m qa.validate` **exits 1 by design**, on this one column, on all six
+    league-seasons. That is the expected state, not new breakage. Do not "fix" it in
+    `qa/` — the canary is working correctly and must keep failing until the data changes.
+  - `home_next_fixture_days` and `away_next_fixture_days` stay **unusable as features**.
+    Family E remains backward-looking only, exactly as this section already specifies.
+  - The defect clears on the next detail scrape with no code change. Re-verify by
+    running `qa.validate` afterwards and confirming a clean exit 0.
 - **`odds1x2_live_*` is cleared for use.** HANDOFF §5.1 warned these could be post-match
   in-play prices. Diagnostic over 2,058 matches: home-win Brier 0.2199 (initial) vs 0.2176
   (live), corr 0.963, mean implied shift 3.4pp — the signature of an ordinary pre-kickoff
@@ -275,3 +309,36 @@ bit-identical; `features.chain --replicate-f11` 8.8% predicted vs 9.0% observed.
 `data/*_enriched.csv`) refer to the same file one level deeper — `data/processed/` for
 enriched, `data/raw/` otherwise; the findings are unaffected. The holdout was **not**
 opened by this work.
+
+**A6 — 2026-09-20. Code hygiene: no statistical content.** `modelling/analysis.py` was
+deleted (self-marked SUPERSEDED on 2026-07-25, committed in `6643b1f`; its `wilson_ci`
+and `required_n` already live in `modelling/experiment.py`). Three functions over the
+cognitive-complexity threshold were refactored with no change of behaviour:
+`ScorelineModel.predict` (35) split into `_second_half_joint` and a `_Totals`
+accumulator with the grid geometry hoisted to module scope; `qa/league.py`'s
+`_check_round_index` (20) split into the four assertions its own docstring already
+enumerated; and `detail_parsers.py`'s `aggregate_form` / `_flatten_one` (16 each) now
+share one `_outcome` helper instead of two copies of the same W/D/L branch.
+
+**No feature definition, family list, bar, split, or measurement changed.** The scoreline
+model's predictions are **bit-identical** across the refactor, verified by hashing the
+seven output columns over all 1,773 post-burn-in matches before and after
+(sha256 `a154deb6c3e82798b03909191068adee20c4e55b15e230e2d91a7263a4751e6a`, unchanged).
+All offline gates reproduce their recorded numbers: `qa.validate` 12/12 base+joins PASS,
+the 6 detail subjects still FAIL on the §9 canary and the run still exits 1;
+`features.engine --self-check` 1,600 comparisons / 0 mismatches;
+`modelling.scoreline --self-check --leak-check` PASS; `features.chain --replicate-f11`
+max absolute error 2.1%, 8.8% predicted vs 9.0% observed. The holdout was **not** opened
+by this work.
+
+**A7 — 2026-09-20. Provenance: the holdout raw transcript is lost.**
+`modelling/experiment.py` writes its holdout transcript to
+`notes/results_holdout_raw.txt`, and `notes/RESULTS.md` §2 quotes it. That file is not in
+the repo and is not recoverable — the filter study's equivalent
+(`notes/filter_study_raw.txt`) survives, this one does not.
+
+**It must not be regenerated.** `--holdout` re-opens the 2025-26 season, and §2 permits
+exactly one opening; re-running it to recover a transcript would spend the protocol's
+scarcest resource on a bookkeeping repair. The figures quoted in `RESULTS.md` §2 stand as
+the record of that single run. Anyone re-deriving them is running a *second* opening and
+must say so.

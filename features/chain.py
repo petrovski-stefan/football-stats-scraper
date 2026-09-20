@@ -17,15 +17,14 @@ Run: `uv run python -m features.chain --replicate-f11` (validation gate for the 
 
 import argparse
 from itertools import pairwise
-from typing import Any
 
 import numpy as np
 import pandas as pd
 from scipy.stats import skellam
-from sklearn.linear_model import PoissonRegressor
 
 from features import engine
 from features.engine import CONTROLS, FAMILIES
+from features.ratepair import RatePair
 
 # --- Factor 2: the imported F11 completion model ------------------------------
 # Coefficients published in notes/LEAGUE_STUDY.md F11, fitted there on 9,195
@@ -83,33 +82,13 @@ def recover_intercept() -> float:
 # --- Factor 1: Poisson -> Skellam over half-time margins ----------------------
 
 
-class Factor1:
-    """Two Poisson regressions on first-half goals, one per side."""
-
-    def __init__(self, feature_names: list[str], alpha: float = 1.0):
-        self.feature_names = feature_names
-        self.home = PoissonRegressor(alpha=alpha, max_iter=1000)
-        self.away = PoissonRegressor(alpha=alpha, max_iter=1000)
-        self.means: pd.Series[Any] | None = None
-        self.stds: pd.Series[Any] | None = None
-
-    def _design(self, df: pd.DataFrame, fit: bool = False) -> np.ndarray:
-        x = df[self.feature_names].astype(float)
-        if fit:
-            self.means = x.mean()
-            self.stds = x.std().replace(0.0, 1.0)
-        assert self.means is not None and self.stds is not None
-        return ((x - self.means) / self.stds).fillna(0.0).to_numpy()
-
-    def fit(self, train: pd.DataFrame) -> "Factor1":
-        x = self._design(train, fit=True)
-        self.home.fit(x, train["ht_home_goals"].to_numpy())
-        self.away.fit(x, train["ht_away_goals"].to_numpy())
-        return self
-
-    def rates(self, df: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
-        x = self._design(df)
-        return self.home.predict(x), self.away.predict(x)
+def fit_factor1(train: pd.DataFrame, feature_names: list[str], alpha: float = 1.0) -> RatePair:
+    """Fit factor 1: a `RatePair` regressed on the two first-half goal columns."""
+    return RatePair(feature_names, alpha=alpha).fit(
+        train,
+        train["ht_home_goals"].to_numpy(),
+        train["ht_away_goals"].to_numpy(),
+    )
 
 
 def chain_probability(
@@ -160,7 +139,7 @@ def fit_predict(
     train: pd.DataFrame, test: pd.DataFrame, feature_names: list[str], alpha: float = 1.0
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Fit factor 1 on `train`, return (P(comeback), mu_home, mu_away) for `test`."""
-    model = Factor1(feature_names, alpha=alpha).fit(train)
+    model = fit_factor1(train, feature_names, alpha=alpha)
     mu_home, mu_away = model.rates(test)
     probability = chain_probability(
         mu_home,

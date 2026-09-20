@@ -45,13 +45,13 @@ def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     if len(cells) < 3:
         return None, None, None
     return (
-        parse_float(_text(cells[0])),
-        parse_float(_text(cells[1])),
-        parse_float(_text(cells[2])),
+        parse_float(tag_text(cells[0])),
+        parse_float(tag_text(cells[1])),
+        parse_float(tag_text(cells[2])),
     )
 
 
-def _attr(tag: Tag | None, name: str) -> str | None:
+def attr(tag: Tag | None, name: str) -> str | None:
     """Return a single-valued attribute as a str (bs4 attrs can be list-typed)."""
     if tag is None:
         return None
@@ -60,7 +60,7 @@ def _attr(tag: Tag | None, name: str) -> str | None:
 
 
 def _team_id_from_onclick(tag: Tag | None) -> int | None:
-    onclick = _attr(tag, "onclick")
+    onclick = attr(tag, "onclick")
     if onclick is None:
         return None
     match = _TEAM_ID_RE.search(onclick)
@@ -95,12 +95,12 @@ def parse_row_identity(row: Tag) -> dict[str, Any]:
     date_tag = row.select_one("span.date")
 
     return {
-        "match_id": (_attr(row, "matchid") or "").strip(),
-        "date": _attr(date_tag, "data-t") or _text(date_tag),
+        "match_id": (attr(row, "matchid") or "").strip(),
+        "date": attr(date_tag, "data-t") or tag_text(date_tag),
         "home_team_id": _team_id_from_onclick(home_tag),
         "away_team_id": _team_id_from_onclick(away_tag),
-        "home_team_name": clean_string(_text(home_tag)),
-        "away_team_name": clean_string(_text(away_tag)),
+        "home_team_name": clean_string(tag_text(home_tag)),
+        "away_team_name": clean_string(tag_text(away_tag)),
     }
 
 
@@ -111,8 +111,8 @@ def parse_schedulis_row(row: Tag, *, positions: dict[int, int]) -> dict[str, Any
     `match_index_in_round` / `matches_in_round` are *not* set here — they depend on the
     round's other rows and are attached by `scrapers/schedule.py`.
     """
-    ft_raw = _attr(row, "score") or _text(row.select_one("span.score"))
-    ht_raw = _text(row.select_one("span.ht"))
+    ft_raw = attr(row, "score") or tag_text(row.select_one("span.score"))
+    ht_raw = tag_text(row.select_one("span.ht"))
     ft = parse_score(ft_raw)
     ht = parse_score(ht_raw)
     if ft is None or ht is None:
@@ -140,5 +140,5 @@ def parse_schedulis_row(row: Tag, *, positions: dict[int, int]) -> dict[str, Any
     }
 
 
-def _text(tag: Tag | None) -> str:
+def tag_text(tag: Tag | None) -> str:
     return tag.get_text(strip=True) if tag is not None else ""

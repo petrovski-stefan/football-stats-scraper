@@ -28,12 +28,6 @@ def season_start_year(season: str) -> int | None:
     return int(match.group("start")) if match else None
 
 
-def is_cross_year_season(season: str) -> bool:
-    """Whether the label spans two calendar years ("2025-2026") or one ("2025")."""
-    match = _SEASON_RE.match(season.strip())
-    return match is not None and match.group("end") is not None
-
-
 def parse_match_datetime(raw: str) -> datetime | None:
     """Parse a `Match.date` string to a datetime, or None if it doesn't parse.
 

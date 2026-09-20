@@ -66,14 +66,9 @@ def _check_round_row_counts(r: Report, df: pd.DataFrame) -> None:
 def _check_round_index(r: Report, df: pd.DataFrame) -> None:
     """`match_index_in_round` is a real ordering of the round by kickoff time.
 
-    Four things, in increasing strength:
-      1. `matches_in_round` is constant within a round;
-      2. indices are unique and lie in 1..matches_in_round (0 means the scraper could
-         not place the match — see scrapers/schedule.py);
-      3. sorting by (kickoff, home, away) reproduces ascending index — the real test;
-      4. matches sharing a kickoff occupy a contiguous index block, which follows from
-         sorting on kickoff first and cross-checks the stored index against the tie
-         structure that `features/engine.py:round_position` derives independently.
+    Four assertions in increasing strength, one per `_round_size` / `_check_index_range`
+    / `_check_index_order` / `_check_tied_kickoff_blocks`. An index of 0 means the
+    scraper could not place the match — see scrapers/schedule.py.
 
     Indices are NOT required to be contiguous 1..N: a partially-played round is missing
     its unplayed matches and so legitimately has gaps.
@@ -87,43 +82,65 @@ def _check_round_index(r: Report, df: pd.DataFrame) -> None:
 
     partial: dict[str, str] = {}
     for key, g in _rounds(df.assign(_dt=dates)):
-        sizes = g["matches_in_round"].unique()
-        if len(sizes) != 1:
-            r.check(
-                False,
-                f"{_round_label(key)}: matches_in_round is not constant ({sizes.tolist()})",
-            )
+        label = _round_label(key)
+        total = _round_size(r, label, g)
+        if total is None:
             continue
-        total = int(sizes[0])
-        idx = g["match_index_in_round"]
 
-        if idx.duplicated().any():
-            r.check(False, f"{_round_label(key)}: duplicate match_index_in_round")
-        out_of_range = idx[(idx < 1) | (idx > total)]
-        if len(out_of_range):
-            r.check(False, f"{_round_label(key)}: {len(out_of_range)} index outside 1..{total}")
-
+        _check_index_range(r, label, g["match_index_in_round"], total)
         ordered = g.sort_values(["_dt", "home_team_name", "away_team_name"])
-        if not ordered["match_index_in_round"].is_monotonic_increasing:
-            r.check(
-                False,
-                f"{_round_label(key)}: index disagrees with (kickoff, home, away) order",
-            )
-
-        for kickoff, tied in ordered.groupby("_dt", dropna=False):
-            span = tied["match_index_in_round"]
-            if len(tied) > 1 and int(span.max()) - int(span.min()) + 1 != len(tied):
-                r.check(
-                    False,
-                    f"{_round_label(key)}: matches at {kickoff} do not occupy a contiguous "
-                    f"index block ({sorted(span.tolist())})",
-                )
+        _check_index_order(r, label, ordered)
+        _check_tied_kickoff_blocks(r, label, ordered)
 
         if len(g) < total:
-            partial[_round_label(key)] = f"{len(g)}/{total}"
+            partial[label] = f"{len(g)}/{total}"
 
     if partial:
         print(f"    (info) partially-played rounds (rows/scheduled): {partial}")
+
+
+def _round_size(r: Report, label: str, g: pd.DataFrame) -> int | None:
+    """Check 1: `matches_in_round` is constant within the round, and return it.
+
+    None means the round disagrees with itself, so the remaining checks have no
+    trustworthy denominator to run against.
+    """
+    sizes = g["matches_in_round"].unique()
+    if len(sizes) != 1:
+        r.check(False, f"{label}: matches_in_round is not constant ({sizes.tolist()})")
+        return None
+    return int(sizes[0])
+
+
+def _check_index_range(r: Report, label: str, idx: "pd.Series[Any]", total: int) -> None:
+    """Check 2: indices are unique and lie in 1..matches_in_round."""
+    if idx.duplicated().any():
+        r.check(False, f"{label}: duplicate match_index_in_round")
+    out_of_range = idx[(idx < 1) | (idx > total)]
+    if len(out_of_range):
+        r.check(False, f"{label}: {len(out_of_range)} index outside 1..{total}")
+
+
+def _check_index_order(r: Report, label: str, ordered: pd.DataFrame) -> None:
+    """Check 3 — the real test: (kickoff, home, away) order reproduces ascending index."""
+    if not ordered["match_index_in_round"].is_monotonic_increasing:
+        r.check(False, f"{label}: index disagrees with (kickoff, home, away) order")
+
+
+def _check_tied_kickoff_blocks(r: Report, label: str, ordered: pd.DataFrame) -> None:
+    """Check 4: matches sharing a kickoff occupy a contiguous index block.
+
+    Follows from sorting on kickoff first, and cross-checks the stored index against
+    the tie structure `features/engine.py:round_position` derives independently.
+    """
+    for kickoff, tied in ordered.groupby("_dt", dropna=False):
+        span = tied["match_index_in_round"]
+        if len(tied) > 1 and int(span.max()) - int(span.min()) + 1 != len(tied):
+            r.check(
+                False,
+                f"{label}: matches at {kickoff} do not occupy a contiguous "
+                f"index block ({sorted(span.tolist())})",
+            )
 
 
 def _check_score_sanity(r: Report, df: pd.DataFrame) -> None:

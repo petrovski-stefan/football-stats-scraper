@@ -31,7 +31,7 @@ from scrapers.constants import (
     HIST_TEAM_LINKS,
     PREFERRED_BOOKMAKER,
 )
-from scrapers.parsers import _attr, _text, parse_float, parse_score
+from scrapers.parsers import attr, parse_float, parse_score, tag_text
 
 _TEAM_ID_RE = re.compile(r"soccerDbPage\.team\((\d+)\)")
 _PCT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%")
@@ -41,8 +41,8 @@ _DAYS_RE = re.compile(r"(\d+)\s*Day")
 # --- history rows (recent form / H2H) ----------------------------------------
 def parse_history_row(row: Tag) -> dict[str, Any] | None:
     """Parse one v1/v2/v3 table row into a mini match-record. None if not a played match."""
-    ft_raw = _text(row.select_one(HIST_FT_SCORE))
-    ht_raw = _text(row.select_one(HIST_HT_SCORE)).strip("()")
+    ft_raw = tag_text(row.select_one(HIST_FT_SCORE))
+    ht_raw = tag_text(row.select_one(HIST_HT_SCORE)).strip("()")
     ft = parse_score(ft_raw)
     ht = parse_score(ht_raw)
     if ft is None or ht is None:
@@ -59,23 +59,23 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
     cells = row.find_all("td")
     league_td = cells[HIST_LEAGUE_TD] if len(cells) > HIST_LEAGUE_TD else None
     corner_ft, corner_ht = _parse_pair_cell(
-        _text(cells[HIST_CORNER_TD]) if len(cells) > HIST_CORNER_TD else ""
+        tag_text(cells[HIST_CORNER_TD]) if len(cells) > HIST_CORNER_TD else ""
     )
-    odds = [parse_float(_text(cells[i])) if len(cells) > i else None for i in HIST_ODDS_TDS]
+    odds = [parse_float(tag_text(cells[i])) if len(cells) > i else None for i in HIST_ODDS_TDS]
     date_tag = row.select_one(HIST_DATE)
     return {
         "home_id": home_id,
         "away_id": away_id,
-        "home_name": _text(links[0]),
-        "away_name": _text(links[1]),
+        "home_name": tag_text(links[0]),
+        "away_name": tag_text(links[1]),
         "ft_home": ft[0],
         "ft_away": ft[1],
         "ht_home": ht[0],
         "ht_away": ht[1],
         "ft_score": ft_raw,
         "ht_score": ht_raw,
-        "date": _attr(date_tag, "data-t") or "",
-        "league": (_attr(league_td, "title") or _text(league_td)) if league_td else "",
+        "date": attr(date_tag, "data-t") or "",
+        "league": (attr(league_td, "title") or tag_text(league_td)) if league_td else "",
         "odds_home": odds[0],
         "odds_draw": odds[1],
         "odds_away": odds[2],
@@ -93,12 +93,12 @@ def _parse_pair_cell(
     return parse_score(ft_part), parse_score(ht_part)
 
 
-def _rows_to_records(rows: list[Tag]) -> list[dict[str, Any]]:
+def rows_to_records(rows: list[Tag]) -> list[dict[str, Any]]:
     records = [parse_history_row(r) for r in rows]
     return [r for r in records if r is not None]
 
 
-def _subject_team_id(records: list[dict[str, Any]]) -> int | None:
+def subject_team_id(records: list[dict[str, Any]]) -> int | None:
     """The team common to (most of) the rows — the one whose form the table shows."""
     if not records:
         return None
@@ -107,6 +107,17 @@ def _subject_team_id(records: list[dict[str, Any]]) -> int | None:
         counter[r["home_id"]] += 1
         counter[r["away_id"]] += 1
     return counter.most_common(1)[0][0]
+
+
+def _outcome(goals_for: int, goals_against: int) -> str:
+    """W / D / L from one team's perspective.
+
+    Shared by the aggregate tally and the per-match blocks, which previously carried
+    two independent copies of this branch.
+    """
+    if goals_for > goals_against:
+        return "W"
+    return "D" if goals_for == goals_against else "L"
 
 
 def aggregate_form(
@@ -118,8 +129,9 @@ def aggregate_form(
     if n == 0 or subject_id is None:
         return _empty_form()
 
-    wins = draws = losses = gf = ga = over25 = btts = pts = 0
-    form_chars = []
+    tally: Counter[str] = Counter()
+    form_chars: list[str] = []
+    gf = ga = over25 = btts = pts = 0
     for r in recs:
         subject_home = r["home_id"] == subject_id
         sgf = r["ft_home"] if subject_home else r["ft_away"]
@@ -127,15 +139,9 @@ def aggregate_form(
         gf += sgf
         ga += sga
         pts += stats.points(sgf, sga)
-        if sgf > sga:
-            wins += 1
-            form_chars.append("W")
-        elif sgf == sga:
-            draws += 1
-            form_chars.append("D")
-        else:
-            losses += 1
-            form_chars.append("L")
+        outcome = _outcome(sgf, sga)
+        tally[outcome] += 1
+        form_chars.append(outcome)
         if stats.is_over(r["ft_home"] + r["ft_away"]):
             over25 += 1
         if stats.is_btts(r["ft_home"], r["ft_away"]):
@@ -143,9 +149,9 @@ def aggregate_form(
 
     return {
         "played": n,
-        "wins": wins,
-        "draws": draws,
-        "losses": losses,
+        "wins": tally["W"],
+        "draws": tally["D"],
+        "losses": tally["L"],
         "ppg": round(pts / n, 3),
         "gf_avg": round(gf / n, 3),
         "ga_avg": round(ga / n, 3),
@@ -187,7 +193,7 @@ def aggregate_recent(
 
 def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict[str, Any]:
     """Head-to-head aggregate features, oriented to the current home team."""
-    subject = subject_id if subject_id is not None else _subject_team_id(records)
+    subject = subject_id if subject_id is not None else subject_team_id(records)
     n = len(records)
     if n == 0 or subject is None:
         return {
@@ -240,6 +246,11 @@ def flatten_history(
     return out
 
 
+def _side_of(pair: tuple[int, int] | None, index: int) -> int | None:
+    """One side of a parsed `ft (ht)` corner cell, or None when the cell was absent."""
+    return pair[index] if pair else None
+
+
 def _flatten_one(
     record: dict[str, Any] | None, subject_id: int | None, prefix: str
 ) -> dict[str, Any]:
@@ -251,7 +262,7 @@ def _flatten_one(
     sga = record["ft_away"] if subject_home else record["ft_home"]
     total = record["ft_home"] + record["ft_away"]
     corner_ft = record["corner_ft"]
-    result = "W" if sgf > sga else ("D" if sgf == sga else "L")
+    result = _outcome(sgf, sga)
 
     values = {
         "date": record["date"],
@@ -276,10 +287,10 @@ def _flatten_one(
         "odds_home": record["odds_home"],
         "odds_draw": record["odds_draw"],
         "odds_away": record["odds_away"],
-        "corners_ft_home": corner_ft[0] if corner_ft else None,
-        "corners_ft_away": corner_ft[1] if corner_ft else None,
-        "corners_ht_home": record["corner_ht"][0] if record["corner_ht"] else None,
-        "corners_ht_away": record["corner_ht"][1] if record["corner_ht"] else None,
+        "corners_ft_home": _side_of(corner_ft, 0),
+        "corners_ft_away": _side_of(corner_ft, 1),
+        "corners_ht_home": _side_of(record["corner_ht"], 0),
+        "corners_ht_away": _side_of(record["corner_ht"], 1),
         "corners_total": (corner_ft[0] + corner_ft[1]) if corner_ft else None,
     }
     return {f"{prefix}{field}": values[field] for field in PER_MATCH_FIELDS}
@@ -339,7 +350,7 @@ def _bookmaker_initial_rows(table: Tag) -> list[tuple[str, Tag]]:
         if not tr.select(DETAIL_ODDS_1X2_CELLS):
             continue
         first = tr.find("td")
-        name = _text(first if isinstance(first, Tag) else None)
+        name = tag_text(first if isinstance(first, Tag) else None)
         if name and name not in ("Live", "In-Play"):
             out.append((name, tr))
     return out
@@ -349,7 +360,7 @@ def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
     cells = row.select(DETAIL_ODDS_1X2_CELLS)
     if len(cells) < 3:
         return None, None, None
-    vals = [parse_float(_attr(c, "data-o") or _text(c)) for c in cells[:3]]
+    vals = [parse_float(attr(c, "data-o") or tag_text(c)) for c in cells[:3]]
     return vals[0], vals[1], vals[2]
 
 
@@ -415,5 +426,5 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
 
 
 def _team_id(tag: Tag) -> int | None:
-    m = _TEAM_ID_RE.search(_attr(tag, "onclick") or "")
+    m = _TEAM_ID_RE.search(attr(tag, "onclick") or "")
     return int(m.group(1)) if m else None
