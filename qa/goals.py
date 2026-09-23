@@ -19,6 +19,7 @@ them. That asymmetry is reported rather than hidden.
 
 import pandas as pd
 
+from qa import universal
 from qa.report import Report
 
 MAX_MINUTE = 90  # regulation only; extra time is dropped at parse time
@@ -46,31 +47,11 @@ def validate(r: Report, goals: pd.DataFrame, done: pd.DataFrame, truth: pd.DataF
     history, whose score the detail page records. That second source is what makes the
     whole store checkable rather than just the ~20% that are corpus matches.
     """
-    _check_attempt_log(r, goals, done)
+    universal.check_attempt_log(r, goals, done, "n_goals")
     _check_columns(r, goals)
     _check_sequences(r, goals)
     _check_against_truth(r, goals, done, truth)
     _check_half_split(r, goals)
-
-
-def _check_attempt_log(r: Report, goals: pd.DataFrame, done: pd.DataFrame) -> None:
-    """The attempt log is the resume key, so it has to be exact."""
-    dupes = int(done["match_id"].duplicated().sum())
-    r.check(dupes == 0, f"{dupes} duplicate match_id in the attempt log (would re-scrape)")
-
-    logged = set(done["match_id"].astype(str))
-    orphans = set(goals["match_id"].astype(str)) - logged
-    r.check(not orphans, f"{len(orphans)} matches have goal rows but no attempt-log entry")
-
-    counted = goals.groupby(goals["match_id"].astype(str)).size().to_dict()
-    claimed = dict(
-        zip(done["match_id"].astype(str), [int(v) for v in done["n_goals"]], strict=True)
-    )
-    mismatched = [m for m, n in claimed.items() if int(counted.get(m, 0)) != n]
-    r.check(
-        not mismatched,
-        f"{len(mismatched)} matches where the attempt log's n_goals disagrees with the rows",
-    )
 
 
 def _check_columns(r: Report, goals: pd.DataFrame) -> None:

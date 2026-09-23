@@ -21,6 +21,7 @@ import pandas as pd
 
 from domain import paths
 from domain.columns import DETAIL_ORDERED_COLUMNS
+from features import events as event_features
 from features import goals as goal_features
 
 logging.basicConfig(
@@ -54,10 +55,10 @@ def build_enriched(base_path: str) -> str | None:
     feature_cols = [c for c in DETAIL_ORDERED_COLUMNS if c != "match_id"]
     columns = list(base.columns) + feature_cols
 
-    timing = _goal_timing_features(merged)
-    if timing is not None:
-        merged = pd.concat([merged, timing], axis=1)
-        columns += list(timing.columns)
+    for extra in (_goal_timing_features(merged), _event_features(merged)):
+        if extra is not None:
+            merged = pd.concat([merged, extra], axis=1)
+            columns += list(extra.columns)
 
     enriched_path = paths.enriched_path(base_path)
     os.makedirs(paths.PROCESSED_DIR, exist_ok=True)
@@ -89,6 +90,29 @@ def _goal_timing_features(merged: pd.DataFrame) -> pd.DataFrame | None:
         covered * 100,
     )
     return timing
+
+
+def _event_features(merged: pd.DataFrame) -> pd.DataFrame | None:
+    """Card and substitution aggregates, or None when events have not been scraped yet.
+
+    Same contract as `_goal_timing_features`: an absent store yields no columns rather
+    than a block of NaNs, so the enriched file's column set stays honest about what has
+    actually been collected.
+    """
+    store_path = paths.events_path()
+    if not os.path.exists(store_path):
+        return None
+    store = event_features.load_store(store_path)
+    if not store:
+        return None
+    built = event_features.build(merged, store)
+    covered = built["home_events_seen"].gt(0).mean()
+    logger.info(
+        "  events: %d matches in the store, %.0f%% of rows have home history",
+        len(store),
+        covered * 100,
+    )
+    return built
 
 
 def build_all() -> None:

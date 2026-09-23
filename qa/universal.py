@@ -93,3 +93,34 @@ def check_ids_covered(
     """Every id in `expected` appears in `actual` — join/coverage completeness."""
     missing = set(expected) - set(actual)
     r.check(not missing, f"{len(missing)} ids missing from {subject}")
+
+
+def check_attempt_log(r: Report, rows: pd.DataFrame, done: pd.DataFrame, count_field: str) -> None:
+    """A global store and its attempt log agree, in all three ways they can disagree.
+
+    Both `data/raw/goals.csv` and `data/raw/events.csv` are append-only stores whose resume
+    key is a separate log, because a match can legitimately produce zero rows — a 0-0 has
+    no goals, a clean match has no cards. That makes the log load-bearing: if it drifts
+    from the store, either work is silently repeated forever or rows are orphaned.
+
+    The three failures, in increasing subtlety: a duplicated id (the match is re-scraped
+    every run), a store row with no log entry (written outside the lock, or a crash between
+    the two appends), and a log entry whose claimed count disagrees with the rows actually
+    present (a partial write).
+    """
+    dupes = int(done["match_id"].duplicated().sum())
+    r.check(dupes == 0, f"{dupes} duplicate match_id in the attempt log (would re-scrape)")
+
+    logged = set(done["match_id"].astype(str))
+    orphans = set(rows["match_id"].astype(str)) - logged
+    r.check(not orphans, f"{len(orphans)} matches have rows but no attempt-log entry")
+
+    counted = rows.groupby(rows["match_id"].astype(str)).size().to_dict()
+    claimed = dict(
+        zip(done["match_id"].astype(str), [int(v) for v in done[count_field]], strict=True)
+    )
+    mismatched = [m for m, n in claimed.items() if int(counted.get(m, 0)) != n]
+    r.check(
+        not mismatched,
+        f"{len(mismatched)} matches where the attempt log's {count_field} disagrees with the rows",
+    )

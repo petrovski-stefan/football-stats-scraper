@@ -37,10 +37,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from domain import scope
 from domain.columns import MATCHES_PER_SECTION
+from features import history
 
-SECTIONS = ("home", "away", "h2h")
 # A goal at or after this minute is "late". 75 is HANDOFF S9's proposed cutoff.
 LATE_MINUTE = 75
 # The run-up to half-time: goals here create the deficit a comeback must overturn.
@@ -77,14 +76,12 @@ Goals = list[tuple[int, int, str]]
 
 def feature_names() -> list[str]:
     """The numeric aggregate columns, in order."""
-    return [f"{section}_{suffix}" for section in SECTIONS for suffix in FEATURE_SUFFIXES]
+    return history.feature_names(FEATURE_SUFFIXES)
 
 
 def timeline_names(depth: int = MATCHES_PER_SECTION) -> list[str]:
     """The per-history-match timeline columns, in order."""
-    return [
-        f"{section}_last{n}_{TIMELINE_FIELD}" for section in SECTIONS for n in range(1, depth + 1)
-    ]
+    return history.timeline_names(TIMELINE_FIELD, depth)
 
 
 def load_store(goals_path: str) -> dict[str, Goals]:
@@ -113,33 +110,15 @@ def build(
     depth: int = MATCHES_PER_SECTION,
 ) -> pd.DataFrame:
     """One row per fixture: the aggregates for all three sections, plus every timeline."""
-    built: dict[str, Any] = {}
-    for section in SECTIONS:
-        built.update(_section_columns(detail, store, section, depth))
-    return pd.DataFrame(built, index=detail.index)
-
-
-def _section_columns(
-    detail: pd.DataFrame, store: dict[str, Goals], section: str, depth: int
-) -> dict[str, Any]:
-    """One section's columns: its aggregates, then one timeline per history match.
-
-    Both are read off the same `per_row` resolution, which is what guarantees a timeline
-    is non-empty exactly when that match contributed to the aggregate beside it.
-    """
-    per_row = [
-        [_usable_goals(detail, store, f"{section}_last{n}_", row) for n in range(1, depth + 1)]
-        for row in range(len(detail))
-    ]
-    stats = [_rates(blocks) for blocks in per_row]
-    columns: dict[str, Any] = {
-        f"{section}_{suffix}": [s[suffix] for s in stats] for suffix in FEATURE_SUFFIXES
-    }
-    for n in range(1, depth + 1):
-        columns[f"{section}_last{n}_{TIMELINE_FIELD}"] = [
-            _timeline(blocks[n - 1]) for blocks in per_row
-        ]
-    return columns
+    return history.build_frame(
+        detail,
+        depth,
+        FEATURE_SUFFIXES,
+        TIMELINE_FIELD,
+        lambda prefix, row: _usable_goals(detail, store, prefix, row),
+        _rates,
+        _timeline,
+    )
 
 
 def _usable_goals(
@@ -154,21 +133,16 @@ def _usable_goals(
     where two of four goals were found reports a late-goal rate computed from half the
     evidence, which is a wrong number rather than a missing one.
     """
-    match_id = _cell(detail, f"{prefix}match_id", row)
-    if not match_id or match_id not in store:
+    match_id = history.match_key(detail, prefix, row)
+    if match_id is None or match_id not in store:
         return None
-    if not scope.in_scope(
-        _cell(detail, f"{prefix}league", row), _cell(detail, f"{prefix}date", row)
-    ):
-        return None
-    subject_home = _cell(detail, f"{prefix}is_home", row)
-    if subject_home == "":
+    is_home = history.subject_is_home(detail, prefix, row)
+    if is_home is None:
         return None
 
     goals = store[match_id]
     if not _reconciles(detail, prefix, row, goals):
         return None
-    is_home = subject_home.lower() in ("true", "1", "1.0")
     return [
         (minute, stoppage, "GF" if (side == "home") == is_home else "GA")
         for minute, stoppage, side in goals
@@ -181,8 +155,8 @@ def _reconciles(detail: pd.DataFrame, prefix: str, row: int, goals: Goals) -> bo
     True when the page gives no score to check against, so an unknown score is treated as
     usable rather than silently dropping every match.
     """
-    home = _cell(detail, f"{prefix}ft_home_goals", row)
-    away = _cell(detail, f"{prefix}ft_away_goals", row)
+    home = history.cell(detail, f"{prefix}ft_home_goals", row)
+    away = history.cell(detail, f"{prefix}ft_away_goals", row)
     if home == "" or away == "":
         return True
     counted_home = sum(1 for _, _, side in goals if side == "home")
@@ -234,14 +208,3 @@ def _share(minutes: list[int], predicate: Any) -> float:
     if not minutes:
         return float("nan")
     return float(sum(1 for m in minutes if predicate(m)) / len(minutes))
-
-
-def _cell(frame: pd.DataFrame, column: str, row: int) -> str:
-    """A history-block cell as a clean string; "" when the column or value is absent."""
-    if column not in frame.columns:
-        return ""
-    value = frame[column].iloc[row]
-    if value is None or pd.isna(value):
-        return ""
-    text = str(value).strip()
-    return text[:-2] if text.endswith(".0") else text

@@ -21,6 +21,7 @@ import pandas as pd
 from domain import paths
 from domain.columns import (
     DETAIL_ORDERED_COLUMNS,
+    EVENTS_ORDERED_COLUMNS,
     GOALS_ORDERED_COLUMNS,
     MATCHES_PER_SECTION,
     OPTIONAL_BASE_COLUMNS,
@@ -28,6 +29,7 @@ from domain.columns import (
     PER_MATCH_SECTIONS,
 )
 from qa import detail as detail_checks
+from qa import events as event_checks
 from qa import goals as goal_checks
 from qa import league as league_checks
 from qa import universal
@@ -109,6 +111,29 @@ def validate_goals() -> bool | None:
     return r.flush()
 
 
+def validate_events() -> bool | None:
+    """Validate the global card/substitution store — once, across every league-season.
+
+    Returns None when nothing has been scraped yet. Unlike the goal store this one has no
+    independent score to reconcile against, so `qa/events.py` checks structure and rate
+    bands instead; that asymmetry is stated there rather than hidden.
+    """
+    events_path, done_path = paths.events_path(), paths.events_done_path()
+    if not os.path.exists(done_path):
+        return None
+
+    events = (
+        pd.read_csv(events_path)
+        if os.path.exists(events_path)
+        else pd.DataFrame(columns=EVENTS_ORDERED_COLUMNS)
+    )
+    done = pd.read_csv(done_path)
+
+    r = Report("cards and substitutions (global store)")
+    event_checks.validate(r, events, done)
+    return r.flush()
+
+
 SCORE_COLUMNS = ["match_id", "ht_home_goals", "ht_away_goals", "ft_home_goals", "ft_away_goals"]
 
 
@@ -166,7 +191,11 @@ def main() -> None:
     if goals_ok is None:
         print("goal timings: not scraped yet (skipped)")
 
-    if failed or goals_ok is False:
+    events_ok = validate_events()
+    if events_ok is None:
+        print("cards and substitutions: not scraped yet (skipped)")
+
+    if failed or goals_ok is False or events_ok is False:
         raise SystemExit(1)
 
 

@@ -20,12 +20,10 @@ later question like "do penalties behave differently?" does not need a re-scrape
 import re
 from typing import Any
 
-from bs4 import BeautifulSoup, Tag
+from bs4 import BeautifulSoup
 
-from scrapers.constants import LIVE_EVENT_ICON, LIVE_EVENT_MINUTE, LIVE_EVENT_ROW
+from scrapers import live_rows
 
-# "33'", "45+3'", "90+8'" -> (base minute, stoppage)
-MINUTE_RE = re.compile(r"^\s*(\d{1,3})(?:\+(\d{1,2}))?'\s*$")
 # The running score after the goal, e.g. "0 - 2".
 SCORE_RE = re.compile(r"(\d{1,2})\s*-\s*(\d{1,2})")
 # Regulation only. Cup ties in a team's history go to extra time, and nowgoal's event list
@@ -96,28 +94,19 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
     """Rows that carry both a minute and a running score — i.e. the goals."""
     out: list[dict[str, Any]] = []
-    seen: set[int] = set()
-    for cell in soup.select(LIVE_EVENT_MINUTE):
-        minute = MINUTE_RE.match(cell.get_text(strip=True))
-        if minute is None:
-            continue
-        row = cell.find_parent(LIVE_EVENT_ROW)
-        if row is None or id(row) in seen:
-            continue
-        seen.add(id(row))
-        score = SCORE_RE.search(row.get_text(" ", strip=True))
+    for row in live_rows.iter_rows(soup):
+        score = SCORE_RE.search(row.text)
         if score is None:
             continue  # a card, a substitution, or a VAR annotation
-        base, stoppage = int(minute.group(1)), int(minute.group(2) or 0)
-        if base > MAX_MINUTE or stoppage > MAX_STOPPAGE:
+        if row.minute > MAX_MINUTE or row.stoppage > MAX_STOPPAGE:
             continue
         out.append(
             {
-                "minute": base,
-                "stoppage": stoppage,
+                "minute": row.minute,
+                "stoppage": row.stoppage,
                 "home_score_after": int(score.group(1)),
                 "away_score_after": int(score.group(2)),
-                "kind": _kind(row),
+                "kind": row.kind,
             }
         )
     return out
@@ -130,12 +119,3 @@ def _side_that_scored(home: int, away: int, new_home: int, new_away: int) -> str
     if new_away == away + 1 and new_home == home:
         return "away"
     return None
-
-
-def _kind(row: Tag) -> str:
-    """The event's own label, from the icon's `alt` — "Goal", "Penalty Scored", ..."""
-    for icon in row.select(LIVE_EVENT_ICON):
-        alt = icon.get("alt")
-        if isinstance(alt, str) and alt.strip():
-            return alt.strip()
-    return ""

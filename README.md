@@ -14,7 +14,7 @@ A web scraper that collects football match data across multiple leagues — incl
    - Stage, round, date, and match position in the round
 5. Validates data with Pydantic and saves per-league CSV files to `data/raw/`
 6. Enriches each match from its detail page (recent form, H2H, odds movement) into `data/raw/`
-7. Scrapes goal timings from each match's live page into one global `data/raw/goals.csv`
+7. Scrapes each match's live page into two global stores — `data/raw/goals.csv` (goal timings) and `data/raw/events.csv` (yellow cards, red cards, substitutions)
 8. Joins them into `data/processed/` for the feature and modelling layers
 
 ## Tech stack
@@ -25,7 +25,7 @@ A web scraper that collects football match data across multiple leagues — incl
 | BeautifulSoup4 | HTML parsing |
 | Pandas | CSV output |
 | Pydantic | Match data validation |
-| ThreadPoolExecutor | Concurrent detail-page scraping (4 workers, one browser each) |
+| ThreadPoolExecutor | Concurrent page scraping (4 workers, one browser each) |
 | `uv` | Dependency management |
 
 ## Project structure
@@ -41,8 +41,8 @@ Five packages, imported absolutely and strictly one-directional:
 │   ├── raw/              # Scraper output only — nothing else writes here
 │   └── processed/        # Derived files, all reproducible from data/raw/
 ├── domain/               # Pydantic contracts, column order, paths, pure stat kernel
-├── scrapers/             # Selenium driver, DOM parsers, schedule + detail + goal scrapes
-├── features/             # The base+detail join, then the as-of-round feature matrix
+├── scrapers/             # Selenium driver, DOM parsers, schedule/detail/live-page scrapes
+├── features/             # The joins, goal/event aggregates, as-of-round feature matrix
 ├── modelling/            # Experiments: scoreline model, feature screens, filter study
 ├── qa/                   # Corpus validator
 └── notes/                # Study records, preregistrations, findings
@@ -68,14 +68,16 @@ Add league URLs (one per line) to `config/LEAGUES.txt`, then run the four stages
 ```bash
 uv run python -m scrapers.schedule   # -> data/raw/<league>_<season>.csv
 uv run python -m scrapers.detail     # -> data/raw/<league>_<season>_detail.csv
-uv run python -m scrapers.goals      # -> data/raw/goals.csv        (global, not per league)
+uv run python -m scrapers.goals      # -> data/raw/goals.csv + events.csv (global, not per league)
 uv run python -m features.enrich     # -> data/processed/<league>_<season>_enriched.csv
 ```
 
 Both scrapes are resumable — they skip ids already done, so interrupt them freely. Detail
-is ~1 page render per match (~380 a season). Goals is heavier: its work list is the corpus
-*plus* every match referenced by a detail row's history blocks, deduplicated by match id
-before anything is fetched, which is why its store is global rather than per league-season.
+is ~1 page render per match (~380 a season). The live-page scrape is heavier: its work list
+is the corpus *plus* every match referenced by a detail row's history blocks, deduplicated
+by match id before anything is fetched, which is why its stores are global rather than per
+league-season. One render fills both stores.
+
 `features.enrich` needs no browser and can be re-run at any time.
 
 Then check the result:

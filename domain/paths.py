@@ -39,10 +39,13 @@ ENRICHED_SUFFIX = "_enriched.csv"
 # them. The key is the nowgoal match id, which is globally unique.
 GOALS_FILE = "goals.csv"
 GOALS_DONE_FILE = "goals_done.csv"
+# Cards and substitutions, from the same live page and global for the same reason.
+EVENTS_FILE = "events.csv"
+EVENTS_DONE_FILE = "events_done.csv"
 # Files in data/raw/ that are NOT a league-season. `base_league_csvs()` must skip these,
 # or everything that iterates league-seasons — the validator, the enricher, the goals
 # work list — picks them up and tries to treat a global store as a league.
-GLOBAL_FILES = frozenset({GOALS_FILE, GOALS_DONE_FILE})
+GLOBAL_FILES = frozenset({GOALS_FILE, GOALS_DONE_FILE, EVENTS_FILE, EVENTS_DONE_FILE})
 
 
 # `<league>_<season>`, where season is "2025-2026" or "2025". Greedy `.+` so the split
@@ -115,6 +118,22 @@ def goals_done_path() -> str:
     cannot say whether a match has been scraped.
     """
     return os.path.join(RAW_DIR, GOALS_DONE_FILE)
+
+
+def events_path() -> str:
+    """The global card/substitution store. One row per event, keyed by match id."""
+    return os.path.join(RAW_DIR, EVENTS_FILE)
+
+
+def events_done_path() -> str:
+    """The attempt log beside it.
+
+    Separate from `goals_done_path()` on purpose: the two stores are filled by the same
+    page render but were introduced at different times, so a match can be done for goals
+    and pending for events. Keeping the logs apart is what lets the scraper fetch such a
+    match once, write only the store that is missing, and never re-fetch it again.
+    """
+    return os.path.join(RAW_DIR, EVENTS_DONE_FILE)
 
 
 def enriched_csvs() -> list[str]:

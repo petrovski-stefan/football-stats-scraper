@@ -226,3 +226,25 @@ GOALS_ORDERED_COLUMNS = [
 # scraped?" cannot be answered from that file alone — without this, every 0-0 would be
 # re-scraped on every run, forever.
 GOALS_DONE_COLUMNS = ["match_id", "scraped_at", "n_goals"]
+
+
+# --- Cards and substitutions (data/raw/events.csv, data/raw/events_done.csv) --
+# Global and keyed by match id for the same reason the goal store is: the events wanted
+# are those of the matches in a fixture's history, which span competitions. `player` and
+# `player_off` are stored because they are what makes de-duplication exact when a page
+# renders its event list twice -- see domain/event.py.
+EVENTS_ORDERED_COLUMNS = [
+    "match_id",
+    "league_id",
+    "event_index",
+    "minute",
+    "stoppage",
+    "side",
+    "kind",
+    "player",
+    "player_off",
+]
+
+# The attempt log. A match with no cards and no substitutions yields no rows, so the same
+# argument that gives goals a separate log applies here.
+EVENTS_DONE_COLUMNS = ["match_id", "scraped_at", "n_events"]

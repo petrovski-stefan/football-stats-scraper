@@ -26,6 +26,7 @@ import pandas as pd
 
 from domain import paths, scope
 from domain.columns import MATCHES_PER_SECTION
+from features import events as event_features
 from features import goals as goal_features
 
 # Literal season labels, fixed by PREREGISTRATION.md §2. Only cross-year labels appear
@@ -123,6 +124,14 @@ MARKET_LINE_FEATURES = ["ou_line", "implied_over", "ah_line", "abs_ah_line", "im
 # feature is added there. Timelines are deliberately excluded: they are strings for
 # analysis, not numeric model inputs.
 GOAL_TIMING_FEATURES = goal_features.feature_names()
+
+# --- Cards and substitutions (captured from 2026-09-23) ----------------------
+# Same standing again: exploratory, outside the closed families, built by features/
+# events.py and joined in by features/enrich.py. `reds_against_rate` is the only one with
+# a comeback mechanism behind it (playing ten men wins matches you were losing) and it is
+# also the sparsest -- 0.05 red cards per match means a five-match window usually reads
+# zero. Timelines excluded here for the same reason as the goal ones: strings, not inputs.
+EVENT_FEATURES = event_features.feature_names()
 
 
 def filter_feature_names() -> list[str]:
@@ -454,7 +463,7 @@ def _goal_timings(df: pd.DataFrame) -> dict[str, Any]:
     """
     return {
         name: df[name] if name in df.columns else pd.Series(np.nan, index=df.index)
-        for name in GOAL_TIMING_FEATURES
+        for name in GOAL_TIMING_FEATURES + EVENT_FEATURES
     }
 
 
@@ -534,6 +543,7 @@ def build_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
         + filter_feature_names()
         + MARKET_LINE_FEATURES
         + GOAL_TIMING_FEATURES
+        + EVENT_FEATURES
     )
     keep_raw = [c for c in wanted if c not in engineered.columns]
     full = pd.concat([df[keep_raw], engineered], axis=1)
@@ -642,6 +652,10 @@ def summarize(df: pd.DataFrame) -> None:
 
     print("\n  goal timings (exploratory, outside the closed families):")
     for name in GOAL_TIMING_FEATURES:
+        print(f"    {name:26s} fill={usable[name].notna().mean():.0%}")
+
+    print("\n  cards and substitutions (exploratory, outside the closed families):")
+    for name in EVENT_FEATURES:
         print(f"    {name:26s} fill={usable[name].notna().mean():.0%}")
 
     print("\n  controls:")
