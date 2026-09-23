@@ -2,7 +2,7 @@
 
 **Run 2026-07-25.** Preregistration: `notes/PREREGISTRATION_FILTER.md` (two amendments,
 both logged before any filter result was produced). Raw transcript:
-`notes/filter_study_raw.txt`. Reproduce with `uv run python -m modelling.filter_study --bar`.
+`notes/FILTER_STUDY_RAW.md`. Reproduce with `uv run python -m modelling.filter_study --bar`.
 
 ## Verdict
 

@@ -15,8 +15,10 @@ measurements re-prioritise).
 
 ## 1. Why this was measured
 
-`PLAN_2026-07-25` §2 decided to **collect the Over/Under line** and justified a 6–10 hour
-25-league scrape on the reasoning in its "Honest expectation":
+`PLAN_2026-07-25` decided to **collect the Over/Under line** and justified a 6–10 hour
+25-league scrape on the reasoning in its "Honest expectation". Quoting that document as it
+stood on 2026-07-25 (the O/U item was removed from it on 2026-09-23, once the line was
+actually being collected):
 
 > Three things could move it, in descending plausibility: **the O/U line** (the market
 > prices the goal environment better than our features do), **sample size** (25,000 matches
@@ -95,7 +97,7 @@ promote it, the protocol in `PREREGISTRATION.md` requires:
 - a **closed feature list** fixed in writing before fitting (candidates: vig-free
   `p_over` opening, `|AHh|`, and the vig-free 1X2 draw price — nothing else);
 - **leave-one-league-out** in addition to walk-forward, since the claim is that the ranking
-  generalises across leagues — `PLAN_2026-07-25` §3 requires both splits;
+  generalises across leagues — `PLAN_2026-07-25` Phase 2 requires both splits;
 - **one opening of the 2025-26 holdout**, which §2 above deliberately preserved;
 - Holm correction across whatever family count the preregistration declares.
 
@@ -153,10 +155,9 @@ none of which were used here.
 hypothesis. §3 above inverts that: the hypothesis has been provisionally validated without
 scraping anything, so the scrape's purpose changes.
 
-- **Phase 1 (collect the O/U line) is still required** — but as a nowgoal capability, since
-  the ~30 unsurveyed countries have no football-data equivalent. It is now backed by a
-  measured reason rather than a hypothesis.
-- **Phase 3's study should be preregistered and run per §4 before the scrape**, not after.
+- **Collecting the O/U line was the first consequence** — needed as a nowgoal capability,
+  since the ~30 unsurveyed countries have no football-data equivalent. Built 2026-09-23.
+- **The preregistered study should be run per §4 before the scrape**, not after.
   A confirmatory pass needs a re-fetch (§5) and costs hours, not the 6–10 hour scrape.
 - **The scrape's remaining unique value is coverage**: whether a market-line ranking that
   works across 22 divisions in 11 countries still works in the unsurveyed ~30, which is the

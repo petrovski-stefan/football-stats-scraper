@@ -1,18 +1,18 @@
 # PLAN — the next direction, captured before it was lost
 
-**Written 2026-09-20. Status: PARKED — nothing scraped, nothing implemented.**
-Captured at the end of a session in which the project's direction changed. Three ideas.
-Each carries the measurements already made, so none of them has to be re-derived.
+**Written 2026-09-20. Trimmed 2026-09-23: the goal-timing scrape and the Over/Under line
+were both built, so their sections were removed. What remains is what is still open or
+still a finding.**
 
-Status by idea: **§1 goal timings — scoped, deferred to the next bulk scrape.**
-**§2 out-of-round — disambiguated, tested, refuted.** **§3 O/U line — recommended, not
-decided.** The one question still open across the whole document is the picks-per-week
-number in §3.
+Status: **§1 out-of-round — disambiguated, tested, refuted.** **§2 prospective gut log —
+recommended, not decided.** The one question still open across the whole document is the
+picks-per-week number in §2.
 
 Companions: `notes/BEHAVIOURAL_RESULTS.md`, `notes/FILTER_RESULTS.md`, `notes/RESULTS.md`,
-`notes/MARKET_LINE_FINDINGS.md`, `notes/PLAN_2026-07-25_environment_filter.md`, and the
-user's own `Proprietary_Filter_Explanation_v2.md` (kept outside the repo, on the Desktop;
-written ~March 2026, not updated since).
+`notes/MARKET_LINE_FINDINGS.md`, `notes/PLAN_2026-07-25_environment_filter.md`,
+`notes/RETRY_CANDIDATES_2026-09-23.md`, and the user's own
+`Proprietary_Filter_Explanation_v2.md` (kept outside the repo, on the Desktop; written
+~March 2026, not updated since).
 
 ---
 
@@ -21,101 +21,13 @@ written ~March 2026, not updated since).
 Target is still **comeback**, still **pre-match only**. Every articulated feature tested
 so far measures at roughly 1.0x lift: six nowgoal families (`RESULTS.md`), the exclusion
 filter (`FILTER_RESULTS.md`), the behavioural candidate rule (`BEHAVIOURAL_RESULTS.md`,
-0.88x), and four more claims tested today (§4 below, all dead after Holm). The one thing
-that has ever beaten the base rate is the **bookmaker's Over/Under 2.5 line**
-(`MARKET_LINE_FINDINGS.md`, exploratory), and the pipeline still does not collect it.
+0.88x), and four more claims tested on 2026-09-20 (§3 below, all dead after Holm). The one
+thing that has ever beaten the base rate is the **bookmaker's Over/Under 2.5 line**
+(`MARKET_LINE_FINDINGS.md`, exploratory).
 
 ---
 
-## 1. Idea 1 — scrape goal timings
-
-**Status: verified scrapeable, not designed, not built.**
-
-### What was verified on 2026-09-20 (read-only, 3 page renders)
-
-Goal minutes are **not** on the h2h detail page the pipeline already scrapes. They are on
-a different URL: `https://live10.nowgoal26.com/match/live-<match_id>`.
-
-Rendered event rows, sample (Brighton 0-3 Man Utd, match 2789499):
-
-```
-33'  0 - 1  P.Dorgu       (Assist: Fernandes B.)     img 1.png  = goal
-44'  0 - 2  Mbeumo B.     (Assist: Diallo A.)
-48'  0 - 3  Fernandes B.  (Assist: P.Dorgu)
-45+2'       Mainoo K.                                img 3.png  = yellow card
-50'         P.Dorgu (Goal awarded)                   img 14.png
-```
-
-Structure: minute lives in `b.score` inside a `td`, inside a `tr` of a three-column table
-(home cell | minute | away cell). Available per event:
-
-- **minute, including stoppage time** (`45+2'`);
-- **the running score** (`0 - 1`, `0 - 2`) — which identifies the scoring side with no
-  ambiguity, and is more robust than reading the left/right column position;
-- scorer and assist;
-- event kind by icon filename: `1.png` goal, `3.png` yellow, `4/5/11.png` substitution,
-  `14.png` goal awarded. **Not yet confirmed:** penalty, own goal, red card, VAR
-  disallowed.
-
-**Cost: +1 page render per match**, on top of the existing detail render. Re-scraping the
-current 2,058-match corpus is roughly another hour at `WORKERS = 4`.
-
-### Proposed storage (not agreed)
-
-A new **long-format** file, one row per goal — *not* new columns on the 501-column detail
-CSV:
-
-```
-data/raw/<league>_<season>_goals.csv
-match_id, minute, stoppage, side, home_score_after, away_score_after, scorer, assist, kind
-```
-
-Rationale: a 7-goal match is 7 rows rather than 40 mostly-empty columns; it respects the
-`scrapers/` writes raw, `features/` derives split; and it gives `qa/` a real cross-file
-check it currently lacks — goals in the file must reconcile to `ft_home_goals` /
-`ft_away_goals` in the base CSV.
-
-Derived per-match and rolling as-of-round features would then live in
-`features/engine.py` alongside the existing ones.
-
-### Honest prior
-
-Goal timing is **genuinely untested** — it is in no graveyard. football-data.co.uk has no
-minutes, so `LEAGUE_STUDY` never saw it, and it was not among the six families in
-`RESULTS.md`. `HANDOFF` §9 item 7 listed it as a nice-to-have and nobody ever did it.
-
-But it is the *next* team-trait feature after the one that just died.
-`BEHAVIOURAL_RESULTS` used half-splits and scored corr **+0.004** against HT-decisive.
-What timing buys that nothing else does: **within-half resolution** (a team that concedes
-in minutes 40-45 specifically manufactures half-time deficits) and **lead-survival
-hazards**, which `ESOTERIC_MODELS.md` flags as an unused tool. That is a different
-construct from "2H goal-difference average", which died as family B.
-
-### Answered by the user, 2026-09-20 (same evening)
-
-1. **What to capture: minute + which team's score incremented. Nothing else.** Own goals
-   are attributed to the team whose score went up, exactly as the running score shows it.
-   No scorer, no assist, no event taxonomy. This simplifies the scrape substantially — the
-   running-score column alone carries both facts, so parsing reduces to reading the
-   `b.score` minute and the `N - M` score text per goal row.
-2. **Do NOT re-scrape the existing 2,058 matches — "no for now".** Consistent with the
-   2026-09-20 decision on the stale fixture columns (`PREREGISTRATION.md` §9): scraping
-   will be re-run in bulk later, and goal timings ride along with it.
-3. **Cups and European matches: out of scope — "no for now".** League matches only.
-
-**Consequence that must not be forgotten:** with no re-scrape, goal timings **cannot be
-tested until a season of forward collection accumulates**. The feature does not exist for
-any historical match. So idea 1 is a *build-now, test-later* item, and it should be
-implemented as part of the next bulk scrape rather than as a standalone pass.
-
-Minimal schema follows from answer 1:
-
-```
-data/raw/<league>_<season>_goals.csv
-match_id, minute, stoppage, side, home_score_after, away_score_after
-```
-
-## 2. Idea 2 — "match out of round played" — DISAMBIGUATED AND REFUTED
+## 1. "Match out of round played" — DISAMBIGUATED AND REFUTED
 
 **Status: TESTED 2026-09-20. Dead, and this one was properly powered.**
 
@@ -203,47 +115,14 @@ Nothing of the exclusion claim. Two notes for later:
 2. The `>= 2 later rounds` cut (1.46x, n = 37) is the only cell pointing anywhere. It is
    37 matches and should not be chased on this corpus.
 
-## 3. Idea 3 — forgotten. Recommendation in its place
+## 2. Still open — the prospective gut log
 
-The third idea was lost before it was written down. The recommendation below is **mine,
-not the user's**, and is flagged as such.
-
-### Recommended: collect the Over/Under 2.5 line
-
-This is the highest value-per-hour change available and has been since 2026-07-26.
-
-**Why it outranks everything else on this page:** it is the only pre-match variable ever
-measured in this project that beats the base rate. `MARKET_LINE_FINDINGS.md` §2, on
-15,475 matches:
-
-| target | in-house features | B365 **opening** O/U 2.5 |
-|---|---|---|
-| comeback environment (HT decisive & FT decisive & 3+ goals) | **0.497** | **0.592** |
-| total >= 3 goals | 0.545 | 0.602 |
-| comeback | 0.496 | 0.552 |
-
-And §3: a two-column market model cleared the top-20% slate bar out-of-sample at **1.33x**
-(Wilson LB 5.68% vs 5.16% base, n = 7,675). Exploratory, not preregistered — §4 of that
-document states what promoting it requires.
-
-**Why it is cheap:** the schedule page's odds selector already has an O/U tab that the
-pipeline skips. `driver.switch_odds_to_1x2()` clicks `ODDS_1X2_ITEM` (`li[type='O']`);
-generalising it to `switch_odds_type(kind)` is a small change. The selection persists
-across round clicks, so the cheapest shape is two passes per season — all rounds in 1X2,
-switch, all rounds again in O/U — joined on `match_id`. **No detail scrape needed.**
-
-Full design already exists as Phase 1 of `notes/PLAN_2026-07-25_environment_filter.md`,
-including the new columns (`ou_line`, `over_odds`, `under_odds`, vig-free `implied_over`)
-and which files change.
-
-### Also still open: the prospective gut log
-
-Not an idea from tonight, but in flight and easy to lose. `Proprietary_Filter_Explanation_v2.md`
-concludes the core filter **cannot be encoded** — the matchup-combination trigger, the
-odds pattern, the weight system and the 2-3 second instant are all listed under "What
-Cannot Be Encoded". Consequence: **it cannot be backfilled onto historical matches**, so
-the only valid instrument is a prospective log (same structural problem as `HANDOFF` §5.4,
-web-search features).
+In flight and easy to lose. `Proprietary_Filter_Explanation_v2.md` concludes the core
+filter **cannot be encoded** — the matchup-combination trigger, the odds pattern, the
+weight system and the 2-3 second instant are all listed under "What Cannot Be Encoded".
+Consequence: **it cannot be backfilled onto historical matches**, so the only valid
+instrument is a prospective log (same structural problem as `HANDOFF` §5.4, web-search
+features).
 
 That is statistically the **cleanest test this project can run**: k = 1, no formula
 selection, no winner's curse, zero contamination, needs 11 hits per 100 picks. The schema
@@ -262,7 +141,7 @@ holdout, which this project has not had since 2025-26 was opened three times.
 
 ---
 
-## 4. Measurements made 2026-09-20, so they are not lost
+## 3. Measurements made 2026-09-20, so they are not lost
 
 ### Four claims from `Proprietary_Filter_Explanation_v2.md`, tested
 
@@ -311,19 +190,23 @@ in the middle bucket.
 **5.70%** (lift 1.03x); rest of week 5.73%. The combined claim is half wrong — midweek
 shows zero suppression. Calling the Monday effect needs 444 Monday matches; 138 available.
 
-### The two leagues are not interchangeable, but not for the reason it looks
+### The two leagues are not interchangeable
 
 | | n | comebacks | rate | 95% CI |
 |---|---|---|---|---|
 | English PL | 1,140 | 76 | 6.67% | [5.36%, 8.27%] |
 | Ekstraklasa | 918 | 38 | 4.14% | [3.03%, 5.63%] |
 
-chi2 = 5.73, p = **0.017**. But:
+chi2 = 5.73, p = **0.017**.
 
-- **Half the gap is goal environment.** EPL 2.99 goals/match and 58.8% reach 3+ goals;
-  Ekstraklasa 2.73 and 50.1%. Conditional on a comeback being mechanically possible
-  (3+ goals and a decisive half-time) the rates converge to 15.77% vs 11.41%,
-  **z = 1.76, p = 0.078 — not significant.**
+**Superseded in part on 2026-09-23.** This section originally attributed about half the
+gap to goal environment. The chain decomposition does not support that: P(HT-decisive) is
+62.1% vs 60.5% — nearly equal — and the whole gap sits in the completion rate, 10.73% vs
+6.85%, z = +2.39, p = 0.017. See `notes/RETRY_CANDIDATES_2026-09-23.md` §2, which is the
+current reading and which moved F1 out of the graveyard on the strength of it.
+
+Two observations from here still stand:
+
 - **Ekstraklasa's season stability is too good to be a league trait.** Observed
   season-to-season sd **0.19pp** against **1.14pp** of binomial noise; EPL 0.85pp against
   1.28pp. Three seasons landing that close happens about 3% of the time.
@@ -359,22 +242,18 @@ Hits needed to beat the base rate on a top-100 slate:
 | Ekstraklasa only | 918 | 4.14% | 9 / 100 |
 
 **Agreed alternative: leave-one-league-out**, already mandated by
-`PLAN_2026-07-25_environment_filter.md` §3 — choose the formula on leagues 1..L-1, test on
-league L, rotate. Plus a **goal-environment covariate** to absorb the real part of the
-league difference with one parameter instead of L formulas. If league-specific behaviour
-is genuinely believed, that requires *more* leagues to estimate between-league variance
-(F1 used 66 league-seasons), not fewer.
+`PLAN_2026-07-25_environment_filter.md` Phase 2 — choose the formula on leagues 1..L-1,
+test on league L, rotate. `RETRY_CANDIDATES_2026-09-23.md` §1 then measured the stratified
+version and settled it: league goes in as a **Mantel-Haenszel stratum inside one pooled
+test**, not as a per-league split.
 
 ---
 
-## 5. What to decide first, when this is picked up
+## 4. What to decide first, when this is picked up
 
 1. **The picks-per-week number.** Still unanswered, and still the gate on the prospective
    log — the only instrument that can read the un-encodable core of the filter.
-2. ~~Reading A or B for idea 2~~ — **resolved and closed 2026-09-20.** See §2.
-3. **Whether to do the O/U line first** (§3). Independent of everything else, and the only
-   measured-positive signal the project has.
-4. **When the next bulk scrape happens**, it should carry three things at once: the goal
-   timings (§1), the O/U line (§3), and the corrected fixture columns
-   (`PREREGISTRATION.md` §9). All three are deferred for the same reason and all three are
-   cleared by one pass.
+2. ~~Reading A or B for idea 2~~ — **resolved and closed 2026-09-20.** See §1.
+3. **When the next bulk scrape happens**, it should also carry the corrected fixture
+   columns (`PREREGISTRATION.md` §9), which are deferred for the same reason and cleared
+   by the same pass.

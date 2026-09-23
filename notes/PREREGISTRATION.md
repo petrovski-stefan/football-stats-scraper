@@ -335,7 +335,7 @@ by this work.
 `modelling/experiment.py` writes its holdout transcript to
 `notes/results_holdout_raw.txt`, and `notes/RESULTS.md` §2 quotes it. That file is not in
 the repo and is not recoverable — the filter study's equivalent
-(`notes/filter_study_raw.txt`) survives, this one does not.
+(`notes/FILTER_STUDY_RAW.md`) survives, this one does not.
 
 **It must not be regenerated.** `--holdout` re-opens the 2025-26 season, and §2 permits
 exactly one opening; re-running it to recover a transcript would spend the protocol's

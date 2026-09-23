@@ -10,11 +10,12 @@ A web scraper that collects football match data across multiple leagues — incl
 4. Scrapes every match in every round, collecting:
    - Team names and their current league positions
    - Full-time and half-time goals
-   - Betting odds (home win / draw / away win)
+   - Betting odds in three flavours — 1X2, Asian Handicap, and Over/Under
    - Stage, round, date, and match position in the round
 5. Validates data with Pydantic and saves per-league CSV files to `data/raw/`
 6. Enriches each match from its detail page (recent form, H2H, odds movement) into `data/raw/`
-7. Joins the two into `data/processed/` for the feature and modelling layers
+7. Scrapes goal timings from each match's live page into one global `data/raw/goals.csv`
+8. Joins them into `data/processed/` for the feature and modelling layers
 
 ## Tech stack
 
@@ -40,7 +41,7 @@ Five packages, imported absolutely and strictly one-directional:
 │   ├── raw/              # Scraper output only — nothing else writes here
 │   └── processed/        # Derived files, all reproducible from data/raw/
 ├── domain/               # Pydantic contracts, column order, paths, pure stat kernel
-├── scrapers/             # Selenium driver, DOM parsers, schedule + detail scrapes
+├── scrapers/             # Selenium driver, DOM parsers, schedule + detail + goal scrapes
 ├── features/             # The base+detail join, then the as-of-round feature matrix
 ├── modelling/            # Experiments: scoreline model, feature screens, filter study
 ├── qa/                   # Corpus validator
@@ -62,17 +63,20 @@ Chrome must be installed — the scraper runs it in headless mode.
 
 ## Usage
 
-Add league URLs (one per line) to `config/LEAGUES.txt`, then run the three stages:
+Add league URLs (one per line) to `config/LEAGUES.txt`, then run the four stages in order:
 
 ```bash
 uv run python -m scrapers.schedule   # -> data/raw/<league>_<season>.csv
 uv run python -m scrapers.detail     # -> data/raw/<league>_<season>_detail.csv
+uv run python -m scrapers.goals      # -> data/raw/goals.csv        (global, not per league)
 uv run python -m features.enrich     # -> data/processed/<league>_<season>_enriched.csv
 ```
 
-The detail scrape is ~1 page render per match (~380 a season) and is resumable — it
-skips ids already scraped, so interrupt it freely. `features.enrich` needs no browser
-and can be re-run at any time.
+Both scrapes are resumable — they skip ids already done, so interrupt them freely. Detail
+is ~1 page render per match (~380 a season). Goals is heavier: its work list is the corpus
+*plus* every match referenced by a detail row's history blocks, deduplicated by match id
+before anything is fetched, which is why its store is global rather than per league-season.
+`features.enrich` needs no browser and can be re-run at any time.
 
 Then check the result:
 
@@ -82,8 +86,8 @@ uv run python -m qa.validate
 
 ## Output columns
 
-The league CSV carries 48 columns; the detail CSV adds several hundred. Only 13 of the
-48 are scraped — the rest are `@computed_field` properties derived from them.
+The league CSV carries 58 columns, of which 30 are stored directly and the other 28 are
+`@computed_field` properties derived from them. The detail CSV adds 537.
 
 **`domain/columns.py` is the authoritative list** (`ORDERED_DF_COLUMNS`,
 `DETAIL_ORDERED_COLUMNS`), with per-column meaning documented on the Pydantic models in

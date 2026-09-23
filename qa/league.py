@@ -59,7 +59,7 @@ def _check_round_row_counts(r: Report, df: pd.DataFrame) -> None:
     Catches a round whose click did not re-render, so the previous round's rows were
     scraped twice. Compared against `matches_in_round` rather than the median round
     size, which mis-fires wholesale on split/playoff formats
-    (notes/PLAN_2026-07-25_environment_filter.md Phase 2). A round with *fewer* rows is
+    (notes/PLAN_2026-07-25_environment_filter.md Phase 1). A round with *fewer* rows is
     legitimate — it is partially played — and is reported by `_check_round_index`.
     """
     if "matches_in_round" not in df.columns:

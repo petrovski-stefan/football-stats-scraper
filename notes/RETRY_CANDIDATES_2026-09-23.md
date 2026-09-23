@@ -109,11 +109,11 @@ Each row carries the matches needed for 80% power at alpha=0.05, computed with
 |---|---|---|---|---|---|
 | 1 | league completion-rate gap | 10.73% vs 6.85%, p=0.017 | ~2,700 | 7 | section 2 |
 | 2 | table-vs-market divergence | 7.11%, 1.29x, p=0.060 | ~1,900 | 5 | MARKET_LINE |
-| 3 | T3 round state | 7.36%, 1.33x, p=0.195 | ~1,400 | 4 | PLAN_2026-07-25 |
-| 4 | T1 exhaustion | 2.75% vs 2.77% | ~200 | 1 | PLAN_2026-07-25 |
-| 5 | out-of-round slate at 1.5x | 5.41%, 0.98x | ~12,000 | 35 | PLAN_2026-07-25 |
-| 6 | Monday suppression | 2.90% on 4 comebacks | ~6,600 | 19 | PLAN_2026-07-25 |
-| 7 | structured BTTS >=4/6 | 9.09% on n=22 | ~17,700 | 51 | PLAN_2026-07-25 |
+| 3 | T3 round state | 7.36%, 1.33x, p=0.195 | ~1,400 | 4 | PLAN_2026-09-20 |
+| 4 | T1 exhaustion | 2.75% vs 2.77% | ~200 | 1 | PLAN_2026-09-20 |
+| 5 | out-of-round slate at 1.5x | 5.41%, 0.98x | ~12,000 | 35 | PLAN_2026-09-20 |
+| 6 | Monday suppression | 2.90% on 4 comebacks | ~6,600 | 19 | PLAN_2026-09-20 |
+| 7 | structured BTTS >=4/6 | 9.09% on n=22 | ~17,700 | 51 | PLAN_2026-09-20 |
 
 Rows 5-7 need more than the planned scrape delivers. They are on the list so that a later
 positive result cannot be presented as if it had been powered; they are **not** expected to
@@ -144,7 +144,7 @@ which generalises to a country not yet scraped, rather than a dummy that does no
 1. **One family of 14.** Holm correction across all of it. No 15th claim without a dated
    amendment in `PREREGISTRATION.md`.
 2. **Mantel-Haenszel over league-season strata** is the default estimator (section 1b).
-3. **Leave-one-league-out** for generalisation, per `PLAN_2026-07-25` section 3. A claim
+3. **Leave-one-league-out** for generalisation, per `PLAN_2026-07-25` Phase 2. A claim
    that survives Holm but fails LOLO is a corpus artifact.
 4. **Judge by precision@top-N with a Wilson CI and lift**, never AUC or Brier — a 3.6x
    rule scores AUC 0.527 (`BEHAVIOURAL_RESULTS`).
