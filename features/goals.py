@@ -114,10 +114,9 @@ def build(
         detail,
         depth,
         FEATURE_SUFFIXES,
-        TIMELINE_FIELD,
+        ((TIMELINE_FIELD, _timeline),),
         lambda prefix, row: _usable_goals(detail, store, prefix, row),
         _rates,
-        _timeline,
     )
 
 
@@ -141,26 +140,13 @@ def _usable_goals(
         return None
 
     goals = store[match_id]
-    if not _reconciles(detail, prefix, row, goals):
+    counted_home = sum(1 for _, _, side in goals if side == "home")
+    if not history.score_matches(detail, prefix, row, counted_home, len(goals) - counted_home):
         return None
     return [
         (minute, stoppage, "GF" if (side == "home") == is_home else "GA")
         for minute, stoppage, side in goals
     ]
-
-
-def _reconciles(detail: pd.DataFrame, prefix: str, row: int, goals: Goals) -> bool:
-    """Do the stored timings reproduce the score the detail page records for that match?
-
-    True when the page gives no score to check against, so an unknown score is treated as
-    usable rather than silently dropping every match.
-    """
-    home = history.cell(detail, f"{prefix}ft_home_goals", row)
-    away = history.cell(detail, f"{prefix}ft_away_goals", row)
-    if home == "" or away == "":
-        return True
-    counted_home = sum(1 for _, _, side in goals if side == "home")
-    return (counted_home, len(goals) - counted_home) == (int(home), int(away))
 
 
 def _timeline(goals: Goals | None) -> str:

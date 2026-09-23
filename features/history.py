@@ -65,6 +65,23 @@ def match_key(frame: pd.DataFrame, prefix: str, row: int) -> str | None:
     return match_id
 
 
+def score_matches(frame: pd.DataFrame, prefix: str, row: int, home: int, away: int) -> bool:
+    """Do `home`-`away` reproduce the score the history block records for that match?
+
+    True when the block carries no score to check against, so an unknown score is treated
+    as usable rather than silently dropping every match that is missing one.
+
+    Both feature builders need this and for the same reason: a match where two of four
+    goals were found yields a wrong scoreline rather than a missing one, whether it is
+    being read for goal timings or for the state a card was collected in.
+    """
+    stored_home = cell(frame, f"{prefix}ft_home_goals", row)
+    stored_away = cell(frame, f"{prefix}ft_away_goals", row)
+    if stored_home == "" or stored_away == "":
+        return True
+    return (home, away) == (int(stored_home), int(stored_away))
+
+
 # --- The shared build shape ---------------------------------------------------
 # `features/goals.py` and `features/events.py` produce the same *structure* — per-section
 # numeric aggregates plus one lossless timeline string per history match — and differ only
@@ -86,23 +103,28 @@ def build_frame[T](
     detail: pd.DataFrame,
     depth: int,
     suffixes: Sequence[str],
-    timeline_field: str,
+    timelines: Sequence[tuple[str, Callable[[T | None], str]]],
     resolve: Callable[[str, int], T | None],
     rates: Callable[[list[T | None]], dict[str, float]],
-    render: Callable[[T | None], str],
 ) -> pd.DataFrame:
     """One row per fixture: every section's aggregates, then every timeline.
 
     `resolve(prefix, row)` returns one history match's contents oriented to the subject
-    team, or None when unusable. Both outputs are read off that single resolution, which
-    is what guarantees a timeline is non-empty exactly when that match fed the aggregate
+    team, or None when unusable. Every output is read off that single resolution, which is
+    what guarantees a timeline is non-empty exactly when that match fed the aggregate
     beside it.
+
+    `timelines` is a `(column field, renderer)` pair per string to emit. Goals need one;
+    events need one per kind, so a red card is not buried in a list of substitutions. They
+    share a resolution rather than taking one each, because re-resolving per kind would
+    let the three drift apart on which matches counted.
     """
     built: dict[str, Any] = {}
     for section in SECTIONS:
         per_row = _resolve_section(detail, section, depth, resolve)
         built.update(_aggregates(section, suffixes, [rates(blocks) for blocks in per_row]))
-        built.update(_timelines(section, depth, timeline_field, per_row, render))
+        for field, render in timelines:
+            built.update(_timelines(section, depth, field, per_row, render))
     return pd.DataFrame(built, index=detail.index)
 
 

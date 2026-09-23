@@ -55,10 +55,27 @@ def build_enriched(base_path: str) -> str | None:
     feature_cols = [c for c in DETAIL_ORDERED_COLUMNS if c != "match_id"]
     columns = list(base.columns) + feature_cols
 
-    for extra in (_goal_timing_features(merged), _event_features(merged)):
-        if extra is not None:
-            merged = pd.concat([merged, extra], axis=1)
-            columns += list(extra.columns)
+    # The declared names rather than the built frame's own, for the same reason the detail
+    # columns are named explicitly above: the output order is pinned by `features/*.py`
+    # rather than by dict-insertion order. A disagreement means a column was renamed in one
+    # place only, so it raises here instead of vanishing from the join unnoticed.
+    for extra, declared in (
+        (
+            _goal_timing_features(merged),
+            goal_features.feature_names() + goal_features.timeline_names(),
+        ),
+        (
+            _event_features(merged),
+            event_features.feature_names() + event_features.timeline_names(),
+        ),
+    ):
+        if extra is None:
+            continue
+        missing = [c for c in declared if c not in extra.columns]
+        if missing:
+            raise RuntimeError(f"declared columns missing from the built block: {missing[:5]}")
+        merged = pd.concat([merged, extra], axis=1)
+        columns += declared
 
     enriched_path = paths.enriched_path(base_path)
     os.makedirs(paths.PROCESSED_DIR, exist_ok=True)
@@ -105,7 +122,12 @@ def _event_features(merged: pd.DataFrame) -> pd.DataFrame | None:
     store = event_features.load_store(store_path)
     if not store:
         return None
-    built = event_features.build(merged, store)
+    # The goal store is what tells a card collected while protecting a lead from one
+    # collected while chasing. Absent, the state-conditioned columns come back NaN and
+    # every other event column is unaffected — so an events-only corpus still builds.
+    goals_path = paths.goals_path()
+    goal_store = goal_features.load_store(goals_path) if os.path.exists(goals_path) else {}
+    built = event_features.build(merged, store, goal_store)
     covered = built["home_events_seen"].gt(0).mean()
     logger.info(
         "  events: %d matches in the store, %.0f%% of rows have home history",
