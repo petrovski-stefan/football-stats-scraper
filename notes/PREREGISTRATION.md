@@ -342,3 +342,73 @@ exactly one opening; re-running it to recover a transcript would spend the proto
 scarcest resource on a bookkeeping repair. The figures quoted in `RESULTS.md` §2 stand as
 the record of that single run. Anyone re-deriving them is running a *second* opening and
 must say so.
+
+**A8 — 2026-09-23, before the multi-country scrape. A 15th claim, a new screening step,
+and a disclosed look at holdout-season labels.** Unlike A4–A6, this amendment does **not**
+end with "the holdout was not opened by this work". Read item 4 before using any
+event-based result.
+
+**1. Structural — no statistical content.** `features/events.py` split its single
+`event_timeline` column into one per kind (`yellow_timeline`, `red_timeline`,
+`sub_timeline`) after measuring a combined string at 12.1 entries and 62 characters, of
+which substitutions were 68.1% and red cards 0.6%. The split is **lossless**: all 6,840
+history cells in the current corpus were re-derived from the saved combined strings with
+zero mismatches. `features/history.py` gained `score_matches` — the goal reconciliation,
+previously private to `features/goals.py` — and `build_frame` now takes several timeline
+renderers rather than one. **No goal-timing column changed**: all 72 verified identical
+against a pre-change snapshot, as were the 24 pre-existing event aggregates. Gates
+reproduce their recorded numbers — `features.engine --self-check` 1,600 comparisons / 0
+mismatches; `modelling.scoreline --leak-check` predictions bit-identical; `qa.validate`
+every league-season and the goal store PASS. Enriched schema 708 → 747 columns.
+
+**2. Claim 15 — the card and substitution family.**
+`notes/RETRY_CANDIDATES_2026-09-23.md` §5 closed Tier 3 at seven new instruments, none of
+which covered cards or substitutions. This amendment adds **claim 15**: the event
+aggregates built by `features/events.py`, including the new `yellows_while_leading_avg`,
+tested as one family against the same bar. **Holm now corrects across 15, not 14.** Adding
+it here rather than after the scrape is the whole point — the list must be fixed before the
+data arrives, and this is the last moment that is true.
+
+**3. A new protocol step — the reliability screen, before any outcome test.** Per
+`notes/RELIABILITY_SCREEN_2026-09-23.md` §1: measure a history-block feature's split-half
+reliability at the depth it actually has (`MATCHES_PER_SECTION = 6`) before testing it
+against any outcome. It needs no outcome column, so it spends no Holm budget and cannot be
+p-hacked — the same kind of free pre-test as `RETRY_CANDIDATES` §6.5's market-orthogonality
+screen. It has already earned its place: a trailing-conditioned first-substitution minute,
+the obvious de-confounded repair to `first_sub_minute_avg`, scored **-0.004**, and
+`P(FT win | HT loss)` scored **0.000** off an effective denominator of 1.9 matches per
+six-match window. Both were dropped without spending a test. This becomes
+`RETRY_CANDIDATES` §6 step 7.
+
+**4. Disclosure — holdout-season outcome labels were looked at.**
+`modelling/experiment.py --holdout` was **not** run, so §2's formal one-shot is unspent.
+But `notes/RELIABILITY_SCREEN_2026-09-23.md` §4 conditions `is_comeback` on card and
+substitution patterns across 1,397 matches, and that set contains English Premier League
+2025-2026 — which `features/engine.py:TEST_SEASONS` designates as the holdout. At the time
+it was the only league-season in `data/raw/`, so there was no dev data to look at instead.
+That is context, not an exemption.
+
+Consequence, binding: **claim 15 is evaluated with the `english_premier_league 2025-2026`
+stratum excluded.** Mantel–Haenszel over league-season strata (`RETRY_CANDIDATES` §6.2)
+makes that mechanical — drop the one stratum. Claims 1–14 are unaffected, because nothing
+in §4 of that document touched them. Relaxing this needs a further amendment, and a result
+that requires the excluded stratum in order to pass has not passed.
+
+**5. Precondition on the retry corpus — season labels must be enumerated.**
+`TRAIN_SEASONS` / `TEST_SEASONS` are literal labels, and a calendar-year league ("2025")
+can never match a cross-year list ("2025-2026"). The machinery for the two conventions is
+correct and in place: filenames split by `domain/paths.py:split_league_season`,
+contemporaneity compares `domain/match.py:season_start_year`, and
+`features/engine.py:_warn_unassigned` names any league-season falling in neither split.
+What is **not** automatic is membership. If the retry corpus includes a calendar-year
+league — Norway, Sweden, Finland, Iceland and Ireland are all plausible unsurveyed
+candidates — its labels must be listed in a further amendment before `load_enriched` will
+assign it to a split. The warning is the guard that makes an omission visible; it is not a
+substitute for the decision.
+
+**6. Recorded, not decided.** `domain/scope.py:FRIENDLY_MARKER` matches the substring
+"friendly" and therefore misses named pre-season cups — `Germany Liga Total Cup` and
+`Emirates Cup`, 2 of 1,395 matches in the current corpus, which is why `qa.validate` exits
+1. This stays a corpus-definition decision. It is noted here because `scope.in_scope` gates
+what the scrape *fetches*, so the cost of leaving it scales with the corpus rather than
+staying flat.

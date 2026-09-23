@@ -133,6 +133,15 @@ family, because they are tested on the same corpus at the same time.
 | 12 | `late_goal_rate` (>=75') beats comeback counts as proneness | HANDOFF section 9 item 7 |
 | 13 | the 36 time buckets carry anything the aggregates do not | `features/goals.py:BUCKETS` |
 | 14 | over-6.5 via the scoreline model (F9/F13) | `modelling/scoreline.py` |
+| 15 | cards and substitutions as team traits, incl. `yellows_while_leading_avg` | `features/events.py` |
+
+**Claim 15 was added by amendment `PREREGISTRATION.md` A8 (2026-09-23), before the scrape.**
+Two conditions ride with it, both binding. It is evaluated with the
+`english_premier_league 2025-2026` stratum **excluded** — A8 §4 discloses that holdout-season
+comeback labels were looked at while designing the family. And every feature in it has
+already passed the §6.7 reliability screen; two candidates that did not —
+a trailing-conditioned first-substitution minute (-0.004) and `P(FT win | HT loss)`
+(0.000) — were dropped before costing a test.
 
 Item 14 is the one with a *prior positive*: F9 found real league structure in over-6.5
 (chi2=79.6, p=9e-9, r=0.84 with goals/match, 5x spread). Unlike comebacks, splitting by
@@ -141,8 +150,10 @@ which generalises to a country not yet scraped, rather than a dummy that does no
 
 ## 6. Protocol
 
-1. **One family of 14.** Holm correction across all of it. No 15th claim without a dated
-   amendment in `PREREGISTRATION.md`.
+1. **One family of 15.** Holm correction across all of it. Claim 15 was added by a dated
+   amendment (`PREREGISTRATION.md` A8, 2026-09-23, before the scrape); a 16th needs the
+   same. Claim 15 additionally drops the `english_premier_league 2025-2026` stratum, per
+   A8 §4.
 2. **Mantel-Haenszel over league-season strata** is the default estimator (section 1b).
 3. **Leave-one-league-out** for generalisation, per `PLAN_2026-07-25` Phase 2. A claim
    that survives Holm but fails LOLO is a corpus artifact.
@@ -152,7 +163,17 @@ which generalises to a country not yet scraped, rather than a dummy that does no
    (`BEHAVIOURAL_RESULTS` section 7). A rule orthogonal to the market is orthogonal to the
    best known signal, and costs nothing to reject.
 6. **The holdout season stays shut** until the list above is fully resolved on dev. One
-   opening, `--holdout`, one shot.
+   opening, `--holdout`, one shot. Still unspent — but see `PREREGISTRATION.md` A8 §4 for
+   an informal look at 2025-26 comeback labels that constrains claim 15 only.
+7. **Screen every history-block feature for reliability at depth 6 first**
+   (`RELIABILITY_SCREEN_2026-09-23.md` §1, added by A8). Split-half stability of the trait
+   at the six-match depth the feature actually has. Outcome-free, so it spends no Holm
+   budget, and it kills a feature for free: the best trait measured scores 0.295, and a
+   feature scoring ~0 cannot carry signal however good the mechanism behind it looks.
+8. **Enumerate the season labels of every scraped league before evaluating anything**
+   (A8 §5). A calendar-year league's "2025" never matches a cross-year `TRAIN_SEASONS`
+   entry, so it silently lands in no split; `features/engine.py:_warn_unassigned` names it,
+   but membership is a decision, not a default.
 
 ## 7. What a pass looks like
 

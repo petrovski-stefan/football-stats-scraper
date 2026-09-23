@@ -41,9 +41,12 @@ then extrapolated to the six-match depth these features actually have):
 
 **Honest prior, stated up front.** These are historical team-trait rates, which is the
 exact shape of the six nowgoal families in `RESULTS.md` and the behavioural rule in
-`BEHAVIOURAL_RESULTS.md` — all of which measured ~1.0x lift. Nothing here has been tested;
-these are Tier-3 instruments in `notes/RETRY_CANDIDATES_2026-09-23.md` terms, and they
-join the same Holm family as everything else when they are.
+`BEHAVIOURAL_RESULTS.md` — all of which measured ~1.0x lift. Nothing here has been tested.
+They are **claim 15** of `notes/RETRY_CANDIDATES_2026-09-23.md`, added by amendment
+`PREREGISTRATION.md` A8 before the scrape, and they carry one condition the other claims
+do not: claim 15 is evaluated with the `english_premier_league 2025-2026` stratum dropped,
+because A8 §4 discloses that holdout-season comeback labels were looked at while this
+family was being designed.
 """
 
 from functools import partial

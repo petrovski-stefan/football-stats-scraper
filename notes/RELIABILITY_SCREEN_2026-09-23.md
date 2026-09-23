@@ -6,6 +6,14 @@ against `notes/PREREGISTRATION.md`, and the outcome-facing numbers in §4 come f
 seventeen uncorrected comparisons. What *is* reusable is the screen in §1: it is a pre-test,
 not a result, and it costs no outcome data.
 
+> **§4 touched the holdout season and §1 did not.** The league-season measured here is
+> English Premier League 2025-2026, which `features/engine.py:TEST_SEASONS` designates as
+> the holdout. §1's reliability numbers use **no outcome column** — they are within-team
+> stability — and neither does §5's mixture table, so both are clean. §4 conditions
+> `is_comeback`, and is therefore a look at holdout labels. Disclosed and bounded in
+> `PREREGISTRATION.md` **A8 §4**: claim 15 is evaluated with this stratum excluded. Do not
+> quote §4 as support for a result computed on a corpus that includes it.
+
 ---
 
 ## 1. The screen
