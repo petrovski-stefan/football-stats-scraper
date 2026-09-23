@@ -26,13 +26,20 @@ from scrapers.csv_io import save_df_to_csv
 from scrapers.driver import (
     click_round,
     get_driver,
-    switch_odds_to_1x2,
+    switch_odds_type,
     sync_standings_to_round,
     wait_for_odds,
     wait_for_schedule_rows,
 )
 from scrapers.links import get_leagues_links, parse_league_url
-from scrapers.parsers import parse_row_identity, parse_schedulis_row, parse_standings
+from scrapers.parsers import (
+    attr,
+    parse_ah_odds,
+    parse_ou_odds,
+    parse_row_identity,
+    parse_schedulis_row,
+    parse_standings,
+)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,7 +59,7 @@ def scrape_league(league_url: str, season: str, league_id: int) -> tuple[list[di
     try:
         driver.get(league_url)
         wait_for_schedule_rows(driver)
-        switch_odds_to_1x2(driver)  # 1X2 odds persist across round clicks
+        switch_odds_type(driver, "1x2")  # the choice persists across round clicks
 
         league_name = _read_league_name(driver, season)
         rounds = _read_rounds(driver)
@@ -79,6 +86,8 @@ def _scrape_round(
     sync_standings_to_round(driver, round_number)
     wait_for_odds(driver)
 
+    secondary = _secondary_odds(driver)
+
     soup = BeautifulSoup(driver.page_source, "html.parser")
     positions = parse_standings(soup)
     rows = soup.select(SCHEDULE_ROWS)
@@ -104,10 +113,44 @@ def _scrape_round(
                 "matches_in_round": matches_in_round,
             }
         )
+        parsed.update(secondary.get(match_id, {}))
         round_matches.append(parsed)
 
     logger.info("  round %d: %d finished / %d rows", round_number, len(round_matches), len(rows))
     return round_matches
+
+
+# Each secondary odds type, and the row fields its three cells map to.
+_SECONDARY_ODDS = (
+    ("ou", parse_ou_odds, ("over_odds", "ou_line", "under_odds")),
+    ("ah", parse_ah_odds, ("ah_home_odds", "ah_line", "ah_away_odds")),
+)
+
+
+def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | None]]:
+    """Read the OU and AH columns for the round already on screen, keyed by match id.
+
+    The odds type is a page-level setting shared by every row, so the only way to get
+    all three is to switch the header and re-read. This leaves the header back on 1X2,
+    because the caller parses the full rows (scores, teams, 1X2 odds) after it returns.
+
+    A league that does not carry a type is skipped rather than raised on, so its rows
+    simply come out with empty columns for it.
+    """
+    out: dict[str, dict[str, float | None]] = {}
+    for kind, parse, fields in _SECONDARY_ODDS:
+        if not switch_odds_type(driver, kind):
+            logger.warning("  odds type %r unavailable", kind)
+            continue
+        wait_for_odds(driver)
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        for row in soup.select(SCHEDULE_ROWS):
+            match_id = (attr(row, "matchid") or "").strip()
+            if match_id:
+                out.setdefault(match_id, {}).update(dict(zip(fields, parse(row), strict=True)))
+    switch_odds_type(driver, "1x2")
+    wait_for_odds(driver)
+    return out
 
 
 def _order_round(rows: list[Tag]) -> tuple[dict[str, int], int]:

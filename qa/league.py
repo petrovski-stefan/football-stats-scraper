@@ -19,6 +19,14 @@ if TYPE_CHECKING:
 # 1X2 at all — most likely Asian Handicap, which is what the schedule page defaults to.
 OVERROUND_MIN = 1.00
 OVERROUND_MAX = 1.20
+# Two-way Asian books run much tighter than a three-way 1X2 book.
+TWO_WAY_OVERROUND_MAX = 1.12
+# Plausible goal lines. Below 1.5 or above 5.5 means the OU column was misread.
+OU_LINE_MIN, OU_LINE_MAX = 1.5, 5.5
+# Asian handicaps beyond +/- 4 goals do not occur in league football.
+AH_LINE_ABS_MAX = 4.0
+# Asian lines move in quarter-goal steps, so every line is a multiple of 0.25.
+QUARTER = 0.25
 
 
 def validate(r: Report, df: pd.DataFrame) -> None:
@@ -28,6 +36,7 @@ def validate(r: Report, df: pd.DataFrame) -> None:
     _check_derived_columns(r, df)
     _check_standings_positions(r, df)
     _check_odds(r, df)
+    _check_asian_odds(r, df)
 
 
 def _rounds(df: pd.DataFrame) -> "DataFrameGroupBy[Any, Any]":
@@ -192,6 +201,76 @@ def _check_standings_positions(r: Report, df: pd.DataFrame) -> None:
     r.check(
         out_of_range.empty,
         f"{len(out_of_range)} rows with a standings position outside 1..{num_teams}",
+    )
+
+
+def _check_asian_odds(r: Report, df: pd.DataFrame) -> None:
+    """The Over/Under and Asian Handicap columns hold real Asian markets.
+
+    These are two-way books, so their vig is far tighter than the 1X2 column's, and both
+    lines move in quarter-goal steps. A line off the quarter grid means `parse_line`
+    mis-split a fraction; an out-of-range line means the wrong column was read.
+
+    The AH sign is checked against the 1X2 favourite, which is the one cross-column
+    invariant available: a positive handicap must mean the home side is favoured.
+    """
+    for kind, flag, line, price_a, price_b, lo, hi in (
+        ("OU", "has_ou_odds", "ou_line", "over_odds", "under_odds", OU_LINE_MIN, OU_LINE_MAX),
+        (
+            "AH",
+            "has_ah_odds",
+            "ah_line",
+            "ah_home_odds",
+            "ah_away_odds",
+            -AH_LINE_ABS_MAX,
+            AH_LINE_ABS_MAX,
+        ),
+    ):
+        if flag not in df.columns:
+            continue
+        sub = df[df[flag].astype(bool)]
+        if not len(sub):
+            continue
+
+        bad_price = sub[(sub[price_a] <= 1) | (sub[price_b] <= 1)]
+        r.check(bad_price.empty, f"{len(bad_price)} {kind} rows with a price <= 1")
+
+        overround = 1 / sub[price_a] + 1 / sub[price_b]
+        wide = sub[(overround < OVERROUND_MIN) | (overround > TWO_WAY_OVERROUND_MAX)]
+        r.check(
+            wide.empty,
+            f"{len(wide)} {kind} rows with a two-way overround outside "
+            f"{OVERROUND_MIN:.2f}-{TWO_WAY_OVERROUND_MAX:.2f}",
+        )
+
+        off_range = sub[(sub[line] < lo) | (sub[line] > hi)]
+        r.check(off_range.empty, f"{len(off_range)} {kind} rows with a line outside {lo}..{hi}")
+
+        off_grid = sub[((sub[line] / QUARTER).round() - sub[line] / QUARTER).abs() > 1e-9]
+        r.check(
+            off_grid.empty,
+            f"{len(off_grid)} {kind} rows with a line off the quarter-goal grid "
+            f"(parse_line mis-split a fraction?)",
+        )
+
+    _check_ah_sign(r, df)
+
+
+def _check_ah_sign(r: Report, df: pd.DataFrame) -> None:
+    """A positive `ah_line` must mean the home side is the 1X2 favourite."""
+    if "has_ah_odds" not in df.columns:
+        return
+    sub = df[df["has_ah_odds"].astype(bool) & df["has_odds"].astype(bool)]
+    sub = sub[sub["ah_line"] != 0]
+    if not len(sub):
+        return
+    home_fav = sub["home_win_initial_odds"] < sub["away_win_initial_odds"]
+    disagree = sub[(sub["ah_line"] > 0) != home_fav]
+    share = len(disagree) / len(sub)
+    r.check(
+        share <= 0.02,
+        f"{len(disagree)}/{len(sub)} ({share:.1%}) rows where the AH sign contradicts the "
+        f"1X2 favourite — sign convention broken?",
     )
 
 

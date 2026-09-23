@@ -25,12 +25,18 @@ ROUND_ACTIVE_CLASS = "on"  # clicked round gets 'on'; the live round is 'current
 ROUND_CURRENT_CLASS = "current"
 SCHEDULE_ROWS = "div#schedule div.list div.schedulis"
 
-# Odds-type selector in the schedule header (AH / 1X2 / OU). We switch it to 1X2.
+# Odds-type selector in the schedule header. Three types share one three-cell column;
+# only the header label and the middle cell's meaning change. The page defaults to AH.
 ODDS_SELECTBOX = "#schedule > div.list > div.title > span.odds.selectbox"
 ODDS_LABEL = ODDS_SELECTBOX + " > text"
-ODDS_1X2_ITEM = ODDS_SELECTBOX + " li[type='O']"  # 1X2 option
-ODDS_1X2_LABEL = "1X2"
-ROW_ODDS_CELLS = "span.odds > span"  # relative to a schedule row: home / draw / away
+ODDS_TYPE_ITEM = ODDS_SELECTBOX + " li[type='{kind}']"
+# our name -> (DOM `type` attribute, header label once the switch lands)
+ODDS_TYPES = {
+    "1x2": ("O", "1X2"),  # cells: home / draw / away
+    "ah": ("L", "AH"),  # cells: home / handicap line / away
+    "ou": ("T", "OU"),  # cells: over / goal line / under
+}
+ROW_ODDS_CELLS = "span.odds > span"  # relative to a schedule row; always three cells
 
 # Standings section
 STANDING_BOX_LABEL = "div#standingPlates #standingBox > text"
@@ -52,6 +58,11 @@ HIST_LEAGUE_TD = 0
 HIST_CORNER_TD = 5
 HIST_ODDS_TDS = (6, 7, 8)
 HIST_DATE = "span[name='timeData']"
+# Each history row carries the referenced match's own id and league id as attributes.
+# These are what make the `*_lastN_*` blocks joinable to anything else — without them a
+# history row is an orphan, which is why goal timings could not be fetched for it.
+HIST_MATCH_ID_ATTR = "index"  # e.g. index="2789495"
+HIST_LEAGUE_ID_ATTR = "name"  # e.g. name="36" (36 = EPL, 90 = FA Cup)
 HIST_TEAM_LINKS = "a[onclick^='soccerDbPage.team']"  # [0]=home, [1]=away
 # Score span class is indexed per table (fscore_1/_2/_3), so match on prefix.
 HIST_FT_SCORE = "span[class^='fscore']"  # e.g. "3-2"
@@ -60,6 +71,18 @@ HIST_HT_SCORE = "span[class^='hscore']"  # e.g. "(1-2)"
 DETAIL_ODDS_TABLE_CANDIDATES = "table.team-table-other"
 DETAIL_ODDS_1X2_CELLS = "td[data-e='1']"  # 3 per row: home / draw / away
 PREFERRED_BOOKMAKER = "Bet365"
+# --- Live page (live10.nowgoal26.com/match/live-<id>) -------------------------
+# Goal timings live here, NOT on the h2h detail page. Same match id.
+LIVE_URL = "https://live10.nowgoal26.com/match/live-{match_id}"
+# Events are table rows; the minute sits in a `b.score` cell as "33'", "45+3'", "90+8'".
+LIVE_EVENT_MINUTE = "b.score"
+LIVE_EVENT_ROW = "tr"
+# Icons label the event via their `alt`, which is authoritative: "Goal",
+# "Penalty Scored", "VAR", "Yellow Card", "Red Card", "Substitution"...
+# Goals are NOT detected by icon — a penalty carries a different one and would be missed.
+# They are detected by the running score in the row text; VAR rows never carry one.
+LIVE_EVENT_ICON = "img"
+
 # Other analysis blocks.
 DETAIL_STRENGTH_BLOCK = "[class*='strength']"
 DETAIL_H2H_COMPARE_BAR = ".fx-tb-title"

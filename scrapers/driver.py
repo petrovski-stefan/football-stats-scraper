@@ -1,5 +1,6 @@
 import contextlib
 import random
+import re
 import time
 
 from selenium import webdriver
@@ -15,9 +16,11 @@ from scrapers.constants import (
     DETAIL_ODDS_TABLE_CANDIDATES,
     DETAIL_URL,
     DETAIL_V3_TABLE,
-    ODDS_1X2_ITEM,
-    ODDS_1X2_LABEL,
+    LIVE_EVENT_MINUTE,
+    LIVE_URL,
     ODDS_LABEL,
+    ODDS_TYPE_ITEM,
+    ODDS_TYPES,
     ROUND_ACTIVE_CLASS,
     ROUND_SPAN,
     ROUND_SPANS,
@@ -32,6 +35,10 @@ DEFAULT_TIMEOUT = 20
 
 # JS click bypasses "element not interactable" for off-screen / overlaid controls.
 _CLICK_JS = "arguments[0].click();"
+
+# A rendered event minute: "33'", "45+3'", "90+8'". Used only as a readiness signal here;
+# scrapers/goal_parsers.py owns the real parse.
+_MINUTE_RE = re.compile(r"^\d{1,3}(?:\+\d{1,2})?'$")
 
 
 def get_driver() -> webdriver.Chrome:
@@ -93,6 +100,27 @@ def get_detail_page(
     time.sleep(0.5)
 
 
+def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAULT_TIMEOUT) -> None:
+    """Load a match's live page and wait for its event list to be injected.
+
+    Events are rendered by JavaScript well after the document is ready, so the readiness
+    signal is an actual minute cell, not the page load. Waiting on that instead of sleeping
+    blindly takes the page from ~4.5s to ~3.4s.
+
+    A goalless, event-free match simply times out with nothing rendered and the caller sees
+    zero goals — the right answer for a 0-0. Telling "no events" apart from "failed to
+    load" is done by reconciling against the stored score in `qa/goals.py`, not here.
+    """
+    driver.get(LIVE_URL.format(match_id=match_id))
+    with contextlib.suppress(TimeoutException):
+        WebDriverWait(driver, timeout).until(
+            lambda d: any(
+                _MINUTE_RE.match(e.text.strip())
+                for e in d.find_elements(By.CSS_SELECTOR, LIVE_EVENT_MINUTE)
+            )
+        )
+
+
 def _scroll_page(driver: webdriver.Chrome, steps: int = 12) -> None:
     js = f"window.scrollBy(0, document.body.scrollHeight/{steps});"
     for _ in range(steps):
@@ -123,19 +151,36 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> None:
     time.sleep(0.3)
 
 
-def switch_odds_to_1x2(driver: webdriver.Chrome, timeout: int = DEFAULT_TIMEOUT) -> None:
-    """Switch the schedule odds column to 1X2 (home / draw / away).
+def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT_TIMEOUT) -> bool:
+    """Switch the schedule odds column to "1x2", "ah" or "ou".
 
-    The choice persists across round clicks, so this only needs calling once per
-    page load. Returns quietly if the odds selector isn't present.
+    The page defaults to AH. The choice persists across round clicks, so switching once
+    is enough for a whole pass; switching per round is also safe. Returns False (quietly)
+    when the selector is absent or the header never adopts the new label, so a league
+    that does not carry a given odds type degrades to empty columns rather than raising.
     """
-    items = driver.find_elements(By.CSS_SELECTOR, ODDS_1X2_ITEM)
+    dom_type, label = ODDS_TYPES[kind]
+    if _odds_label(driver) == label:
+        return True
+    items = driver.find_elements(By.CSS_SELECTOR, ODDS_TYPE_ITEM.format(kind=dom_type))
     if not items:
-        return
+        return False
+
+    before = _first_row_odds(driver)
     driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
+    switched = True
+    try:
+        WebDriverWait(driver, timeout).until(lambda d: _odds_label(d) == label)
+    except TimeoutException:
+        switched = False
+    # The header relabels before the column repaints, so the label alone is not a
+    # readiness signal: reading here can still return the previous type's numbers.
+    # Wait for the cells themselves to change. The middle cell is a draw price under
+    # 1X2 and a line under AH/OU, so consecutive types never share it in practice.
     with contextlib.suppress(TimeoutException):
-        WebDriverWait(driver, timeout).until(lambda d: _odds_label(d) == ODDS_1X2_LABEL)
+        WebDriverWait(driver, timeout).until(lambda d: _first_row_odds(d) not in (before, []))
     time.sleep(0.3)
+    return switched
 
 
 def click_round(
@@ -191,6 +236,14 @@ def sync_standings_to_round(
     except TimeoutException:
         pass
     time.sleep(0.3)
+
+
+def _first_row_odds(driver: webdriver.Chrome) -> list[str]:
+    """The first schedule row's three odds cells, as text. Repaint detector."""
+    rows = driver.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS)
+    if not rows:
+        return []
+    return [c.text.strip() for c in rows[0].find_elements(By.CSS_SELECTOR, ROW_ODDS_CELLS)]
 
 
 def _first_row_match_id(driver: webdriver.Chrome) -> str | None:

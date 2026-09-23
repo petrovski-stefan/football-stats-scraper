@@ -114,6 +114,21 @@ class Match(BaseModel):
     draw_initial_odds: float | None = None
     away_win_initial_odds: float | None = None
 
+    # Over/Under, from the schedule header's OU display. The goal line is **Asian and
+    # variable**: nowgoal moves the line and holds both prices near 1.90, so `ou_line`
+    # is the market's goal-total forecast and the two prices carry only a sub-quarter
+    # tilt. This is not football-data.co.uk's fixed 2.5 line — see notes.
+    ou_line: float | None = None
+    over_odds: float | None = None
+    under_odds: float | None = None
+
+    # Asian Handicap, from the same header. **Positive `ah_line` means the home side is
+    # favoured** and gives the handicap — the opposite sign convention to
+    # football-data.co.uk's `AHh`.
+    ah_line: float | None = None
+    ah_home_odds: float | None = None
+    ah_away_odds: float | None = None
+
     @computed_field
     @property
     def has_odds(self) -> bool:
@@ -123,6 +138,20 @@ class Match(BaseModel):
                 self.draw_initial_odds is not None,
                 self.away_win_initial_odds is not None,
             ]
+        )
+
+    @computed_field
+    @property
+    def has_ou_odds(self) -> bool:
+        return all(
+            [self.ou_line is not None, self.over_odds is not None, self.under_odds is not None]
+        )
+
+    @computed_field
+    @property
+    def has_ah_odds(self) -> bool:
+        return all(
+            [self.ah_line is not None, self.ah_home_odds is not None, self.ah_away_odds is not None]
         )
 
     @computed_field
@@ -286,3 +315,19 @@ class Match(BaseModel):
     def implied_prob_away(self) -> float | None:
         """Implied away-win probability from the odds (1 / odds)."""
         return stats.implied_prob(self.away_win_initial_odds)
+
+    @computed_field
+    @property
+    def implied_over(self) -> float | None:
+        """Vig-free probability that the total clears `ou_line`.
+
+        Two-way normalisation, so the overround cancels. Near 0.5 by construction —
+        the informative column is `ou_line`, and this is the tilt around it.
+        """
+        return stats.two_way_prob(self.over_odds, self.under_odds)
+
+    @computed_field
+    @property
+    def implied_ah_home(self) -> float | None:
+        """Vig-free probability that the home side covers `ah_line`."""
+        return stats.two_way_prob(self.ah_home_odds, self.ah_away_odds)

@@ -35,20 +35,76 @@ def parse_float(raw: str | None) -> float | None:
         return None
 
 
+def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
+    """The row's three raw odds-cell strings, whichever odds type is displayed."""
+    cells = row.select(ROW_ODDS_CELLS)
+    if len(cells) < 3:
+        return None
+    return tag_text(cells[0]), tag_text(cells[1]), tag_text(cells[2])
+
+
 def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     """Read the row's 1X2 odds cells as (home_win, draw, away_win).
 
     Assumes the schedule odds display has already been switched to 1X2, whose
     three cells are always ordered home / draw / away.
     """
-    cells = row.select(ROW_ODDS_CELLS)
-    if len(cells) < 3:
+    cells = _odds_cells(row)
+    if cells is None:
         return None, None, None
-    return (
-        parse_float(tag_text(cells[0])),
-        parse_float(tag_text(cells[1])),
-        parse_float(tag_text(cells[2])),
-    )
+    return parse_float(cells[0]), parse_float(cells[1]), parse_float(cells[2])
+
+
+def parse_line(raw: str) -> float | None:
+    """Parse an Asian line: a single value, or a split quarter-line, with an optional sign.
+
+    nowgoal writes a quarter line as two halves and hangs one minus sign off whichever
+    half it reaches first, so the sign belongs to the whole expression, not to one part:
+
+        "3"        ->  3.0      "2.5/3"    ->  2.75
+        "-0.5"     -> -0.5      "0/0.5"    ->  0.25
+        "0/-0.5"   -> -0.25     "-1/1.5"   -> -1.25
+
+    Verified against a full round of live rows on 2026-09-22: every observed string
+    (`-0.5`, `-1/1.5`, `0`, `0.5/1`, `0/-0.5`, `0/0.5`, `1.5`) round-trips under this rule.
+    """
+    text = (raw or "").strip()
+    if not text:
+        return None
+    negative = "-" in text
+    try:
+        parts = [float(p) for p in text.replace("-", "").split("/") if p != ""]
+    except ValueError:
+        return None
+    if not parts:
+        return None
+    magnitude = sum(parts) / len(parts)
+    return -magnitude if negative else magnitude
+
+
+def parse_ou_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
+    """Read the row's Over/Under cells as (over_odds, goal_line, under_odds).
+
+    The goal line is Asian and variable — nowgoal moves the line and holds both prices
+    near 1.90, so the *line* is the forecast and the prices only carry a sub-quarter tilt.
+    """
+    cells = _odds_cells(row)
+    if cells is None:
+        return None, None, None
+    return parse_float(cells[0]), parse_line(cells[1]), parse_float(cells[2])
+
+
+def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
+    """Read the row's Asian Handicap cells as (home_odds, handicap_line, away_odds).
+
+    Sign convention, verified 10/10 against the 1X2 favourite on live rows:
+    **positive means the home side is favoured** and gives the handicap. Note this is
+    the opposite of football-data.co.uk's `AHh`, where negative means home gives.
+    """
+    cells = _odds_cells(row)
+    if cells is None:
+        return None, None, None
+    return parse_float(cells[0]), parse_line(cells[1]), parse_float(cells[2])
 
 
 def attr(tag: Tag | None, name: str) -> str | None:

@@ -14,9 +14,15 @@ _LEAGUE_URL_RE = re.compile(r"/league/(?P<season>\d{4}(?:-\d{4})?)/(?P<league_id
 
 
 def get_leagues_links() -> list[str]:
-    """Read league URLs from the config file, one per line (blank lines ignored)."""
+    """Read league URLs from the config file, one per line.
+
+    Blank lines and `#` comments are ignored, so a league can be parked in the file
+    instead of deleted while the schema is still moving — the list is the record of
+    which league-seasons the corpus is meant to contain.
+    """
     with open(LEAGUES_FILE, encoding="utf-8") as f:
-        return [line.strip() for line in f if line.strip()]
+        lines = (line.strip() for line in f)
+        return [line for line in lines if line and not line.startswith("#")]
 
 
 def parse_league_url(url: str) -> tuple[str, int]:

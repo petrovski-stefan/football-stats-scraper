@@ -24,8 +24,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
-from domain import paths
+from domain import paths, scope
 from domain.columns import MATCHES_PER_SECTION
+from features import goals as goal_features
 
 # Literal season labels, fixed by PREREGISTRATION.md §2. Only cross-year labels appear
 # here because the preregistered corpus is 2 European leagues; a calendar-year league
@@ -37,8 +38,6 @@ TEST_SEASONS = ("2025-2026",)
 FORM_WINDOW = 6
 BURN_IN_ROUNDS = 5
 CONGESTION_DAYS = 14
-# Friendlies are excluded from the congestion count (PREREGISTRATION.md S4).
-FRIENDLY_MARKER = "friendly"
 
 # Rolling as-of-round team quantities: (source column in the long frame, output name).
 # The goal *levels* (h1/h2 gf and ga) feed the exclusion filter's scoreline model; the
@@ -102,6 +101,28 @@ FILTER_FAMILIES: dict[str, list[str]] = {
     ],
     "G3_odds": ["mkt_sup", "mkt_tot", "mkt_p_draw", "odds_drift_home", "odds_drift_away"],
 }
+
+
+# --- Market Asian lines (captured from 2026-09-22) ---------------------------
+# Deliberately NOT added to FAMILIES or FILTER_FAMILIES, both of which are closed lists
+# fixed by notes/PREREGISTRATION.md S4 and notes/PREREGISTRATION_FILTER.md S5. Widening
+# a preregistered family is a protocol amendment, not a code change, so these live in
+# their own set and stay exploratory until a preregistration admits them.
+#
+# The goal line is Asian and variable: nowgoal moves the line and holds both prices near
+# 1.90, so `ou_line` is the market's goal-total forecast and `implied_over` is only the
+# sub-quarter tilt around it. That is the opposite split from football-data.co.uk's fixed
+# 2.5 line, where the price carries everything (notes/MARKET_LINE_FINDINGS.md).
+MARKET_LINE_FEATURES = ["ou_line", "implied_over", "ah_line", "abs_ah_line", "implied_ah_home"]
+
+# --- Goal timings (captured from 2026-09-22) ---------------------------------
+# Same standing as MARKET_LINE_FEATURES: exploratory, and deliberately NOT added to
+# FAMILIES or FILTER_FAMILIES, which notes/PREREGISTRATION*.md close. Built by
+# features/goals.py from the global store and joined in by features/enrich.py.
+# Taken from features/goals.py rather than restated, so the two cannot drift apart when a
+# feature is added there. Timelines are deliberately excluded: they are strings for
+# analysis, not numeric model inputs.
+GOAL_TIMING_FEATURES = goal_features.feature_names()
 
 
 def filter_feature_names() -> list[str]:
@@ -351,7 +372,7 @@ def _congestion(df: pd.DataFrame, section: str) -> tuple["pd.Series[Any]", "pd.S
         when = pd.to_datetime(_block(df, section, n, "date"), errors="coerce")
         league = _block(df, section, n, "league").astype("string").str.lower()
         gap_days = (df["date"] - when).dt.total_seconds() / 86400.0
-        competitive = ~league.str.contains(FRIENDLY_MARKER, na=False)
+        competitive = ~league.str.contains(scope.FRIENDLY_MARKER, na=False)
         recent = competitive & gap_days.between(0, CONGESTION_DAYS)
         played += recent.fillna(False).astype("int64")
         most_recent = most_recent.where(most_recent.notna() | when.isna(), when)
@@ -398,6 +419,45 @@ def _h2h_ht_nondraw_rate(df: pd.DataFrame) -> "pd.Series[Any]":
 # --- Market controls and the imported completion stage's inputs ---------------
 
 
+def _market_lines(df: pd.DataFrame) -> dict[str, Any]:
+    """The schedule page's Asian goal line and handicap, plus the handicap magnitude.
+
+    `abs_ah_line` is the match-mismatch measure `notes/MARKET_LINE_FINDINGS.md` used as
+    its negative control (|AHh| predicted comebacks at 0.502, dead, while predicting
+    decisiveness at 0.563). The sign convention differs from football-data's: here
+    **positive means the home side is favoured**, so the absolute value is the comparable
+    quantity, not the raw line.
+
+    A corpus scraped before 2026-09-22 has none of these columns; they come back NaN
+    rather than raising, so the engine still builds on an older `data/` tree.
+    """
+
+    def col(name: str) -> "pd.Series[Any]":
+        return df[name] if name in df.columns else pd.Series(np.nan, index=df.index)
+
+    ah_line = col("ah_line")
+    return {
+        "ou_line": col("ou_line"),
+        "implied_over": col("implied_over"),
+        "ah_line": ah_line,
+        "abs_ah_line": ah_line.abs(),
+        "implied_ah_home": col("implied_ah_home"),
+    }
+
+
+def _goal_timings(df: pd.DataFrame) -> dict[str, Any]:
+    """Pass the goal-timing aggregates through, or NaN when they were never built.
+
+    `features/enrich.py` computes these from the global store, so a corpus enriched before
+    `scrapers.goals` ran has none of the columns. They come back NaN rather than raising,
+    the same contract as `_market_lines`.
+    """
+    return {
+        name: df[name] if name in df.columns else pd.Series(np.nan, index=df.index)
+        for name in GOAL_TIMING_FEATURES
+    }
+
+
 def _vig_free(df: pd.DataFrame) -> dict[str, Any]:
     """Proportionally de-vigged 1X2 probabilities from the opening price."""
     inv_h = 1.0 / df["home_win_initial_odds"]
@@ -439,6 +499,8 @@ def build_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
     df = load_enriched() if df is None else df.copy()
 
     built: dict[str, Any] = {}
+    built.update(_market_lines(df))
+    built.update(_goal_timings(df))
     built.update(_vig_free(df))
     built.update(_closing_odds(df))
     built.update(_attach_rolling(df))
@@ -464,7 +526,15 @@ def build_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
         built[f"odds_drift_{side}"] = df[f"implied_live_{side}"] - df[f"implied_init_{side}"]
 
     engineered = pd.DataFrame(built, index=df.index)
-    wanted = _dedupe(IDENTITY + TARGETS + CONTROLS + all_feature_names() + filter_feature_names())
+    wanted = _dedupe(
+        IDENTITY
+        + TARGETS
+        + CONTROLS
+        + all_feature_names()
+        + filter_feature_names()
+        + MARKET_LINE_FEATURES
+        + GOAL_TIMING_FEATURES
+    )
     keep_raw = [c for c in wanted if c not in engineered.columns]
     full = pd.concat([df[keep_raw], engineered], axis=1)
     return full[wanted].copy()
@@ -546,6 +616,11 @@ def summarize(df: pd.DataFrame) -> None:
     print(f"  rows: {len(df)} total, {len(usable)} after {BURN_IN_ROUNDS}-round burn-in")
     for split in ("dev", "holdout"):
         sub = usable[usable["split"] == split]
+        if sub.empty:
+            # Normal while the corpus is being rebuilt one league-season at a time:
+            # a single 2025-2026 season is all holdout and leaves dev empty.
+            print(f"    {split:8s} n=    0  (no league-season in this split)")
+            continue
         cb = int(sub["is_comeback"].sum())
         nondraw = int((sub["ht_home_goals"] != sub["ht_away_goals"]).sum())
         print(
@@ -560,6 +635,14 @@ def summarize(df: pd.DataFrame) -> None:
     for family, names in FILTER_FAMILIES.items():
         worst = min(usable[name].notna().mean() for name in names)
         print(f"    {family:18s} {len(names):2d} features, lowest fill={worst:.0%}")
+
+    print("\n  market Asian lines (exploratory, outside the closed families):")
+    for name in MARKET_LINE_FEATURES:
+        print(f"    {name:24s} fill={usable[name].notna().mean():.0%}")
+
+    print("\n  goal timings (exploratory, outside the closed families):")
+    for name in GOAL_TIMING_FEATURES:
+        print(f"    {name:26s} fill={usable[name].notna().mean():.0%}")
 
     print("\n  controls:")
     for name in CONTROLS:

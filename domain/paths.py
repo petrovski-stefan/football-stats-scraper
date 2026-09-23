@@ -32,6 +32,18 @@ PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 DETAIL_SUFFIX = "_detail.csv"
 ENRICHED_SUFFIX = "_enriched.csv"
 
+# Goal timings are stored GLOBALLY rather than per league-season, the one exception to the
+# naming scheme above. A fixture's history references matches from cups, European
+# competition and other leagues, so a referenced match belongs to no single league-season
+# file -- and the dedupe that makes the scrape affordable only works if it spans all of
+# them. The key is the nowgoal match id, which is globally unique.
+GOALS_FILE = "goals.csv"
+GOALS_DONE_FILE = "goals_done.csv"
+# Files in data/raw/ that are NOT a league-season. `base_league_csvs()` must skip these,
+# or everything that iterates league-seasons — the validator, the enricher, the goals
+# work list — picks them up and tries to treat a global store as a league.
+GLOBAL_FILES = frozenset({GOALS_FILE, GOALS_DONE_FILE})
+
 
 # `<league>_<season>`, where season is "2025-2026" or "2025". Greedy `.+` so the split
 # falls at the *last* underscore that leaves a valid season behind.
@@ -64,13 +76,15 @@ def split_league_season(path: str) -> tuple[str, str]:
 def base_league_csvs() -> list[str]:
     """Every base league CSV in `data/raw/`, sorted.
 
-    Only the detail files need excluding: enriched files live in another directory
-    now, so they cannot turn up in this glob the way they used to.
+    Two kinds of file share the directory without being league-seasons and must be
+    excluded, or every consumer treats them as one: the per-league `_detail.csv` scrapes,
+    and the **global** goal-timing store, which is keyed by match id rather than by
+    league-season and so has no `<league>_<season>` stem to split.
     """
     return [
         p
         for p in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv")))
-        if not p.endswith(DETAIL_SUFFIX)
+        if not p.endswith(DETAIL_SUFFIX) and os.path.basename(p) not in GLOBAL_FILES
     ]
 
 
@@ -87,6 +101,20 @@ def enriched_path(base_path: str) -> str:
     through here instead; that string surgery silently produced a `data/raw/` path.
     """
     return os.path.join(PROCESSED_DIR, _stem(base_path) + ENRICHED_SUFFIX)
+
+
+def goals_path() -> str:
+    """The global goal-timing store. One row per goal, keyed by match id."""
+    return os.path.join(RAW_DIR, GOALS_FILE)
+
+
+def goals_done_path() -> str:
+    """The attempt log beside it: every match id fetched, whether or not it had goals.
+
+    Separate from `goals_path()` because a 0-0 produces no goal rows, so the store alone
+    cannot say whether a match has been scraped.
+    """
+    return os.path.join(RAW_DIR, GOALS_DONE_FILE)
 
 
 def enriched_csvs() -> list[str]:

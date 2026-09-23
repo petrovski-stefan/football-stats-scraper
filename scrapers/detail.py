@@ -26,13 +26,14 @@ from domain import paths
 from domain.columns import DETAIL_ORDERED_COLUMNS
 from domain.match_detail import MatchDetail
 from scrapers import detail_parsers as dp
+from scrapers.browser_pool import BrowserPool
 from scrapers.constants import (
     DETAIL_AWAY_RECENT_ROWS,
     DETAIL_H2H_ROWS,
     DETAIL_HOME_RECENT_ROWS,
 )
 from scrapers.csv_io import append_rows
-from scrapers.driver import get_detail_page, get_driver
+from scrapers.driver import get_detail_page
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,28 +44,9 @@ logger = logging.getLogger(__name__)
 
 WORKERS = 4
 
-# One Chrome driver per worker thread (a Selenium session isn't safe to share
-# across threads), created lazily on first use and reused for every task that
-# thread picks up afterward — across leagues, since the pool spans the whole run.
-_thread_local = threading.local()
-_drivers: list[webdriver.Chrome] = []
-_drivers_lock = threading.Lock()
-
-
-def _thread_driver() -> webdriver.Chrome:
-    driver = getattr(_thread_local, "driver", None)
-    if driver is None:
-        driver = get_driver()
-        _thread_local.driver = driver
-        with _drivers_lock:
-            _drivers.append(driver)
-    return driver
-
-
-def _quit_all_drivers() -> None:
-    for driver in _drivers:
-        driver.quit()
-    _drivers.clear()
+# One Chrome per worker thread, spanning the whole run rather than one league, so a
+# browser is started once and reused across every league it processes.
+_POOL = BrowserPool()
 
 
 def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, Any]:
@@ -105,7 +87,7 @@ def _done_ids(detail_path: str) -> set[str]:
 def _scrape_one(mid: str) -> tuple[str, dict[str, Any] | None, Exception | None]:
     """Run in a worker thread with that thread's own driver; errors come back,
     not raised, so one bad match doesn't cancel the others already in flight."""
-    driver = _thread_driver()
+    driver = _POOL.driver()
     try:
         return mid, scrape_match_detail(driver, mid), None
     except Exception as exc:  # keep going; the id stays pending for the next run
@@ -160,12 +142,9 @@ def enrich_league(
 
 def enrich_finished(limit: int | None = None) -> None:
     csv_lock = threading.Lock()
-    try:
-        with ThreadPoolExecutor(max_workers=WORKERS) as pool:
-            for base_path in paths.base_league_csvs():
-                enrich_league(pool, base_path, limit, csv_lock)
-    finally:
-        _quit_all_drivers()
+    with _POOL, ThreadPoolExecutor(max_workers=WORKERS) as pool:
+        for base_path in paths.base_league_csvs():
+            enrich_league(pool, base_path, limit, csv_lock)
     logger.info("done — run `python -m features.enrich` to rebuild the enriched join")
 
 

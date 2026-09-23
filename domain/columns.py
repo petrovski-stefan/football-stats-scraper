@@ -67,6 +67,20 @@ ORDERED_DF_COLUMNS = [
     "favorite",
     "favorite_odds",
     "underdog_odds",
+    # Over/Under — the goal line is Asian and variable, so `ou_line` is the market's
+    # goal-total forecast and `implied_over` is only the sub-quarter tilt around it.
+    "has_ou_odds",
+    "ou_line",
+    "over_odds",
+    "under_odds",
+    "implied_over",
+    # Asian Handicap — positive `ah_line` means the HOME side is favoured (opposite of
+    # football-data.co.uk's AHh convention).
+    "has_ah_odds",
+    "ah_line",
+    "ah_home_odds",
+    "ah_away_odds",
+    "implied_ah_home",
     # Bet markets
     "btts",
     "over_25",
@@ -144,6 +158,12 @@ DETAIL_ORDERED_COLUMNS = [
 PER_MATCH_SECTIONS = ("home", "away", "h2h")
 MATCHES_PER_SECTION = 6
 PER_MATCH_FIELDS = [
+    # The referenced match's own ids, read from the history row's `index` / `name`
+    # attributes. Without these a history row is an orphan: it cannot be joined to goal
+    # timings, or to anything else. Added 2026-09-22; detail files scraped before that
+    # date do not carry them.
+    "match_id",
+    "league_id",
     "date",
     "league",
     "is_home",  # subject team was home in that match
@@ -183,3 +203,26 @@ def per_match_columns() -> list[str]:
 
 
 DETAIL_ORDERED_COLUMNS = DETAIL_ORDERED_COLUMNS + per_match_columns()
+
+
+# --- Goal timings (data/raw/goals.csv, data/raw/goals_done.csv) ---------------
+# A GLOBAL store keyed by match id, not a per-league-season file: the matches referenced by
+# a fixture's history come from cups, European competition and other leagues, so they
+# belong to no single league-season, and the whole point of keying on the id is that the
+# dedupe works across all of them. `league_id` keeps the provenance.
+GOALS_ORDERED_COLUMNS = [
+    "match_id",
+    "league_id",
+    "goal_index",
+    "minute",
+    "stoppage",
+    "side",
+    "home_score_after",
+    "away_score_after",
+    "kind",
+]
+
+# The attempt log. A goalless match yields no rows in goals.csv, so "has this been
+# scraped?" cannot be answered from that file alone — without this, every 0-0 would be
+# re-scraped on every run, forever.
+GOALS_DONE_COLUMNS = ["match_id", "scraped_at", "n_goals"]

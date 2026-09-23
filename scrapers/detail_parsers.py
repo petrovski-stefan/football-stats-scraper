@@ -26,7 +26,9 @@ from scrapers.constants import (
     HIST_DATE,
     HIST_FT_SCORE,
     HIST_HT_SCORE,
+    HIST_LEAGUE_ID_ATTR,
     HIST_LEAGUE_TD,
+    HIST_MATCH_ID_ATTR,
     HIST_ODDS_TDS,
     HIST_TEAM_LINKS,
     PREFERRED_BOOKMAKER,
@@ -64,6 +66,10 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
     odds = [parse_float(tag_text(cells[i])) if len(cells) > i else None for i in HIST_ODDS_TDS]
     date_tag = row.select_one(HIST_DATE)
     return {
+        # The referenced match's own id, carried on the row. This is what lets a history
+        # row be joined to anything else -- goal timings in particular.
+        "match_id": attr(row, HIST_MATCH_ID_ATTR) or "",
+        "league_id": _row_league_id(row),
         "home_id": home_id,
         "away_id": away_id,
         "home_name": tag_text(links[0]),
@@ -82,6 +88,12 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
         "corner_ft": corner_ft,
         "corner_ht": corner_ht,
     }
+
+
+def _row_league_id(row: Tag) -> int | None:
+    """The competition id carried on a history row (36 = EPL, 90 = FA Cup)."""
+    raw = attr(row, HIST_LEAGUE_ID_ATTR)
+    return int(raw) if raw and raw.isdigit() else None
 
 
 def _parse_pair_cell(
@@ -265,6 +277,8 @@ def _flatten_one(
     result = _outcome(sgf, sga)
 
     values = {
+        "match_id": record["match_id"],
+        "league_id": record["league_id"],
         "date": record["date"],
         "league": record["league"],
         "is_home": subject_home,

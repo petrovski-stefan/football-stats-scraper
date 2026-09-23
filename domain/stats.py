@@ -56,3 +56,15 @@ def points(goals_for: int, goals_against: int) -> int:
 def implied_prob(odds: float | None) -> float | None:
     """Implied probability from decimal odds (1 / odds). None for missing/zero odds."""
     return 1 / odds if odds else None
+
+
+def two_way_prob(odds_for: float | None, odds_against: float | None) -> float | None:
+    """Vig-free probability of the first side in a two-way market.
+
+    Proportional normalisation over the two inverse prices, so the bookmaker's overround
+    cancels instead of inflating both sides. None when either price is missing or zero.
+    """
+    if not odds_for or not odds_against:
+        return None
+    inv_for, inv_against = 1 / odds_for, 1 / odds_against
+    return inv_for / (inv_for + inv_against)
