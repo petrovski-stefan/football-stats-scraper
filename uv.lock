@@ -302,6 +302,9 @@ requires-dist = [
     { name = "types-beautifulsoup4", specifier = "==4.12.0.20241020" },
 ]
 
+[package.metadata.requires-dev]
+dev = []
+
 [[package]]
 name = "matplotlib-inline"
 version = "0.1.7"

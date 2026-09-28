@@ -56,3 +56,6 @@ warn_unreachable = true  # not part of --strict
 # mypy flags stacked @computed_field/@property (the standard pydantic idiom).
 disable_error_code = ["prop-decorator"]
 
+[dependency-groups]
+dev = []
+
