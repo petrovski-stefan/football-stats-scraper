@@ -1,0 +1,88 @@
+---
+name: check
+description: Run the five quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn) and then the manual caller sweep over the current diff that the tools miss. Use after any code change, before committing.
+allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uvx complexipy@latest *) Bash(uvx pyscn@latest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Grep Read
+---
+
+# /check — five gates plus the caller sweep
+
+Root `CLAUDE.md` ("Quality gates") requires all five tools on every change **and** a caller
+sweep by hand, because ruff and mypy pass clean on unused functions, unreferenced constants
+and private names called across modules, and pyscn's dead-code detector misses
+unreferenced definitions too (`notes/MIGRATIONS.md`). This skill does both.
+
+Run everything from the repo root. Do not fix anything unless the user asks; this skill
+reports.
+
+## 1. The five tools, in this order
+
+Run each one even if an earlier one fails. Capture exit code and the failing lines.
+
+1. `uv run ruff check`
+2. `uv run ruff format --check`
+3. `uv run mypy .`
+4. `uvx complexipy@latest . --failed`
+5. `uvx pyscn@latest analyze .`
+
+pyscn exits 0 even when it reports findings, and its text summary gives only an
+"Architecture NN% compliant" score, not what the violations are. Get them from JSON:
+
+```
+uvx pyscn@latest analyze --json --output - --select deps . 2>/dev/null \
+  | uv run python -c "import json,sys; v=json.load(sys.stdin)['system']['architecture_analysis']['violations']; [print(x['type'], x['severity'], x['module'], '->', x.get('target',''), x['rule']) for x in v]"
+```
+
+Treat any violation of **type `layer`** (a lower package importing a higher one) as FAIL —
+the layer rule is the point of the package split. `responsibility` / `cohesion` violations,
+clone groups and coupling are WARN with their counts. Dead-code findings > 0 are FAIL.
+Pass through any pyscn config warning (e.g. an unknown key in `.pyscn.toml`). pyscn writes
+an HTML report under `.pyscn/reports/`; give the path, do not paste it.
+
+## 2. The caller sweep
+
+Scope: the current diff against `HEAD`, plus untracked `.py` files.
+
+1. Collect the changed files:
+   - `git diff HEAD --name-only -- "*.py"`
+   - `git ls-files --others --exclude-standard -- "*.py"`
+   If both are empty, the sweep is "nothing to sweep" and passes.
+2. Collect the **names** added or changed:
+   - From `git diff HEAD -U0 -- "*.py"`: every added line (`+`) that defines
+     `def name`, `async def name`, `class name`, a module-level `NAME = ` / `NAME: T = `
+     (UPPER_CASE constant) or a module-level `_name = ` (private). Also every function
+     named in a hunk header (`@@ ... @@ def name(`) — that function's body changed.
+   - For untracked files: every top-level `def`, `class`, UPPER_CASE constant and `_private`
+     name, plus methods (`    def name`).
+   Skip dunders (`__init__`, `__all__`, ...) and `main`.
+3. For each name, use Grep with pattern `\bname\b` over `**/*.py` (exclude `.venv`), and
+   subtract the definition line itself. Classify:
+   - **unreferenced** — no other occurrence anywhere.
+   - **private-cross-module** — the name starts with a single `_` and appears in a module
+     other than the one defining it (an import `from x import _name` or `module._name`).
+     A private name that each module **defines for itself** (e.g. `_share` in both
+     `features/goals.py` and `features/events.py`) is two names, not a cross-module call.
+   - **ok** — referenced, and private names only within their own module.
+4. Before reporting an unreferenced name, check the known indirect-use patterns and mark it
+   `ok (indirect: <how>)` only if one applies, with the file:line that proves it:
+   - pydantic `@computed_field` / validators (used via `model_dump()` / the model);
+   - a method invoked through an attribute on another name (`.name(`) — grep `\.name\b`;
+   - an entry in a registry dict or list (e.g. `FAMILIES`, `BUCKETS`) or `getattr` string;
+   - an `argparse` flag handler reached from `main`.
+   Otherwise it stays **unreferenced**. Do not guess.
+
+## 3. Output
+
+First, per-tool detail only for tools that failed or warned (the failing lines, trimmed to
+the first ~15). Then the sweep table (name, file:line, verdict) listing only non-`ok` rows,
+plus a count of `ok` rows.
+
+End with exactly this summary block, one line each:
+
+```
+ruff check        PASS|FAIL  (<n> errors)
+ruff format       PASS|FAIL  (<n> files would be reformatted)
+mypy              PASS|FAIL  (<n> errors)
+complexipy        PASS|FAIL  (<n> functions over threshold)
+pyscn             PASS|WARN|FAIL  (<clones> clone groups, <dead> dead code, <arch> layer violations)
+caller sweep      PASS|FAIL  (<n> names checked, <u> unreferenced, <p> private cross-module)
+```

@@ -75,6 +75,7 @@ Modules and directories have been renamed several times. If code or a note cites
 - Pin dependency versions exactly in `pyproject.toml` (matches existing style); update `uv.lock` via `uv`.
 - Absolute package imports only (`from domain import stats`), never relative — enforced by Ruff `TID`. Respect the layer direction in the table above.
 - Never hardcode a data directory or build a CSV's sibling by string surgery (`base_path.replace(".csv", "_enriched.csv")` was the old idiom and silently resolves to the wrong directory now). Go through `domain/paths.py`.
+- Open research decisions go to `notes/DECISIONS.md` instead of blocking the current task. Only stop and ask when the task genuinely can't continue without the answer.
 - Only `scrapers/` may write to `data/raw/`. Everything else derives into `data/processed/` and must be reproducible from the raw files — that is what makes the raw corpus safe to treat as ground truth and a derived file safe to delete.
 
 ## Where to read

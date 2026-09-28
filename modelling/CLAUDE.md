@@ -16,6 +16,15 @@ Read **`notes/STATE.md`** before proposing any model, feature, filter or rule. T
 - For a history-block feature, run the reliability screen before either of the above (`features/CLAUDE.md` §5).
 - Test any claim the `notes/PREREGISTRATION.md` way: closed family list, Holm correction, one holdout opening, amendments logged with dates.
 
+### Screening bars (set 2026-09-28, before use)
+
+Fixed before any new feature was screened against them. Both screens are outcome-free, and both bars are applied mechanically, with no judgement branch. **Changing a bar requires a dated entry in the `notes/PREREGISTRATION.md` amendment log.**
+
+**The market-orthogonality values below are provisional** — both bars and how "the market price" is read are open in `notes/DECISIONS.md` (D1–D4). Apply them as written until those close.
+
+- **Reliability** (history-block features only), judged on the **depth-6** Spearman–Brown value, not the raw split-half (A9.4): **kill below 0.10**; otherwise pass, reporting the value against the reference table in `features/CLAUDE.md` §5.
+- **Market orthogonality**: an effect-size bar, not a significance test. |r| between the candidate's score and the pre-kickoff market price: **kill below 0.05** (no signal); **kill as redundant above 0.80** (the market already carries it); pass in between. The CI is reported for information only.
+
 ## 4. Binding rules
 
 - **Stratify by league, never test per league.** Pool with Mantel–Haenszel over league-season strata.

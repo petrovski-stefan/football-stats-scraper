@@ -454,3 +454,30 @@ without that amendment is dev data, not confirmatory.
   (RELIABILITY_SCREEN §2). The verdict is unchanged.
 - The retry list has **15** claims (A8.2). "14" in RETRY_CANDIDATES §0 and
   RELIABILITY_SCREEN §6 predates A8.
+
+**A10 — 2026-09-28. Clarification of A9.2: eligibility is decided per league-season.**
+A9 is not edited.
+
+**1. The rule.** A league-season is eligible for the confirmatory set only if **none** of
+its matches is present, at the time its amendment is declared, in any of:
+- `data/raw/` as a league-season file (`<league>_<season>.csv` or its `_detail.csv`);
+- the event store (`goals.csv`, `goals_done.csv`, `events.csv`, `events_done.csv`);
+- any history slot (`home_lastN_*`, `away_lastN_*`, `h2h_lastN_*`) of any stored detail file.
+
+**One such match disqualifies the whole league-season.** Matches are not excluded
+individually. The matches already present are not a random subset: they are the ones a
+stored team's history block pointed at. Excluding only those would leave a set that
+depends on what was scraped before.
+
+**2. Matching a history slot to a league-season.** A slot belongs to a league-season when
+its `_league_id` equals the league's id and its `_date` falls inside that season's window.
+The window is conservative: a cross-year label `YYYY-YYYY+1` covers YYYY-07-01 to
+YYYY+1-06-30, and a calendar-year label `YYYY` covers YYYY-01-01 to YYYY-12-31.
+
+**3. As measured on 2026-09-28.** `english_premier_league 2025-2026` (id 36) is
+ineligible: its league-season file and 370 referenced matches are present. League id 41,
+2025-26, is ineligible: 79 matches are referenced in history slots, none in the event
+store. EPL 2026-27 is not ruled out by this rule: 0 matches are present.
+
+No outcome label was read for this amendment. The measurement in item 3 used only
+`match_id`, `_league_id` and `_date`.
