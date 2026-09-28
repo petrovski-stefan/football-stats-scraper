@@ -412,3 +412,45 @@ substitute for the decision.
 1. This stays a corpus-definition decision. It is noted here because `scope.in_scope` gates
 what the scrape *fetches*, so the cost of leaving it scales with the corpus rather than
 staying flat.
+
+**A9 — 2026-09-28. The 2025-26 holdout is spent; a new confirmatory set is defined; two errata.**
+
+**1. 2025-26 is spent.** Not "opened N times" — its outcome labels informed multiple
+analyses, including ones that shaped the retry list, so it cannot confirm anything. The
+notes disagreed on its status (RESULTS §2: opened once; PREREG_FILTER §6: twice; both
+PLANs: three times; RETRY §6.6 and A8.4: "unspent"). Every recorded use of 2025-26 labels:
+
+| # | date | analysis | recorded in | committed raw output |
+|---|---|---|---|---|
+| 0 | ≤ 2026-07-26 | LEAGUE_STUDY F11–F13 tested on 2025-26 (football-data corpus) | LEAGUE_STUDY F11–F13 | none |
+| 1 | 2026-07-25 | `modelling.experiment --holdout`, 591 matches | RESULTS §2; A7 | none — transcript lost (A7) |
+| 2 | 2026-07-25 | filter pilot, 2023-25 → 2025-26 | PREREG_FILTER §3 | none |
+| 3 | 2026-07-25 | environment-model held-out AUC, n=591 | PLAN_2026-07-25 §1 | none |
+| 4 | 2026-07-25 | filter study walk-forward incl. 2025-26 | FILTER_RESULTS §4 | **yes** — `notes/filter_study_raw.txt` (`1c5ac01`), `FILTER_STUDY_RAW.md` (`c82645f`) |
+| 5 | 2026-08-29 | behavioural rule on all 2,058 matches | BEHAVIOURAL_RESULTS | none |
+| 6 | 2026-09-20 | out-of-round and T1–T4, n=2,058 | PLAN_2026-09-20 §1, §3 | none |
+| 7 | 2026-09-2x | EPL/Ekstraklasa completion decomposition | RETRY_CANDIDATES §1–2 | none |
+| 8 | 2026-09-23 | `is_comeback` against card patterns | RELIABILITY_SCREEN §4; A8.4 | none |
+
+Only row 4 has committed output; every other row is note-only. Note also that this
+document, RESULTS.md and the `--holdout` code first entered git together in `1c5ac01`
+(2026-07-26), so git cannot establish that §2 was committed before row 1 ran.
+
+Consequences: `modelling.experiment --holdout` must not be run. The 2025-26 opening that
+MARKET_LINE_FINDINGS §4 planned for promoting the market-line result is void. A8.4's
+exclusion of the `english_premier_league 2025-2026` stratum from claim 15 stands.
+
+**2. The confirmatory set.** Any league-season that is (i) first scraped after 2026-09-28
+and (ii) never previously present in `data/raw/` or among the event store's referenced
+matches — plus the 2026-27 season as it accrues.
+
+**3. It must be declared first.** The confirmatory set's league list and scrape date are
+declared in a dated amendment committed before its scrape starts. A league-season scraped
+without that amendment is dev data, not confirmatory.
+
+**4. Errata (A8 and RETRY_CANDIDATES are not edited).**
+- The **-0.004** in A8.3 and RETRY_CANDIDATES line 143 is the raw split-half value. The
+  depth-6 screen value — the quantity the screen is defined on — is **0.000**
+  (RELIABILITY_SCREEN §2). The verdict is unchanged.
+- The retry list has **15** claims (A8.2). "14" in RETRY_CANDIDATES §0 and
+  RELIABILITY_SCREEN §6 predates A8.
