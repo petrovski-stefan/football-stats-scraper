@@ -25,7 +25,7 @@ Validation, features, modelling:
 - Validate the corpus: `uv run python -m qa.validate` — exits non-zero on any failure; read `qa/CLAUDE.md` before touching it.
 - Build the feature matrix: `uv run python -m features.engine` (`--self-check` proves the as-of-round invariant)
 - Validate the imported F11 completion curve: `uv run python -m features.chain --replicate-f11`
-- Screen features: `uv run python -m modelling.experiment --dev` — **never run `--holdout`: it targets a spent season (see `modelling/CLAUDE.md` §2)**
+- Screen features: `uv run python -m modelling.experiment --dev` — **never run `--holdout`: it targets a spent season (see `modelling/CLAUDE.md` §2)**. A `PreToolUse` hook (`.claude/settings.json` → `.claude/hooks/block-holdout.sh`) blocks any Bash or PowerShell command containing the flag. The --holdout hook fails open if bash is unavailable; rerun its proof after any environment change.
 - Validate the scoreline model: `uv run python -m modelling.scoreline --self-check --leak-check`
 - Run the exclusion-filter study: `uv run python -m modelling.filter_study --curve` / `--bar`
 

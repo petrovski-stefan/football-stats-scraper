@@ -1,7 +1,7 @@
 ---
 name: check
-description: Run the five quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn) and then the manual caller sweep over the current diff that the tools miss. Use after any code change, before committing.
-allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uvx complexipy@latest *) Bash(uvx pyscn@latest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Grep Read
+description: Run the five quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, modelling/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
+allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uvx complexipy@latest *) Bash(uvx pyscn@latest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Bash(uv run python -m modelling.scoreline --self-check --leak-check) Agent Grep Read
 ---
 
 # /check — five gates plus the caller sweep
@@ -70,11 +70,25 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
    - an `argparse` flag handler reached from `main`.
    Otherwise it stays **unreferenced**. Do not guess.
 
-## 3. Output
+## 3. Statistical review
+
+1. `git diff HEAD --name-only -- features modelling notes` and
+   `git ls-files --others --exclude-standard -- features modelling notes`.
+   If both are empty: `stats review n/a`, skip the rest of this section.
+2. Self-checks, each only when its file is in that list (changed or untracked). Capture the
+   exit code and the last ~20 lines of output:
+   - `features/engine.py` → `uv run python -m features.engine --self-check`
+   - `modelling/scoreline.py` → `uv run python -m modelling.scoreline --self-check --leak-check`
+3. Spawn the `stats-reviewer` agent with: the full `git diff HEAD -- features modelling notes`,
+   the untracked file list, `git log --oneline -15`, and each self-check's exit code and
+   output — or `not run: unchanged` for each file not in the list.
+4. Relay its report verbatim under "Statistical review". Do not re-judge its findings.
+
+## 4. Output
 
 First, per-tool detail only for tools that failed or warned (the failing lines, trimmed to
 the first ~15). Then the sweep table (name, file:line, verdict) listing only non-`ok` rows,
-plus a count of `ok` rows.
+plus a count of `ok` rows. Then the statistical review, if §3 ran.
 
 End with exactly this summary block, one line each:
 
@@ -85,4 +99,5 @@ mypy              PASS|FAIL  (<n> errors)
 complexipy        PASS|FAIL  (<n> functions over threshold)
 pyscn             PASS|WARN|FAIL  (<clones> clone groups, <dead> dead code, <arch> layer violations)
 caller sweep      PASS|FAIL  (<n> names checked, <u> unreferenced, <p> private cross-module)
+stats review      OK|BLOCK|n/a  (<n> findings, <v> not verified)
 ```

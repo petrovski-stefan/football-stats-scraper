@@ -70,6 +70,69 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
 - **Context:** `.claude/skills/new-candidate/SKILL.md` step c;
   `notes/BEHAVIOURAL_RESULTS.md` §4, §5; `notes/MARKET_LINE_FINDINGS.md` §2–3.
 
+### D5 — Give `features.engine --self-check` a post-match leak check (engineering task)
+
+- **Raised:** 2026-09-28, by Claude (agent known-answer tests, test 1)
+- **Question:** Should the engine get a leak check like `modelling.scoreline --leak-check`?
+  That check sets every post-match column to NaN, rebuilds, and requires identical output.
+- **Evidence:** A planted edit added `df["ft_home_goals"] + df["ft_away_goals"]` to
+  `combined_recent_gf` in `features/engine.py` `build_features`. The as-of-round self-check
+  still **passed** ("1600 comparisons, 0 mismatches"), because it compares rolling features
+  against the target round only, and this line reads the target row's own outcome
+  columns. Only the stats-reviewer agent caught it (BLOCK, citing the line). A leak that
+  skips the reviewer, for example one committed without `/check`, has no automated guard.
+- **Options:**
+  1. Add `--leak-check` to `features.engine`: NaN the columns in its post-match list
+     (`engine.py`, the "never model features" block), rebuild, and require every feature
+     column unchanged.
+  2. Leave it to the reviewer (current).
+- **Context:** `features/engine.py` `self_check`, `build_features`; `modelling/scoreline.py`
+  `--leak-check`; `.claude/skills/test-agents/SKILL.md` test 1.
+
+### D6 — Notes cleanup from the 2026-09-28 full ledger audit
+
+- **Raised:** 2026-09-28, by the `ledger-auditor` agent (scope full). These are pre-existing
+  issues, not the one planted for the test.
+- **Handling rule:** fix with dated errata (in `notes/PREREGISTRATION.md` §10 or the
+  relevant note's amendment log) and pointers from `notes/STATE.md`. **Do not edit the
+  historical notes' text.**
+- **Items:**
+  1. *(audit #2)* **Ambiguous label.** PREREGISTRATION A8.3 gives P(FT win | HT loss)
+     reliability as 0.000 without saying whether it is split-half or depth-6.
+     RELIABILITY_SCREEN §2 has no row for this quantity. STATE already flags it on its row.
+  2. *(audit #3)* **Figure not found in its cited source.** RETRY_CANDIDATES §4 row 2 gives
+     table-vs-market divergence as 7.11%, 1.29×, p=0.060 and cites MARKET_LINE, but
+     MARKET_LINE_FINDINGS has no such figure. Its §1 MH table (z=+1.12) does not reduce to
+     p=0.060. Find the run that produced it, or mark the figure unsourced.
+  3. *(audit #4)* **Dead path.** PREREGISTRATION A9.1 row 4 cites
+     `notes/filter_study_raw.txt (1c5ac01)`. The file no longer exists and MIGRATIONS has
+     no entry for it. Add a MIGRATIONS line pointing to `notes/FILTER_STUDY_RAW.md`.
+  4. *(audit #6)* **Stale planned counts.** PREREGISTRATION_FILTER §7 expects 531
+     excluded / 29.4 at 30% coverage (and matching 20/40/50% rows). It computed them from
+     the ~1,773 usable count, but walk-forward evaluated n=1,565, so the actual figures are
+     469 / 26.7 (FILTER_RESULTS §1). Needs a dated amendment in PREREGISTRATION_FILTER §9.
+  5. *(audit #7)* **One n for two measurements.** STATE row "Market O/U 2.5 line ranks
+     the environment" puts AUC 0.592 (MARKET_LINE §2, environment target, pooled dev
+     n=15,475) and 1.33× (§3, comeback target, test n=7,675) under the single n "7,675
+     test". Split the key number and n in the STATE row. This is the one item that edits
+     STATE, not a historical note.
+  6. *(second audit, #7)* **Truncated key number.** The STATE row "Rest days / calendar /
+     open→close odds movement" gives the rest-days result as p=0.77. LEAGUE_STUDY F10 gives
+     three sub-tests: p = 0.77 / 0.15 / 0.48 (min, differential, trailer's own). Fix in the
+     STATE row.
+  7. *(second audit, #8)* **Citation format.** STATE Open leads items 1 and 5 cite
+     "PREREGISTRATION A9(c)" and "A9(b)". A9 numbers its sub-items 1–4, and A10 cites them
+     as "A9.2", so these should read A9.3 (declare first) and A9.2 (the confirmatory set).
+     Fix in STATE.
+  8. *(second audit, #9)* **Stale instruction.** The RESULTS.md header still says
+     "Reproduce with `uv run python -m modelling.experiment --holdout`". A7 says the
+     transcript must not be regenerated, and A9.1 says `--holdout` must not be run. Do not
+     edit RESULTS: add a STATE pointer, or extend the A9 erratum, recording that its
+     reproduce line is void.
+- **Context:** neither audit report is saved. Rerun `ledger-auditor` with scope full to
+  reproduce them. Items 1–5 come from the first run, and items 6–8 from the second run the
+  same day.
+
 ## Closed
 
 (none yet)

@@ -55,7 +55,7 @@ Aggregate/odds fields are validated by `domain/match_detail.py:MatchDetail`; the
 
 ### Goals are identified by the running score, never by the icon
 
-Measured on live pages 2026-09-22: an open-play goal carries `1.png` (alt "Goal") but a penalty carries `7.png` (alt "Penalty Scored"), so an icon whitelist silently drops every penalty. Chelsea 1-0 Fulham has *zero* rows with the goal icon — its only goal was a penalty at 45+3'. Pogon 0-3 Lech shows the running score jumping 0-1 to 0-3 for the same reason.
+Measured on live pages 2026-09-22: an open-play goal carries `1.png` (alt "Goal") but a penalty carries `7.png` (alt "Penalty Scored"), so an icon whitelist silently drops every penalty. Chelsea 2-0 Fulham (match 2789151, re-measured 2026-09-28) shows both: a `1.png` Goal at 45+8' and a `7.png` Penalty Scored at 56' — an icon whitelist would keep the first and drop the second, recording 1-0. Pogon 0-3 Lech shows the running score jumping 0-1 to 0-3 for the same reason.
 
 The running score is strictly better: goal and penalty rows both carry it, VAR rows ("Goal Disallowed", "Goal awarded") never do, and it identifies the scoring side by which number advanced — which also handles own goals without knowing their icon. The icon's `alt` is still stored as `kind`, but is never used to decide whether a row is a goal.
 
