@@ -48,8 +48,9 @@ Five packages, imported absolutely and strictly one-directional:
 └── notes/                # Study records, preregistrations, findings
 ```
 
-There are no top-level scripts; every entry point is `python -m <package>.<module>`,
-run from the repo root. See `CLAUDE.md` for the layer rules and the full architecture.
+There are no top-level Python scripts; every entry point is `python -m <package>.<module>`,
+run from the repo root. `scripts/pipeline.sh` wraps the four pipeline stages (see Usage).
+See `CLAUDE.md` for the layer rules and the full architecture.
 
 ## Setup
 
@@ -63,7 +64,19 @@ Chrome must be installed — the scraper runs it in headless mode.
 
 ## Usage
 
-Add league URLs (one per line) to `config/LEAGUES.txt`, then run the four stages in order:
+Add league URLs (one per line) to `config/LEAGUES.txt`, then run all four stages with one
+command (from any directory; on Windows, use Git Bash):
+
+```bash
+bash scripts/pipeline.sh                # schedule -> detail -> goals -> enrich
+bash scripts/pipeline.sh --limit 50     # cap detail and goals at 50 matches each
+bash scripts/pipeline.sh --skip-schedule --skip-detail --skip-goals   # enrich only
+bash scripts/pipeline.sh --help         # all options
+```
+
+It stops at the first failing stage and says which one. Rerun the same command to resume.
+
+Or run the four stages by hand, in order:
 
 ```bash
 uv run python -m scrapers.schedule   # -> data/raw/<league>_<season>.csv
