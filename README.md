@@ -25,7 +25,7 @@ A web scraper that collects football match data across multiple leagues — incl
 | BeautifulSoup4 | HTML parsing |
 | Pandas | CSV output |
 | Pydantic | Match data validation |
-| ThreadPoolExecutor | Concurrent page scraping (4 workers, one browser each) |
+| ThreadPoolExecutor | Concurrent page scraping (3 workers, one browser each) |
 | `uv` | Dependency management |
 
 ## Project structure

@@ -42,7 +42,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-WORKERS = 4
+WORKERS = 3
 
 # One Chrome per worker thread, spanning the whole run rather than one league, so a
 # browser is started once and reused across every league it processes.

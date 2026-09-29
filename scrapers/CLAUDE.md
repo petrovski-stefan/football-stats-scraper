@@ -37,7 +37,7 @@ Only this package may write to `data/raw/`. All DOM selectors live in `scrapers/
 
 - `scrape_match_detail(driver, match_id)` is **mode-agnostic** (a future prediction mode can feed upcoming ids).
 - `enrich_finished(limit)` reads ids from `data/raw/*.csv` and is **resumable** — it skips ids already in `data/raw/<league>_detail.csv` and appends incrementally.
-- It runs a **`ThreadPoolExecutor` of `WORKERS = 4`**, each thread holding its own Chrome for the whole run (a Selenium session is not thread-safe to share); a lock serialises the CSV appends.
+- It runs a **`ThreadPoolExecutor` of `WORKERS = 3`**, each thread holding its own Chrome for the whole run (a Selenium session is not thread-safe to share); a lock serialises the CSV appends.
 - Detail is ~1 page render **per match** (heavy: ~380/season) — always run it resumable, not from scratch.
 - The scraper writes **nothing but that detail file**. Joining it to the base CSV is `features/enrich.py` (see `features/CLAUDE.md`).
 

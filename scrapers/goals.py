@@ -66,7 +66,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-WORKERS = 4
+WORKERS = 3
 SECTIONS = ("home", "away", "h2h")
 
 _POOL = BrowserPool()
