@@ -88,6 +88,7 @@ Start with **`notes/STATE.md`**, the current state of the research. Before propo
 - `notes/STATS_PRIMER.md` — when a roadmap step uses Empirical Bayes shrinkage, Brier scores, calibration curves or Dixon–Coles and you need the formulas.
 - `notes/ESOTERIC_MODELS.md` — when a modelling step matches one of its seven tools' tagged "reach for it when" moments.
 - `notes/LEAGUE_STUDY.md` — before designing any comeback feature, and before admitting a new country as a comeback-candidate league (defines the bar).
+- `notes/LEAGUES_INCIDENTS.md` — before analysing, keeping or dropping any scraped league: known match-fixing incidents per league (unverified), and the rule that such decisions use outcome-blind data-quality checks only.
 - `notes/PREREGISTRATION.md` — before testing any claim; it is the template (closed family list, Holm correction, one holdout opening, dated amendments).
 - `notes/RESULTS.md` — before proposing any new pre-match comeback feature (the F12 re-test with nowgoal-exclusive features).
 - `notes/PREREGISTRATION_FILTER.md` — when reading or re-running the exclusion-filter study; the closed preregistration it was held to (its verdict is in `FILTER_RESULTS.md`).
