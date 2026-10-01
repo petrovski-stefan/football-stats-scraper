@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Scrape every league in config/LEAGUES.txt and rebuild the enriched CSVs.
+# Scrape every enabled league season in config/leagues.json and rebuild the enriched CSVs.
 #
 #   1. scrapers.schedule  -> data/raw/<league>_<season>.csv
 #   2. scrapers.detail    -> data/raw/<league>_<season>_detail.csv
@@ -17,7 +17,7 @@ usage() {
   cat <<'EOF'
 Usage: scripts/pipeline.sh [options]
 
-Scrapes every league in config/LEAGUES.txt, then rebuilds data/processed/.
+Scrapes every enabled league season in config/leagues.json, then rebuilds data/processed/.
 
 Options:
   --limit N          cap the detail and goals batches at N matches each
@@ -90,9 +90,13 @@ done
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 
 command -v uv >/dev/null || die "uv not found; install it from https://docs.astral.sh/uv/"
-[[ -f config/LEAGUES.txt ]] || die "config/LEAGUES.txt is missing (one league URL per line)"
-grep -Eq '^[[:space:]]*[^#[:space:]]' config/LEAGUES.txt \
-  || die "config/LEAGUES.txt has no league URLs, only comments or blank lines"
+[[ -f config/leagues.json ]] \
+  || die "config/leagues.json is missing (copy config/leagues.example.json and fill it in)"
+# Loading through the scraper's own validator catches a broken config before any page is
+# opened, and counts the league seasons stage 1 would actually scrape.
+enabled=$(uv run python -c 'from scrapers.links import get_league_seasons as g; print(len(g()))') \
+  || die "config/leagues.json is invalid (see the error above)"
+[[ $enabled -gt 0 ]] || die "config/leagues.json has no season with \"enabled\": true"
 
 # --- stages ------------------------------------------------------------------
 

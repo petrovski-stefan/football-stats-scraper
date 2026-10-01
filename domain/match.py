@@ -71,7 +71,7 @@ class Match(BaseModel):
     season: str  # verbatim from the URL: "2025-2026" (cross-year) or "2025" (calendar-year)
     league_id: int
     league_name: str
-    stage: str  # group/stage label; "" for single-table leagues
+    stage: str  # stage tab name ("League", "Group A", "Apertura"); "" if the page has no tabs
     round: int
     match_id: str
     date: str  # UTC-ish timestamp from the row's data-t attribute, e.g. "2026-05-24 23:00"

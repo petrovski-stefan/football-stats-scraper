@@ -40,7 +40,8 @@ def validate(r: Report, df: pd.DataFrame) -> None:
 
 
 def _rounds(df: pd.DataFrame) -> "DataFrameGroupBy[Any, Any]":
-    """Group by the round's full key. `stage` is "" today but grouped formats are coming."""
+    """Group by the round's full key. Rounds restart at 1 in each stage, so `round` alone
+    is not a key; `stage` is "" on pages without stage tabs."""
     keys = [c for c in ("stage", "round") if c in df.columns]
     return df.groupby(keys, dropna=False)
 

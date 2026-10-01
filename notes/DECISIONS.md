@@ -133,6 +133,32 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
   reproduce them. Items 1–5 come from the first run, and items 6–8 from the second run the
   same day.
 
+### D7 — Order rounds by stage in `features/` and `modelling/` (engineering task)
+
+- **Raised:** 2026-10-01, by Claude (stage-aware schedule scraper)
+- **Question:** How should `features/` and `modelling/` order the rounds of a league-season
+  that has more than one kept stage? This must be decided before such a league-season
+  reaches them.
+- **Evidence:** Since 2026-10-01 `scrapers.schedule` writes every kept stage of a
+  league-season into one CSV. Rounds restart at 1 in each stage, and the `stage` column
+  names the stage. So Apertura round 3 and Clausura round 3 both have `round == 3`.
+  `features/engine.py` `_rolling_form` sorts each team's matches by
+  (league_name, season, round), and `self_check` takes history as `round < row["round"]`.
+  With two stages, a Clausura match counts as "before" Apertura round 5: that is future
+  data, a leak. `modelling/experiment.py` and `modelling/filter_study.py` group by
+  (league_name, season, round), so two different rounds merge into one block. Parallel
+  groups (Group 1–5) share round numbers correctly, because they are played at the same
+  time. Sequential stages (Apertura, then Clausura) do not. `features/engine.py`
+  `ROUND_GROUP` and `qa/league.py` `_rounds` already include `stage`.
+- **Options:**
+  1. Order by kickoff date inside a league-season, and key round blocks on (stage, round).
+  2. Let only league-seasons with one kept stage, or only parallel groups, reach
+     `features/` and `modelling/`.
+- **Working value:** no league-season with more than one kept stage is enabled for
+  analysis. Today only EPL 2025-26 is enabled, and its page has no stage tabs.
+- **Context:** `scrapers/schedule.py` `_scrape_stage`; `config/leagues.json` `keep`;
+  `features/engine.py`; `modelling/experiment.py`; `modelling/filter_study.py`.
+
 ## Closed
 
 (none yet)

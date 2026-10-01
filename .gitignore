@@ -167,7 +167,8 @@ cython_debug/
 
 # .gitignore
 TODO.md
-config/
+# The real league config stays local; config/leagues.example.json is the committed template.
+config/leagues.json
 processing.ipynb
 
 .vscode

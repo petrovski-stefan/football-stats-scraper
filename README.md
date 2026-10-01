@@ -4,9 +4,9 @@ A web scraper that collects football match data across multiple leagues — incl
 
 ## What it does
 
-1. Reads a list of league URLs from `config/LEAGUES.txt`
+1. Reads the enabled league seasons from `config/leagues.json`
 2. Navigates each league page using a headless Chrome browser
-3. Discovers all stages (regular season, groups, etc.) and rounds within each league
+3. Clicks the stages the config keeps (regular season, groups, Apertura/Clausura, etc.) and walks each stage's rounds
 4. Scrapes every match in every round, collecting:
    - Team names and their current league positions
    - Full-time and half-time goals
@@ -36,7 +36,8 @@ Five packages, imported absolutely and strictly one-directional:
 ```
 .
 ├── config/
-│   └── LEAGUES.txt       # One league URL per line
+│   ├── leagues.example.json  # Committed template: one fake league
+│   └── leagues.json          # Your real config (gitignored): leagues, stages to keep, seasons
 ├── data/
 │   ├── raw/              # Scraper output only — nothing else writes here
 │   └── processed/        # Derived files, all reproducible from data/raw/
@@ -64,7 +65,9 @@ Chrome must be installed — the scraper runs it in headless mode.
 
 ## Usage
 
-Add league URLs (one per line) to `config/LEAGUES.txt`, then run all four stages with one
+Copy `config/leagues.example.json` to `config/leagues.json` and fill it with real leagues.
+Set `"enabled": true` on the seasons to scrape in `config/leagues.json` (each league lists
+its stage tabs in `stages` and the ones to scrape in `keep`), then run all four stages with one
 command (from any directory; on Windows, use Git Bash):
 
 ```bash

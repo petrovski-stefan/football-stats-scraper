@@ -1,0 +1,23 @@
+[
+  {
+    "name": "Exampleland Premier League",
+    "code": "EXL PL",
+    "continent": "Europe",
+    "country": "Exampleland",
+    "league_id": 98765,
+    "stages": ["League", "Relegation Playoffs", "Playoffs", "Playoff Finals"],
+    "keep": ["League"],
+    "seasons": [
+      {
+        "season": "2023-2024",
+        "url": "https://example.com/league/2023-2024/98765",
+        "enabled": false
+      },
+      {
+        "season": "2024-2025",
+        "url": "https://example.com/league/2024-2025/98765",
+        "enabled": true
+      }
+    ]
+  }
+]

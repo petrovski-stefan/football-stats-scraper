@@ -2,6 +2,7 @@ import contextlib
 import random
 import re
 import time
+from collections.abc import Callable
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -26,9 +27,14 @@ from scrapers.constants import (
     ROUND_SPANS,
     ROW_ODDS_CELLS,
     SCHEDULE_ROWS,
+    STAGE_ACTIVE_CLASS,
+    STAGE_ROUND_SPAN,
+    STAGE_SPAN,
+    STANDING_BOX,
     STANDING_BOX_LABEL,
     STANDING_ROUND_ITEM,
     STANDING_ROWS,
+    SUB_STANDING_ITEM,
 )
 
 DEFAULT_TIMEOUT = 20
@@ -183,35 +189,53 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
     return switched
 
 
+def click_stage(driver: webdriver.Chrome, stage_id: str, timeout: int = DEFAULT_TIMEOUT) -> None:
+    """Show one stage tab's schedule and wait until its rows replace the previous stage's.
+
+    Clicking a tab marks it 'on', unhides that stage's round buttons and loads the
+    stage's current round. The stage already on screen is left alone: re-clicking it
+    changes nothing, so the row-swap wait would sit out its whole timeout.
+    """
+    _click_schedule_tab(driver, STAGE_SPAN.format(stage=stage_id), STAGE_ACTIVE_CLASS, timeout)
+
+
+def sync_standings_to_stage(
+    driver: webdriver.Chrome, stage_id: str, timeout: int = DEFAULT_TIMEOUT
+) -> bool:
+    """Point the standings table at `stage_id`'s sub-table; return whether it shows it.
+
+    The sub-table picker ignores the stage tabs and opens on the latest sub-table: a
+    Liga MX page shows the Apertura schedule beside the Clausura table, a Scottish
+    Premiership page the regular season beside the 6-team Championship Group. Ranks read
+    without this sync belong to another table, so on False the caller must drop them.
+    """
+    if _standing_sub(driver) == stage_id:
+        return True
+    return _select_standings(
+        driver,
+        SUB_STANDING_ITEM.format(stage=stage_id),
+        lambda d: _standing_sub(d) == stage_id,
+        timeout,
+    )
+
+
 def click_round(
-    driver: webdriver.Chrome, round_number: int, timeout: int = DEFAULT_TIMEOUT
+    driver: webdriver.Chrome,
+    round_number: int,
+    stage_id: str | None = None,
+    timeout: int = DEFAULT_TIMEOUT,
 ) -> None:
     """Click a round button and wait until its schedule list has re-rendered.
 
-    Clicking a round marks its span with the 'on' class and swaps the schedule
-    rows; we wait on both to be sure the new round's rows are in place.
+    `stage_id` scopes the button to one stage tab: a multi-stage page holds every
+    stage's round buttons at once, so "round 3" alone would match the first stage's.
+    None on pages without stage tabs.
     """
-    selector = ROUND_SPAN.format(round=round_number)
-    span = WebDriverWait(driver, timeout).until(
-        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
-    )
-
-    prev_first_id = _first_row_match_id(driver)
-    driver.execute_script(_CLICK_JS, span)  # type: ignore[no-untyped-call]
-
-    WebDriverWait(driver, timeout).until(
-        lambda d: (
-            ROUND_ACTIVE_CLASS
-            in (d.find_element(By.CSS_SELECTOR, selector).get_attribute("class") or "")
-        )
-    )
-    # Wait for the row list to actually swap (unless the round was already active).
-    with contextlib.suppress(TimeoutException):
-        WebDriverWait(driver, timeout).until(
-            lambda d: _first_row_match_id(d) != prev_first_id or _first_row_match_id(d) is None
-        )
-    wait_for_schedule_rows(driver, timeout)
-    time.sleep(0.4)  # small settle for trailing DOM updates
+    if stage_id is None:
+        selector = ROUND_SPAN.format(round=round_number)
+    else:
+        selector = STAGE_ROUND_SPAN.format(stage=stage_id, round=round_number)
+    _click_schedule_tab(driver, selector, ROUND_ACTIVE_CLASS, timeout)
 
 
 def sync_standings_to_round(
@@ -221,21 +245,68 @@ def sync_standings_to_round(
 
     Returns quietly if the standings section or the round entry is unavailable.
     """
-    items = driver.find_elements(By.CSS_SELECTOR, STANDING_ROUND_ITEM.format(round=round_number))
-    if not items:
+    _select_standings(
+        driver,
+        STANDING_ROUND_ITEM.format(round=round_number),
+        lambda d: _standing_label(d) == f"Round {round_number}",
+        timeout,
+    )
+
+
+def _click_schedule_tab(
+    driver: webdriver.Chrome, selector: str, active_class: str, timeout: int
+) -> None:
+    """Click a stage or round button and wait until the schedule rows have re-rendered.
+
+    The click marks the button with `active_class` and swaps the schedule rows; we wait
+    on both to be sure the new rows are in place. A button already active is not clicked.
+    """
+    span = WebDriverWait(driver, timeout).until(
+        EC.presence_of_element_located((By.CSS_SELECTOR, selector))
+    )
+    if _has_class(span, active_class):
         return
 
-    driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
-    try:
+    prev_first_id = _first_row_match_id(driver)
+    driver.execute_script(_CLICK_JS, span)  # type: ignore[no-untyped-call]
+
+    WebDriverWait(driver, timeout).until(
+        lambda d: _has_class(d.find_element(By.CSS_SELECTOR, selector), active_class)
+    )
+    # Wait for the row list to actually swap (unless the button was already active).
+    with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
-            lambda d: _standing_label(d) == f"Round {round_number}"
+            lambda d: _first_row_match_id(d) != prev_first_id or _first_row_match_id(d) is None
         )
+    wait_for_schedule_rows(driver, timeout)
+    time.sleep(0.4)  # small settle for trailing DOM updates
+
+
+def _select_standings(
+    driver: webdriver.Chrome,
+    item_selector: str,
+    applied: Callable[[webdriver.Chrome], bool],
+    timeout: int,
+) -> bool:
+    """Click a standings picker entry and wait for the table to apply it.
+
+    False when the entry is absent or the table never shows it applied.
+    """
+    items = driver.find_elements(By.CSS_SELECTOR, item_selector)
+    if not items:
+        return False
+
+    driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
+    ok = True
+    try:
+        WebDriverWait(driver, timeout).until(applied)
         WebDriverWait(driver, timeout).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, STANDING_ROWS))
         )
     except TimeoutException:
-        pass
+        ok = False
     time.sleep(0.3)
+    return ok
 
 
 def _first_row_odds(driver: webdriver.Chrome) -> list[str]:
@@ -249,6 +320,16 @@ def _first_row_odds(driver: webdriver.Chrome) -> list[str]:
 def _first_row_match_id(driver: webdriver.Chrome) -> str | None:
     rows = driver.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS)
     return rows[0].get_attribute("matchid") if rows else None
+
+
+def _has_class(element: WebElement, name: str) -> bool:
+    return name in (element.get_attribute("class") or "").split()
+
+
+def _standing_sub(driver: webdriver.Chrome) -> str | None:
+    """Stage id of the standings sub-table on screen; None on pages without stages."""
+    boxes = driver.find_elements(By.CSS_SELECTOR, STANDING_BOX)
+    return boxes[0].get_attribute("data-st-sub") if boxes else None
 
 
 def _standing_label(driver: webdriver.Chrome) -> str:

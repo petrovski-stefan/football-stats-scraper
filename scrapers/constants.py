@@ -19,8 +19,16 @@ AGENTS = [
 
 # --- nowgoal26 league page selectors -----------------------------------------
 # Schedule section
+# Stage tabs ("League", "Group A", "Apertura"...). Absent on single-table pages. Every
+# round-bearing stage's round spans sit in the DOM at once, tagged `stage=<id>`, with the
+# inactive stages' spans hidden — so a round selector must be scoped to its stage.
+STAGE_SPANS = "div#schedule div.stage span[stage]"
+STAGE_SPAN = "div#schedule div.stage span[stage='{stage}']"
+STAGE_ACTIVE_CLASS = "on"  # the shown stage gets 'on'; the live one is 'current on'
 ROUND_SPANS = "div#schedule div.round span[round]"
 ROUND_SPAN = "div#schedule div.round span[round='{round}']"
+STAGE_ROUND_SPANS = "div#schedule div.round span[stage='{stage}'][round]"
+STAGE_ROUND_SPAN = "div#schedule div.round span[stage='{stage}'][round='{round}']"
 ROUND_ACTIVE_CLASS = "on"  # clicked round gets 'on'; the live round is 'current on'
 ROUND_CURRENT_CLASS = "current"
 SCHEDULE_ROWS = "div#schedule div.list div.schedulis"
@@ -39,6 +47,12 @@ ODDS_TYPES = {
 ROW_ODDS_CELLS = "span.odds > span"  # relative to a schedule row; always three cells
 
 # Standings section
+# The standings table has its own sub-table picker, one entry per stage
+# (`data-s-sub` = the stage tab's `stage` id). It does NOT follow the stage tabs and
+# defaults to the latest sub-table, so it is synced per stage. `#standingBox` carries the
+# shown sub-table's id in `data-st-sub`; picking a sub-table resets its round to "Total".
+SUB_STANDING_ITEM = "div#standingPlates #subStandingBox li[data-s-sub='{stage}']"
+STANDING_BOX = "div#standingPlates #standingBox"
 STANDING_BOX_LABEL = "div#standingPlates #standingBox > text"
 STANDING_ROUND_ITEM = "div#standingPlates #standingBox li[data-st-r='{round}']"
 STANDING_ROWS = "div#standingPlates ul#standingList li.standlis"

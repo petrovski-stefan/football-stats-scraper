@@ -34,3 +34,8 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 ## 2026-09-23
 
 - **Combined event timeline split into four** (`goal` / `yellow` / `red` / `sub`). Rationale and measurements: `features/CLAUDE.md` §3.
+
+## 2026-10-01
+
+- **`config/LEAGUES.txt` replaced by `config/leagues.json`.** The league list is now JSON: one object per league (`name`, `code`, `continent`, `country`, `league_id`, `stages`, `keep`) with a `seasons` array (`season`, `url`, `enabled`). `enabled: true` replaces uncommenting a URL. `scrapers/links.py:get_leagues_links()` became `get_league_seasons()`, and the file is validated by `links.LeagueConfig`. The temporary `config/LEAGUE_STAGES.txt` review file was folded into the same JSON. Anything citing `config/LEAGUES.txt` or `get_leagues_links` predates 2026-10-01. Its findings stand.
+- **Schedule scraper clicks stage tabs.** `scrapers.schedule` scrapes each stage named in `keep` and writes its name to `stage`. Before this, a page with several stages had every stage's round buttons read as one list, and the standings could show another stage's table. Downstream ordering is open: `notes/DECISIONS.md` D7.
