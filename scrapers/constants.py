@@ -7,9 +7,9 @@ nothing outside `scrapers/` has any business knowing a CSS selector.
 """
 
 # The robots.txt `Disallow` rules of every host the scraper may open, copied from the files
-# the user read in a browser on 2026-10-02 (notes/IDEAS_2026-10-01.md, idea 10). Each rule is
-# a case-sensitive path prefix, as in robots.txt. `scrapers.driver.open_page` refuses a URL on
-# any host missing here, and any path that starts with one of its host's rules.
+# the user read in a browser on 2026-10-02 (the reason for the rule: scrapers/CLAUDE.md). Each
+# rule is a case-sensitive path prefix, as in robots.txt. `scrapers.driver.open_page` refuses a
+# URL on any host missing here, and any path that starts with one of its host's rules.
 ROBOTS_DISALLOW: dict[str, tuple[str, ...]] = {
     "football.nowgoal26.com": ("/Scripts/", "/en/"),
     "live11.nowgoal26.com": (

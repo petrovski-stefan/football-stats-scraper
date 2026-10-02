@@ -2,7 +2,7 @@
 
 Only this package may write to `data/raw/`. All DOM selectors live in `scrapers/constants.py`.
 
-**Every navigation goes through `driver.open_page(driver, url)`; never call `driver.get` anywhere else.** `open_page` refuses, before any request, a URL on a host missing from `constants.ROBOTS_DISALLOW` and any path that host's robots.txt disallows. The page's own background loads (its scripts, its `/Ajax/` calls) are not checked: the rule covers the pages we choose to open. **Every driver comes from `driver.get_driver()`**, which gives it one `fake-useragent` string (Chrome, desktop) for its whole life. To open a new host, add its robots.txt rules to `ROBOTS_DISALLOW` first.
+**Every navigation goes through `driver.open_page(driver, url)`; never call `driver.get` anywhere else.** `open_page` refuses, before any request, a URL on a host missing from `constants.ROBOTS_DISALLOW` and any path that host's robots.txt disallows. The page's own background loads (its scripts, its `/Ajax/` calls) are not checked: the rule covers the pages we choose to open. The user decided this on 2026-10-02 after a measurement: with those paths blocked as well, the h2h page never rendered and the live page showed 0 goals and 0 events. **Every driver comes from `driver.get_driver()`**, which gives it one `fake-useragent` string (Chrome, desktop) for its whole life. To open a new host, add its robots.txt rules to `ROBOTS_DISALLOW` first.
 
 ## 1. Scrape flow (league schedule, first stage)
 
