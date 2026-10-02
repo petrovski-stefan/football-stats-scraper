@@ -51,20 +51,21 @@ Rules for every planted edit:
    `uv run python -c "import random; print(random.randint(1, 6))"`. Keep the number in
    context only (see the blindness rules).
 
-   | # | file · function | plant (one Edit) | post-match input |
-   |---|---|---|---|
-   | 1 | `features/engine.py` · `_h2h_ht_goals_avg` | in its loop, `h = _block(df, "h2h", n, "ht_home_goals")` → `h = df["ht_home_goals"]` | target row's HT goals instead of the H2H block |
-   | 2 | `features/engine.py` · `_corner_goal_share_gap` | `gh = _block(df, section, n, "ft_home_goals")` → `gh = df["ft_home_goals"]` | target row's FT goals instead of the history block |
-   | 3 | `features/engine.py` · `_market_lines` | `"implied_over": col("implied_over"),` → `"implied_over": col("implied_over") + col("over_25"),` | derived result flag `over_25` |
-   | 4 | `features/engine.py` · `_vig_free` | `"mkt_sup": np.log(p_home / p_away),` → `"mkt_sup": np.log(p_home / p_away) + (df["ft_result"] == "1"),` | derived result flag `ft_result` |
-   | 5 | `features/enrich.py` · `_goal_timing_features` | after `timing = goal_features.build(merged, store)`, add `timing["away_late_goal_rate"] = timing["away_late_goal_rate"] + merged["ft_away_goals"]` | `ft_away_goals` |
-   | 6 | `features/enrich.py` · `_event_features` | after `built = event_features.build(...)`, add `built["home_yellows_while_leading_avg"] = built["home_yellows_while_leading_avg"] * (1 + merged["is_comeback_home"].astype(float))` | derived result flag `is_comeback_home` |
+   | #   | file · function                                 | plant (one Edit)                                                                                                                                                                    | post-match input                                   |
+   | --- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------- |
+   | 1   | `features/engine.py` · `_h2h_ht_goals_avg`      | in its loop, `h = _block(df, "h2h", n, "ht_home_goals")` → `h = df["ht_home_goals"]`                                                                                                | target row's HT goals instead of the H2H block     |
+   | 2   | `features/engine.py` · `_corner_goal_share_gap` | `gh = _block(df, section, n, "ft_home_goals")` → `gh = df["ft_home_goals"]`                                                                                                         | target row's FT goals instead of the history block |
+   | 3   | `features/engine.py` · `_market_lines`          | `"implied_over": col("implied_over"),` → `"implied_over": col("implied_over") + col("over_25"),`                                                                                    | derived result flag `over_25`                      |
+   | 4   | `features/engine.py` · `_vig_free`              | `"mkt_sup": np.log(p_home / p_away),` → `"mkt_sup": np.log(p_home / p_away) + (df["ft_result"] == "1"),`                                                                            | derived result flag `ft_result`                    |
+   | 5   | `features/enrich.py` · `_goal_timing_features`  | after `timing = goal_features.build(merged, store)`, add `timing["away_late_goal_rate"] = timing["away_late_goal_rate"] + merged["ft_away_goals"]`                                  | `ft_away_goals`                                    |
+   | 6   | `features/enrich.py` · `_event_features`        | after `built = event_features.build(...)`, add `built["home_yellows_while_leading_avg"] = built["home_yellows_while_leading_avg"] * (1 + merged["is_comeback_home"].astype(float))` | derived result flag `is_comeback_home`             |
 
    Variant 1's line also appears in `_h2h_ht_nondraw_rate`. Include the neighbouring lines
    in the Edit so it hits `_h2h_ht_goals_avg`. The pair in variants 1 and 2 is subtle on
    purpose: the history column and the leaking column have the same name, and only the
    `_block` wrapper separates them. If a line comes out longer than 100 characters, wrap it
    the way ruff format would. Note the file:line of the plant.
+
 2. Run the `check` skill in full. The engine self-check runs only for variants 1–4. For 5–6
    it is "not run: unchanged", which is correct, because `features/engine.py` did not change.
 3. **PASS** only if the stats review is **BLOCK** and a finding cites the planted line
@@ -77,10 +78,10 @@ Rules for every planted edit:
 ## 2. stats-reviewer — clean diff
 
 1. In `features/engine.py`, add one comment line (e.g. `# Vig-free market probabilities
-   follow.`) directly above `def _vig_free`. Change nothing else.
+follow.`) directly above `def _vig_free`. Change nothing else.
 2. Run the `check` skill in full.
 3. **PASS** only if the stats review is `## stats-reviewer — OK` with Findings `No findings.`
-   A "Not verified" line about some *other* file means the baseline was dirtied: report it.
+   A "Not verified" line about some _other_ file means the baseline was dirtied: report it.
 4. `git restore features/engine.py`, then confirm the state matches the baseline.
 
 ## 3. ledger-auditor — planted inconsistency

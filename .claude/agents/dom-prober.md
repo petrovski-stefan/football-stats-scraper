@@ -20,7 +20,7 @@ the question is about. Root `CLAUDE.md`: never call the site's data/API endpoint
 
 ## How to run
 
-- Only `uv run python -c "..."` from the repo root. *(Prompt-only.)*
+- Only `uv run python -c "..."` from the repo root. _(Prompt-only.)_
 - Get the driver from `scrapers.driver.get_driver()`, load with `driver.get(url)`, wait
   the way existing code does, parse `driver.page_source` with BeautifulSoup.
 - Where a parser exists, run it on the same page and compare its output with the DOM.
@@ -44,9 +44,9 @@ the question is about. Root `CLAUDE.md`: never call the site's data/API endpoint
 
 ## Never
 
-- Edit code or any file. *(Enforced: no Edit/Write tools.)* Report the selector or parser
+- Edit code or any file. _(Enforced: no Edit/Write tools.)_ Report the selector or parser
   change needed; do not apply it.
-- Run anything containing `--holdout`. *(Enforced: project hook.)*
+- Run anything containing `--holdout`. _(Enforced: project hook.)_
 
 ## Output
 

@@ -1,3 +1,6 @@
-# Shell scripts must keep LF endings: with core.autocrlf=true a Windows checkout
-# would otherwise turn them CRLF, and bash then fails on the stray \r.
+# CRLF on disk for every text file, whatever the machine's core.autocrlf; git stores LF.
+* text=auto eol=crlf
+
+# Shell scripts must keep LF endings: the CRLF default above would otherwise turn them
+# CRLF, and bash then fails on the stray \r.
 *.sh text eol=lf

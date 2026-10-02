@@ -48,6 +48,7 @@ Only this package may write to `data/raw/`. All DOM selectors live in `scrapers/
 - The scraper writes **nothing but that detail file**. Joining it to the base CSV is `features/enrich.py` (see `features/CLAUDE.md`).
 
 `scrapers/detail_parsers.py` parses each section:
+
 - `parse_odds_1x2` — Bet365-or-first 1X2, initial+live; the 1X2 cells are `td[data-e="1"]`.
 - The H2H widget tables `tr[id^='tr1_'/'tr2_'/'tr3_']` (v1=home recent, v2=away recent, v3=H2H). The score span class is indexed per table, so match on prefix `span[class^='fscore']`. Each row is 15 cells — league/date/teams/score/**corner**/1X2 odds.
 - Those rows feed two outputs: **aggregates** (`aggregate_recent`/`aggregate_h2h` → `*_recent_*`, `h2h_*`) and **per-match column blocks** (`flatten_history` → `home_lastN_*`/`away_lastN_*`/`h2h_lastN_*`, last1 = most recent, `N` up to `domain.columns.MATCHES_PER_SECTION`, oriented to the section's subject team).
@@ -57,7 +58,7 @@ Aggregate/odds fields are validated by `domain/match_detail.py:MatchDetail`; the
 
 ## 7. Live-page events: goals, cards, substitutions (fourth stage)
 
-`scrapers/goals.py` scrapes each match's **live** page (`https://live11.nowgoal26.com/match/live-<match_id>`) — a *different* page from the h2h detail page, same match id. One render fills two stores: `data/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
+`scrapers/goals.py` scrapes each match's **live** page (`https://live11.nowgoal26.com/match/live-<match_id>`) — a _different_ page from the h2h detail page, same match id. One render fills two stores: `data/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
 
 ### Goals are identified by the running score, never by the icon
 
@@ -90,7 +91,7 @@ A fixture's history references cup ties, European games and other leagues, so a 
 
 ### Two attempt logs are the resume key
 
-- **`data/raw/goals_done.csv` is the resume key, not `goals.csv`.** A 0-0 match produces zero goal rows, so deriving "already scraped" from the goal store would re-fetch every goalless match on every run, forever. The attempt log records one row per *attempted* match with its goal count.
+- **`data/raw/goals_done.csv` is the resume key, not `goals.csv`.** A 0-0 match produces zero goal rows, so deriving "already scraped" from the goal store would re-fetch every goalless match on every run, forever. The attempt log records one row per _attempted_ match with its goal count.
 - **`goals_done.csv` and `events_done.csv` are separate**, which is what let the events store be added to a corpus already fully scraped for goals: such a match is fetched exactly once more, writes only the store it is missing, and is then done for both.
 
 ### The work list

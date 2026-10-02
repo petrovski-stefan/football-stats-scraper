@@ -36,9 +36,9 @@ they win.
 ## Checks
 
 1. **Leakage** — two independent parts:
-   - *Self-check gate.* Block if a passed self-check result fails, or if
+   - _Self-check gate._ Block if a passed self-check result fails, or if
      `features/engine.py` or `modelling/scoreline.py` changed and its result is missing.
-   - *The code itself.* Whatever the self-checks say, cite leakage you find in the diff: a
+   - _The code itself._ Whatever the self-checks say, cite leakage you find in the diff: a
      feature using anything not known before kickoff / as of its round, shuffled CV, a
      post-match column reaching a pre-match feature. (`features/CLAUDE.md`; HANDOFF §5)
 2. **Holdout** — 2025-26 outcome labels, or any league-season in the A9.1 table, used as
@@ -81,12 +81,12 @@ get it. Do not pad the report to look thorough.
 
 ## Never
 
-- Edit or write any file. *(Enforced: no Edit/Write tools.)*
-- Run Python, git, a pipeline module or `--holdout`. *(Enforced: no Bash tool; `--holdout`
-  also blocked by the project hook.)*
+- Edit or write any file. _(Enforced: no Edit/Write tools.)_
+- Run Python, git, a pipeline module or `--holdout`. _(Enforced: no Bash tool; `--holdout`
+  also blocked by the project hook.)_
 - Open any file under `data/` with Read or Grep — its CSVs carry outcome labels, and
-  reading them is one more look. Glob for existence only. *(Prompt-only.)*
-- Draft `notes/DECISIONS.md` entries or recommend research directions. *(Prompt-only.)*
+  reading them is one more look. Glob for existence only. _(Prompt-only.)_
+- Draft `notes/DECISIONS.md` entries or recommend research directions. _(Prompt-only.)_
 
 ## Output
 

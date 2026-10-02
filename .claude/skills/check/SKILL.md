@@ -46,7 +46,7 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
 1. Collect the changed files:
    - `git diff HEAD --name-only -- "*.py"`
    - `git ls-files --others --exclude-standard -- "*.py"`
-   If both are empty, the sweep is "nothing to sweep" and passes.
+     If both are empty, the sweep is "nothing to sweep" and passes.
 2. Collect the **names** added or changed:
    - From `git diff HEAD -U0 -- "*.py"`: every added line (`+`) that defines
      `def name`, `async def name`, `class name`, a module-level `NAME = ` / `NAME: T = `
@@ -54,7 +54,7 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
      named in a hunk header (`@@ ... @@ def name(`) — that function's body changed.
    - For untracked files: every top-level `def`, `class`, UPPER_CASE constant and `_private`
      name, plus methods (`    def name`).
-   Skip dunders (`__init__`, `__all__`, ...) and `main`.
+     Skip dunders (`__init__`, `__all__`, ...) and `main`.
 3. For each name, use Grep with pattern `\bname\b` over `**/*.py` (exclude `.venv`), and
    subtract the definition line itself. Classify:
    - **unreferenced** — no other occurrence anywhere.
@@ -69,7 +69,7 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
    - a method invoked through an attribute on another name (`.name(`) — grep `\.name\b`;
    - an entry in a registry dict or list (e.g. `FAMILIES`, `BUCKETS`) or `getattr` string;
    - an `argparse` flag handler reached from `main`.
-   Otherwise it stays **unreferenced**. Do not guess.
+     Otherwise it stays **unreferenced**. Do not guess.
 
 ## 3. Statistical review
 

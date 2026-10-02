@@ -43,11 +43,16 @@ Validation, features, modelling:
 No test framework or CI is set up. The only correctness guards are the hand-run `--self-check` / `--leak-check` / `--replicate-f11` flags. That matters because this project's real failure mode is statistical leakage, and leaky code is lint-clean by construction.
 
 Tool config: Ruff and mypy are configured in `pyproject.toml`.
+
 - Ruff lint uses a pragmatic bug-focused set (`E/W/F/I/B/C4/SIM/UP` plus `RUF/PIE/LOG/G/PGH/TID`, line-length 100). `TID` is what enforces the no-relative-imports rule.
 - mypy runs `strict = true` with only `prop-decorator` disabled, for the pydantic `@computed_field` idiom.
 - Dependencies are split: runtime packages in `[project] dependencies`, every tool (ruff, mypy, complexipy, pyscn, deptry, stubs, ipykernel) in `[dependency-groups] dev`, pinned exactly. `uv sync` installs both.
 - **Every Python tool is a pinned dev dependency run through `uv run`. Never `uvx`.** A new release then cannot change a gate result without a code change, and deptry in particular needs the venv: under `uvx` it cannot see the installed packages and reports false issues. Upgrading a tool is a deliberate version bump.
 - pyscn reads `.pyscn.toml`, which disables type-4 clone detection and encodes the layer table below as machine-checked architecture rules.
+
+## Formatting
+
+The user's VS Code formats on save (Ruff for `.py`, pointed at the project's ruff by `.vscode/settings.json`; Prettier with `.prettierrc` for `.md`). A `PostToolUse` hook (`.claude/hooks/format-on-write.sh`) runs the same formatters on every file Claude writes, using the Prettier copy inside the VS Code extension, so a Ctrl+S afterwards changes nothing. **`notes/` is not formatted** (`.prettierignore`): padded tables cost about 2.4× the context on every read.
 
 ## Required runtime setup
 
@@ -59,13 +64,13 @@ Tool config: Ruff and mypy are configured in `pyproject.toml`.
 
 Four layers, imported **absolutely** and strictly one-directional — `domain` → `scrapers` → `features` → `modelling`, with `qa` off to the side. Nothing lower may import something higher; that rule is the whole point of the split, so keep it.
 
-| package | holds | may import |
-|---|---|---|
-| `domain/` | `match.py`, `match_detail.py`, `goal.py`, `event.py` (Pydantic contracts; `match.py` also holds the date and **season-label** parsers), `columns.py` (CSV column order), `paths.py` (where files live, and filename↔league/season), `stats.py` (pure derived-stat kernel), `scope.py` (which historical matches are usable) | nothing internal |
-| `scrapers/` | `driver`, `links`, `parsers`, `schedule`, `detail`, `detail_parsers`, `goals`, `live_rows` (the shared live-page row reader), `goal_parsers`, `event_parsers`, `browser_pool`, `csv_io`, `constants` (DOM selectors) | `domain` |
-| `features/` | `enrich.py` (the base+detail join), `engine.py` (the as-of-round feature matrix), `chain.py`, `history.py` (which history matches count, the shared build shape, and the score reconciliation both builders need), `goals.py` (goal-timing aggregates), `events.py` (card/substitution aggregates, state-conditioned against the goal store), `ratepair.py` (the shared home/away Poisson pair) | `domain` |
-| `modelling/` | `scoreline`, `experiment`, `filter_study` | everything below |
-| `qa/` | `report.py`, `universal.py` (dataset-agnostic checks), `league.py`, `detail.py`, `goals.py`, `events.py`, `validate.py` (orchestrator) | `domain` |
+| package      | holds                                                                                                                                                                                                                                                                                                                                                                                           | may import       |
+| ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `domain/`    | `match.py`, `match_detail.py`, `goal.py`, `event.py` (Pydantic contracts; `match.py` also holds the date and **season-label** parsers), `columns.py` (CSV column order), `paths.py` (where files live, and filename↔league/season), `stats.py` (pure derived-stat kernel), `scope.py` (which historical matches are usable)                                                                     | nothing internal |
+| `scrapers/`  | `driver`, `links`, `parsers`, `schedule`, `detail`, `detail_parsers`, `goals`, `live_rows` (the shared live-page row reader), `goal_parsers`, `event_parsers`, `browser_pool`, `csv_io`, `constants` (DOM selectors)                                                                                                                                                                            | `domain`         |
+| `features/`  | `enrich.py` (the base+detail join), `engine.py` (the as-of-round feature matrix), `chain.py`, `history.py` (which history matches count, the shared build shape, and the score reconciliation both builders need), `goals.py` (goal-timing aggregates), `events.py` (card/substitution aggregates, state-conditioned against the goal store), `ratepair.py` (the shared home/away Poisson pair) | `domain`         |
+| `modelling/` | `scoreline`, `experiment`, `filter_study`                                                                                                                                                                                                                                                                                                                                                       | everything below |
+| `qa/`        | `report.py`, `universal.py` (dataset-agnostic checks), `league.py`, `detail.py`, `goals.py`, `events.py`, `validate.py` (orchestrator)                                                                                                                                                                                                                                                          | `domain`         |
 
 Every entry point is a module inside its package, run as `python -m <package>.<module>` from the repo root — there are no top-level scripts. Do **not** use relative (`from .x import`) imports anywhere — Ruff's `TID` rule bans them. Import as `from scrapers.parsers import ...`, `from domain import stats`, `from features import engine`.
 
@@ -79,6 +84,7 @@ Modules and directories have been renamed several times. If code or a note cites
 - Never hardcode a data directory or build a CSV's sibling by string surgery (`base_path.replace(".csv", "_enriched.csv")` was the old idiom and silently resolves to the wrong directory now). Go through `domain/paths.py`.
 - Open research decisions go to `notes/DECISIONS.md` instead of blocking the current task. Only stop and ask when the task genuinely can't continue without the answer.
 - Only `scrapers/` may write to `data/raw/`. Everything else derives into `data/processed/` and must be reproducible from the raw files — that is what makes the raw corpus safe to treat as ground truth and a derived file safe to delete.
+- Line endings: CRLF on disk for every text file, LF inside git (`.gitattributes`). `*.sh` stays LF, because bash fails on `\r`. The formatting hook converts each file Claude writes, since Write creates LF files.
 
 ## Where to read
 

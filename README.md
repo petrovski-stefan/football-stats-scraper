@@ -19,14 +19,14 @@ A web scraper that collects football match data across multiple leagues — incl
 
 ## Tech stack
 
-| Tool | Purpose |
-|---|---|
-| Selenium | Headless Chrome browser automation |
-| BeautifulSoup4 | HTML parsing |
-| Pandas | CSV output |
-| Pydantic | Match data validation |
+| Tool               | Purpose                                                |
+| ------------------ | ------------------------------------------------------ |
+| Selenium           | Headless Chrome browser automation                     |
+| BeautifulSoup4     | HTML parsing                                           |
+| Pandas             | CSV output                                             |
+| Pydantic           | Match data validation                                  |
 | ThreadPoolExecutor | Concurrent page scraping (3 workers, one browser each) |
-| `uv` | Dependency management |
+| `uv`               | Dependency management                                  |
 
 ## Project structure
 
@@ -90,7 +90,7 @@ uv run python -m features.enrich     # -> data/processed/<league>_<season>_enric
 
 Both scrapes are resumable — they skip ids already done, so interrupt them freely. Detail
 is ~1 page render per match (~380 a season). The live-page scrape is heavier: its work list
-is the corpus *plus* every match referenced by a detail row's history blocks, deduplicated
+is the corpus _plus_ every match referenced by a detail row's history blocks, deduplicated
 by match id before anything is fetched, which is why its stores are global rather than per
 league-season. One render fills both stores.
 

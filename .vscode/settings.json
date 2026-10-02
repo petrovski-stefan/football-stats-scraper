@@ -1,0 +1,4 @@
+{
+  // Format .py with the project's pinned ruff, not the copy bundled with the Ruff extension.
+  "ruff.path": ["${workspaceFolder}/.venv/Scripts/ruff.exe"]
+}

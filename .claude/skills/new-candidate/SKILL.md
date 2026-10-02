@@ -1,7 +1,7 @@
 ---
 name: new-candidate
 description: Walk a proposed comeback/over-6.5 rule or feature through the candidate protocol (graveyard check, reliability screen, market-orthogonality screen, then the outcome test), stopping at the first failure. Use before building or testing any new rule, feature, filter or signal.
-argument-hint: "<rule or feature, in one sentence>"
+argument-hint: '<rule or feature, in one sentence>'
 allowed-tools: Read Grep Glob Bash(git log *) Bash(git status *)
 ---
 
@@ -61,6 +61,7 @@ not a team trait from history — e.g. a market price, a league label, a calenda
 write "b: not applicable (<why>)" and go to c.
 
 Method (RELIABILITY §1, `features/CLAUDE.md` §5):
+
 1. Every team-match, ordered by date per team, split odd/even into two halves.
 2. Compute the trait per team on each half; correlate across teams → split-half r.
 3. Spearman–Brown: `r_full = 2r/(1+r)`; to one match `r1 = r_full/(k-(k-1)·r_full)` with
@@ -69,6 +70,7 @@ Method (RELIABILITY §1, `features/CLAUDE.md` §5):
 
 Verdict — the bar in `modelling/CLAUDE.md` "Screening bars (set 2026-09-28, before use)",
 applied mechanically, no judgement branch:
+
 - **r6 < 0.10 → KILLED at step b.**
 - **r6 ≥ 0.10 → pass.** Report r6 against the reference table in `features/CLAUDE.md` §5
   (plain yellows 0.295, `yellows_while_leading` 0.290, per-minute 0.142, first-sub minute
@@ -93,6 +95,7 @@ and go to d.
 Verdict — the bar in `modelling/CLAUDE.md` "Screening bars (set 2026-09-28, before use)",
 applied mechanically to **max |r| across the market columns**, no judgement branch. It is
 an effect-size bar; the CI is information only and decides nothing:
+
 - **max |r| < 0.05 → KILLED at step c (no signal).**
 - **max |r| > 0.80 → KILLED at step c (redundant: the market already carries it).**
 - **0.05 ≤ max |r| ≤ 0.80 → pass.**

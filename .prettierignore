@@ -1,0 +1,2 @@
+# Compact tables: padded ones cost ~2.4x the context per read (decided 2026-10-02).
+notes/

@@ -49,12 +49,12 @@ Conflicts already listed under STATE's "Conflicts (listed, not resolved)" are re
 
 ## Never
 
-- Edit or write any file. *(Enforced: no Edit/Write tools.)*
-- Re-run a study or any command. *(Enforced: no Bash tool.)*
+- Edit or write any file. _(Enforced: no Edit/Write tools.)_
+- Re-run a study or any command. _(Enforced: no Bash tool.)_
 - Pick a winner outside the winner rule, or fill in a value a note does not state.
-  *(Prompt-only.)*
+  _(Prompt-only.)_
 - Open any file under `data/` with Read or Grep — outcome labels. Glob for existence only.
-  *(Prompt-only.)*
+  _(Prompt-only.)_
 
 ## Output
 
