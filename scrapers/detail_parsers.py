@@ -1,4 +1,4 @@
-"""Parsers for the match detail page (live10.nowgoal26.com/match/h2h-<id>).
+"""Parsers for the match detail page (live11.nowgoal26.com/match/h2h-<id>).
 
 Each parser takes a BeautifulSoup of the rendered page (or a section Tag) and
 returns a flat dict of features. List sections (recent form, H2H) are reduced to

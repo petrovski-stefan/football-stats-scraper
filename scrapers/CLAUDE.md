@@ -37,7 +37,7 @@ Only this package may write to `data/raw/`. All DOM selectors live in `scrapers/
 
 ## 6. Detail enrichment (second stage)
 
-`scrapers/detail.py` scrapes each finished match's detail page (`https://live10.nowgoal26.com/match/h2h-<match_id>` — same id as the schedule row) into **one wide feature row** per match.
+`scrapers/detail.py` scrapes each finished match's detail page (`https://live11.nowgoal26.com/match/h2h-<match_id>` — same id as the schedule row) into **one wide feature row** per match.
 
 - `scrape_match_detail(driver, match_id)` is **mode-agnostic** (a future prediction mode can feed upcoming ids).
 - `enrich_finished(limit)` reads ids from `data/raw/*.csv` and is **resumable** — it skips ids already in `data/raw/<league>_detail.csv` and appends incrementally.
@@ -55,7 +55,7 @@ Aggregate/odds fields are validated by `domain/match_detail.py:MatchDetail`; the
 
 ## 7. Live-page events: goals, cards, substitutions (fourth stage)
 
-`scrapers/goals.py` scrapes each match's **live** page (`https://live10.nowgoal26.com/match/live-<match_id>`) — a *different* page from the h2h detail page, same match id. One render fills two stores: `data/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
+`scrapers/goals.py` scrapes each match's **live** page (`https://live11.nowgoal26.com/match/live-<match_id>`) — a *different* page from the h2h detail page, same match id. One render fills two stores: `data/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
 
 ### Goals are identified by the running score, never by the icon
 

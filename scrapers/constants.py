@@ -58,9 +58,9 @@ STANDING_ROUND_ITEM = "div#standingPlates #standingBox li[data-st-r='{round}']"
 STANDING_ROWS = "div#standingPlates ul#standingList li.standlis"
 
 
-# --- Detail page (live10.nowgoal26.com/match/h2h-<id>) ------------------------
+# --- Detail page (live11.nowgoal26.com/match/h2h-<id>) ------------------------
 # Detail page uses the same match id as the schedule row's @matchid.
-DETAIL_URL = "https://live10.nowgoal26.com/match/h2h-{match_id}"
+DETAIL_URL = "https://live11.nowgoal26.com/match/h2h-{match_id}"
 # Head-to-head widget tables: v1 = home team's recent, v2 = away team's recent, v3 = H2H.
 DETAIL_HOME_RECENT_ROWS = "tr[id^='tr1_']"
 DETAIL_AWAY_RECENT_ROWS = "tr[id^='tr2_']"
@@ -85,9 +85,9 @@ HIST_HT_SCORE = "span[class^='hscore']"  # e.g. "(1-2)"
 DETAIL_ODDS_TABLE_CANDIDATES = "table.team-table-other"
 DETAIL_ODDS_1X2_CELLS = "td[data-e='1']"  # 3 per row: home / draw / away
 PREFERRED_BOOKMAKER = "Bet365"
-# --- Live page (live10.nowgoal26.com/match/live-<id>) -------------------------
+# --- Live page (live11.nowgoal26.com/match/live-<id>) -------------------------
 # Goal timings live here, NOT on the h2h detail page. Same match id.
-LIVE_URL = "https://live10.nowgoal26.com/match/live-{match_id}"
+LIVE_URL = "https://live11.nowgoal26.com/match/live-{match_id}"
 # Events are table rows; the minute sits in a `b.score` cell as "33'", "45+3'", "90+8'".
 LIVE_EVENT_MINUTE = "b.score"
 LIVE_EVENT_ROW = "tr"

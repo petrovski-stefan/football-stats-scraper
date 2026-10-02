@@ -1,6 +1,6 @@
 """Reading the live page's event table, shared by the goal and event parsers.
 
-Both parsers walk the same `<tr>` elements on `live10.nowgoal26.com/match/live-<id>`, so
+Both parsers walk the same `<tr>` elements on `live11.nowgoal26.com/match/live-<id>`, so
 the row-finding, minute-parsing and side-detection live here once rather than being
 written twice and drifting apart.
 
