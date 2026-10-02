@@ -34,6 +34,7 @@ from scrapers.driver import (
     click_round,
     click_stage,
     get_driver,
+    open_page,
     switch_odds_type,
     sync_standings_to_round,
     sync_standings_to_stage,
@@ -85,7 +86,7 @@ def scrape_league(job: LeagueSeason) -> tuple[list[dict[str, Any]], str]:
     """
     driver = get_driver()
     try:
-        driver.get(job.url)
+        open_page(driver, job.url)
         wait_for_schedule_rows(driver)
         switch_odds_type(driver, "1x2")  # the choice persists across round and stage clicks
 

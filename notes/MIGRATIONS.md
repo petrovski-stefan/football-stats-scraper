@@ -43,3 +43,5 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 ## 2026-10-02
 
 - **Detail and live pages moved from `live10` to `live11.nowgoal26.com`.** The site now answers every `live10` page with a `301` to the same path on `live11`, and `live10` itself timed out on some loads. `DETAIL_URL` and `LIVE_URL` in `scrapers/constants.py` point at `live11`. Anything citing `live10.nowgoal26.com` predates 2026-10-02; match ids and page layout are unchanged.
+- **`scrapers/constants.py:AGENTS` removed.** The 7 hardcoded user-agent strings (Chrome 108/109, Safari) were replaced by `fake-useragent` (Chrome desktop only), one string per driver, picked in `scrapers/driver.py:get_driver()`.
+- **`scrapers/driver.py:open_page()` added; no other code calls `driver.get`.** It checks every URL against `scrapers/constants.py:ROBOTS_DISALLOW` (the robots.txt rules of `football.nowgoal26.com` and `live11.nowgoal26.com`) and refuses unknown hosts. Ruff's `E501` exemption for `scrapers/constants.py` went with the long user-agent lines.

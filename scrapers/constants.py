@@ -1,20 +1,31 @@
-"""Scraper-internal constants: nowgoal26 DOM selectors, user agents, and the
-team-name transliteration table.
+"""Scraper-internal constants: nowgoal26 DOM selectors, page URLs, robots.txt rules, and
+the team-name transliteration table.
 
 The CSV output schema that used to live here alongside these now sits in
 `domain/columns.py` — it is a contract shared with the feature layer, whereas
 nothing outside `scrapers/` has any business knowing a CSS selector.
 """
 
-AGENTS = [
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/109.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
-    "Mozilla/5.0 (Macintosh; Intel Mac OS X 13_1) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.1 Safari/605.1.15",
-]
+# The robots.txt `Disallow` rules of every host the scraper may open, copied from the files
+# the user read in a browser on 2026-10-02 (notes/IDEAS_2026-10-01.md, idea 10). Each rule is
+# a case-sensitive path prefix, as in robots.txt. `scrapers.driver.open_page` refuses a URL on
+# any host missing here, and any path that starts with one of its host's rules.
+ROBOTS_DISALLOW: dict[str, tuple[str, ...]] = {
+    "football.nowgoal26.com": ("/Scripts/", "/en/"),
+    "live11.nowgoal26.com": (
+        "/bin/",
+        "/ajax/",
+        "/Ajax/",
+        "/home/ajax/",
+        "/Home/Ajax/",
+        "/gf/",
+        "/soccer/flashLive/",
+        "/textlive/",
+        "/Scripts/",
+        "/scripts/",
+        "/match/information-",
+    ),
+}
 
 
 # --- nowgoal26 league page selectors -----------------------------------------

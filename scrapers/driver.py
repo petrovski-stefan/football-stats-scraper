@@ -1,9 +1,10 @@
 import contextlib
-import random
 import re
 import time
 from collections.abc import Callable
+from urllib.parse import urlparse
 
+from fake_useragent import UserAgent
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.by import By
@@ -12,7 +13,6 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
 
 from scrapers.constants import (
-    AGENTS,
     DETAIL_HOME_RECENT_ROWS,
     DETAIL_ODDS_TABLE_CANDIDATES,
     DETAIL_URL,
@@ -22,6 +22,7 @@ from scrapers.constants import (
     ODDS_LABEL,
     ODDS_TYPE_ITEM,
     ODDS_TYPES,
+    ROBOTS_DISALLOW,
     ROUND_ACTIVE_CLASS,
     ROUND_SPAN,
     ROUND_SPANS,
@@ -46,13 +47,16 @@ _CLICK_JS = "arguments[0].click();"
 # scrapers/goal_parsers.py owns the real parse.
 _MINUTE_RE = re.compile(r"^\d{1,3}(?:\+\d{1,2})?'$")
 
+# One fake-useragent string per driver, kept for every page that driver opens. Chrome desktop
+# only: the real browser is Chrome, and a Safari, Firefox or mobile string can make the site
+# serve a layout the parsers do not know. The library reads a data file bundled with it and
+# makes no network calls.
+_USER_AGENTS = UserAgent(browsers=["Chrome"], platforms=["desktop"])
+
 
 def get_driver() -> webdriver.Chrome:
     chrome_options = webdriver.ChromeOptions()
-
-    agent = random.choice(AGENTS)
-
-    chrome_options.add_argument(f"--user-agent={agent}")
+    chrome_options.add_argument(f"--user-agent={_USER_AGENTS.random}")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     chrome_options.add_argument("--headless=new")
     chrome_options.add_argument("--window-size=1600,6000")
@@ -62,6 +66,24 @@ def get_driver() -> webdriver.Chrome:
     driver.set_page_load_timeout(60)
 
     return driver
+
+
+def open_page(driver: webdriver.Chrome, url: str) -> None:
+    """Navigate to `url`. The only place the scrapers call `driver.get`.
+
+    Refuses, before any request is made, a URL on a host with no recorded robots.txt rules and
+    a path that host's robots.txt disallows (`ROBOTS_DISALLOW`). Resources the page loads by
+    itself while rendering are not checked: the rule covers the pages the scraper chooses to
+    open (decided 2026-10-02).
+    """
+    parts = urlparse(url)
+    rules = ROBOTS_DISALLOW.get(parts.netloc)
+    if rules is None:
+        raise ValueError(f"Refusing {url}: no robots.txt rules recorded for {parts.netloc!r}")
+    blocked = next((rule for rule in rules if parts.path.startswith(rule)), None)
+    if blocked is not None:
+        raise ValueError(f"Refusing {url}: robots.txt disallows {blocked!r} on {parts.netloc}")
+    driver.get(url)
 
 
 def find_element_by_css(
@@ -91,7 +113,7 @@ def get_detail_page(
     The v1/v2/v3 tables lazy-load, so we scroll the page to trigger them and wait
     on the odds table plus the home-recent rows as the readiness signal.
     """
-    driver.get(DETAIL_URL.format(match_id=match_id))
+    open_page(driver, DETAIL_URL.format(match_id=match_id))
     WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, DETAIL_V3_TABLE))
     )
@@ -117,7 +139,7 @@ def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAUL
     zero goals — the right answer for a 0-0. Telling "no events" apart from "failed to
     load" is done by reconciling against the stored score in `qa/goals.py`, not here.
     """
-    driver.get(LIVE_URL.format(match_id=match_id))
+    open_page(driver, LIVE_URL.format(match_id=match_id))
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
             lambda d: any(
