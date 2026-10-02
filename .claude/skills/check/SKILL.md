@@ -1,12 +1,12 @@
 ---
 name: check
-description: Run the five quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, modelling/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
-allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uvx complexipy@latest *) Bash(uvx pyscn@latest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Bash(uv run python -m modelling.scoreline --self-check --leak-check) Agent Grep Read
+description: Run the six quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, modelling/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
+allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *) Bash(uv run pyscn *) Bash(uv run deptry *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Bash(uv run python -m modelling.scoreline --self-check --leak-check) Agent Grep Read
 ---
 
-# /check — five gates plus the caller sweep
+# /check — six gates plus the caller sweep
 
-Root `CLAUDE.md` ("Quality gates") requires all five tools on every change **and** a caller
+Root `CLAUDE.md` ("Quality gates") requires all six tools on every change **and** a caller
 sweep by hand, because ruff and mypy pass clean on unused functions, unreferenced constants
 and private names called across modules, and pyscn's dead-code detector misses
 unreferenced definitions too (`notes/MIGRATIONS.md`). This skill does both.
@@ -14,21 +14,22 @@ unreferenced definitions too (`notes/MIGRATIONS.md`). This skill does both.
 Run everything from the repo root. Do not fix anything unless the user asks; this skill
 reports.
 
-## 1. The five tools, in this order
+## 1. The six tools, in this order
 
 Run each one even if an earlier one fails. Capture exit code and the failing lines.
 
 1. `uv run ruff check`
 2. `uv run ruff format --check`
 3. `uv run mypy .`
-4. `uvx complexipy@latest . --failed`
-5. `uvx pyscn@latest analyze .`
+4. `uv run complexipy . --failed`
+5. `uv run pyscn analyze .`
+6. `uv run deptry .`
 
 pyscn exits 0 even when it reports findings, and its text summary gives only an
 "Architecture NN% compliant" score, not what the violations are. Get them from JSON:
 
 ```
-uvx pyscn@latest analyze --json --output - --select deps . 2>/dev/null \
+uv run pyscn analyze --json --output - --select deps . 2>/dev/null \
   | uv run python -c "import json,sys; v=json.load(sys.stdin)['system']['architecture_analysis']['violations']; [print(x['type'], x['severity'], x['module'], '->', x.get('target',''), x['rule']) for x in v]"
 ```
 
@@ -98,6 +99,7 @@ ruff format       PASS|FAIL  (<n> files would be reformatted)
 mypy              PASS|FAIL  (<n> errors)
 complexipy        PASS|FAIL  (<n> functions over threshold)
 pyscn             PASS|WARN|FAIL  (<clones> clone groups, <dead> dead code, <arch> layer violations)
+deptry            PASS|FAIL  (<n> dependency issues)
 caller sweep      PASS|FAIL  (<n> names checked, <u> unreferenced, <p> private cross-module)
 stats review      OK|BLOCK|n/a  (<n> findings, <v> not verified)
 ```

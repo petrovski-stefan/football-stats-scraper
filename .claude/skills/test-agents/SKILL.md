@@ -2,7 +2,7 @@
 name: test-agents
 description: Known-answer tests for the three project agents (stats-reviewer, ledger-auditor, dom-prober) and the --holdout hook. Plants a leak, a clean diff and a ledger inconsistency, probes live pages, proves the --holdout block, restores every file it touched, and ends with git status. Run after any change to an agent, hook or settings file.
 disable-model-invocation: true
-allowed-tools: Read Grep Glob Edit Agent Skill Bash(git status *) Bash(git diff *) Bash(git restore *) Bash(git log *) Bash(sha1sum *) Bash(uv run *) Bash(uvx *) Bash(echo *) PowerShell(Write-Output *)
+allowed-tools: Read Grep Glob Edit Agent Skill Bash(git status *) Bash(git diff *) Bash(git restore *) Bash(git log *) Bash(sha1sum *) Bash(uv run *) Bash(echo *) PowerShell(Write-Output *)
 ---
 
 # /test-agents — known-answer tests for agents and hooks

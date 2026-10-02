@@ -34,17 +34,19 @@ Validation, features, modelling:
 - Lint: `uv run ruff check` (autofix: `uv run ruff check --fix`)
 - Format: `uv run ruff format` (check only: `uv run ruff format --check`)
 - Type-check: `uv run mypy .`
-- Cognitive complexity: `uvx complexipy@latest . --failed --suggest-refactors`
-- Structural analysis: `uvx pyscn@latest analyze .` (clones, dead code, coupling, layer compliance)
+- Cognitive complexity: `uv run complexipy . --failed --suggest-refactors`
+- Structural analysis: `uv run pyscn analyze .` (clones, dead code, coupling, layer compliance)
+- Dependencies: `uv run deptry .` (imports vs declared dependencies: missing, unused, transitive, dev-only)
 
-**Run all five on every change, not just before committing, and do a caller sweep by hand when adding a function.** Ruff and mypy pass clean on unused functions, unreferenced constants and private names called across modules, and pyscn's dead-code detector does not catch unreferenced definitions either (history in `notes/MIGRATIONS.md`).
+**Run all six on every change, not just before committing, and do a caller sweep by hand when adding a function.** Ruff and mypy pass clean on unused functions, unreferenced constants and private names called across modules, and pyscn's dead-code detector does not catch unreferenced definitions either (history in `notes/MIGRATIONS.md`).
 
 No test framework or CI is set up. The only correctness guards are the hand-run `--self-check` / `--leak-check` / `--replicate-f11` flags. That matters because this project's real failure mode is statistical leakage, and leaky code is lint-clean by construction.
 
 Tool config: Ruff and mypy are configured in `pyproject.toml`.
 - Ruff lint uses a pragmatic bug-focused set (`E/W/F/I/B/C4/SIM/UP` plus `RUF/PIE/LOG/G/PGH/TID`, line-length 100). `TID` is what enforces the no-relative-imports rule.
 - mypy runs `strict = true` with only `prop-decorator` disabled, for the pydantic `@computed_field` idiom.
-- complexipy and pyscn run via `uvx`, so they are not project dependencies.
+- Dependencies are split: runtime packages in `[project] dependencies`, every tool (ruff, mypy, complexipy, pyscn, deptry, stubs, ipykernel) in `[dependency-groups] dev`, pinned exactly. `uv sync` installs both.
+- **Every Python tool is a pinned dev dependency run through `uv run`. Never `uvx`.** A new release then cannot change a gate result without a code change, and deptry in particular needs the venv: under `uvx` it cannot see the installed packages and reports false issues. Upgrading a tool is a deliberate version bump.
 - pyscn reads `.pyscn.toml`, which disables type-4 clone detection and encodes the layer table below as machine-checked architecture rules.
 
 ## Required runtime setup
@@ -72,7 +74,7 @@ Modules and directories have been renamed several times. If code or a note cites
 ## Conventions
 
 - Work directly on `main`; there is no `dev` or feature-branch flow. Since nothing isolates a bad commit from the default branch, run `uv run ruff check && uv run ruff format --check && uv run mypy .` before committing.
-- Pin dependency versions exactly in `pyproject.toml` (matches existing style); update `uv.lock` via `uv`.
+- Change dependencies only with uv commands, never by editing `pyproject.toml` by hand, and pin exactly: `uv add "pkg==1.2.3"` (runtime), `uv add --dev "pkg==1.2.3"` (tools), `uv remove pkg`. A bare `uv add pkg` writes a `>=` bound, so always give the `==` version. uv updates `uv.lock` and the venv in the same step.
 - Absolute package imports only (`from domain import stats`), never relative — enforced by Ruff `TID`. Respect the layer direction in the table above.
 - Never hardcode a data directory or build a CSV's sibling by string surgery (`base_path.replace(".csv", "_enriched.csv")` was the old idiom and silently resolves to the wrong directory now). Go through `domain/paths.py`.
 - Open research decisions go to `notes/DECISIONS.md` instead of blocking the current task. Only stop and ask when the task genuinely can't continue without the answer.
