@@ -1,4 +1,7 @@
 {
   // Format .py with the project's pinned ruff, not the copy bundled with the Ruff extension.
-  "ruff.path": ["${workspaceFolder}/.venv/Scripts/ruff.exe"]
+  "ruff.path": ["${workspaceFolder}/.venv/Scripts/ruff.exe"],
+  // flake8 gets ruff's rules: E203 (space before ':' in slices) conflicts with ruff format,
+  // so pyproject.toml ignores it in ruff too.
+  "flake8.args": ["--max-line-length=100", "--extend-ignore=E203"]
 }
