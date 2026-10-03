@@ -1,12 +1,12 @@
 ---
 name: check
-description: Run the six quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, modelling/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
-allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *) Bash(uv run pyscn *) Bash(uv run deptry *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Bash(uv run python -m modelling.scoreline --self-check --leak-check) Agent Grep Read
+description: Run the seven quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry, pytest), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, modelling/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
+allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *) Bash(uv run pyscn *) Bash(uv run deptry *) Bash(uv run pytest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Bash(uv run python -m modelling.scoreline --self-check --leak-check) Agent Grep Read
 ---
 
-# /check — six gates plus the caller sweep
+# /check — seven gates plus the caller sweep
 
-Root `CLAUDE.md` ("Quality gates") requires all six tools on every change **and** a caller
+Root `CLAUDE.md` ("Quality gates") requires all seven tools on every change **and** a caller
 sweep by hand, because ruff and mypy pass clean on unused functions, unreferenced constants
 and private names called across modules, and pyscn's dead-code detector misses
 unreferenced definitions too (`notes/MIGRATIONS.md`). This skill does both.
@@ -14,7 +14,7 @@ unreferenced definitions too (`notes/MIGRATIONS.md`). This skill does both.
 Run everything from the repo root. Do not fix anything unless the user asks; this skill
 reports.
 
-## 1. The six tools, in this order
+## 1. The seven tools, in this order
 
 Run each one even if an earlier one fails. Capture exit code and the failing lines.
 
@@ -24,6 +24,7 @@ Run each one even if an earlier one fails. Capture exit code and the failing lin
 4. `uv run complexipy . --failed`
 5. `uv run pyscn analyze .`
 6. `uv run deptry .`
+7. `uv run pytest -q` — FAIL on any failed or errored test; give the `FAILED` lines.
 
 pyscn exits 0 even when it reports findings, and its text summary gives only an
 "Architecture NN% compliant" score, not what the violations are. Get them from JSON:
@@ -68,7 +69,8 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
    - pydantic `@computed_field` / validators (used via `model_dump()` / the model);
    - a method invoked through an attribute on another name (`.name(`) — grep `\.name\b`;
    - an entry in a registry dict or list (e.g. `FAMILIES`, `BUCKETS`) or `getattr` string;
-   - an `argparse` flag handler reached from `main`.
+   - an `argparse` flag handler reached from `main`;
+   - a `test_*` function in `tests/`, which pytest collects by name.
      Otherwise it stays **unreferenced**. Do not guess.
 
 ## 3. Statistical review
@@ -100,6 +102,7 @@ mypy              PASS|FAIL  (<n> errors)
 complexipy        PASS|FAIL  (<n> functions over threshold)
 pyscn             PASS|WARN|FAIL  (<clones> clone groups, <dead> dead code, <arch> layer violations)
 deptry            PASS|FAIL  (<n> dependency issues)
+pytest            PASS|FAIL  (<n> passed, <f> failed)
 caller sweep      PASS|FAIL  (<n> names checked, <u> unreferenced, <p> private cross-module)
 stats review      OK|BLOCK|n/a  (<n> findings, <v> not verified)
 ```

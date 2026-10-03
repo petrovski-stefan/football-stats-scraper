@@ -136,6 +136,7 @@ exclude_patterns = [             # File patterns to exclude
     "env/",
     ".venv/",
     ".env/",
+    "tests/**",                  # pytest tree: its __init__.py / conftest.py belong to no layer
     "**/migrations/**",          # Django/Alembic auto-generated migration files
     ".pyscn/**"                  # pyscn's own generated reports
 ]

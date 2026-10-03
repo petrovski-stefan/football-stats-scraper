@@ -49,6 +49,12 @@ warn_unreachable = true  # not part of --strict
 # mypy flags stacked @computed_field/@property (the standard pydantic idiom).
 disable_error_code = ["prop-decorator"]
 
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# The project is not installed as a package, so the repo root goes on sys.path for
+# `from domain import stats`-style imports, the same way `python -m` sees it.
+pythonpath = ["."]
+
 [dependency-groups]
 dev = [
     "complexipy==8.0.1",
@@ -57,6 +63,7 @@ dev = [
     "mypy==1.14.1",
     "pandas-stubs==2.2.3.241126",
     "pyscn==1.32.2",
+    "pytest==9.1.1",
     "ruff==0.15.22",
     "types-beautifulsoup4==4.12.0.20241020",
 ]
