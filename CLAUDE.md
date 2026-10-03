@@ -25,9 +25,9 @@ Validation, features, modelling:
 - Validate the corpus: `uv run python -m qa.validate` — exits non-zero on any failure; read `qa/CLAUDE.md` before touching it.
 - Build the feature matrix: `uv run python -m features.engine` (`--self-check` proves the as-of-round invariant)
 - Validate the imported F11 completion curve: `uv run python -m features.chain --replicate-f11`
-- Screen features: `uv run python -m modelling.experiment --dev` — **never run `--holdout`: it targets a spent season (see `modelling/CLAUDE.md` §2)**. A `PreToolUse` hook (`.claude/settings.json` → `.claude/hooks/block-holdout.sh`) blocks any Bash or PowerShell command containing the flag. The --holdout hook fails open if bash is unavailable; rerun its proof after any environment change.
+- Screen features: `uv run python -m modelling.experiment --dev` → `notes/runs/`. **The holdout mode was deleted 2026-10-02: it targeted a spent season (see `modelling/CLAUDE.md` §2).** A `PreToolUse` hook (`.claude/settings.json` → `.claude/hooks/block-holdout.sh`) still blocks any Bash or PowerShell command containing `--holdout`, so an old checkout cannot run it either. The hook fails open if bash is unavailable; rerun its proof after any environment change.
 - Validate the scoreline model: `uv run python -m modelling.scoreline --self-check --leak-check`
-- Run the exclusion-filter study: `uv run python -m modelling.filter_study --curve` / `--bar`
+- Run the exclusion-filter study: `uv run python -m modelling.filter_study --curve` / `--bar` → `notes/runs/`
 
 ## Quality gates
 
@@ -69,7 +69,7 @@ Four layers, imported **absolutely** and strictly one-directional — `domain` �
 | `domain/`    | `match.py`, `match_detail.py`, `goal.py`, `event.py` (Pydantic contracts; `match.py` also holds the date and **season-label** parsers), `columns.py` (CSV column order), `paths.py` (where files live, and filename↔league/season), `stats.py` (pure derived-stat kernel), `scope.py` (which historical matches are usable)                                                                     | nothing internal |
 | `scrapers/`  | `driver`, `links`, `parsers`, `schedule`, `detail`, `detail_parsers`, `goals`, `live_rows` (the shared live-page row reader), `goal_parsers`, `event_parsers`, `browser_pool`, `csv_io`, `constants` (DOM selectors)                                                                                                                                                                            | `domain`         |
 | `features/`  | `enrich.py` (the base+detail join), `engine.py` (the as-of-round feature matrix), `chain.py`, `history.py` (which history matches count, the shared build shape, and the score reconciliation both builders need), `goals.py` (goal-timing aggregates), `events.py` (card/substitution aggregates, state-conditioned against the goal store), `ratepair.py` (the shared home/away Poisson pair) | `domain`         |
-| `modelling/` | `scoreline`, `experiment`, `filter_study`                                                                                                                                                                                                                                                                                                                                                       | everything below |
+| `modelling/` | `scoreline`, `experiment`, `filter_study`, `runs` (saves a run's printed output to `notes/runs/`)                                                                                                                                                                                                                                                                                               | everything below |
 | `qa/`        | `report.py`, `universal.py` (dataset-agnostic checks), `league.py`, `detail.py`, `goals.py`, `events.py`, `validate.py` (orchestrator)                                                                                                                                                                                                                                                          | `domain`         |
 
 Every entry point is a module inside its package, run as `python -m <package>.<module>` from the repo root — there are no top-level scripts. Do **not** use relative (`from .x import`) imports anywhere — Ruff's `TID` rule bans them. Import as `from scrapers.parsers import ...`, `from domain import stats`, `from features import engine`.
@@ -101,7 +101,7 @@ Start with **`notes/STATE.md`**, the current state of the research. Before propo
 - `notes/RESULTS.md` — before proposing any new pre-match comeback feature (the F12 re-test with nowgoal-exclusive features).
 - `notes/PREREGISTRATION_FILTER.md` — when reading or re-running the exclusion-filter study; the closed preregistration it was held to (its verdict is in `FILTER_RESULTS.md`).
 - `notes/FILTER_RESULTS.md` — before proposing any filter that excludes "comeback-impossible" matches.
-- `notes/FILTER_STUDY_RAW.md` — only when auditing the filter study's numbers; raw transcript of `filter_study --bar`, overwritten on every run.
+- `notes/FILTER_STUDY_RAW.md` — only when auditing the filter study's numbers; the frozen raw transcript of the 2026-07-25 `filter_study --bar` run. Later runs save to `notes/runs/` instead.
 - `notes/MARKET_LINE_FINDINGS.md` — before quoting the market-line result or planning the corpus scrape (its §4 caveats and §7 purpose change are required reading).
 - `notes/BEHAVIOURAL_RESULTS.md` — before proposing any hand-weighted candidate rule; it introduced the candidate protocol.
 - `notes/RETRY_CANDIDATES_2026-09-23.md` — before retrying anything that already failed, and before the multi-country scrape's analysis.

@@ -6,8 +6,8 @@ Read **`notes/STATE.md`** before proposing any model, feature, filter or rule. T
 
 ## 2. Holdout and run records
 
-- **`--holdout` targets a spent season and must not be run.** `uv run python -m modelling.experiment --holdout` opens 2025-26, whose outcome labels already informed multiple analyses (`notes/PREREGISTRATION.md` A9). The next confirmatory test needs a new holdout definition per A9: a confirmatory set declared in a dated amendment before its scrape starts. Use `--dev` for everything else.
-- **Any run that reads outcome labels saves its raw output to `notes/runs/<date>_<name>.txt`, committed in the same commit as the note that reports it.** A finding with no committed output is recorded as note-only in `notes/STATE.md`.
+- **The `--holdout` mode of `modelling.experiment` was deleted 2026-10-02.** It opened 2025-26, whose outcome labels already informed multiple analyses (`notes/PREREGISTRATION.md` A9), so the season is spent. The next confirmatory test needs a new holdout definition per A9: a confirmatory set declared in a dated amendment before its scrape starts. `--dev` is the only mode left.
+- **Any run that reads outcome labels saves its raw output to `notes/runs/<date>_<name>.txt`, committed in the same commit as the note that reports it.** A finding with no committed output is recorded as note-only in `notes/STATE.md`. `experiment` and `filter_study` save theirs automatically (`modelling/runs.py:recorded`, one file per script and mode, overwritten by a same-day rerun); any other run saves by hand. Scripts only print and save the raw output; findings are written by hand in static notes.
 
 ## 3. The candidate protocol
 
