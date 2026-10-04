@@ -92,6 +92,7 @@ Modules and directories have been renamed several times. If code or a note cites
 Start with **`notes/STATE.md`**, the current state of the research. Before proposing anything in prediction, features or analysis, also read `modelling/CLAUDE.md`.
 
 - `notes/GLOSSARY.md` — when a term in a note or CLAUDE.md is unclear: short plain-language cards for the football, statistics, leakage, protocol and ledger terms. Concepts only: keep project results, code and file references, and named leagues or matches out of it, and write new cards in ASD-STE100 Simplified Technical English.
+- `notes/MARKET_COMEBACKS.md` — before measuring or reporting any comeback fact: every fact about the market sorted into definitional (never measure), structural (derived there once, from a goal model) and empirical. Concepts only, under the same rules as GLOSSARY.
 - `notes/MIGRATIONS.md` — when code or a note cites a module, path or column that doesn't exist.
 - `notes/HANDOFF.md` — before any prediction, feature or analysis work: strategy guide, base rates, pipeline-specific leakage traps, methodology rules, roadmap.
 - `notes/STATS_PRIMER.md` — when a roadmap step uses Empirical Bayes shrinkage, Brier scores, calibration curves or Dixon–Coles and you need the formulas.
