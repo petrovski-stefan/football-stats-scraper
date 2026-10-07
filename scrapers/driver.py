@@ -33,8 +33,9 @@ from scrapers.constants import (
     STAGE_SPAN,
     STANDING_BOX,
     STANDING_BOX_LABEL,
-    STANDING_ROUND_ITEM,
     STANDING_ROWS,
+    STANDING_TOTAL_ITEM,
+    STANDING_TOTAL_LABEL,
     SUB_STANDING_ITEM,
 )
 
@@ -235,7 +236,7 @@ def sync_standings_to_stage(
         return True
     return _select_standings(
         driver,
-        SUB_STANDING_ITEM.format(stage=stage_id),
+        (By.CSS_SELECTOR, SUB_STANDING_ITEM.format(stage=stage_id)),
         lambda d: _standing_sub(d) == stage_id,
         timeout,
     )
@@ -260,17 +261,19 @@ def click_round(
     _click_schedule_tab(driver, selector, ROUND_ACTIVE_CLASS, timeout)
 
 
-def sync_standings_to_round(
-    driver: webdriver.Chrome, round_number: int, timeout: int = DEFAULT_TIMEOUT
-) -> None:
-    """Select the standings dropdown entry for `round_number` and wait for it to apply.
+def show_total_standings(driver: webdriver.Chrome, timeout: int = DEFAULT_TIMEOUT) -> bool:
+    """Show the standings' `Total` view and return whether it is on screen.
 
-    Returns quietly if the standings section or the round entry is unavailable.
+    `Total` is the table as it stands now, so for a finished season the final table. The
+    dropdown lists it beside one entry per finished round; a page opens on it, and picking
+    a sub-table resets to it, so this is usually only a check.
     """
-    _select_standings(
+    if _standing_label(driver) == STANDING_TOTAL_LABEL:
+        return True
+    return _select_standings(
         driver,
-        STANDING_ROUND_ITEM.format(round=round_number),
-        lambda d: _standing_label(d) == f"Round {round_number}",
+        (By.XPATH, STANDING_TOTAL_ITEM),
+        lambda d: _standing_label(d) == STANDING_TOTAL_LABEL,
         timeout,
     )
 
@@ -306,15 +309,16 @@ def _click_schedule_tab(
 
 def _select_standings(
     driver: webdriver.Chrome,
-    item_selector: str,
+    item: tuple[str, str],
     applied: Callable[[webdriver.Chrome], bool],
     timeout: int,
 ) -> bool:
-    """Click a standings picker entry and wait for the table to apply it.
+    """Click a standings picker entry, found by `(By.<kind>, locator)`, and wait for the
+    table to apply it.
 
     False when the entry is absent or the table never shows it applied.
     """
-    items = driver.find_elements(By.CSS_SELECTOR, item_selector)
+    items = driver.find_elements(*item)
     if not items:
         return False
 

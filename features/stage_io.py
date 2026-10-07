@@ -1,0 +1,31 @@
+"""Reading and writing the staged pipeline's CSV files, the same way everywhere.
+
+A CSV cannot tell `""` from a missing value, nor `"2025"` the season label from the
+integer 2025, so every reader names the text columns or pandas guesses them wrong: an
+empty stage becomes NaN, a calendar-year season becomes an int, an id loses its leading
+form. One reader and one writer keep every stage file round-tripping exactly.
+"""
+
+import os
+
+import pandas as pd
+
+# Columns that are text even when every value looks like a number, or is empty.
+_TEXT_COLUMNS = ("match_id", "s1_season", "s1_stage", "s1_date", "season", "stage")
+
+
+def read_stage_csv(path: str) -> pd.DataFrame:
+    """A stage file as written: text columns stay text, empty text stays `""`."""
+    head = pd.read_csv(path, nrows=0).columns
+    text = [c for c in _TEXT_COLUMNS if c in head]
+    frame = pd.read_csv(path, dtype=dict.fromkeys(text, str), keep_default_na=False, na_values=[""])
+    return frame.fillna(dict.fromkeys(text, ""))
+
+
+def write_stage_csv(frame: pd.DataFrame, path: str, columns: list[str]) -> None:
+    """Write `frame` with exactly `columns`, in that order; a missing column is an error."""
+    missing = [c for c in columns if c not in frame.columns]
+    if missing:
+        raise KeyError(f"columns missing before writing {path}: {missing[:5]}")
+    os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+    frame[columns].to_csv(path, index=False)

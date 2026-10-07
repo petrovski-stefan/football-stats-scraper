@@ -23,7 +23,7 @@ file, the note wins; say so.
   describe exactly what would be written (module, function, inputs, output), and ask the
   user before writing any. The known inventory:
   - exists: `modelling/experiment.py:wilson_ci`, `required_n`, `holm`;
-    `domain/match.py:season_start_year`; `domain/paths.py` for every file location;
+    `domain/schedule.py:season_start_year`; `domain/paths.py` for every file location;
     `features.engine` for the as-of-round matrix (`--self-check` proves no leak).
   - does **not** exist (RELIABILITY §7, RETRY §8, BEHAVIOURAL §6 — all throwaway):
     the reliability screen, the market-orthogonality screen, a precision@top-N slate for

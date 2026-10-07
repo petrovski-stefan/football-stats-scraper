@@ -248,3 +248,120 @@ EVENTS_ORDERED_COLUMNS = [
 # The attempt log. A match with no cards and no substitutions yields no rows, so the same
 # argument that gives goals a separate log applies here.
 EVENTS_DONE_COLUMNS = ["match_id", "scraped_at", "n_events"]
+
+
+# =====================================================================================
+# The staged pipeline (notes/PLAN_2026-10-05_staged_pipeline.md). Every column is defined
+# once in notes/fields/, and its name starts with the code of the doc that defines it
+# (`s1_` = schedule stage 1, ...). Only the columns that identify a row in their own file
+# are bare. Each stage file is the previous stage's file plus that stage's columns.
+# =====================================================================================
+
+# notes/fields/schedule_1_raw.md §A: one row per finished match, as the league page shows it.
+SCHEDULE_RAW_COLUMNS = [
+    "match_id",
+    "s1_season",
+    "s1_league_id",
+    "s1_league_name",
+    "s1_stage",
+    "s1_round",
+    "s1_date",
+    "s1_home_team_id",
+    "s1_away_team_id",
+    "s1_home_team_name",
+    "s1_away_team_name",
+    "s1_ht_home_goals",
+    "s1_ht_away_goals",
+    "s1_ft_home_goals",
+    "s1_ft_away_goals",
+    "s1_odds_1x2_open_home",
+    "s1_odds_1x2_open_draw",
+    "s1_odds_1x2_open_away",
+    "s1_odds_ou_open_line",
+    "s1_odds_ou_open_over",
+    "s1_odds_ou_open_under",
+    "s1_odds_ah_open_line",
+    "s1_odds_ah_open_home",
+    "s1_odds_ah_open_away",
+]
+
+# notes/fields/schedule_1_raw.md §B: the page's final table, one row per team, a check only.
+FINAL_TABLE_COLUMNS = [
+    "season",
+    "league_id",
+    "stage",
+    "team_id",
+    "s1_team_name",
+    "s1_rank",
+    "s1_played",
+    "s1_won",
+    "s1_drawn",
+    "s1_lost",
+    "s1_goal_diff",
+    "s1_points",
+]
+
+# notes/fields/schedule_2_row.md: computed from one stage-1 row and nothing else.
+SCHEDULE_ROW_COLUMNS = [
+    "s2_total_goals",
+    "s2_goals_1h",
+    "s2_goals_2h",
+    "s2_home_2h_goals",
+    "s2_away_2h_goals",
+    "s2_ht_result",
+    "s2_ft_result",
+    "s2_day_of_week",
+    "s2_is_monday",
+    "s2_is_midweek",
+    "s2_has_odds",
+    "s2_has_ou_odds",
+    "s2_has_ah_odds",
+    "s2_mkt_p_home",
+    "s2_mkt_p_draw",
+    "s2_mkt_p_away",
+    "s2_mkt_sup",
+    "s2_mkt_tot",
+    "s2_implied_over",
+    "s2_implied_ah_home",
+    # Comebacks: the only market for now.
+    "s2_is_comeback",
+    "s2_is_comeback_home",
+    "s2_is_comeback_away",
+    "s2_ht_decisive",
+]
+
+# notes/fields/schedule_3_multi.md §B: each team's line in the standings table as it stood
+# at the match's kickoff, for full-time and half-time results, overall and by venue.
+STANDING_SIDES = ("home", "away")
+STANDING_HALVES = ("ft", "ht")
+STANDING_VENUES = ("total", "home", "away")
+STANDING_STATS = (
+    "rank",
+    "played",
+    "won",
+    "drawn",
+    "lost",
+    "goals_for",
+    "goal_diff",
+    "points",
+)
+
+
+def pre_kickoff_columns() -> list[str]:
+    """`s3_<side>_pre_<half>_<venue>_<stat>`, in side/half/venue/stat order: 96 names."""
+    return [
+        f"s3_{side}_pre_{half}_{venue}_{stat}"
+        for side in STANDING_SIDES
+        for half in STANDING_HALVES
+        for venue in STANDING_VENUES
+        for stat in STANDING_STATS
+    ]
+
+
+# notes/fields/schedule_3_multi.md: fields that need the league-season's other rows.
+SCHEDULE_MULTI_COLUMNS = [
+    "s3_match_index_in_round",
+    "s3_matches_in_round",
+    *pre_kickoff_columns(),
+    "s3_pre_rank_gap",
+]

@@ -88,3 +88,15 @@ def test_two_way_prob(
         assert result is None
     else:
         assert result == pytest.approx(prob)
+
+
+def test_vig_free_1x2_sums_to_one_and_keeps_the_order() -> None:
+    probs = stats.vig_free_1x2(1.5, 4.0, 6.0)
+    assert probs is not None
+    assert sum(probs) == pytest.approx(1.0)
+    assert probs[0] > probs[1] > probs[2]
+
+
+@pytest.mark.parametrize("prices", [(None, 3.0, 3.0), (2.0, 0.0, 3.0), (2.0, 3.0, None)])
+def test_vig_free_1x2_needs_all_three_prices(prices: tuple[float | None, ...]) -> None:
+    assert stats.vig_free_1x2(*prices) is None

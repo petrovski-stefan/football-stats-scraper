@@ -2,7 +2,9 @@
 
 Discovers every scraped league-season in `data/raw/` and validates three subjects per
 league-season: the base league CSV, its detail CSV, and the relationship between them
-and the enriched join in `data/processed/`. Dataset-agnostic rules come from
+and the enriched join in `data/processed/`. For every schedule on the staged pipeline
+(`data/finished/1_raw/`) it also holds the page's final table against the table rebuilt
+from the stored results (`qa/final_table.py`). Dataset-agnostic rules come from
 `qa/universal.py`; rules that need to know what a column means come from `qa/league.py`
 and `qa/detail.py`.
 
@@ -30,6 +32,7 @@ from domain.columns import (
 )
 from qa import detail as detail_checks
 from qa import events as event_checks
+from qa import final_table as final_table_checks
 from qa import goals as goal_checks
 from qa import league as league_checks
 from qa import universal
@@ -177,7 +180,23 @@ def _history_scores(detail: pd.DataFrame) -> list[pd.DataFrame]:
     return out
 
 
+def validate_final_table(schedule_path: str) -> bool:
+    """One staged league-season: the page's final table against our rebuilt one."""
+    league, season = paths.split_schedule_name(schedule_path)
+    r = Report(f"{league} {season} - final table vs rebuilt standings")
+    table_path = paths.final_table_path(league, season)
+    schedule = final_table_checks.read(schedule_path, final_table_checks.SCHEDULE_COLUMNS)
+    table = final_table_checks.read(table_path) if os.path.exists(table_path) else pd.DataFrame()
+    final_table_checks.check(r, schedule, table)
+    return r.flush()
+
+
 def main() -> None:
+    staged = [validate_final_table(path) for path in paths.schedule_csvs(1)]
+    if staged:
+        print(f"{staged.count(True)}/{len(staged)} staged final tables passed")
+        print()
+
     base_paths = paths.base_league_csvs()
     if not base_paths:
         print(f"no league CSVs found in {paths.RAW_DIR}/")
@@ -195,7 +214,7 @@ def main() -> None:
     if events_ok is None:
         print("cards and substitutions: not scraped yet (skipped)")
 
-    if failed or goals_ok is False or events_ok is False:
+    if failed or False in staged or goals_ok is False or events_ok is False:
         raise SystemExit(1)
 
 

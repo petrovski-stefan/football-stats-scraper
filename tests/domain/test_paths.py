@@ -57,3 +57,42 @@ def test_global_stores_live_in_raw_and_are_not_league_seasons() -> None:
 )
 def test_split_league_season(path: str, split: tuple[str, str]) -> None:
     assert split_league_season(path) == split
+
+
+# --- The staged pipeline: data/finished/ ---------------------------------------------
+
+
+@pytest.mark.parametrize("stage", [1, 2, 3])
+def test_schedule_files_live_in_their_stage_dir(stage: int) -> None:
+    path = paths.schedule_path(stage, "test_league", "2025")
+    assert os.path.dirname(path) == paths.stage_dir(stage)
+    assert os.path.dirname(paths.stage_dir(stage)) == paths.FINISHED_DIR
+
+
+def test_an_unknown_stage_is_an_error() -> None:
+    with pytest.raises(KeyError):
+        paths.stage_dir(4)
+
+
+def test_the_final_table_is_stage_1_only() -> None:
+    path = paths.final_table_path("test_league", "2025-2026")
+    assert os.path.dirname(path) == paths.stage_dir(1)
+    assert path.endswith(paths.FINAL_TABLE_SUFFIX)
+
+
+@pytest.mark.parametrize(
+    ("league", "season"), [("test_league", "2025-2026"), ("liga_2000", "2025")]
+)
+def test_split_schedule_name_inverts_schedule_path(league: str, season: str) -> None:
+    assert paths.split_schedule_name(paths.schedule_path(2, league, season)) == (league, season)
+
+
+def test_split_schedule_name_rejects_other_files() -> None:
+    assert paths.split_schedule_name("data/raw/test_league_2025.csv") == ("test_league_2025", "")
+
+
+def test_schedule_at_stage_keeps_the_league_season() -> None:
+    raw = paths.schedule_path(1, "test_league", "2025")
+    assert paths.schedule_at_stage(raw, 3) == paths.schedule_path(3, "test_league", "2025")
+    with pytest.raises(ValueError, match="not a staged schedule"):
+        paths.schedule_at_stage("data/raw/test_league_2025.csv", 2)

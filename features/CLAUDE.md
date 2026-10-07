@@ -1,6 +1,14 @@
 # features/ — derived data and the feature matrix
 
-Everything here derives into `data/processed/` and must be reproducible from `data/raw/`.
+Everything here derives into `data/processed/` or the later stage directories of `data/finished/`, and must be reproducible from the raw files.
+
+## 0. The schedule's stages 2 and 3
+
+`schedule_row.py` (stage 2) and `schedule_multi.py` (stage 3) build the schedule's derived files from `data/finished/1_raw/` (`notes/fields/schedule_2_row.md`, `schedule_3_multi.md`). Both are cheap and idempotent: no browser, rebuild them freely. Read and write stage files only through `stage_io.py`, which keeps text columns (`match_id`, a calendar-year `s1_season`, an empty `s1_stage`) from turning into numbers or NaN.
+
+- **Stage 2 sees one row.** `schedule_row.derive` takes a single row, so nothing there can carry another match's result.
+- **Stage 3 states each field's row window.** The round position reads other rows' kickoff times only. The pre-kickoff table (`s3_<side>_pre_<half>_<venue>_<stat>`, 96 columns) counts a match only if it kicked off at least `schedule_multi.FINISHED_AFTER` (2 h 30 min) before this one: the user's rule, 2026-10-06, chosen over a per-round snapshot because it never leaves out a finished result and is right for the last rounds. It compares instants (`clock.parse_instant`), never wall-clock times (`domain/CLAUDE.md` §1a).
+- **Checked 2026-10-06 on the old EPL 2025-26 file, converted in memory:** 380 rows passed the stage-1 model, and the table rebuilt from all results equalled the page's final table for all 20 teams, ranks included.
 
 ## 1. The enrich join (third stage)
 
@@ -36,7 +44,7 @@ Caveat on all of it: n=20 teams, one league-season, so the intervals are wide. F
 
 ## 6. Position within a round: use `round_position`
 
-**Never read `match_index_in_round == 1` as "the first match of the round".** 15.6% of matches share their round's earliest kickoff and the tiebreak between them is alphabetical, i.e. meaningless. Use `features/engine.py:round_position`, which derives tie-aware `earlier` / `later` / `slot` / `slots` from `date`: joint-first is `earlier == 0` (321 matches in the current corpus), joint-last is `later == 0` (263). These are derived, not stored, because they are pure functions of a column that is already there. How `match_index_in_round` itself is assigned: `scrapers/CLAUDE.md` §4.
+**Never read `match_index_in_round == 1` as "the first match of the round".** 15.6% of matches share their round's earliest kickoff and the tiebreak between them is alphabetical, i.e. meaningless. Use `features/engine.py:round_position`, which derives tie-aware `earlier` / `later` / `slot` / `slots` from `date`: joint-first is `earlier == 0` (321 matches in the current corpus), joint-last is `later == 0` (263). These are derived, not stored, because they are pure functions of a column that is already there. In the staged files the same index is `s3_match_index_in_round` (`schedule_multi.round_positions`, §0), with the same warning.
 
 ## 7. `TRAIN_SEASONS` / `TEST_SEASONS`
 

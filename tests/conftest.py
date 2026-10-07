@@ -1,4 +1,4 @@
-"""Test data shared by the `domain/` tests."""
+"""Test data shared across the test packages."""
 
 from itertools import product
 

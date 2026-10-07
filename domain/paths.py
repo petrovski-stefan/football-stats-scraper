@@ -15,6 +15,16 @@ Nothing but a scraper writes into `data/raw/`. Everything derived — today just
 base+detail join — goes to `data/processed/` and is reproducible from the raw files,
 so the whole directory is safe to delete and rebuild.
 
+The staged pipeline (`notes/PLAN_2026-10-05_staged_pipeline.md`) is replacing that tree,
+one source at a time. Its files sit under `data/finished/`, one directory per stage:
+
+    data/finished/1_raw/    <league>_<season>_schedule.csv     scrapers.schedule
+                            <league>_<season>_final_table.csv  scrapers.schedule
+                  2_row/    <league>_<season>_schedule.csv     features.schedule_row
+                  3_multi/  <league>_<season>_schedule.csv     features.schedule_multi
+
+Only `1_raw/` is scraper output; `2_row/` and `3_multi/` are rebuilt from it at any time.
+
 Stdlib only, deliberately: `domain` depends on nothing internal and (apart from the
 pydantic models) nothing heavy, so a path lookup never drags pandas into a caller.
 Paths are relative to the working directory, so every entry point runs from the repo
@@ -31,6 +41,13 @@ PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
 
 DETAIL_SUFFIX = "_detail.csv"
 ENRICHED_SUFFIX = "_enriched.csv"
+
+FINISHED_DIR = os.path.join(DATA_DIR, "finished")
+# One directory per stage: 1 = read from the page, 2 = derived inside one row, 3 = needs
+# other rows. The names sort in pipeline order.
+STAGE_DIRS = {1: "1_raw", 2: "2_row", 3: "3_multi"}
+SCHEDULE_SUFFIX = "_schedule.csv"
+FINAL_TABLE_SUFFIX = "_final_table.csv"
 
 # Goal timings are stored GLOBALLY rather than per league-season, the one exception to the
 # naming scheme above. A fixture's history references matches from cups, European
@@ -139,3 +156,44 @@ def events_done_path() -> str:
 def enriched_csvs() -> list[str]:
     """Every enriched league-season in `data/processed/`, sorted."""
     return sorted(glob.glob(os.path.join(PROCESSED_DIR, "*" + ENRICHED_SUFFIX)))
+
+
+# --- The staged pipeline: data/finished/ ---------------------------------------------
+
+
+def stage_dir(stage: int) -> str:
+    """`data/finished/<n>_<name>/` for stage 1, 2 or 3. Any other stage is a KeyError."""
+    return os.path.join(FINISHED_DIR, STAGE_DIRS[stage])
+
+
+def schedule_path(stage: int, league: str, season: str) -> str:
+    """A league-season's schedule file at one stage. `league` is the file-name slug."""
+    return os.path.join(stage_dir(stage), f"{league}_{season}{SCHEDULE_SUFFIX}")
+
+
+def final_table_path(league: str, season: str) -> str:
+    """The page's final table for a league-season: stage 1 only, read as a check."""
+    return os.path.join(stage_dir(1), f"{league}_{season}{FINAL_TABLE_SUFFIX}")
+
+
+def schedule_csvs(stage: int) -> list[str]:
+    """Every schedule file at one stage, sorted."""
+    return sorted(glob.glob(os.path.join(stage_dir(stage), "*" + SCHEDULE_SUFFIX)))
+
+
+def split_schedule_name(path: str) -> tuple[str, str]:
+    """`.../english_premier_league_2025-2026_schedule.csv` -> `("english_premier_league",
+    "2025-2026")`. The staged files carry a kind suffix after the season, so the suffix goes
+    first and `split_league_season` does the rest. `(stem, "")` when the name does not fit."""
+    name = os.path.basename(path)
+    if not name.endswith(SCHEDULE_SUFFIX):
+        return _stem(path), ""
+    return split_league_season(name.removesuffix(SCHEDULE_SUFFIX) + ".csv")
+
+
+def schedule_at_stage(path: str, stage: int) -> str:
+    """The same league-season's schedule file at another stage."""
+    league, season = split_schedule_name(path)
+    if not season:
+        raise ValueError(f"not a staged schedule file: {path}")
+    return schedule_path(stage, league, season)

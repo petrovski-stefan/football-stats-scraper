@@ -6,6 +6,8 @@ The CSV output schema that used to live here alongside these now sits in
 nothing outside `scrapers/` has any business knowing a CSS selector.
 """
 
+from datetime import timedelta, timezone
+
 # The robots.txt `Disallow` rules of every host the scraper may open, copied from the files
 # the user read in a browser on 2026-10-02 (the reason for the rule: scrapers/CLAUDE.md). Each
 # rule is a case-sensitive path prefix, as in robots.txt. `scrapers.driver.open_page` refuses a
@@ -56,6 +58,10 @@ ODDS_TYPES = {
     "ou": ("T", "OU"),  # cells: over / goal line / under
 }
 ROW_ODDS_CELLS = "span.odds > span"  # relative to a schedule row; always three cells
+# The clock of the row's `span.date[data-t]` kickoff: UTC+8 (China time), no offset written.
+# Verified 2026-10-05 on two EPL kickoffs, one in winter and one in summer (UK clocks
+# differ, the +8 does not). `parsers.parse_kickoff` converts it to Berlin time.
+LEAGUE_PAGE_CLOCK = timezone(timedelta(hours=8))
 
 # Standings section
 # The standings table has its own sub-table picker, one entry per stage
@@ -65,8 +71,15 @@ ROW_ODDS_CELLS = "span.odds > span"  # relative to a schedule row; always three 
 SUB_STANDING_ITEM = "div#standingPlates #subStandingBox li[data-s-sub='{stage}']"
 STANDING_BOX = "div#standingPlates #standingBox"
 STANDING_BOX_LABEL = "div#standingPlates #standingBox > text"
-STANDING_ROUND_ITEM = "div#standingPlates #standingBox li[data-st-r='{round}']"
+# The dropdown's `Total` entry: the table as it stands now. Matched by its text, since the
+# round entries carry `data-st-r=<n>` and `Total` is the one that reads "Total".
+STANDING_TOTAL_LABEL = "Total"
+STANDING_TOTAL_ITEM = (
+    "//div[@id='standingPlates']//*[@id='standingBox']//li[normalize-space(.)='Total']"
+)
 STANDING_ROWS = "div#standingPlates ul#standingList li.standlis"
+# The title row above them: R, Team, P, W, D, L, GD, PTS (measured 2026-10-06).
+STANDING_TITLE_ROW = "div#standingPlates ul#standingList li.title"
 
 
 # --- Detail page (live11.nowgoal26.com/match/h2h-<id>) ------------------------

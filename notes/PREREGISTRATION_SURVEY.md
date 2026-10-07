@@ -134,7 +134,7 @@ as `notes/runs/<date>_survey_inclusion.txt` before the run. The 15 LEAGUES_INCID
   `is_seven_or_more_goals`.
 - Stratum: league-season (`league_id` + stored season label). Calendar-year labels are listed
   explicitly in Appendix A (A8.5). Time comparisons use kickoff dates and
-  `domain/match.py:season_start_year`, never label strings.
+  `domain/schedule.py:season_start_year` (moved from `domain/match.py` on 2026-10-06), never label strings.
 - Continent: Europe, Asia or Americas, from `config/leagues.json`.
 
 ## 5. The baseline B

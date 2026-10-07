@@ -1,10 +1,19 @@
 import re
+from datetime import datetime
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
 
-from scrapers.constants import PORTUGUESE_TO_ENGLISH_LETTERS, ROW_ODDS_CELLS, STANDING_ROWS
+from domain.clock import to_berlin
+from scrapers.constants import (
+    LEAGUE_PAGE_CLOCK,
+    PORTUGUESE_TO_ENGLISH_LETTERS,
+    ROW_ODDS_CELLS,
+    STANDING_ROWS,
+    STANDING_TITLE_ROW,
+)
 
+_KICKOFF_FORMATS = ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S")
 # "0 - 3", "1-2", "10 : 0" -> (home, away)
 _SCORE_RE = re.compile(r"^\s*(\d{1,2})\s*[-:]\s*(\d{1,2})\s*$")
 # toTeam('60') / toTeam(60) -> 60
@@ -123,76 +132,107 @@ def _team_id_from_onclick(tag: Tag | None) -> int | None:
     return int(match.group(1)) if match else None
 
 
-def parse_standings(standings_soup: BeautifulSoup) -> dict[int, int]:
-    """Map team_id -> rank from the standings list, for the currently selected round."""
-    positions: dict[int, int] = {}
-    for row in standings_soup.select(STANDING_ROWS):
-        rank_tag = row.select_one("span.rank em")
-        team_tag = row.select_one("span.team")
-        team_id = _team_id_from_onclick(team_tag)
-        if rank_tag is None or team_id is None:
+# The standings table's columns, as its title row names them (measured 2026-10-06).
+_FINAL_TABLE_HEADER = ("R", "Team", "P", "W", "D", "L", "GD", "PTS")
+
+
+def _parse_int(text: str) -> int | None:
+    try:
+        return int(text.strip())
+    except ValueError:
+        return None
+
+
+def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
+    """The standings table on screen, one dict per team; [] if its columns are not R, Team,
+    P, W, D, L, GD, PTS.
+
+    Each `li.standlis` row has eight `span` children in the title row's order. The counts
+    sit inside nested tags (`<span><span>26</span></span>`, `<b>85</b>`), so each cell is
+    read by its text. A row that does not parse is skipped; the caller compares the table
+    with the one rebuilt from our own results, so a missing team shows up there.
+    """
+    title = soup.select_one(STANDING_TITLE_ROW)
+    header = tuple(tag_text(s) for s in title.find_all("span", recursive=False)) if title else ()
+    if header != _FINAL_TABLE_HEADER:
+        return []
+    lines: list[dict[str, Any]] = []
+    for row in soup.select(STANDING_ROWS):
+        cells = row.find_all("span", recursive=False)
+        if len(cells) != len(_FINAL_TABLE_HEADER):
             continue
-        rank_text = rank_tag.get_text(strip=True)
-        if rank_text.isdigit():
-            positions[team_id] = int(rank_text)
-    return positions
+        team_id = _team_id_from_onclick(cells[1])
+        numbers = [_parse_int(tag_text(cell)) for cell in (cells[0], *cells[2:])]
+        if team_id is None or None in numbers:
+            continue
+        rank, played, won, drawn, lost, goal_diff, points = numbers
+        lines.append(
+            {
+                "team_id": team_id,
+                "s1_team_name": clean_string(
+                    tag_text(cells[1].select_one("span.name") or cells[1])
+                ),
+                "s1_rank": rank,
+                "s1_played": played,
+                "s1_won": won,
+                "s1_drawn": drawn,
+                "s1_lost": lost,
+                "s1_goal_diff": goal_diff,
+                "s1_points": points,
+            }
+        )
+    return lines
 
 
-def parse_row_identity(row: Tag) -> dict[str, Any]:
-    """Identify a `div.schedulis` row: who is playing, when, and its match id.
+def parse_kickoff(raw: str | None) -> str | None:
+    """A row's `data-t` kickoff as Berlin time with its offset; None if it does not parse.
 
-    Unlike `parse_schedulis_row` this works on **unfinished** rows too, which is what
-    lets `scrapers/schedule.py` order a round over every scheduled match rather than
-    only the played ones. Returns team ids/tags as well so the caller can build the
-    full record without re-selecting.
+    The league page gives kickoffs in UTC+8 (China time), with no offset written: the EPL's
+    Saturday 31 Jan 2026, 17:30 UK kickoff reads "2026-02-01 01:30". Every schedule file
+    before the staged pipeline stored that text unconverted (`notes/fields/schedule_1_raw.md`
+    S1.07).
     """
-    home_tag = row.select_one("span.home span[onclick]")
-    away_tag = row.select_one("span.away span[onclick]")
-    date_tag = row.select_one("span.date")
-
-    return {
-        "match_id": (attr(row, "matchid") or "").strip(),
-        "date": attr(date_tag, "data-t") or tag_text(date_tag),
-        "home_team_id": _team_id_from_onclick(home_tag),
-        "away_team_id": _team_id_from_onclick(away_tag),
-        "home_team_name": clean_string(tag_text(home_tag)),
-        "away_team_name": clean_string(tag_text(away_tag)),
-    }
+    text = (raw or "").strip()
+    for fmt in _KICKOFF_FORMATS:
+        try:
+            naive = datetime.strptime(text, fmt)
+        except ValueError:
+            continue
+        return to_berlin(naive.replace(tzinfo=LEAGUE_PAGE_CLOCK))
+    return None
 
 
-def parse_schedulis_row(row: Tag, *, positions: dict[int, int]) -> dict[str, Any] | None:
-    """Parse a single `div.schedulis` schedule row into a match dict.
+def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
+    """Parse one finished `div.schedulis` row into its stage-1 fields; None if unplayed.
 
-    Returns None for matches that are not finished (no parseable HT + FT score).
-    `match_index_in_round` / `matches_in_round` are *not* set here — they depend on the
-    round's other rows and are attached by `scrapers/schedule.py`.
+    Only what the row itself shows: ids, teams, kickoff, goals and the 1X2 prices (the
+    caller adds the league context and the O/U and AH prices, read with the header switched).
+    Nothing is computed here: `notes/fields/schedule_1_raw.md`.
     """
-    ft_raw = attr(row, "score") or tag_text(row.select_one("span.score"))
-    ht_raw = tag_text(row.select_one("span.ht"))
-    ft = parse_score(ft_raw)
-    ht = parse_score(ht_raw)
+    ft = parse_score(attr(row, "score") or tag_text(row.select_one("span.score")))
+    ht = parse_score(tag_text(row.select_one("span.ht")))
     if ft is None or ht is None:
         return None  # not played yet -> skip
 
-    identity = parse_row_identity(row)
-    home_team_id = identity["home_team_id"]
-    away_team_id = identity["away_team_id"]
-
-    home_win_odds, draw_odds, away_win_odds = parse_1x2_odds(row)
+    home_tag = row.select_one("span.home span[onclick]")
+    away_tag = row.select_one("span.away span[onclick]")
+    date_tag = row.select_one("span.date")
+    home_odds, draw_odds, away_odds = parse_1x2_odds(row)
 
     return {
-        **identity,
-        "home_team_position": positions.get(home_team_id) if home_team_id else None,
-        "away_team_position": positions.get(away_team_id) if away_team_id else None,
-        "ht_score": ht_raw,
-        "ft_score": ft_raw,
-        "ht_home_goals": ht[0],
-        "ht_away_goals": ht[1],
-        "ft_home_goals": ft[0],
-        "ft_away_goals": ft[1],
-        "home_win_initial_odds": home_win_odds,
-        "draw_initial_odds": draw_odds,
-        "away_win_initial_odds": away_win_odds,
+        "match_id": (attr(row, "matchid") or "").strip(),
+        "s1_date": parse_kickoff(attr(date_tag, "data-t") or tag_text(date_tag)),
+        "s1_home_team_id": _team_id_from_onclick(home_tag),
+        "s1_away_team_id": _team_id_from_onclick(away_tag),
+        "s1_home_team_name": clean_string(tag_text(home_tag)),
+        "s1_away_team_name": clean_string(tag_text(away_tag)),
+        "s1_ht_home_goals": ht[0],
+        "s1_ht_away_goals": ht[1],
+        "s1_ft_home_goals": ft[0],
+        "s1_ft_away_goals": ft[1],
+        "s1_odds_1x2_open_home": home_odds,
+        "s1_odds_1x2_open_draw": draw_odds,
+        "s1_odds_1x2_open_away": away_odds,
     }
 
 

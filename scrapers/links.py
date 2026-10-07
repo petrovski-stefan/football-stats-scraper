@@ -13,7 +13,7 @@ LEAGUES_FILE = "config/leagues.json"
 # years and nowgoal labels them "2025-2026"; calendar-year leagues (Scandinavia, Brazil,
 # Japan, MLS, Russia's summer format...) play inside one year and are labelled "2025".
 # Normalising the second into a range would state something false, so anything that needs
-# to order or split seasons compares `domain.match.season_start_year`, not the string.
+# to order or split seasons compares `domain.schedule.season_start_year`, not the string.
 _LEAGUE_URL_RE = re.compile(r"/league/(?P<season>\d{4}(?:-\d{4})?)/(?P<league_id>\d+)")
 
 

@@ -58,6 +58,21 @@ def implied_prob(odds: float | None) -> float | None:
     return 1 / odds if odds else None
 
 
+def vig_free_1x2(
+    home: float | None, draw: float | None, away: float | None
+) -> tuple[float, float, float] | None:
+    """Home, draw and away probabilities with the bookmaker's margin removed.
+
+    Proportional normalisation over the three inverse prices, so they sum to 1. None when
+    any price is missing or zero.
+    """
+    if not home or not draw or not away:
+        return None
+    inverse = (1 / home, 1 / draw, 1 / away)
+    total = sum(inverse)
+    return inverse[0] / total, inverse[1] / total, inverse[2] / total
+
+
 def two_way_prob(odds_for: float | None, odds_against: float | None) -> float | None:
     """Vig-free probability of the first side in a two-way market.
 

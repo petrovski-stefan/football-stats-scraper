@@ -1,5 +1,10 @@
-"""First-stage scraper: render each configured league season's schedule and write one
-row per finished match to `data/raw/<league>_<season>.csv`.
+"""First-stage scraper: render each configured league season's schedule and write its
+stage-1 files (`notes/fields/schedule_1_raw.md`):
+
+- `data/finished/1_raw/<league>_<season>_schedule.csv`: one row per finished match, the
+  values its row on the page shows and nothing computed;
+- `data/finished/1_raw/<league>_<season>_final_table.csv`: the page's final table, one row
+  per team, read once per stage as a check on the standings we rebuild ourselves.
 
 Structured like `scrapers/detail.py`, the second stage: a unit function
 (`scrape_league`) that renders one league, an orchestration function (`scrape_all`) that
@@ -7,7 +12,7 @@ walks the enabled seasons in `config/leagues.json`, and a CLI entry point.
 
 One code path covers every page layout. A page without stage tabs is scraped as it
 opens; otherwise each stage named in the league's `keep` list is clicked and scraped in
-turn, its name going into the `stage` column.
+turn, its name going into the `s1_stage` column.
 
 Run: `uv run python -m scrapers.schedule`
 """
@@ -16,12 +21,14 @@ import logging
 from dataclasses import dataclass
 from typing import Any
 
-from bs4 import BeautifulSoup, Tag
-from pydantic import ValidationError
+from bs4 import BeautifulSoup
+from pydantic import BaseModel, ValidationError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
-from domain.match import Match, round_sort_key
+from domain import paths
+from domain.columns import FINAL_TABLE_COLUMNS, SCHEDULE_RAW_COLUMNS
+from domain.schedule import FinalTableRow, ScheduleRow
 from scrapers.constants import (
     ROUND_CURRENT_CLASS,
     ROUND_SPANS,
@@ -29,14 +36,14 @@ from scrapers.constants import (
     STAGE_ROUND_SPANS,
     STAGE_SPANS,
 )
-from scrapers.csv_io import save_df_to_csv
+from scrapers.csv_io import league_slug, save_unless_shrinking
 from scrapers.driver import (
     click_round,
     click_stage,
     get_driver,
     open_page,
+    show_total_standings,
     switch_odds_type,
-    sync_standings_to_round,
     sync_standings_to_stage,
     wait_for_odds,
     wait_for_schedule_rows,
@@ -45,10 +52,9 @@ from scrapers.links import LeagueSeason, get_league_seasons
 from scrapers.parsers import (
     attr,
     parse_ah_odds,
+    parse_final_table,
     parse_ou_odds,
-    parse_row_identity,
     parse_schedulis_row,
-    parse_standings,
 )
 
 logging.basicConfig(
@@ -64,25 +70,33 @@ class _Stage:
     """One pass over the schedule: a stage tab, or the whole page when it has none."""
 
     stage_id: str | None  # the tab's `stage` attribute; None on pages without tabs
-    name: str  # written to the `stage` column; "" on pages without tabs
+    name: str  # written to the `s1_stage` column; "" on pages without tabs
 
 
 @dataclass(frozen=True)
 class _StagePass:
-    """What every round of one stage pass shares."""
+    """What every row of one stage pass shares."""
 
     season: str
     league_id: int
     league_name: str
     stage: _Stage
-    standings_ok: bool  # False: this stage's standings could not be shown, positions dropped
 
 
-def scrape_league(job: LeagueSeason) -> tuple[list[dict[str, Any]], str]:
-    """Render a league page and scrape every finished match of its kept stages.
+@dataclass
+class _Scrape:
+    """One league-season's stage-1 rows: the finished matches and the final table."""
 
-    Returns (rows, league_name). Only finished matches (with HT + FT scores) are
-    returned; unplayed/live rows are skipped by the parser.
+    league_name: str
+    matches: list[dict[str, Any]]
+    final_table: list[dict[str, Any]]
+
+
+def scrape_league(job: LeagueSeason) -> _Scrape:
+    """Render a league page and scrape its kept stages: finished matches and final tables.
+
+    Only finished matches (with HT + FT scores) are returned; unplayed/live rows are
+    skipped by the parser.
     """
     driver = get_driver()
     try:
@@ -93,12 +107,14 @@ def scrape_league(job: LeagueSeason) -> tuple[list[dict[str, Any]], str]:
         league_name = _read_league_name(driver, job.season)
         stages = _resolve_stages(_read_stages(driver), job.keep, f"{league_name} {job.season}")
 
-        matches: list[dict[str, Any]] = []
+        scrape = _Scrape(league_name, [], [])
         for stage in stages:
-            matches.extend(_scrape_stage(driver, stage, job, league_name))
+            ctx = _StagePass(job.season, job.league_id, league_name, stage)
+            scrape.final_table.extend(_read_final_table(driver, ctx))
+            scrape.matches.extend(_scrape_stage(driver, ctx))
 
-        logger.info("League '%s': %d finished matches", league_name, len(matches))
-        return matches, league_name
+        logger.info("League '%s': %d finished matches", league_name, len(scrape.matches))
+        return scrape
     finally:
         driver.quit()
 
@@ -134,21 +150,35 @@ def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: s
     return [_Stage(stage_id, name) for stage_id, name in tabs if name in keep]
 
 
-def _scrape_stage(
-    driver: webdriver.Chrome, stage: _Stage, job: LeagueSeason, league_name: str
-) -> list[dict[str, Any]]:
-    """Scrape one stage pass round by round, with the standings pointed at that stage."""
-    standings_ok = True
+def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, Any]]:
+    """The stage's final table as the page shows it: `Total`, FT, read once.
+
+    A check only (`notes/fields/schedule_1_raw.md` §B). The standings have their own
+    sub-table picker that ignores the stage tabs, so a stage page points it at its own
+    sub-table first; a stage whose table cannot be shown gets none, never another's.
+    """
+    stage = ctx.stage
     if stage.stage_id is not None:
         click_stage(driver, stage.stage_id)
-        standings_ok = sync_standings_to_stage(driver, stage.stage_id)
-        if not standings_ok:
-            logger.warning("  %s: standings not available, positions left empty", stage.name)
+        if not sync_standings_to_stage(driver, stage.stage_id):
+            logger.warning("  %s: standings not available, no final table", stage.name)
+            return []
+    if not show_total_standings(driver):
+        logger.warning("  %s: the standings' Total view did not show, no final table", stage.name)
+        return []
+    lines = parse_final_table(BeautifulSoup(driver.page_source, "html.parser"))
+    context = {"season": ctx.season, "league_id": ctx.league_id, "stage": stage.name}
+    return [{**context, **line} for line in lines]
 
-    rounds = _read_rounds(driver, stage.stage_id)
-    logger.info("League '%s' (%s) %s: %d rounds", league_name, job.season, stage.name, len(rounds))
 
-    ctx = _StagePass(job.season, job.league_id, league_name, stage, standings_ok)
+def _scrape_stage(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, Any]]:
+    """Scrape one stage pass round by round."""
+    if ctx.stage.stage_id is not None:
+        click_stage(driver, ctx.stage.stage_id)
+    rounds = _read_rounds(driver, ctx.stage.stage_id)
+    logger.info(
+        "League '%s' (%s) %s: %d rounds", ctx.league_name, ctx.season, ctx.stage.name, len(rounds)
+    )
     matches: list[dict[str, Any]] = []
     for round_number in rounds:
         matches.extend(_scrape_round(driver, round_number, ctx))
@@ -159,49 +189,42 @@ def _scrape_round(
     driver: webdriver.Chrome, round_number: int, ctx: _StagePass
 ) -> list[dict[str, Any]]:
     click_round(driver, round_number, ctx.stage.stage_id)
-    if ctx.standings_ok:
-        sync_standings_to_round(driver, round_number)
     wait_for_odds(driver)
 
     secondary = _secondary_odds(driver)
 
     soup = BeautifulSoup(driver.page_source, "html.parser")
-    positions = parse_standings(soup) if ctx.standings_ok else {}
     rows = soup.select(SCHEDULE_ROWS)
-
-    index_by_id, matches_in_round = _order_round(rows)
-    label = f"{ctx.stage.name} round {round_number}".strip()
+    context = {
+        "s1_season": ctx.season,
+        "s1_league_id": ctx.league_id,
+        "s1_league_name": ctx.league_name,
+        "s1_stage": ctx.stage.name,
+        "s1_round": round_number,
+    }
 
     round_matches: list[dict[str, Any]] = []
     for row in rows:
-        parsed = parse_schedulis_row(row, positions=positions)
+        parsed = parse_schedulis_row(row)
         if parsed is None:
             continue
-        match_id = parsed["match_id"]
-        if match_id not in index_by_id:
-            logger.warning("  %s: no position for match %r", label, match_id)
-        parsed.update(
-            {
-                "season": ctx.season,
-                "league_id": ctx.league_id,
-                "league_name": ctx.league_name,
-                "stage": ctx.stage.name,
-                "round": round_number,
-                "match_index_in_round": index_by_id.get(match_id, 0),
-                "matches_in_round": matches_in_round,
-            }
-        )
-        parsed.update(secondary.get(match_id, {}))
+        parsed.update(context)
+        parsed.update(secondary.get(parsed["match_id"], {}))
         round_matches.append(parsed)
 
+    label = f"{ctx.stage.name} round {round_number}".strip()
     logger.info("  %s: %d finished / %d rows", label, len(round_matches), len(rows))
     return round_matches
 
 
 # Each secondary odds type, and the row fields its three cells map to.
 _SECONDARY_ODDS = (
-    ("ou", parse_ou_odds, ("over_odds", "ou_line", "under_odds")),
-    ("ah", parse_ah_odds, ("ah_home_odds", "ah_line", "ah_away_odds")),
+    (
+        "ou",
+        parse_ou_odds,
+        ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"),
+    ),
+    ("ah", parse_ah_odds, ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away")),
 )
 
 
@@ -229,21 +252,6 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
     switch_odds_type(driver, "1x2")
     wait_for_odds(driver)
     return out
-
-
-def _order_round(rows: list[Tag]) -> tuple[dict[str, int], int]:
-    """Map match_id -> 1-based position in the round, and the round's total size.
-
-    Ordered over **every scheduled match**, not just the finished ones, so a match is
-    the 5th of 10 whether or not the other nine have been played. That is the whole
-    reason this runs here rather than downstream: unplayed rows exist in the DOM but
-    never reach the CSV, so their positions cannot be recovered later.
-    """
-    identities = [ident for row in rows if (ident := parse_row_identity(row))["match_id"]]
-    identities.sort(
-        key=lambda i: round_sort_key(i["date"], i["home_team_name"], i["away_team_name"])
-    )
-    return {i["match_id"]: n for n, i in enumerate(identities, 1)}, len(identities)
 
 
 def _read_league_name(driver: webdriver.Chrome, season: str) -> str:
@@ -285,28 +293,36 @@ def _read_rounds(driver: webdriver.Chrome, stage_id: str | None) -> list[int]:
 # --- Orchestration / CLI -----------------------------------------------------
 
 
-def _validate(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Validate scraped rows through the Match model, dropping invalid ones."""
+def _validate(
+    rows: list[dict[str, Any]], model: type[BaseModel], what: str
+) -> list[dict[str, Any]]:
+    """Validate scraped rows through a stage-1 model, dropping invalid ones."""
     valid: list[dict[str, Any]] = []
     for row in rows:
         try:
-            valid.append(Match(**row).model_dump())
+            valid.append(model(**row).model_dump())
         except ValidationError as exc:
-            logger.warning("Skipping match %s: %s", row.get("match_id"), exc)
+            logger.warning("Skipping %s %s: %s", what, row.get("match_id", row.get("team_id")), exc)
     return valid
 
 
 def scrape_all() -> None:
-    """Scrape every enabled league season in `config/leagues.json` into `data/raw/`."""
+    """Scrape every enabled league season in `config/leagues.json` into its stage-1 files."""
     for job in get_league_seasons():
         logger.info("Scraping %s", job.url)
-        rows, league_name = scrape_league(job)
+        scrape = scrape_league(job)
+        league = league_slug(scrape.league_name)
 
-        matches = _validate(rows)
-        logger.info("%s: %d valid matches", league_name, len(matches))
-
+        matches = _validate(scrape.matches, ScheduleRow, "match")
+        logger.info("%s: %d valid matches", scrape.league_name, len(matches))
         if matches:
-            save_df_to_csv(matches, league_name, job.season)
+            path = paths.schedule_path(1, league, job.season)
+            save_unless_shrinking(matches, path, SCHEDULE_RAW_COLUMNS)
+
+        table = _validate(scrape.final_table, FinalTableRow, "final-table team")
+        if table:
+            path = paths.final_table_path(league, job.season)
+            save_unless_shrinking(table, path, FINAL_TABLE_COLUMNS)
 
 
 def main() -> None:

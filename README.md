@@ -104,13 +104,14 @@ uv run python -m qa.validate
 
 ## Output columns
 
-The league CSV carries 58 columns, of which 30 are stored directly and the other 28 are
-`@computed_field` properties derived from them. The detail CSV adds 537.
+The schedule is stored in three stages under `data/finished/`: the values read from the page
+(stage 1), fields computed from one row (stage 2), and fields that need other rows, such as
+the standings table at each kickoff (stage 3). The detail CSV (537 columns) still uses the old
+layout in `data/raw/` until the staged pipeline reaches it.
 
-**`domain/columns.py` is the authoritative list** (`ORDERED_DF_COLUMNS`,
-`DETAIL_ORDERED_COLUMNS`), with per-column meaning documented on the Pydantic models in
-`domain/match.py` and `domain/match_detail.py`. It is not duplicated here, because a
-hand-copied schema table goes stale silently and this one did.
+**`domain/columns.py` is the authoritative list of column orders**, and **`notes/fields/`
+defines every column once**: its place on the page, meaning, example, timing and role. Neither
+is duplicated here, because a hand-copied schema table goes stale silently and this one did.
 
 ## Notes
 
