@@ -8,8 +8,9 @@ This is the only schedule stage where another match's result can enter a row, so
 field's row window is stated where it is built:
 
 - the round position reads other rows' kickoff times, never their results;
-- the pre-kickoff table counts a match only if it kicked off at least 2 h 30 min before
-  this one, so it had surely finished (the user's rule, 2026-10-06).
+- the pre-kickoff table and the half-time / full-time record count a match only if it
+  kicked off at least 2 h 30 min before this one, so it had surely finished (the user's
+  rule, 2026-10-06).
 
 Run: `uv run python -m features.schedule_multi`
 """
@@ -24,13 +25,15 @@ import pandas as pd
 from domain import paths
 from domain.clock import parse_instant
 from domain.columns import (
+    HTFT_RESULTS,
     SCHEDULE_MULTI_COLUMNS,
     SCHEDULE_RAW_COLUMNS,
     SCHEDULE_ROW_COLUMNS,
     STANDING_VENUES,
+    pre_htft_columns,
     pre_kickoff_columns,
 )
-from domain.standings import Standings
+from domain.standings import HalfTimeFullTime, Standings
 from features.stage_io import read_stage_csv, write_stage_csv
 
 logging.basicConfig(
@@ -108,11 +111,22 @@ def _lines(tables: dict[str, Standings], team: int, side: str) -> dict[str, int 
     return out
 
 
+def _htft(record: HalfTimeFullTime, team: int, side: str) -> dict[str, int | None]:
+    """One team's HT/FT record, as `s3_<side>_pre_htft_<venue>_<ht>_<ft>` (team view)."""
+    return {
+        f"s3_{side}_pre_htft_{venue}_{ht}_{ft}": record.count(venue, team, ht.upper(), ft.upper())
+        for venue in STANDING_VENUES
+        for ht in HTFT_RESULTS
+        for ft in HTFT_RESULTS
+    }
+
+
 def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | None]]]:
-    """Each match of one stage with both teams' lines as they stood at its kickoff."""
+    """Each match of one stage with both teams' lines and HT/FT records at its kickoff."""
     matches = _matches_by_kickoff(group)
     teams = {m.home for m in matches} | {m.away for m in matches}
     tables = {"ft": Standings(teams), "ht": Standings(teams)}
+    record = HalfTimeFullTime(teams)
     counted = 0
     for match in matches:
         # Sorted by kickoff, so the counted matches are always a prefix of the list.
@@ -120,20 +134,30 @@ def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | No
             done = matches[counted]
             tables["ft"].add(done.home, done.away, *done.ft)
             tables["ht"].add(done.home, done.away, *done.ht)
+            record.add(done.home, done.away, done.ht, done.ft)
             counted += 1
         yield (
             match.index,
-            {**_lines(tables, match.home, "home"), **_lines(tables, match.away, "away")},
+            {
+                **_lines(tables, match.home, "home"),
+                **_lines(tables, match.away, "away"),
+                **_htft(record, match.home, "home"),
+                **_htft(record, match.away, "away"),
+            },
         )
 
 
 def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
-    """The 96 `s3_<side>_pre_*` columns and `s3_pre_rank_gap`; one table per stage."""
+    """Both teams' standings (96 columns), `s3_pre_rank_gap` and HT/FT records (54).
+
+    One table and one record per stage, each counting only the matches that kicked off at
+    least `FINISHED_AFTER` before this one.
+    """
     rows: dict[Any, dict[str, int | None]] = {}
     for _, group in frame.groupby("s1_stage", sort=False):
         rows.update(_stage_tables(group))
     tables = pd.DataFrame.from_dict(rows, orient="index").reindex(
-        index=frame.index, columns=pre_kickoff_columns()
+        index=frame.index, columns=pre_kickoff_columns() + pre_htft_columns()
     )
     gap = (tables["s3_home_pre_ft_total_rank"] - tables["s3_away_pre_ft_total_rank"]).abs()
     return tables.assign(s3_pre_rank_gap=gap).astype("Int64")

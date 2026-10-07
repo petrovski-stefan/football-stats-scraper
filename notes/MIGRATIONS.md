@@ -61,3 +61,9 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 - **The per-round standings scrape is gone** (`driver.sync_standings_to_round`, `parsers.parse_standings`, `constants.STANDING_ROUND_ITEM`). The standings are rebuilt from results (`domain/standings.py`); the page's final table is read once as a check (`parsers.parse_final_table`, `driver.show_total_standings`).
 - **`domain/match.py` deleted.** `Match`, `round_sort_key` and `parse_match_datetime` had no user left; `season_start_year` moved to `domain/schedule.py`. `tests/domain/test_match.py` went with it (its season tests are in `tests/domain/test_schedule.py`), and `tests/domain/conftest.py` moved to `tests/conftest.py`. `scrapers/csv_io.py:save_df_to_csv` / `league_csv_path` became `save_unless_shrinking` / `league_slug`. Anything citing `domain/match.py` or `domain.match` predates 2026-10-06; for `season_start_year` read `domain/schedule.py`.
 - **New:** `domain/clock.py` (Berlin time), `domain/schedule.py`, `domain/standings.py`, `features/stage_io.py`, `features/schedule_row.py`, `features/schedule_multi.py`.
+
+## 2026-10-07
+
+- **Removed:** `domain/stats.py:ht_ft_combo` (the betting-slip HT/FT label; its last user went with `domain/match.py`, and the HT/FT market returns in Phase C) and `scrapers/detail_parsers.py:_outcome` (replaced by the shared `domain/stats.py:team_result`).
+- **Added:** the stage-3 HT/FT record `s3_<side>_pre_htft_<venue>_<ht>_<ft>` (`domain/standings.py:HalfTimeFullTime`) and the QA check `qa/final_table.py`.
+

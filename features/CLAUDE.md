@@ -8,6 +8,7 @@ Everything here derives into `data/processed/` or the later stage directories of
 
 - **Stage 2 sees one row.** `schedule_row.derive` takes a single row, so nothing there can carry another match's result.
 - **Stage 3 states each field's row window.** The round position reads other rows' kickoff times only. The pre-kickoff table (`s3_<side>_pre_<half>_<venue>_<stat>`, 96 columns) counts a match only if it kicked off at least `schedule_multi.FINISHED_AFTER` (2 h 30 min) before this one: the user's rule, 2026-10-06, chosen over a per-round snapshot because it never leaves out a finished result and is right for the last rounds. It compares instants (`clock.parse_instant`), never wall-clock times (`domain/CLAUDE.md` §1a).
+- **The half-time / full-time record** (`s3_<side>_pre_htft_<venue>_<ht>_<ft>`, 54 columns; the user, 2026-10-07) counts each team's HT/FT pairs from its own side, under the same window. Its 9 counts add up to the standings' `played`, and its row and column sums to their HT and FT won / drawn / lost: `tests/features/test_schedule_multi.py` holds both.
 - **Checked 2026-10-06 on the old EPL 2025-26 file, converted in memory:** 380 rows passed the stage-1 model, and the table rebuilt from all results equalled the page's final table for all 20 teams, ranks included.
 
 ## 1. The enrich join (third stage)

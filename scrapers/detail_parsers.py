@@ -121,17 +121,6 @@ def subject_team_id(records: list[dict[str, Any]]) -> int | None:
     return counter.most_common(1)[0][0]
 
 
-def _outcome(goals_for: int, goals_against: int) -> str:
-    """W / D / L from one team's perspective.
-
-    Shared by the aggregate tally and the per-match blocks, which previously carried
-    two independent copies of this branch.
-    """
-    if goals_for > goals_against:
-        return "W"
-    return "D" if goals_for == goals_against else "L"
-
-
 def aggregate_form(
     records: list[dict[str, Any]], subject_id: int | None, window: int | None = None
 ) -> dict[str, Any]:
@@ -151,7 +140,7 @@ def aggregate_form(
         gf += sgf
         ga += sga
         pts += stats.points(sgf, sga)
-        outcome = _outcome(sgf, sga)
+        outcome = stats.team_result(sgf, sga)
         tally[outcome] += 1
         form_chars.append(outcome)
         if stats.is_over(r["ft_home"] + r["ft_away"]):
@@ -274,7 +263,7 @@ def _flatten_one(
     sga = record["ft_away"] if subject_home else record["ft_home"]
     total = record["ft_home"] + record["ft_away"]
     corner_ft = record["corner_ft"]
-    result = _outcome(sgf, sga)
+    result = stats.team_result(sgf, sga)
 
     values = {
         "match_id": record["match_id"],

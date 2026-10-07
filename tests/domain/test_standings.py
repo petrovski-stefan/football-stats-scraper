@@ -1,6 +1,6 @@
 """`domain/standings.py`: lines, the three venue tables, and the rank order."""
 
-from domain.standings import VENUES, Line, Standings
+from domain.standings import VENUES, HalfTimeFullTime, Line, Standings
 
 
 def test_line_counts_a_win_a_draw_and_a_loss() -> None:
@@ -57,3 +57,30 @@ def test_a_team_that_has_not_played_is_still_ranked() -> None:
     ranks = table.ranks("total")
     # 2 has 3 pts; 3 has 0 pts and GD 0; 1 has 0 pts and GD -1.
     assert (ranks[2], ranks[3], ranks[1]) == (1, 2, 3)
+
+
+# --- The half-time / full-time record (team view) --------------------------------------
+
+
+def test_one_comeback_is_l_w_for_one_team_and_w_l_for_the_other() -> None:
+    record = HalfTimeFullTime([1, 2])
+    record.add(home=1, away=2, ht=(0, 2), ft=(3, 2))  # the home team came back
+    assert record.count("home", 1, "L", "W") == 1
+    assert record.count("total", 1, "L", "W") == 1
+    assert record.count("away", 2, "W", "L") == 1
+    assert record.count("total", 2, "W", "L") == 1
+    # Nothing lands in the other venue.
+    assert record.count("away", 1, "L", "W") == 0
+    assert record.count("home", 2, "W", "L") == 0
+
+
+def test_total_is_home_plus_away() -> None:
+    record = HalfTimeFullTime([1, 2])
+    record.add(1, 2, (1, 0), (1, 0))  # team 1 at home: W/W
+    record.add(2, 1, (0, 1), (2, 1))  # team 1 away: W at half-time, L at full time
+    pairs = [(ht, ft) for ht in "WDL" for ft in "WDL"]
+    for ht, ft in pairs:
+        total = record.count("total", 1, ht, ft)
+        assert total == record.count("home", 1, ht, ft) + record.count("away", 1, ht, ft)
+    assert record.count("total", 1, "W", "W") == 1
+    assert record.count("total", 1, "W", "L") == 1

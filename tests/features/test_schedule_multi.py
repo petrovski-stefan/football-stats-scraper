@@ -1,11 +1,13 @@
 """`features/schedule_multi.py`: round positions and the table as it stood at each kickoff."""
 
 from datetime import datetime, timedelta
+from typing import Any
 
 import pandas as pd
 import pytest
 
 from domain.clock import BERLIN, to_berlin
+from domain.columns import HTFT_RESULTS, STANDING_SIDES, STANDING_VENUES
 from features.schedule_multi import FINISHED_AFTER, pre_kickoff_tables, round_positions
 
 _START = datetime(2026, 1, 3, 15, 0, tzinfo=BERLIN)
@@ -126,3 +128,56 @@ def test_rank_gap() -> None:
     assert tables.loc["c", "s3_home_pre_ft_total_rank"] == 1
     assert tables.loc["c", "s3_away_pre_ft_total_rank"] == 4
     assert tables.loc["c", "s3_pre_rank_gap"] == 3
+
+
+# --- The half-time / full-time record -------------------------------------------------
+
+
+def _with_ht(match: dict[str, object], ht: tuple[int, int]) -> dict[str, object]:
+    return {**match, "s1_ht_home_goals": ht[0], "s1_ht_away_goals": ht[1]}
+
+
+def _season() -> pd.DataFrame:
+    week = timedelta(days=7)
+    return _frame(
+        _with_ht(_match("a", _START, (1, 2), (3, 2)), (0, 2)),  # 1 comes back, 2 blows a lead
+        _with_ht(_match("b", _START, (3, 4), (1, 1)), (1, 0)),
+        _with_ht(_match("c", _START + week, (2, 3), (0, 2)), (0, 0)),
+        _with_ht(_match("d", _START + week, (4, 1), (2, 2)), (2, 1)),
+        _with_ht(_match("e", _START + 2 * week, (1, 3), (1, 0)), (1, 0)),
+    )
+
+
+def test_htft_record_is_from_each_teams_own_side() -> None:
+    tables = pre_kickoff_tables(_season())
+    # Before match e, team 1 (home in e) has one comeback, team 3 (away in e) has none.
+    assert tables.at["e", "s3_home_pre_htft_total_l_w"] == 1
+    assert tables.at["e", "s3_home_pre_htft_home_l_w"] == 1
+    assert tables.at["c", "s3_home_pre_htft_away_w_l"] == 1  # team 2 blew its lead away in a
+
+
+def test_a_match_never_counts_in_its_own_record() -> None:
+    tables = pre_kickoff_tables(_season())
+    assert tables.at["a", "s3_home_pre_htft_total_l_w"] == 0
+
+
+def _cells(
+    tables: pd.DataFrame, side: str, venue: str, hts: tuple[str, ...], fts: tuple[str, ...]
+) -> "pd.Series[Any]":
+    """The sum of some HT/FT cells, row by row."""
+    names = [f"s3_{side}_pre_htft_{venue}_{ht}_{ft}" for ht in hts for ft in fts]
+    return tables[names].sum(axis=1)
+
+
+def test_htft_counts_agree_with_the_standings() -> None:
+    tables = pre_kickoff_tables(_season())
+    every = HTFT_RESULTS
+    for side in STANDING_SIDES:
+        for venue in STANDING_VENUES:
+            played = tables[f"s3_{side}_pre_ft_{venue}_played"]
+            assert (_cells(tables, side, venue, every, every) == played).all()
+            for result, stat in zip(HTFT_RESULTS, ("won", "drawn", "lost"), strict=True):
+                by_ht = _cells(tables, side, venue, (result,), every)
+                by_ft = _cells(tables, side, venue, every, (result,))
+                assert (by_ht == tables[f"s3_{side}_pre_ht_{venue}_{stat}"]).all()
+                assert (by_ft == tables[f"s3_{side}_pre_ft_{venue}_{stat}"]).all()

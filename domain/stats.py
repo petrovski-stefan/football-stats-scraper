@@ -12,9 +12,11 @@ def one_x_two(home_goals: int, away_goals: int) -> str:
     return "X"
 
 
-def ht_ft_combo(ht_result: str, ft_result: str) -> str:
-    """Half-time/full-time combination, e.g. '1-1', 'X-2' (one of 9)."""
-    return f"{ht_result}-{ft_result}"
+def team_result(goals_for: int, goals_against: int) -> str:
+    """'W', 'D' or 'L' from one team's side: the team view of a result."""
+    if goals_for > goals_against:
+        return "W"
+    return "D" if goals_for == goals_against else "L"
 
 
 def is_over(total_goals: int, line: float = 2.5) -> bool:

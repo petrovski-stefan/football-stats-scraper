@@ -4,7 +4,7 @@
 `notes/PLAN_2026-10-05_staged_pipeline.md`). The stages, their rules and the decisions behind them
 are in that plan, §1–3; they are not repeated here.
 
-**Progress: stage-1 fields checked on the page 36 / 98** (schedule 36 / 36, done; detail 0 / 38; live 0 / 24) **· page candidates decided 4 / 22** (C1–C4)
+**Progress: stage-1 fields checked on the page 36 / 98** (schedule 36 / 36, done; detail 0 / 38; live 0 / 24) **· page candidates decided 5 / 22** (C1–C4, C8)
 
 ## The docs
 

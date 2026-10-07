@@ -66,3 +66,12 @@ def test_pre_kickoff_columns_cover_every_combination() -> None:
     )
     assert len(names) == len(set(names)) == expected
     assert names[0] == "s3_home_pre_ft_total_rank"
+
+
+def test_htft_columns_cover_every_combination() -> None:
+    names = columns.pre_htft_columns()
+    expected = (
+        len(columns.STANDING_SIDES) * len(columns.STANDING_VENUES) * len(columns.HTFT_RESULTS) ** 2
+    )
+    assert len(names) == len(set(names)) == expected
+    assert set(names) <= set(columns.SCHEDULE_MULTI_COLUMNS)

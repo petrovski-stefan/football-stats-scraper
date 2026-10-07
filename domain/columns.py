@@ -358,10 +358,28 @@ def pre_kickoff_columns() -> list[str]:
     ]
 
 
+# notes/fields/schedule_3_multi.md §B2: each team's half-time / full-time record before the
+# match, from the team's own side ("team view", the user's choice 2026-10-07): `l_w` = it
+# trailed at half-time and won, `w_l` = it led and lost.
+HTFT_RESULTS = ("w", "d", "l")
+
+
+def pre_htft_columns() -> list[str]:
+    """`s3_<side>_pre_htft_<venue>_<ht>_<ft>`, in side/venue/ht/ft order: 54 names."""
+    return [
+        f"s3_{side}_pre_htft_{venue}_{ht}_{ft}"
+        for side in STANDING_SIDES
+        for venue in STANDING_VENUES
+        for ht in HTFT_RESULTS
+        for ft in HTFT_RESULTS
+    ]
+
+
 # notes/fields/schedule_3_multi.md: fields that need the league-season's other rows.
 SCHEDULE_MULTI_COLUMNS = [
     "s3_match_index_in_round",
     "s3_matches_in_round",
     *pre_kickoff_columns(),
     "s3_pre_rank_gap",
+    *pre_htft_columns(),
 ]

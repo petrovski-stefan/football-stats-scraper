@@ -8,10 +8,17 @@ the results it is given; which results those are (the 2 h 30 min rule) is the ca
 One `Standings` holds three tables at once: every match (`total`), each team's home
 matches only (`home`) and its away matches only (`away`). Feed it full-time goals for the
 FT table and half-time goals for the HT one.
+
+`HalfTimeFullTime` holds each team's half-time / full-time record, split the same three
+ways: how its matches ended given how it stood at the break, from its own side (the
+"team view", the user's choice on 2026-10-07).
 """
 
+from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
+
+from domain.stats import team_result
 
 VENUES = ("total", "home", "away")
 
@@ -76,3 +83,31 @@ class Standings:
             return {}
         keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
         return {team: 1 + sum(other > key for other in keys.values()) for team, key in keys.items()}
+
+
+class HalfTimeFullTime:
+    """Each team's (half-time result, full-time result) pairs from its own side, by venue.
+
+    A pair is two letters, "W", "D" or "L": ("L", "W") is a match the team trailed at
+    half-time and won, ("W", "L") one it led and lost. The same match counts as ("L", "W")
+    for one team and ("W", "L") for the other, and Total is always Home + Away.
+    """
+
+    def __init__(self, teams: Iterable[int]) -> None:
+        ids = sorted(set(teams))
+        self._pairs: dict[str, dict[int, Counter[tuple[str, str]]]] = {
+            venue: {team: Counter() for team in ids} for venue in VENUES
+        }
+
+    def add(self, home: int, away: int, ht: tuple[int, int], ft: tuple[int, int]) -> None:
+        """Count one match: `ht` and `ft` are (home goals, away goals)."""
+        home_pair = (team_result(*ht), team_result(*ft))
+        away_pair = (team_result(ht[1], ht[0]), team_result(ft[1], ft[0]))
+        self._pairs["total"][home][home_pair] += 1
+        self._pairs["home"][home][home_pair] += 1
+        self._pairs["total"][away][away_pair] += 1
+        self._pairs["away"][away][away_pair] += 1
+
+    def count(self, venue: str, team: int, ht: str, ft: str) -> int:
+        """How many of the team's matches went `ht` at half-time and `ft` at full time."""
+        return self._pairs[venue][team][(ht, ft)]

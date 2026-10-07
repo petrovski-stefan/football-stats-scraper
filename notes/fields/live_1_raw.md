@@ -68,7 +68,7 @@ it is an input only for later matches, through their history (`live_3_multi.md`)
 | C17 | Bet365 corner over/under odds (Initial 11, Live 11.5) | "Bet365 Corner Odds" | before | skip ? (corners market) |
 | C18 | team averages over the last 3 and last 10 matches: goals, conceded, opponent shots, corners, yellow cards, fouls, possession | "Team Statistics" | ? (which date are they counted to?) | ? |
 | C19 | rate of goals scored and conceded by 15-minute bucket, last 30 and last 50 matches | "The Rate of Scored / Conceded" | ? | ? |
-| C20 | **HT/FT counts over the last 2 seasons, home and away**. Chelsea 61 = 38 (2024-25) + 23 (2025-26 before this match), so league only and before kickoff. HT-L/FT-W = comeback wins (home 1, away 2) | "HT/FT Statistics (Last 2 Seasons)" | before (verify) | add ? comeback-related |
+| C20 | **HT/FT counts over the last 2 seasons, home and away**. Chelsea 61 = 38 (2024-25) + 23 (2025-26 before this match), so league only and before kickoff. HT-L/FT-W = comeback wins (home 1, away 2) | "HT/FT Statistics (Last 2 Seasons)" | before (verify) | ? This season's version is S3.08, rebuilt from our results; the 2-season window would need the previous season's file |
 | C22 | **first-half odds**: for Bet365, Sbobet and Crown, the first-half AH, 1X2 and O/U, Initial and Live. Example, 2981454 Bet365 first-half 1X2 Initial 1.95 / 2.60 / 5.50 | "Live Odds Analysis", `table#oddsTable<bookmaker id>`, FT/HT selector | Initial and Live before; in-play rows after | add ? **the market's price for the half-time state**, link 1 of the comeback chain |
 
 **No HT/FT odds on this page.**

@@ -55,6 +55,33 @@ last: it never leaves out a finished result, needs no extra setting, and is righ
 rounds, where results earlier in the same round change what teams play for. The rebuilt table
 equalled the page's round-24 table for Chelsea, Arsenal and Man City.
 
+## B2. Half-time / full-time record (team view)
+
+**Decided by the user, 2026-10-07:** each team's half-time / full-time record before the
+match, counted the same way as the pre-kickoff table (same stage, the 2 h 30 min rule), split
+Total / Home / Away, stored as counts, from the team's own side ("team view"). It answers: up to
+this kickoff, how does this team finish its matches given how it stood at half-time? `l_w` = it
+trailed at half-time and won (a comeback), `w_l` = it led and lost (a blown lead).
+
+| # | field | formula | row window | type | example | timing | role | status |
+|---|---|---|---|---|---|---|---|---|
+| S3.08 | `s3_{side}_pre_htft_{venue}_{ht}_{ft}` — side `home` / `away`, venue `total` / `home` / `away`, ht and ft each `w` / `d` / `l`. 2 × 3 × 9 = 54 columns | how many of the side's matches went `ht` at half-time and `ft` at full time, each read from the side's own goals (`domain/standings.py:HalfTimeFullTime`) | as S3.03: matches of the same season and stage that kicked off at least 2 h 30 min before this kickoff | int | before 2789361, Chelsea, Total: W/W 8, W/D 0, W/L 2, D/W 2, D/D 4, D/L 2, L/W 0, L/D 3, L/L 2 | before | input | add |
+
+- **Why the team view:** Total adds a team's home and away matches. On the betting slip a
+  Chelsea comeback is 2/1 at home but 1/2 away, so a slip-view Total would add opposite events
+  into one count. In the team view every cell is one event for one team, and Total = Home + Away.
+- **Built-in checks** (tests, and 0 failures in 2,280 EPL cells): the 9 counts add up to
+  `s3_{side}_pre_ft_{venue}_played`; the half-time sums of a row equal the HT standings' won /
+  drawn / lost, and the full-time sums equal the FT standings'.
+- **Checked against another stats site by the user, 2026-10-07:** Chelsea's whole 2025-26
+  season (the last match's record plus that match) gives W/W 11 / 5 / 6, W/L 2 / 2 / 0 and L/W
+  1 / 1 / 0 for Total / Home / Away, as on that site. Its one comeback is the reference match
+  itself, which is why the row above shows L/W 0: a match never counts in its own record.
+- **Reading it:** the counts are small (Chelsea trailed 5 times in its first 23 matches), so
+  one result moves a cell a lot. Related rates (half-time trailing rate, blown-lead rate) died
+  as predictors in `notes/RESULTS.md` §1 (Families A and B): testing a claim built on these
+  counts needs the candidate protocol first.
+
 ## C. The survey's planned flags (`notes/PREREGISTRATION_SURVEY.md` §7.4)
 
 | # | field | formula | row window | type | example | timing | role | status |

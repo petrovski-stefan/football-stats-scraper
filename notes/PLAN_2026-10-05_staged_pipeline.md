@@ -115,6 +115,9 @@ Paths are built only in `domain/paths.py`, so the names can change cheaply.
   odds naming, no rounding and the doc-code prefix (`s1_`, `d3_`, …; row keys bare) are decided.
   One name per fact is deferred: duplicates stay until the user reviews them. Positions must
   mean the placement before the match: the user reviews that by hand (`schedule_3_multi.md` §B).
+- **HT/FT record, 2026-10-07 (the user):** stage 3 gets each team's half-time / full-time
+  counts before kickoff, team view, Total / Home / Away, 54 columns
+  (`notes/fields/schedule_3_multi.md` §B2). Claude's four HT-state fields were declined.
 - **Q4, goals and events: unchanged for now.** They already fit stage 1, apart from three
   columns kept as documented exceptions (`goal_index`, goal `side`, the copied `league_id`).
   Their three docs come after schedule and detail, ~0.5 day.

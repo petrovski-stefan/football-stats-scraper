@@ -37,8 +37,11 @@ def test_one_x_two(home: int, away: int, result: str) -> None:
     assert stats.one_x_two(home, away) == result
 
 
-def test_ht_ft_combo() -> None:
-    assert stats.ht_ft_combo("X", "2") == "X-2"
+@pytest.mark.parametrize(
+    ("goals_for", "goals_against", "result"), [(2, 1, "W"), (1, 1, "D"), (0, 3, "L")]
+)
+def test_team_result(goals_for: int, goals_against: int, result: str) -> None:
+    assert stats.team_result(goals_for, goals_against) == result
 
 
 @pytest.mark.parametrize(
