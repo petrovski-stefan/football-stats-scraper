@@ -29,7 +29,12 @@ if it kicked off at least 2 h 30 min before this one, so it has surely finished.
 - Same table columns as the page: R, P, W, D, L, GD, PTS, plus goals for (GF), which the rank's
   tie-break needs.
 - Rank: points, then goal difference, then goals for, in every league. A league that breaks ties
-  by head-to-head gets a slightly different rank, only for teams level on points.
+  by head-to-head gets a slightly different rank, only for teams level on points. Measured on the
+  54 DEV seasons (2026-10-07): the page uses head-to-head in Spain, Portugal, Italy and Poland and
+  most wins in Belgium; the user accepted the difference, since every count stays exact.
+- Points: earned on the pitch. Points deductions are not applied (option A, the user, 2026-10-07;
+  the 16 known ones are in `notes/POINTS_DEDUCTIONS.md`). Option C, later, applies each one from
+  its date.
 - One table per stage, as the page shows them. A league whose points carry from one stage into the
   next (Scotland's split, Belgium's halved points) needs the earlier stage added: settled per
   league when one is configured. EPL and the Africa leagues have one stage.

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, model_validator
 
+from domain.schedule import season_start_year
+
 LEAGUES_FILE = "config/leagues.json"
 
 # https://football.nowgoal26.com/league/2025-2026/36 -> season "2025-2026", id 36
@@ -55,12 +57,28 @@ class LeagueConfig(BaseModel):
 
 @dataclass(frozen=True)
 class LeagueSeason:
-    """One scrape job: a single enabled league-season and the stages to click on it."""
+    """One scrape job: a single league-season and the stages to click on it."""
 
     url: str
     season: str
     league_id: int
     keep: tuple[str, ...]
+    code: str  # the config's short code, e.g. "ENG LCH"
+    name: str  # the config's name, for logs
+
+
+@dataclass(frozen=True)
+class Selection:
+    """Which league-seasons a run takes.
+
+    By default, the seasons marked `enabled: true`. Naming leagues (`leagues`, by config
+    code) or taking them all (`all_leagues`) ignores the flags. `before_year` then keeps only
+    seasons that started before that year, in either label convention.
+    """
+
+    leagues: tuple[str, ...] = ()
+    all_leagues: bool = False
+    before_year: int | None = None
 
 
 def load_leagues(path: str = LEAGUES_FILE) -> list[LeagueConfig]:
@@ -73,18 +91,38 @@ def load_leagues(path: str = LEAGUES_FILE) -> list[LeagueConfig]:
         return [LeagueConfig.model_validate(entry) for entry in json.load(f)]
 
 
-def get_league_seasons() -> list[LeagueSeason]:
-    """Every season marked `enabled: true` in the config, in file order.
+def get_league_seasons(
+    selection: Selection | None = None, path: str = LEAGUES_FILE
+) -> list[LeagueSeason]:
+    """The chosen league-seasons, in file order. An unknown league code is an error.
 
     The file is the record of which league-seasons the corpus is meant to contain;
     `enabled` parks a season without deleting it.
     """
+    chosen = selection or Selection()
+    leagues = load_leagues(path)
+    unknown = sorted(set(chosen.leagues) - {league.code for league in leagues})
+    if unknown:
+        raise ValueError(f"league codes not in {path}: {unknown}")
     return [
-        LeagueSeason(s.url, s.season, league.league_id, tuple(league.keep))
-        for league in load_leagues()
+        LeagueSeason(
+            s.url, s.season, league.league_id, tuple(league.keep), league.code, league.name
+        )
+        for league in leagues
         for s in league.seasons
-        if s.enabled
+        if _chosen(chosen, league, s)
     ]
+
+
+def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) -> bool:
+    if selection.all_leagues or selection.leagues:
+        picked = selection.all_leagues or league.code in selection.leagues
+    else:
+        picked = season.enabled
+    if not picked or selection.before_year is None:
+        return picked
+    start = season_start_year(season.season)
+    return start is not None and start < selection.before_year
 
 
 def parse_league_url(url: str) -> tuple[str, int]:

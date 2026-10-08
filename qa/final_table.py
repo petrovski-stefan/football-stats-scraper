@@ -6,21 +6,26 @@ against the site. This is that check: per stage, every team's P, W, D, L, GD and
 page's final table must equal the table rebuilt from every stored result of the stage.
 
 A difference is a finding about the data, never a reason to loosen the check: a points
-deduction (our rebuild cannot know it), a match the scrape missed, or a wrong score. In a
+deduction (our rebuild cannot know it), a match the scrape missed, or a wrong score. A
+deduction confirmed in public reports is declared in `domain/deductions.py` and added to the
+rebuilt points before comparing; an undeclared one still fails. In a
 league whose points carry from one stage into the next (Scotland's split, Belgium's halved
 points), the later stage differs until that league's carry-over rule exists
 (`notes/fields/schedule_3_multi.md` §B), which is the point.
 
-Rank: our table gives teams level on points, goal difference and goals for one shared rank,
-while the page orders them by its own tie-breaks (head-to-head in some leagues). So the
-page's rank only has to fall inside the block of positions the tied teams share.
+Rank: the page breaks a tie on points by its league's own rule (head-to-head in Spain,
+Portugal, Italy and Poland, most wins in Belgium), ours by goal difference and goals for in
+every league. So the page's rank only has to fall inside the block of positions the teams
+level on points share; P, W, D, L, GD and PTS are still held exactly (the user's decision,
+2026-10-07).
 """
 
 from typing import Any
 
 import pandas as pd
 
-from domain.standings import Line, Standings
+from domain import deductions
+from domain.standings import Standings
 from qa.report import Report
 
 # What the check reads, and the text columns among them (an empty stage stays "").
@@ -34,16 +39,6 @@ SCHEDULE_COLUMNS = [
 _COUNTS = ("played", "won", "drawn", "lost", "goal_diff", "points")
 
 
-def read(path: str, columns: list[str] | None = None) -> pd.DataFrame:
-    """A stage-1 file with its stage column kept as text."""
-    return pd.read_csv(
-        path,
-        usecols=columns,
-        dtype={"s1_stage": str, "stage": str, "season": str},
-        keep_default_na=False,
-    )
-
-
 def _rebuild(matches: pd.DataFrame) -> Standings:
     columns = [matches[c].astype(int).tolist() for c in SCHEDULE_COLUMNS[1:]]
     table = Standings(set(columns[0]) | set(columns[1]))
@@ -52,22 +47,20 @@ def _rebuild(matches: pd.DataFrame) -> Standings:
     return table
 
 
-def _key(line: Line) -> tuple[int, int, int]:
-    return line.points, line.goal_diff, line.goals_for
-
-
-def _check_team(r: Report, label: str, table: Standings, ranks: dict[int, int], page: Any) -> None:
+def _check_team(r: Report, label: str, table: Standings, points: dict[int, int], page: Any) -> None:
+    """`points`: every team's rebuilt points, declared deductions included."""
     team = int(page.team_id)
     ours = table.line("total", team)
+    rebuilt = {name: getattr(ours, name) for name in _COUNTS} | {"points": points[team]}
     differ = {
-        name: (int(getattr(page, f"s1_{name}")), getattr(ours, name))
+        name: (int(getattr(page, f"s1_{name}")), rebuilt[name])
         for name in _COUNTS
-        if int(getattr(page, f"s1_{name}")) != getattr(ours, name)
+        if int(getattr(page, f"s1_{name}")) != rebuilt[name]
     }
     r.check(not differ, f"{label}{page.s1_team_name}: (page, rebuilt) {differ}")
-    # Teams level on every key share a rank here; the page may order them either way.
-    tied = sum(_key(table.line("total", other)) == _key(ours) for other in ranks)
-    first, last = ranks[team], ranks[team] + tied - 1
+    # Teams level on points share a block of positions; the page may order them either way.
+    first = 1 + sum(other > points[team] for other in points.values())
+    last = first + list(points.values()).count(points[team]) - 1
     r.check(
         first <= int(page.s1_rank) <= last,
         f"{label}{page.s1_team_name}: page rank {page.s1_rank}, rebuilt {first}..{last}",
@@ -79,6 +72,8 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
     if final_table.empty:
         r.check(False, "no final table: the rebuilt standings are unchecked")
         return
+    first_row = final_table.iloc[0]
+    deducted = deductions.deducted(int(first_row["league_id"]), str(first_row["season"]))
     for stage, page in final_table.groupby("stage", sort=False):
         label = f"stage {stage!r}: " if stage else ""
         matches = schedule[schedule["s1_stage"] == stage]
@@ -91,5 +86,6 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
         extra, missing = sorted(on_page - set(ranks)), sorted(set(ranks) - on_page)
         r.check(not extra, f"{label}teams on the page with no stored match: {extra}")
         r.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
+        points = {team: table.line("total", team).points + deducted.get(team, 0) for team in ranks}
         for row in page[page["team_id"].astype(int).isin(ranks)].itertuples(index=False):
-            _check_team(r, label, table, ranks, row)
+            _check_team(r, label, table, points, row)

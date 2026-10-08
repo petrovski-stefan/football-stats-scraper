@@ -4,12 +4,13 @@ from typing import Any
 
 import pytest
 
-from domain import stats
+from domain import scope, stats
 from features.schedule_row import MIDWEEK, MONDAY, derive
 
 
 def _row(ht: tuple[int, int], ft: tuple[int, int], **overrides: Any) -> dict[str, Any]:
     row: dict[str, Any] = {
+        "match_id": "1",
         "s1_date": "2026-01-31 18:30+01:00",  # a Saturday in Berlin
         "s1_ht_home_goals": ht[0],
         "s1_ht_away_goals": ht[1],
@@ -81,3 +82,9 @@ def test_a_missing_price_leaves_its_market_empty() -> None:
     assert out["s2_mkt_sup"] is None
     # The other markets do not depend on the 1X2 prices.
     assert out["s2_has_ou_odds"] is True
+
+
+def test_only_a_listed_match_is_flagged_abandoned() -> None:
+    listed = next(iter(scope.ABANDONED_MATCHES))
+    assert derive(_row((2, 1), (2, 1), match_id=listed))["s2_is_abandoned"] is True
+    assert derive(_row((2, 1), (2, 1)))["s2_is_abandoned"] is False

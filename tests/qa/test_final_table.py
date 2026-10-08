@@ -1,9 +1,14 @@
 """`qa/final_table.py`: the page's final table against the table rebuilt from results."""
 
 import pandas as pd
+import pytest
 
+from domain import deductions
 from qa.final_table import check
 from qa.report import Report
+
+# No league in `domain/deductions.py` has id 0.
+_LEAGUE, _SEASON = 0, "2025-2026"
 
 
 def _schedule(*matches: tuple[str, int, int, int, int]) -> pd.DataFrame:
@@ -22,6 +27,8 @@ def _schedule(*matches: tuple[str, int, int, int, int]) -> pd.DataFrame:
 def _line(team: int, rank: int, counts: tuple[int, ...], stage: str = "") -> dict[str, object]:
     played, won, drawn, lost, goal_diff, points = counts
     return {
+        "season": _SEASON,
+        "league_id": _LEAGUE,
         "stage": stage,
         "team_id": team,
         "s1_team_name": f"Team {team}",
@@ -60,6 +67,18 @@ def test_tied_teams_may_appear_in_either_order() -> None:
     assert _run(_SCHEDULE, swapped).ok
 
 
+def test_teams_level_on_points_may_appear_in_either_order() -> None:
+    """The page may break a tie on points by its league's rule, not by goal difference."""
+    schedule = _schedule(("", 1, 2, 3, 0), ("", 3, 4, 1, 0))
+    page = [
+        _line(3, 1, (1, 1, 0, 0, 1, 3)),
+        _line(1, 2, (1, 1, 0, 0, 3, 3)),
+        _line(4, 3, (1, 0, 0, 1, -1, 0)),
+        _line(2, 4, (1, 0, 0, 1, -3, 0)),
+    ]
+    assert _run(schedule, page).ok
+
+
 def test_a_points_deduction_fails() -> None:
     deducted = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
     report = _run(_SCHEDULE, deducted)
@@ -67,7 +86,25 @@ def test_a_points_deduction_fails() -> None:
     assert "Team 1" in report.issues[0]
 
 
-def test_a_rank_outside_the_tied_block_fails() -> None:
+def test_a_declared_deduction_passes(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, 1): -3})
+    # Team 1 drops from 3 points to 0, below teams 3 and 4.
+    page = [
+        _line(3, 1, (1, 0, 1, 0, 0, 1)),
+        _line(4, 2, (1, 0, 1, 0, 0, 1)),
+        _line(1, 3, (1, 1, 0, 0, 2, 0)),
+        _line(2, 4, (1, 0, 0, 1, -2, 0)),
+    ]
+    assert _run(_SCHEDULE, page).ok
+
+
+def test_a_deduction_declared_with_the_wrong_amount_fails(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, 1): -1})
+    deducted = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
+    assert not _run(_SCHEDULE, deducted).ok
+
+
+def test_a_rank_outside_the_block_level_on_points_fails() -> None:
     wrong = [{**_PAGE[0], "s1_rank": 2}, *_PAGE[1:]]
     assert not _run(_SCHEDULE, wrong).ok
 

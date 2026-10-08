@@ -14,6 +14,8 @@ so they sit beside the Pydantic models that define the same rows.
 # which single-table leagues do not have, and `Match.stage` types it as `str` with a
 # documented "" default. A CSV cannot distinguish "" from missing, hence the declaration.
 OPTIONAL_BASE_COLUMNS = frozenset({"stage"})
+# The same allowance for the staged schedule file.
+OPTIONAL_SCHEDULE_COLUMNS = frozenset({"s1_stage"})
 
 ORDERED_DF_COLUMNS = [
     # Match metadata
@@ -323,6 +325,7 @@ SCHEDULE_ROW_COLUMNS = [
     "s2_mkt_tot",
     "s2_implied_over",
     "s2_implied_ah_home",
+    "s2_is_abandoned",
     # Comebacks: the only market for now.
     "s2_is_comeback",
     "s2_is_comeback_home",

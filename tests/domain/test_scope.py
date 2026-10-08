@@ -53,3 +53,10 @@ def test_match_year(date: str | None, year: int | None) -> None:
 )
 def test_in_scope(league: str, date: str, usable: bool) -> None:
     assert scope.in_scope(league, date) is usable
+
+
+def test_is_abandoned_reads_the_list() -> None:
+    listed = next(iter(scope.ABANDONED_MATCHES))
+    assert scope.is_abandoned(listed)
+    assert scope.is_abandoned(int(listed))  # an id read as a number still matches
+    assert not scope.is_abandoned("0")

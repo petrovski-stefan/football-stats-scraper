@@ -8,19 +8,35 @@ stage-1 files (`notes/fields/schedule_1_raw.md`):
 
 Structured like `scrapers/detail.py`, the second stage: a unit function
 (`scrape_league`) that renders one league, an orchestration function (`scrape_all`) that
-walks the enabled seasons in `config/leagues.json`, and a CLI entry point.
+walks the chosen league-seasons of `config/leagues.json`, and a CLI entry point.
+
+A run is safe to leave alone for hours: one league failing is logged and the run goes on, a
+league-season already on disk is skipped (so a re-run picks up only what is missing), the
+first page load gets a longer wait, and each worker pauses between leagues. `WORKERS`
+league-seasons are scraped at once, each in its own Chrome and its own files; every log line
+names the league-season it comes from. Ctrl+C drops the jobs not yet started and lets the
+running ones finish.
 
 One code path covers every page layout. A page without stage tabs is scraped as it
 opens; otherwise each stage named in the league's `keep` list is clicked and scraped in
 turn, its name going into the `s1_stage` column.
 
-Run: `uv run python -m scrapers.schedule`
+Run: `uv run python -m scrapers.schedule` (the `enabled` seasons)
+     `uv run python -m scrapers.schedule --leagues "ENG LCH,SCO PR" --before-year 2026 --list`
 """
 
+import argparse
+import io
 import logging
+import sys
+import threading
+import time
+from collections.abc import Iterable
+from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass
 from typing import Any
 
+import pandas as pd
 from bs4 import BeautifulSoup
 from pydantic import BaseModel, ValidationError
 from selenium import webdriver
@@ -48,7 +64,7 @@ from scrapers.driver import (
     wait_for_odds,
     wait_for_schedule_rows,
 )
-from scrapers.links import LeagueSeason, get_league_seasons
+from scrapers.links import LeagueSeason, Selection, get_league_seasons
 from scrapers.parsers import (
     attr,
     parse_ah_odds,
@@ -59,10 +75,21 @@ from scrapers.parsers import (
 
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
+    # A worker thread is named after its league-season (`_start`), so the lines of jobs
+    # running at once can be told apart.
+    format="%(asctime)s %(levelname)s [%(threadName)s] %(message)s",
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
+
+# League-seasons scraped at once, as in `scrapers/detail.py`.
+WORKERS = 3
+
+# The first page load of a league can be slow: one took more than the default 20 s on
+# 2026-10-06 and loaded within 45 s on the retry. Later clicks keep the default.
+FIRST_LOAD_TIMEOUT = 45
+# Between two leagues of one worker. The site sets no crawl delay, so the pace is ours.
+PAUSE_BETWEEN_JOBS = 15
 
 
 @dataclass(frozen=True)
@@ -101,7 +128,7 @@ def scrape_league(job: LeagueSeason) -> _Scrape:
     driver = get_driver()
     try:
         open_page(driver, job.url)
-        wait_for_schedule_rows(driver)
+        wait_for_schedule_rows(driver, timeout=FIRST_LOAD_TIMEOUT)
         switch_odds_type(driver, "1x2")  # the choice persists across round and stage clicks
 
         league_name = _read_league_name(driver, job.season)
@@ -306,27 +333,151 @@ def _validate(
     return valid
 
 
-def scrape_all() -> None:
-    """Scrape every enabled league season in `config/leagues.json` into its stage-1 files."""
-    for job in get_league_seasons():
-        logger.info("Scraping %s", job.url)
-        scrape = scrape_league(job)
-        league = league_slug(scrape.league_name)
+@dataclass(frozen=True)
+class Outcome:
+    """What one job left behind: rows written and dropped, or the error that stopped it."""
 
-        matches = _validate(scrape.matches, ScheduleRow, "match")
-        logger.info("%s: %d valid matches", scrape.league_name, len(matches))
-        if matches:
-            path = paths.schedule_path(1, league, job.season)
-            save_unless_shrinking(matches, path, SCHEDULE_RAW_COLUMNS)
+    job: LeagueSeason
+    matches: int = 0
+    dropped: int = 0
+    error: str = ""
 
-        table = _validate(scrape.final_table, FinalTableRow, "final-table team")
-        if table:
-            path = paths.final_table_path(league, job.season)
-            save_unless_shrinking(table, path, FINAL_TABLE_COLUMNS)
+
+def scraped_league_seasons() -> set[tuple[int, str]]:
+    """(league id, season) of every league-season already in a stage-1 schedule file.
+
+    Read from inside the files rather than from their names: a file is named after the
+    page's title, which need not match the config's name ("England Championship").
+    """
+    done: set[tuple[int, str]] = set()
+    for path in paths.schedule_csvs(1):
+        head = pd.read_csv(
+            path, usecols=["s1_league_id", "s1_season"], dtype={"s1_season": str}, nrows=1
+        )
+        if not head.empty:
+            done.add((int(head.at[0, "s1_league_id"]), str(head.at[0, "s1_season"])))
+    return done
+
+
+def plan_jobs(
+    jobs: Iterable[LeagueSeason], done: set[tuple[int, str]], force: bool
+) -> tuple[list[LeagueSeason], list[LeagueSeason]]:
+    """Split the chosen jobs into (to scrape, already on disk). `force` scrapes them all."""
+    to_scrape: list[LeagueSeason] = []
+    on_disk: list[LeagueSeason] = []
+    for job in jobs:
+        skip = not force and (job.league_id, job.season) in done
+        (on_disk if skip else to_scrape).append(job)
+    return to_scrape, on_disk
+
+
+def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
+    league = league_slug(scrape.league_name)
+    matches = _validate(scrape.matches, ScheduleRow, "match")
+    table = _validate(scrape.final_table, FinalTableRow, "final-table team")
+    if matches:
+        save_unless_shrinking(
+            matches, paths.schedule_path(1, league, job.season), SCHEDULE_RAW_COLUMNS
+        )
+    if table:
+        save_unless_shrinking(
+            table, paths.final_table_path(league, job.season), FINAL_TABLE_COLUMNS
+        )
+    dropped = len(scrape.matches) - len(matches) + len(scrape.final_table) - len(table)
+    logger.info(
+        "%s %s: %d matches, %d table rows, %d dropped",
+        job.code,
+        job.season,
+        len(matches),
+        len(table),
+        dropped,
+    )
+    return Outcome(job, matches=len(matches), dropped=dropped)
+
+
+def _run_job(job: LeagueSeason) -> Outcome:
+    """Scrape and save one league-season. A failure is logged and returned, never raised."""
+    try:
+        return _save(job, scrape_league(job))
+    except Exception as exc:  # one league must not end a run of many
+        logger.exception("FAILED %s %s (%s)", job.code, job.season, job.url)
+        return Outcome(job, error=f"{type(exc).__name__}: {exc}".splitlines()[0])
+
+
+def summarise(outcomes: list[Outcome], on_disk: list[LeagueSeason]) -> int:
+    """Print the run's summary; return how many jobs failed."""
+    failed = [o for o in outcomes if o.error]
+    print(
+        f"\n{len(outcomes) - len(failed)} scraped, {len(on_disk)} already on disk, "
+        f"{len(failed)} failed, {sum(o.dropped for o in outcomes)} rows dropped by validation"
+    )
+    for outcome in failed:
+        print(f"  FAILED {outcome.job.code} {outcome.job.season}: {outcome.error}")
+    if failed:
+        print("  Re-run the same command: what is already on disk is skipped.")
+    return len(failed)
+
+
+def scrape_all(
+    selection: Selection | None = None, *, force: bool = False, list_only: bool = False
+) -> int:
+    """Scrape the chosen league-seasons into their stage-1 files; return the failure count."""
+    to_scrape, on_disk = plan_jobs(get_league_seasons(selection), scraped_league_seasons(), force)
+    for job in on_disk:
+        print(f"  on disk   {job.code:8s} {job.season:9s} {job.name}", flush=True)
+    for job in to_scrape:
+        print(f"  to scrape {job.code:8s} {job.season:9s} {job.name}", flush=True)
+    # Flushed: in a run logged to a file, the plan must show before hours of progress lines.
+    print(f"{len(to_scrape)} to scrape, {len(on_disk)} already on disk", flush=True)
+    if list_only:
+        return 0
+
+    pool = ThreadPoolExecutor(max_workers=WORKERS)
+    futures = [pool.submit(_start, n, len(to_scrape), job) for n, job in enumerate(to_scrape, 1)]
+    try:
+        pending = set(futures)
+        while pending:  # waiting with a timeout keeps Ctrl+C working on Windows
+            pending = wait(pending, timeout=1).not_done
+    finally:
+        pool.shutdown(cancel_futures=True)
+    return summarise([future.result() for future in futures], on_disk)
+
+
+def _start(number: int, total: int, job: LeagueSeason) -> Outcome:
+    """One worker's job: named after its league-season, paused unless it is among the first."""
+    threading.current_thread().name = f"{job.code} {job.season}"
+    if number > WORKERS:
+        time.sleep(PAUSE_BETWEEN_JOBS)
+    logger.info("[%d/%d] Scraping %s", number, total, job.url)
+    return _run_job(job)
 
 
 def main() -> None:
-    scrape_all()
+    # Output sent to a file is written in the Windows code page, which cannot hold every
+    # league name in the config (one has "Ⅱ"); UTF-8 can.
+    for stream in (sys.stdout, sys.stderr):
+        if isinstance(stream, io.TextIOWrapper):
+            stream.reconfigure(encoding="utf-8")
+    parser = argparse.ArgumentParser(
+        description="Scrape league schedules into data/finished/1_raw/."
+    )
+    which = parser.add_mutually_exclusive_group()
+    which.add_argument("--leagues", help='config codes, comma-separated, e.g. "ENG LCH,SCO PR"')
+    which.add_argument(
+        "--all", action="store_true", dest="all_leagues", help="every league in the config"
+    )
+    parser.add_argument(
+        "--before-year", type=int, help="only seasons that started before this year"
+    )
+    parser.add_argument(
+        "--list", action="store_true", dest="list_only", help="print the jobs; open no page"
+    )
+    parser.add_argument("--force", action="store_true", help="scrape again what is already on disk")
+    args = parser.parse_args()
+    codes = tuple(code.strip() for code in (args.leagues or "").split(",") if code.strip())
+    selection = Selection(codes, args.all_leagues, args.before_year)
+    failed = scrape_all(selection, force=args.force, list_only=args.list_only)
+    raise SystemExit(1 if failed else 0)
 
 
 if __name__ == "__main__":

@@ -1,4 +1,11 @@
-"""Which historical matches are in scope for goal timings.
+"""Which matches are usable: stored matches not played to the end, and the historical
+matches in scope for goal timings.
+
+**Abandoned matches.** The schedule page lists a match stopped before full time like any
+finished one, with the score when play stopped, so its half-time and full-time goals are
+not a result. Nothing on the page tells them apart: each one here was found by the
+final-table check (`qa/final_table.py`) and confirmed in public reports, and is kept by
+hand. Stage 2 flags it (`s2_is_abandoned`), and the analysis leaves it out.
 
 A fixture's detail page lists each side's recent form and the head-to-head going back
 years, across every competition. Not all of it is usable, and the two exclusions here were
@@ -31,6 +38,17 @@ FRIENDLY_MARKER = "friendly"
 HISTORY_FROM_YEAR = 2023
 
 _YEAR_RE = re.compile(r"^\s*(\d{4})")
+
+# Match id -> what happened. The user decides each entry.
+ABANDONED_MATCHES = {
+    "2817917": "ENG NL 2025-26, Scunthorpe v Wealdstone: abandoned in added time at 2-1, "
+    "awarded 3-0 to Scunthorpe with no goals counted (the user, 2026-10-07)",
+}
+
+
+def is_abandoned(match_id: object) -> bool:
+    """Whether a stored match was stopped before full time."""
+    return str(match_id) in ABANDONED_MATCHES
 
 
 def is_friendly(league_name: str | None) -> bool:

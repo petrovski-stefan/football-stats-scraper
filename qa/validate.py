@@ -27,14 +27,17 @@ from domain.columns import (
     GOALS_ORDERED_COLUMNS,
     MATCHES_PER_SECTION,
     OPTIONAL_BASE_COLUMNS,
+    OPTIONAL_SCHEDULE_COLUMNS,
     ORDERED_DF_COLUMNS,
     PER_MATCH_SECTIONS,
+    SCHEDULE_RAW_COLUMNS,
 )
 from qa import detail as detail_checks
 from qa import events as event_checks
 from qa import final_table as final_table_checks
 from qa import goals as goal_checks
 from qa import league as league_checks
+from qa import schedule as schedule_checks
 from qa import universal
 from qa.report import Report
 
@@ -180,21 +183,32 @@ def _history_scores(detail: pd.DataFrame) -> list[pd.DataFrame]:
     return out
 
 
-def validate_final_table(schedule_path: str) -> bool:
-    """One staged league-season: the page's final table against our rebuilt one."""
+def validate_staged_schedule(schedule_path: str) -> bool:
+    """One staged league-season: its stage-1 schedule, then the page's final table
+    against the table rebuilt from it."""
     league, season = paths.split_schedule_name(schedule_path)
-    r = Report(f"{league} {season} - final table vs rebuilt standings")
+    schedule = schedule_checks.read_staged(schedule_path)
+
+    r = Report(f"{league} {season} - schedule (stage 1)")
+    universal.check_not_empty(r, schedule)
+    universal.check_required_columns(r, schedule, SCHEDULE_RAW_COLUMNS)
+    universal.check_primary_key(r, schedule)
+    universal.check_no_dead_columns(r, schedule, optional=OPTIONAL_SCHEDULE_COLUMNS)
+    if not schedule.empty:
+        schedule_checks.validate(r, schedule)
+
+    t = Report(f"{league} {season} - final table vs rebuilt standings")
     table_path = paths.final_table_path(league, season)
-    schedule = final_table_checks.read(schedule_path, final_table_checks.SCHEDULE_COLUMNS)
-    table = final_table_checks.read(table_path) if os.path.exists(table_path) else pd.DataFrame()
-    final_table_checks.check(r, schedule, table)
-    return r.flush()
+    exists = os.path.exists(table_path)
+    table = schedule_checks.read_staged(table_path) if exists else pd.DataFrame()
+    final_table_checks.check(t, schedule, table)
+    return all([r.flush(), t.flush()])
 
 
 def main() -> None:
-    staged = [validate_final_table(path) for path in paths.schedule_csvs(1)]
+    staged = [validate_staged_schedule(path) for path in paths.schedule_csvs(1)]
     if staged:
-        print(f"{staged.count(True)}/{len(staged)} staged final tables passed")
+        print(f"{staged.count(True)}/{len(staged)} staged league-seasons passed")
         print()
 
     base_paths = paths.base_league_csvs()
