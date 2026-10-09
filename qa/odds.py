@@ -118,7 +118,23 @@ def check_ah_sign(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     )
 
 
+def check_goal_line_above_handicap(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+    """The O/U goal line is above the AH line's size.
+
+    A total no larger than the expected margin would mean the favourite scores every goal.
+    The page opened some O/U lines at exactly the AH line's size on 6 and 19 Oct 2024 (found
+    2026-10-08). When that size is 1.5 or more, the line passes every other check, so only
+    this one sees it.
+    """
+    sub = _present(df, c.ou_line, c.ah_line)
+    if sub.empty:
+        return
+    flat = sub[sub[c.ou_line] <= sub[c.ah_line].abs()]
+    r.check(flat.empty, f"{len(flat)} rows whose OU line is not above the AH line's size")
+
+
 def check_all(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     check_1x2(r, df, c)
     check_asian(r, df, c)
     check_ah_sign(r, df, c)
+    check_goal_line_above_handicap(r, df, c)

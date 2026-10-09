@@ -84,7 +84,14 @@ def test_a_missing_price_leaves_its_market_empty() -> None:
     assert out["s2_has_ou_odds"] is True
 
 
-def test_only_a_listed_match_is_flagged_abandoned() -> None:
-    listed = next(iter(scope.ABANDONED_MATCHES))
-    assert derive(_row((2, 1), (2, 1), match_id=listed))["s2_is_abandoned"] is True
+def test_only_a_listed_match_is_flagged_abandoned(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(scope.ABANDONED_MATCHES, "999", "test entry")
+    assert derive(_row((2, 1), (2, 1), match_id="999"))["s2_is_abandoned"] is True
     assert derive(_row((2, 1), (2, 1)))["s2_is_abandoned"] is False
+
+
+def test_only_a_listed_match_is_flagged_forfeit(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(scope.FORFEITED_MATCHES, "999", "test entry")
+    assert derive(_row((0, 0), (3, 0), match_id="999"))["s2_is_forfeit"] is True
+    # The same score is a real result when the match is not on the list.
+    assert derive(_row((0, 0), (3, 0)))["s2_is_forfeit"] is False

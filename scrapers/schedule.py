@@ -1,10 +1,13 @@
 """First-stage scraper: render each configured league season's schedule and write its
 stage-1 files (`notes/fields/schedule_1_raw.md`):
 
-- `data/finished/1_raw/<league>_<season>_schedule.csv`: one row per finished match, the
-  values its row on the page shows and nothing computed;
-- `data/finished/1_raw/<league>_<season>_final_table.csv`: the page's final table, one row
-  per team, read once per stage as a check on the standings we rebuild ourselves.
+- `data/finished/1_raw/<country>_<league>_<season>_schedule.csv`: one row per finished
+  match, the values its row on the page shows and nothing computed;
+- `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`: the page's final
+  table, one row per team, read once per stage as a check on the standings we rebuild.
+
+`<country>` is the config's country and `<league>` the league's name in the page's title,
+written once when that name already starts with the exact country (`england_championship`).
 
 Structured like `scrapers/detail.py`, the second stage: a unit function
 (`scrape_league`) that renders one league, an orchestration function (`scrape_all`) that
@@ -34,6 +37,7 @@ import time
 from collections.abc import Iterable
 from concurrent.futures import ThreadPoolExecutor, wait
 from dataclasses import dataclass
+from itertools import combinations
 from typing import Any
 
 import pandas as pd
@@ -83,13 +87,13 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # League-seasons scraped at once, as in `scrapers/detail.py`.
-WORKERS = 3
+WORKERS = 4
 
 # The first page load of a league can be slow: one took more than the default 20 s on
 # 2026-10-06 and loaded within 45 s on the retry. Later clicks keep the default.
 FIRST_LOAD_TIMEOUT = 45
 # Between two leagues of one worker. The site sets no crawl delay, so the pace is ours.
-PAUSE_BETWEEN_JOBS = 15
+PAUSE_BETWEEN_JOBS = 12
 
 
 @dataclass(frozen=True)
@@ -231,28 +235,64 @@ def _scrape_round(
     }
 
     round_matches: list[dict[str, Any]] = []
+    stale = 0
     for row in rows:
         parsed = parse_schedulis_row(row)
         if parsed is None:
             continue
         parsed.update(context)
         parsed.update(secondary.get(parsed["match_id"], {}))
+        stale += bool(drop_stale_odds(parsed))
         round_matches.append(parsed)
 
     label = f"{ctx.stage.name} round {round_number}".strip()
     logger.info("  %s: %d finished / %d rows", label, len(round_matches), len(rows))
+    if stale:
+        logger.info("  %s: %d rows showed a market they do not carry; emptied", label, stale)
     return round_matches
 
 
-# Each secondary odds type, and the row fields its three cells map to.
-_SECONDARY_ODDS = (
-    (
-        "ou",
-        parse_ou_odds,
-        ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"),
-    ),
-    ("ah", parse_ah_odds, ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away")),
-)
+# Each odds market and the row fields its three cells map to, in cell order.
+_MARKETS = {
+    "1x2": ("s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away"),
+    "ou": ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"),
+    "ah": ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away"),
+}
+
+# Each secondary odds type, read after the 1X2 view in this order.
+_SECONDARY_ODDS = (("ou", parse_ou_odds, _MARKETS["ou"]), ("ah", parse_ah_odds, _MARKETS["ah"]))
+
+# The markets a match does not carry, by the pairs of markets whose cells show the same
+# numbers. One widget shows the markets in turn, 1X2, then O/U, then AH, then 1X2 again,
+# and a market the match does not carry keeps the previous one's numbers after the switch.
+_MISSING_BY_REPEATS: dict[frozenset[tuple[str, str]], list[str]] = {
+    # 1X2 only: the O/U and AH views kept its prices (97 rows in 8 league-seasons on
+    # 2026-10-08, never a whole round).
+    frozenset({("1x2", "ou"), ("1x2", "ah"), ("ou", "ah")}): ["ou", "ah"],
+    frozenset({("1x2", "ou")}): ["ou"],
+    frozenset({("ou", "ah")}): ["ah"],
+    # No 1X2: switching back to it kept the AH cells, so its "draw" was the AH line (1 row).
+    frozenset({("1x2", "ah")}): ["1x2"],
+}
+
+
+def drop_stale_odds(row: dict[str, Any]) -> list[str]:
+    """Empty each market whose three cells repeat another market's; return the ones emptied.
+
+    Real markets never repeat each other (none of 29,478 rows): a 1X2 middle cell is a
+    draw price, an O/U or AH middle cell a line. Which repeat means which market is
+    missing is `_MISSING_BY_REPEATS`.
+    """
+    cells = {market: tuple(row.get(f) for f in fields) for market, fields in _MARKETS.items()}
+    repeats = frozenset(
+        (a, b)
+        for a, b in combinations(_MARKETS, 2)
+        if cells[a] == cells[b] and any(v is not None for v in cells[a])
+    )
+    missing = _MISSING_BY_REPEATS.get(repeats, [])
+    for market in missing:
+        row.update(dict.fromkeys(_MARKETS[market]))
+    return list(missing)
 
 
 def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | None]]:
@@ -372,7 +412,7 @@ def plan_jobs(
 
 
 def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
-    league = league_slug(scrape.league_name)
+    league = league_slug(job.country, scrape.league_name)
     matches = _validate(scrape.matches, ScheduleRow, "match")
     table = _validate(scrape.final_table, FinalTableRow, "final-table team")
     if matches:
@@ -454,7 +494,7 @@ def _start(number: int, total: int, job: LeagueSeason) -> Outcome:
 
 def main() -> None:
     # Output sent to a file is written in the Windows code page, which cannot hold every
-    # league name in the config (one has "Ⅱ"); UTF-8 can.
+    # character a league name can have; UTF-8 can.
     for stream in (sys.stdout, sys.stderr):
         if isinstance(stream, io.TextIOWrapper):
             stream.reconfigure(encoding="utf-8")

@@ -61,20 +61,21 @@ A claim that beats B has found something the price does not hold.
 Every league whose 2023–2026 outcomes the project has already looked at, in any source
 (league ids in Appendix B):
 
-- the 22 football-data.co.uk divisions of LEAGUE_STUDY and MARKET_LINE: ENG PR, ENG LCH,
-  ENG L1, ENG L2, ENG NL, SCO PR, SCO CH, SCO L1, SCO L2, GER D1, GER D2, ITA D1, ITA D2,
+- 21 of the 22 football-data.co.uk divisions of LEAGUE_STUDY and MARKET_LINE (the user removed
+  one from the project on 2026-10-08): ENG PR, ENG LCH, ENG L1, ENG L2, SCO PR, SCO CH, SCO L1, SCO L2, GER D1, GER D2, ITA D1, ITA D2,
   SPA D1, SPA D2, FRA D1, FRA D2, HOL D1, BEL D1, POR D1, GRE D1, TUR D1;
 - POL PR (Ekstraklasa, part of the 2,058-match corpus);
-- ALG D1, MAR D1, TUN D1 (scraped 2026-10-01 before any declaration, so DEV under A9.3);
+- ALG D1, MAR D1 (scraped 2026-10-01 before any declaration, so DEV under A9.3);
 - any other league-season scraped before this file is committed.
 
 Their finished seasons are DEV. Their 2026-27 seasons belong to PROSPECTIVE.
 
 ### 2.2 CONFIRM — read once
 
-Every finished league-season (labels `2023-2024`, `2024`, `2024-2025`, `2025`, `2025-2026`) of
-every other league in `config/leagues.json` as of 2026-10-01: **153 leagues, 306
-league-seasons** — Europe 79 leagues, Asia 44, Americas 30. Listed in **Appendix A**, which is
+Every finished league-season (labels `2024`, `2024-2025`, `2025`, `2025-2026`) of
+every other league in `config/leagues.json` as of 2026-10-01, less 26 leagues and 2 seasons that the
+user removed on 2026-10-08 and 27 leagues removed on 2026-10-09: **100 leagues, 198 league-seasons** — Europe 49 leagues, Asia 34, Americas 17.
+Listed in **Appendix A**, which is
 the A9.3 declaration. Scrape start: after this file and A11 are committed.
 
 Checked 2026-10-01 against A10's history-slot rule (ids and dates only): the only catalogue
@@ -114,7 +115,7 @@ practice of the 2026-10-01 audit (ALG D2, SAPL and NZNL were dropped whole).
 |---|---|---|
 | R1 | the schedule scrape finished every kept stage with no load error | audit rule (user, 2026-10-01) |
 | R2 | in each single-stage round, the match count equals the league-season's modal round count | audit rule |
-| R3 | ≥ 80% of matches carry opening 1X2 **and** O/U odds, in every finished league-season | matches the audit's calls: ALG D2 (75% / 85%) dropped, TUN D1 (81% / 90%) kept |
+| R3 | ≥ 80% of matches carry opening 1X2 **and** O/U odds, in every finished league-season | matches the audit's call: ALG D2 (75% / 85%) dropped |
 | R4 | the LEAGUES_INCIDENTS §1 leagues still in the catalogue (TFF 1. Lig, CHA CSL, CHA D1) are excluded now, before any of their data exists | decision D-5 |
 | R5 | multi-stage leagues (25 in CONFIRM): a round is keyed on (stage, round); anything ordered in time is ordered by kickoff datetime | closes DECISIONS D7 with its option 1 |
 
@@ -263,7 +264,7 @@ correction is needed.
    (Poisson(k·El), 10,000 draws, seed 0).
 2. **Persistence.** Over the leagues with both a 2024-start and a 2025-start season: the
    Pearson r between the two seasons' `log((O + 0.5) / E)`. One-sided (r > 0), p by permutation
-   (10,000, seed 0). A league's `2023-2024` season counts in test 1 only.
+   (10,000, seed 0).
 
 Reported: the method-of-moments τ (the between-league sd of log O/E beyond B) with a bootstrap
 CI; `k` per continent; per league, the split into HT-decisive O/E and completion-given-HT-decisive
@@ -363,7 +364,9 @@ claims that can resolve.
 
 Assumptions: P_odds ≈ **60,000** matches (306 league-seasons × ~240 matches × ~85% with odds;
 the real count is taken outcome-blind after the scrape), a 4.5% base rate, and a Tier-D subset
-of ≈ 25,000 matches. One-sided tests.
+of ≈ 25,000 matches. One-sided tests. These figures predate the removal of 26 leagues and 2
+seasons on 2026-10-08: at 252 league-seasons (127 leagues) P_odds is ≈ 51,000, so every SE below rises by
+a few percent and C2's power is a little below the simulated values.
 
 | case | SE(ln RR) | DEAD reachable at 1.20×? | power at RR 1.20 (or 0.83): α .05 / Holm-9 at .025 / Holm-9 at .05 | at RR 1.30 (or 0.77) |
 |---|---|---|---|---|
@@ -452,7 +455,7 @@ The decisions of §15 are made, then this file and A11 are committed.
 
 ### 14.2 Scrape and include
 
-- CONFIRM schedules: 306 league-seasons × ~5.3 min (measured in the 2026-10-01 audit) ≈ 27 h.
+- CONFIRM schedules: 252 league-seasons × ~5.3 min (measured in the 2026-10-01 audit) ≈ 22 h.
 - DEV schedules, for fitting B: ~47 league-seasons ≈ 4 h. DEV can be scraped at any time.
 - The inclusion script (§3) → `notes/runs/<date>_survey_inclusion.txt`, committed.
 
@@ -495,7 +498,7 @@ The recommended value is in bold, and this draft assumes it.
 
 | | decision | recommended | alternative |
 |---|---|---|---|
-| D-1 | DEV boundary | **the 26 leagues of §2.1** | keep A9/A10 as written, which admits 41 football-data league-seasons as confirmatory |
+| D-1 | DEV boundary | **the 24 leagues of §2.1** | keep A9/A10 as written, which admits 41 football-data league-seasons as confirmatory |
 | D-2 | SESOI and DEAD margin | **1.20× (0.83× for suppression)** | 1.25× (RETRY's floor) or 1.15× |
 | D-3 | testing order | **C1 gate, then C2 and the H-family at α/2 each, with recycling (§6.4)** | plain Holm over every inferential claim |
 | D-4 | Tier-D subset | **40% of leagues per continent, ≈ 25,000 matches, ≈ 40–50 h of scraping** | none (#11, #12, #15 become exploratory), or all of CONFIRM (≈ 100–120 h) |
@@ -527,40 +530,24 @@ LEAGUES_INCIDENTS column marks R4's exclusions (§1) and the sensitivity set (§
 | continent | country | code | id | finished seasons | kept stages (if > 1) | LEAGUES_INCIDENTS |
 |---|---|---|---|---|---|---|
 | Americas | Argentina | ARG B M | 917 | 2024, 2025 | Apertura, Clausura |  |
-| Americas | Argentina | ARG D1 | 2 | 2024, 2025 |  |  |
-| Americas | Argentina | ARG D2 | 423 | 2024, 2025 |  |  |
-| Americas | Bolivia | BOL D1 | 593 | 2024, 2025 | Apertura, Clausura |  |
 | Americas | Brazil | BRA D1 | 4 | 2024, 2025 |  |  |
 | Americas | Brazil | BRA D2 | 358 | 2024, 2025 |  |  |
 | Americas | Brazil | BRA D3 | 1347 | 2024, 2025 |  |  |
-| Americas | Brazil | BRA SP | 178 | 2024, 2025 |  |  |
-| Americas | Brazil | BRA SPB | 1373 | 2024, 2025 |  |  |
 | Americas | Chile | CHI D1 | 415 | 2024, 2025 |  |  |
 | Americas | Chile | CHI D2 | 611 | 2024, 2025 |  |  |
-| Americas | Colombia | COL D1 | 250 | 2024, 2025 | Apertura, Clausura |  |
-| Americas | Colombia | COL D2 | 1169 | 2024, 2025 | Apertura, Clausura |  |
 | Americas | Costa | CRC D1 | 504 | 2024-2025, 2025-2026 | Apertura, Clausura |  |
-| Americas | Ecuador | ECU LPSA | 596 | 2024, 2025 | Apertura, Clausura |  |
 | Americas | Ecuador | ECU LPSB | 1398 | 2024, 2025 |  |  |
 | Americas | El Salvador | SLV D1 | 511 | 2024-2025, 2025-2026 | Apertura, Clausura |  |
-| Americas | Guatemala | GUA D1 | 579 | 2024-2025, 2025-2026 | Apertura, Clausura |  |
 | Americas | Honduras | HON Lig1 | 577 | 2024-2025, 2025-2026 | Apertura, Clausura |  |
 | Americas | Jamaica | JAM D1 | 1409 | 2024-2025, 2025-2026 |  |  |
 | Americas | Mexico | MEX D1 | 140 | 2024-2025, 2025-2026 | Apertura, Clausura |  |
 | Americas | Mexico | MEX Lig2 | 847 | 2024-2025, 2025-2026 | Apertura, Clausura |  |
 | Americas | Nicaragua | NIC LP | 1586 | 2024, 2025 | Apertura, Clausura |  |
-| Americas | Panama | LPF | 1494 | 2024, 2025 | Apertura, Clausura |  |
 | Americas | Paraguay | PAR D1 | 354 | 2024, 2025 | Apertura, Clausura |  |
-| Americas | Paraguay | PAR D2 | 1076 | 2024, 2025 |  |  |
-| Americas | Peru | PER L1 | 242 | 2024, 2025 | Apertura, Clausura |  |
-| Americas | United States | MLS | 21 | 2024, 2025 |  |  |
 | Americas | Uruguay | URU D1 | 240 | 2024, 2025 | Apertura, Clausura |  |
 | Americas | Venezuela | VEN D1 | 391 | 2024, 2025 | Apertura, Clausura, Apertura-B |  |
-| Asia | Australia | AUS D1 | 273 | 2024-2025, 2025-2026 |  | §2 — sensitivity set |
 | Asia | Australia | AUS NSW | 616 | 2024, 2025 |  | §2 — sensitivity set |
 | Asia | Australia | AUS NSWSL | 1255 | 2024, 2025 |  | §2 — sensitivity set |
-| Asia | Australia | AUS QSL | 1068 | 2024, 2025 |  | §2 — sensitivity set |
-| Asia | Australia | AUS SASL | 1029 | 2024, 2025 |  | §2 — sensitivity set |
 | Asia | Australia | AUS VPL | 436 | 2024, 2025 |  | §2 — sensitivity set |
 | Asia | Australia | Aus VD1 | 1073 | 2024, 2025 |  | §2 — sensitivity set |
 | Asia | Australia | FFSA PL | 1072 | 2024, 2025 |  | §2 — sensitivity set |
@@ -573,28 +560,21 @@ LEAGUES_INCIDENTS column marks R4's exclusions (§1) and the sensitivity set (§
 | Asia | Australia | WAUS D1 | 481 | 2024, 2025 |  | §2 — sensitivity set |
 | Asia | Bahrain | BHR D | 896 | 2024-2025, 2025-2026 |  |  |
 | Asia | Bahrain | BHR D1 | 318 | 2024-2025, 2025-2026 |  |  |
-| Asia | Cambodia | CPL | 1538 | 2024-2025, 2025-2026 |  |  |
 | Asia | China | CHA CSL | 60 | 2024, 2025 |  | §1 — excluded by R4 |
 | Asia | China | CHA D1 | 61 | 2024, 2025 |  | §1 — excluded by R4 |
-| Asia | India | IND D1 | 763 | 2023-2024, 2024-2025, 2025-2026 |  |  |
+| Asia | India | IND D1 | 763 | 2024-2025, 2025-2026 |  |  |
 | Asia | Indonesia | IDN ISL | 1122 | 2024-2025, 2025-2026 |  |  |
-| Asia | Iraq | IRQ SL | 1054 | 2024-2025, 2025-2026 |  |  |
 | Asia | Japan | JPN D1 | 25 | 2025 |  |  |
 | Asia | Japan | JPN D2 | 284 | 2025 |  |  |
 | Asia | Japan | JPN D3 | 1346 | 2024, 2025 |  |  |
 | Asia | Jordan | JOR D1 | 309 | 2024-2025, 2025-2026 |  |  |
-| Asia | Jordan | JOR D2 | 1078 | 2024-2025, 2025-2026 |  |  |
 | Asia | Kuwait | KUW D1 | 322 | 2024-2025, 2025-2026 |  |  |
-| Asia | Kuwait | KUW D2 | 923 | 2023-2024, 2024-2025, 2025-2026 |  |  |
+| Asia | Kuwait | KUW D2 | 923 | 2024-2025, 2025-2026 |  |  |
 | Asia | Malaysia | MAS SL | 316 | 2024-2025, 2025-2026 |  |  |
-| Asia | Oman | OMA PL | 332 | 2024-2025, 2025-2026 |  |  |
 | Asia | Qatar | QAT D1 | 313 | 2024-2025, 2025-2026 |  |  |
-| Asia | Saudi Arabia | KSA D1 | 745 | 2024-2025, 2025-2026 |  |  |
 | Asia | Saudi Arabia | SPL | 292 | 2024-2025, 2025-2026 |  |  |
 | Asia | Singapore | SIN D1 | 194 | 2024-2025, 2025-2026 |  |  |
 | Asia | South Korea | KOR D1 | 15 | 2024, 2025 |  |  |
-| Asia | South Korea | KOR D2 | 1292 | 2024, 2025 |  |  |
-| Asia | Thailand | THA L2 | 1048 | 2024-2025, 2025-2026 |  |  |
 | Asia | Thailand | THA PR | 700 | 2024-2025, 2025-2026 |  |  |
 | Asia | UAE | UAE LP | 301 | 2024-2025, 2025-2026 |  |  |
 | Asia | Uzbekistan | UZB D1 | 772 | 2024, 2025 |  |  |
@@ -602,76 +582,46 @@ LEAGUES_INCIDENTS column marks R4's exclusions (§1) and the sensitivity set (§
 | Asia | Vietnam | VIE D2 | 1248 | 2024-2025, 2025-2026 |  |  |
 | Europe | Albania | ALB D1 | 315 | 2024-2025, 2025-2026 |  |  |
 | Europe | Albania | ALB D2 | 348 | 2024-2025, 2025-2026 |  |  |
-| Europe | Armenia | ARM D1 | 469 | 2024-2025, 2025-2026 |  |  |
 | Europe | Austria | AUT D1 | 3 | 2024-2025, 2025-2026 |  |  |
-| Europe | Austria | AUT D2 | 128 | 2024-2025, 2025-2026 |  |  |
-| Europe | Belarus | BLR D1 | 230 | 2024, 2025 |  |  |
 | Europe | Bosnia | BOS PL | 352 | 2024-2025, 2025-2026 |  |  |
 | Europe | Bulgaria | BUL FL | 131 | 2024-2025, 2025-2026 |  |  |
-| Europe | Bulgaria | BUL SL | 1262 | 2024-2025, 2025-2026 |  |  |
 | Europe | Croatia | CRO D1 | 133 | 2024-2025, 2025-2026 |  |  |
 | Europe | Croatia | CRO D2 | 1612 | 2024-2025, 2025-2026 |  |  |
 | Europe | Cyprus | CYP D1 | 159 | 2024-2025, 2025-2026 |  |  |
-| Europe | Cyprus | CYP D2 | 915 | 2024-2025, 2025-2026 |  |  |
 | Europe | Czech Republic | CZE D1 | 137 | 2024-2025, 2025-2026 |  |  |
-| Europe | Czech Republic | CZE D2 | 290 | 2024-2025, 2025-2026 |  |  |
 | Europe | Denmark | DEN D1 | 127 | 2024-2025, 2025-2026 |  |  |
-| Europe | Denmark | DEN D2 | 1427 | 2024-2025, 2025-2026 |  |  |
 | Europe | Denmark | DEN SASL | 7 | 2024-2025, 2025-2026 |  |  |
-| Europe | England | ENG NLN | 297 | 2024-2025, 2025-2026 |  |  |
-| Europe | England | ENG NLS | 298 | 2024-2025, 2025-2026 |  |  |
-| Europe | England | ENG RYM | 566 | 2024-2025, 2025-2026 |  |  |
 | Europe | England | ENG-N PR | 713 | 2024-2025, 2025-2026 |  |  |
 | Europe | England | ENG-S CE | 1956 | 2024-2025, 2025-2026 |  |  |
 | Europe | England | ENG-S PR | 336 | 2024-2025, 2025-2026 |  |  |
 | Europe | Estonia | EST D1 | 353 | 2024, 2025 |  |  |
-| Europe | Estonia | EST D2 | 1043 | 2024, 2025 |  |  |
 | Europe | Faroe | FAR D1 | 576 | 2024, 2025 |  |  |
 | Europe | Finland | FIN D1 | 13 | 2024, 2025 |  |  |
 | Europe | Finland | FIN D2 | 212 | 2024, 2025 |  |  |
-| Europe | Finland | FIN D3 A | 1417 | 2024, 2025 | Group A, Group B, Group C, Group D |  |
-| Europe | France | FRA D3 | 203 | 2024-2025, 2025-2026 |  |  |
-| Europe | France | FRA D4 | 1421 | 2024-2025, 2025-2026 | Group A, Group B, Group C |  |
 | Europe | Georgia | GEO D1 | 563 | 2024, 2025 |  |  |
 | Europe | Georgia | GEO D2 | 1116 | 2024, 2025 |  |  |
 | Europe | Germany | GER D3 | 693 | 2024-2025, 2025-2026 |  |  |
 | Europe | Hungary | HUN D1 | 136 | 2024-2025, 2025-2026 |  |  |
-| Europe | Hungary | HUN D2E | 703 | 2024-2025, 2025-2026 |  |  |
 | Europe | Iceland | ICE D1 | 381 | 2024, 2025 |  |  |
 | Europe | Iceland | ICE PR | 166 | 2024, 2025 |  |  |
 | Europe | Ireland | IRE D1 | 139 | 2024, 2025 |  |  |
 | Europe | Ireland | IRE PR | 1 | 2024, 2025 |  |  |
-| Europe | Italy | ITA SC | 142 | 2024-2025, 2025-2026 | Group A, Group B, Group C |  |
-| Europe | Kazakhstan | KAZ PR | 466 | 2024, 2025 |  |  |
 | Europe | Kosovo | Kos L | 1750 | 2024-2025, 2025-2026 |  |  |
-| Europe | Latvia | LAT D1 | 214 | 2024, 2025 |  |  |
-| Europe | Latvia | LAT D2 | 1070 | 2024, 2025 |  |  |
 | Europe | Lithuania | LIT D2 | 897 | 2024, 2025 |  |  |
 | Europe | Lithuania | TOPLYGA | 217 | 2024, 2025 |  |  |
-| Europe | Luxembourg | LUX D1 | 514 | 2024-2025, 2025-2026 |  |  |
-| Europe | Moldova | MOL D1 | 389 | 2024-2025, 2025-2026 |  |  |
-| Europe | Montenegro | MNE D1 | 562 | 2024-2025, 2025-2026 |  |  |
 | Europe | Netherlands | HOL D2 | 17 | 2024-2025, 2025-2026 |  |  |
-| Europe | North Macedonia | MKD D1 | 392 | 2024-2025, 2025-2026 |  |  |
 | Europe | Northern Ireland | NIR CH | 748 | 2024-2025, 2025-2026 |  |  |
 | Europe | Northern Ireland | NIR D1 | 165 | 2024-2025, 2025-2026 |  |  |
-| Europe | Norway | NOR AL | 123 | 2024, 2025 |  |  |
 | Europe | Norway | NOR D1 | 22 | 2024, 2025 |  |  |
-| Europe | Norway | NOR D2 | 1428 | 2024, 2025 | Group A, Group B |  |
 | Europe | Poland | POL D1 | 221 | 2024-2025, 2025-2026 |  |  |
-| Europe | Poland | POL D2 | 1355 | 2024-2025, 2025-2026 |  |  |
 | Europe | Portugal | POR D2 | 157 | 2024-2025, 2025-2026 |  |  |
 | Europe | Romania | ROM D1 | 124 | 2024-2025, 2025-2026 |  |  |
-| Europe | Romania | ROM D2 | 1423 | 2024-2025, 2025-2026 |  |  |
 | Europe | Serbia | SER D1 | 129 | 2024-2025, 2025-2026 |  |  |
 | Europe | Serbia | SER D2 | 1061 | 2024-2025, 2025-2026 |  |  |
 | Europe | Slovakia | SVK D1 | 132 | 2024-2025, 2025-2026 |  |  |
-| Europe | Slovenia | SLO D1 | 247 | 2024-2025, 2025-2026 |  |  |
 | Europe | Slovenia | SLO D2 | 120 | 2024-2025, 2025-2026 |  |  |
 | Europe | Spain | SPA D3 | 2254 | 2024-2025, 2025-2026 | Group A, Group B |  |
-| Europe | Spain | SPA D4 | 1413 | 2024-2025, 2025-2026 | Group 1, Group 2, Group 3, Group 4, Group 5 |  |
 | Europe | Sweden | SWE D1 | 26 | 2024, 2025 |  |  |
-| Europe | Sweden | SWE D1 SN | 218 | 2024, 2025 | North, South |  |
 | Europe | Sweden | SWE D2 | 122 | 2024, 2025 |  |  |
 | Europe | Switzerland | SUI CL | 121 | 2024-2025, 2025-2026 |  |  |
 | Europe | Switzerland | SUI SL | 27 | 2024-2025, 2025-2026 |  |  |
@@ -680,15 +630,15 @@ LEAGUES_INCIDENTS column marks R4's exclusions (§1) and the sensitivity set (§
 | Europe | Wales | WAL FAWC | 2051 | 2024-2025, 2025-2026 | North, South |  |
 | Europe | Wales | Welsh PR | 135 | 2024-2025, 2025-2026 |  |  |
 
-**153 leagues, 306 league-seasons.**
+**100 leagues, 198 league-seasons** (153 and 306 as generated; the user removed 26 leagues and 2 seasons on
+2026-10-08 and 27 leagues on 2026-10-09).
 
 ## Appendix B — DEV league ids
 
-The 22 football-data divisions: ENG PR 36, ENG LCH 37, ENG L1 39, ENG L2 35, ENG NL 146,
+21 of the 22 football-data divisions: ENG PR 36, ENG LCH 37, ENG L1 39, ENG L2 35,
 SCO PR 29, SCO CH 150, SCO L1 151, SCO L2 152, GER D1 8, GER D2 9, ITA D1 34, ITA D2 40,
 SPA D1 31, SPA D2 33, FRA D1 11, FRA D2 12, HOL D1 16, BEL D1 5, POR D1 23, GRE D1 32,
-TUR D1 30. Plus POL PR 6, and ALG D1, MAR D1 and TUN D1 (the three Africa leagues in
-`config/leagues.json`).
+TUR D1 30. Plus POL PR 6, and ALG D1 and MAR D1 (the Africa leagues of the 2026-10-01 audit).
 
 ## Appendix C — draft A11 for `notes/PREREGISTRATION.md` §10
 
@@ -696,10 +646,10 @@ TUR D1 30. Plus POL PR 6, and ALG D1, MAR D1 and TUN D1 (the three Africa league
 >
 > 1. For the survey it replaces A9.2/A10's confirmatory-set rule, RETRY_CANDIDATES §6–7 and
 >    LEAGUE_STUDY F1's league bar. Those texts are not edited.
-> 2. The confirmatory set is its Appendix A: 153 leagues, 306 league-seasons, by league id and
+> 2. The confirmatory set is its Appendix A: 100 leagues, 198 league-seasons, by league id and
 >    season label, calendar-year labels included (A8.5). Scrape start: <date>, after this
 >    commit.
-> 3. DEV adds the 22 football-data divisions and the three Africa leagues to the existing
+> 3. DEV adds 21 of the 22 football-data divisions and the Africa leagues to the existing
 >    EPL/Ekstraklasa set.
 > 4. All 15 retry claims carry over (its §7.5). None is added. #7 and #13 become exploratory.
 > 5. No outcome label of any Appendix-A league-season was read in preparing this amendment.

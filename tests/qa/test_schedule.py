@@ -75,6 +75,19 @@ def test_a_missing_match_fails_two_ways() -> None:
     assert any("meet unequally" in issue for issue in issues)
 
 
+def test_a_team_twice_in_one_round_fails_even_when_round_sizes_hold() -> None:
+    # Swap the round labels of two matches: every round keeps its size and every pair
+    # still meets equally often, but one team now plays twice in a round.
+    season = _season()
+    first = season.index[season["s1_round"] == 1]
+    second = season.index[season["s1_round"] == 2]
+    season.loc[first[1], "s1_round"] = 2
+    season.loc[second[0], "s1_round"] = 1
+    issues = _issues(season)
+    assert any("plays twice" in issue for issue in issues)
+    assert not any("rounds without" in issue or "meet unequally" in issue for issue in issues)
+
+
 def test_half_time_goals_above_full_time_fail() -> None:
     season = _season()
     season.loc[0, "s1_ht_home_goals"] = 2

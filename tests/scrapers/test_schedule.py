@@ -15,7 +15,7 @@ from scrapers.schedule import Outcome, plan_jobs, scraped_league_seasons, summar
 
 def _job(league_id: int, season: str, code: str = "TST") -> LeagueSeason:
     url = f"https://example.com/league/{season}/{league_id}"
-    return LeagueSeason(url, season, league_id, (), code, "Test League")
+    return LeagueSeason(url, season, league_id, (), code, "Test League", "Testland")
 
 
 _JOBS = [_job(36, "2024-2025"), _job(36, "2025-2026"), _job(71, "2025", "OTH")]
@@ -99,3 +99,50 @@ def test_a_failed_job_is_counted_and_the_others_still_run(
     names, _ = _fake_run(monkeypatch, jobs)
     assert schedule.scrape_all() == 1
     assert len(names) == len(jobs)
+
+
+_Cells = tuple[float | None, float | None, float | None]
+
+
+def _odds(x12: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
+    """A row's three markets, each as its three cells in page order."""
+    fields = {
+        ("s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away"): x12,
+        ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"): ou,
+        ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away"): ah,
+    }
+    return {
+        name: value
+        for names, values in fields.items()
+        for name, value in zip(names, values, strict=True)
+    }
+
+
+_X12: _Cells = (2.1, 3.4, 3.2)
+_OU: _Cells = (1.9, 2.5, 1.9)
+_AH: _Cells = (1.85, 0.25, 1.95)
+_NONE: _Cells = (None, None, None)
+
+
+@pytest.mark.parametrize(
+    ("shown", "emptied", "kept"),
+    [
+        # 1X2 only: the O/U and AH views kept showing the 1X2 cells.
+        (_odds(_X12, _X12, _X12), ["ou", "ah"], _odds(_X12, _NONE, _NONE)),
+        # No O/U: its view kept the 1X2 cells; AH changed them.
+        (_odds(_X12, _X12, _AH), ["ou"], _odds(_X12, _NONE, _AH)),
+        # No AH: its view kept the O/U cells.
+        (_odds(_X12, _OU, _OU), ["ah"], _odds(_X12, _OU, _NONE)),
+        # No 1X2: switching back to it kept the AH cells.
+        (_odds(_AH, _OU, _AH), ["1x2"], _odds(_NONE, _OU, _AH)),
+        # Three different markets, or none at all: nothing to empty.
+        (_odds(_X12, _OU, _AH), [], _odds(_X12, _OU, _AH)),
+        (_odds(_NONE, _NONE, _NONE), [], _odds(_NONE, _NONE, _NONE)),
+    ],
+)
+def test_a_market_that_repeats_the_one_before_it_is_emptied(
+    shown: dict[str, float | None], emptied: list[str], kept: dict[str, float | None]
+) -> None:
+    row = {"match_id": "1", **shown}
+    assert schedule.drop_stale_odds(row) == emptied
+    assert row == {"match_id": "1", **kept}

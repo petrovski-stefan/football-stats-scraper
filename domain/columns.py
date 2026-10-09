@@ -326,6 +326,7 @@ SCHEDULE_ROW_COLUMNS = [
     "s2_implied_over",
     "s2_implied_ah_home",
     "s2_is_abandoned",
+    "s2_is_forfeit",
     # Comebacks: the only market for now.
     "s2_is_comeback",
     "s2_is_comeback_home",

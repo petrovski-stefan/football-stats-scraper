@@ -19,8 +19,28 @@ from scrapers.parsers import clean_string
     ],
 )
 def test_league_slug_round_trips_through_the_schedule_path(league: str, season: str) -> None:
-    path = paths.schedule_path(1, league_slug(league), season)
-    assert paths.split_schedule_name(path) == (clean_string(league), season)
+    path = paths.schedule_path(1, league_slug("Testland", league), season)
+    assert paths.split_schedule_name(path) == (f"testland_{clean_string(league)}", season)
+
+
+def test_league_slug_starts_with_the_country_in_file_name_form() -> None:
+    # The page's title can leave the country out; the config's country always leads.
+    assert league_slug("North Testland", "2.division") == "north_testland_2.division"
+
+
+@pytest.mark.parametrize(
+    ("league", "slug"),
+    [
+        # The exact country already leads the page's name: it appears once.
+        ("north_testland_cup", "north_testland_cup"),
+        ("north_testland", "north_testland"),
+        # Only a whole-word match counts: a longer word still gets the prefix.
+        ("north_testlandish_cup", "north_testland_north_testlandish_cup"),
+        ("testland_cup", "north_testland_testland_cup"),
+    ],
+)
+def test_league_slug_does_not_repeat_the_country(league: str, slug: str) -> None:
+    assert league_slug("North Testland", league) == slug
 
 
 def test_save_unless_shrinking(tmp_path: Path) -> None:

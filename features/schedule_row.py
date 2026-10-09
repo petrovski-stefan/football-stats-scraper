@@ -1,6 +1,6 @@
 """Stage 2 of the schedule: the fields computed from one stage-1 row and nothing else.
 
-Reads `data/finished/1_raw/<league>_<season>_schedule.csv` and writes the same rows plus
+Reads `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` and writes the same rows plus
 the `s2_` columns to `data/finished/2_row/` (`notes/fields/schedule_2_row.md`). `derive`
 sees one row at a time, so no field here can carry another match's result into a row.
 
@@ -97,6 +97,7 @@ def derive(row: Mapping[str, Any]) -> dict[str, Any]:
         **_date_fields(str(row["s1_date"])),
         **_odds_fields(row),
         "s2_is_abandoned": scope.is_abandoned(row["match_id"]),
+        "s2_is_forfeit": scope.is_forfeit(row["match_id"]),
         **_comeback_fields(ht, ft),
     }
 

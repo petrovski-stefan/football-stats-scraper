@@ -4,7 +4,7 @@
 same row, and nothing else. Claude writes the formulas; the user skims.
 
 - Reads: the two detail files of stage 1 (`detail_1_raw.md` §A and §B), one row at a time.
-- Files: `data/finished/2_row/<league>_<season>_detail.csv` and `..._history.csv` = the stage-1
+- Files: `data/finished/2_row/<country>_<league>_<season>_detail.csv` and `..._history.csv` = the stage-1
   files plus these columns.
 - **Timing rule:** a field's timing is the latest timing of its inputs. Every history row is a
   match played before this one, so every history field is `before`.

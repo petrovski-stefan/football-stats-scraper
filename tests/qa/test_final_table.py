@@ -87,7 +87,7 @@ def test_a_points_deduction_fails() -> None:
 
 
 def test_a_declared_deduction_passes(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, 1): -3})
+    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "", 1): -3})
     # Team 1 drops from 3 points to 0, below teams 3 and 4.
     page = [
         _line(3, 1, (1, 0, 1, 0, 0, 1)),
@@ -99,7 +99,7 @@ def test_a_declared_deduction_passes(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 def test_a_deduction_declared_with_the_wrong_amount_fails(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, 1): -1})
+    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "", 1): -1})
     deducted = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
     assert not _run(_SCHEDULE, deducted).ok
 
@@ -127,5 +127,18 @@ def test_each_stage_is_held_against_its_own_matches() -> None:
         _line(2, 2, (1, 0, 0, 1, -1, 0), "Apertura"),
         _line(2, 1, (1, 1, 0, 0, 1, 3), "Clausura"),
         _line(1, 2, (1, 0, 0, 1, -1, 0), "Clausura"),
+    ]
+    assert _run(schedule, page).ok
+
+
+def test_a_deduction_counts_only_in_its_own_stage(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "Apertura", 1): -3})
+    # Team 1 wins both stages; only its Apertura win is cancelled by the deduction.
+    schedule = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 1, 0))
+    page = [
+        _line(1, 1, (1, 1, 0, 0, 1, 0), "Apertura"),
+        _line(2, 2, (1, 0, 0, 1, -1, 0), "Apertura"),
+        _line(1, 1, (1, 1, 0, 0, 1, 3), "Clausura"),
+        _line(2, 2, (1, 0, 0, 1, -1, 0), "Clausura"),
     ]
     assert _run(schedule, page).ok

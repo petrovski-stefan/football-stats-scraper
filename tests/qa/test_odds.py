@@ -1,6 +1,7 @@
 """`qa/odds.py`: the odds checks, on any table given its column names."""
 
 import pandas as pd
+import pytest
 
 from qa.odds import OddsColumns, check_all
 from qa.report import Report
@@ -42,6 +43,17 @@ def test_a_goal_line_out_of_range_fails() -> None:
 
 def test_a_line_off_the_quarter_grid_fails() -> None:
     assert any("quarter-goal grid" in issue for issue in _issues(_row(ou=2.6)))
+
+
+@pytest.mark.parametrize("ah", [2.75, -2.75, 3.0])
+def test_a_goal_line_not_above_the_handicap_fails(ah: float) -> None:
+    issues = _issues(_row(h=1.07, d=11.0, a=26.0, ou=2.75, ah=ah))
+    assert any("not above the AH line" in issue for issue in issues)
+
+
+def test_a_goal_line_above_the_handicap_passes() -> None:
+    issues = _issues(_row(h=1.07, d=11.0, a=26.0, ou=3.0, ah=2.75))
+    assert not any("not above the AH line" in issue for issue in issues)
 
 
 def test_an_ah_sign_against_the_favourite_fails() -> None:

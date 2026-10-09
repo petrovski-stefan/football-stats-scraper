@@ -1,4 +1,5 @@
-"""Checks for a staged schedule file (`data/finished/1_raw/<league>_<season>_schedule.csv`).
+"""Checks for a staged schedule file
+(`data/finished/1_raw/<country>_<league>_<season>_schedule.csv`).
 
 The stage-1 file holds page values only, so these checks test what the page gave us: the
 scores, the odds (`qa/odds.py`), and the shape of the season. Dataset-agnostic checks come
@@ -6,9 +7,10 @@ from `qa/universal.py`; the page's final table against our rebuilt standings is
 `qa/final_table.py`.
 
 The season-shape checks hold for a league played as a k-fold round robin, which every kept
-"League" stage is: each round has floor(teams / 2) matches, and every pair of teams meets
-equally often. A failure is a finding about the data (`qa/CLAUDE.md` §2): a match the scrape
-missed, a duplicate, or a real event such as a team withdrawn mid-season.
+"League" stage is: each round has floor(teams / 2) matches, no team plays twice in one
+round, and every pair of teams meets equally often. A failure is a finding about the data
+(`qa/CLAUDE.md` §2): a match the scrape missed, a duplicate, a page whose rounds are only
+labels, or a real event such as a team withdrawn mid-season.
 """
 
 from collections import Counter
@@ -56,6 +58,7 @@ def validate(r: Report, df: pd.DataFrame) -> None:
     for stage, group in df.groupby("s1_stage", sort=False):
         label = f"stage {stage!r}: " if stage else ""
         _check_round_sizes(r, group, label)
+        _check_team_once_per_round(r, group, label)
         _check_pairs_meet_equally(r, group, label)
 
 
@@ -105,6 +108,19 @@ def _check_round_sizes(r: Report, group: pd.DataFrame, label: str) -> None:
     r.check(
         not wrong, f"{label}{len(wrong)} rounds without {expected} matches (round: count) {wrong}"
     )
+
+
+def _check_team_once_per_round(r: Report, group: pd.DataFrame, label: str) -> None:
+    """No team plays twice in one round. A page round that holds a team twice is a label, not
+    a round of the round robin, even when its size is right (found 2026-10-08)."""
+    slots = pd.concat(
+        [
+            pd.DataFrame({"round": group["s1_round"], "team": group["s1_home_team_id"]}),
+            pd.DataFrame({"round": group["s1_round"], "team": group["s1_away_team_id"]}),
+        ]
+    )
+    rounds = sorted({int(rnd) for rnd in slots.loc[slots.duplicated(), "round"]})
+    r.check(not rounds, f"{label}{len(rounds)} rounds where a team plays twice (rounds) {rounds}")
 
 
 def _check_pairs_meet_equally(r: Report, group: pd.DataFrame, label: str) -> None:

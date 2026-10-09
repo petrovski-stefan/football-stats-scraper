@@ -4,7 +4,7 @@
 same row, and nothing else. Claude writes the formulas; the user skims.
 
 - Reads: the schedule match file of stage 1 (`schedule_1_raw.md` §A), one row at a time.
-- File: `data/finished/2_row/<league>_<season>_schedule.csv` = the stage-1 file plus these columns.
+- File: `data/finished/2_row/<country>_<league>_<season>_schedule.csv` = the stage-1 file plus these columns.
 - **Timing rule:** a field's timing is the latest timing of its inputs.
 - Examples are worked on 2789361: HT 0-2, FT 3-2; odds 1.40 / 4.75 / 7.00, O/U 3.25 at 1.98 /
   1.88, AH 1.25 at 1.83 / 2.03.
@@ -38,7 +38,8 @@ same row, and nothing else. Claude writes the formulas; the user skims.
 | S2.23 | `s2_underdog_odds` | the higher of S1.16 and S1.18 | float | 7.00 | before | input | **dropped** (Claude, 2026-10-06: no code read it) |
 | S2.24 | `s2_implied_over` | (1 / S1.20) ÷ (1 / S1.20 + 1 / S1.21): two-way, margin removed. Near 0.5 by design; the line S1.19 carries the forecast | float | 0.487 | before | input | keep |
 | S2.25 | `s2_implied_ah_home` | (1 / S1.23) ÷ (1 / S1.23 + 1 / S1.24) | float | 0.526 | before | input | keep |
-| S2.30 | `s2_is_abandoned` | `match_id` is on the hand-kept list `domain/scope.py:ABANDONED_MATCHES`: stopped before full time, so S1.12–15 are the score when play stopped, not a result. The page shows no sign of it | bool | False (True only for 2817917, Scunthorpe v Wealdstone, ENG NL 2025-26) | after | check: the analysis leaves these rows out | add (the user, 2026-10-07) |
+| S2.30 | `s2_is_abandoned` | `match_id` is on the hand-kept list `domain/scope.py:ABANDONED_MATCHES`: stopped before full time, so S1.12–15 are the score when play stopped, not a result. The page shows no sign of it | bool | False (no match is listed now: both listed so far left the project with their leagues on 2026-10-08) | after | check: the analysis leaves these rows out | add (the user, 2026-10-07) |
+| S2.31 | `s2_is_forfeit` | `match_id` is on the hand-kept list `domain/scope.py:FORFEITED_MATCHES`: never played (a team did not turn up, or it was called off and awarded), so S1.12–15 are the awarded score, usually 3–0 with 0–0 at half-time. The page shows no sign of it, and a real 3–0 looks the same, so each entry is confirmed by hand | bool | False (True for 8 matches: TFF 1. Lig 2634927, CYP D1 2609242 and six of NK Zrinski Jurjevac's last seven in CRO D2 2024-25) | after | check: the standings count these rows as the league did; the goal and comeback analysis leaves them out | add (the user, 2026-10-08) |
 
 **S2.11, S2.14–23 read S1.16–18.** If the user's later duplicate review drops S1.16–18, these
 fields are computed from the detail page's opening prices (D1.03–05) instead and move to

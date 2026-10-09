@@ -9,10 +9,18 @@ from scrapers.parsers import clean_string
 logger = logging.getLogger(__name__)
 
 
-def league_slug(league_name: str) -> str:
-    """The league part of a file name. Stays here rather than in `domain/paths.py` because
-    it needs `clean_string`, and `domain` may not import from `scrapers`."""
-    return clean_string(league_name)
+def league_slug(country: str, league_name: str) -> str:
+    """The league part of a staged file name: the config's country, then the league's name
+    as the page's title gives it (`lithuania_2.division`). The title alone can leave the
+    country out. A name that already starts with the exact country keeps it once
+    (`england_championship`, but `england_english_premier_league`; the user, 2026-10-08).
+    Stays here rather than in `domain/paths.py` because it needs `clean_string`, and
+    `domain` may not import from `scrapers`."""
+    prefix = country.lower().replace(" ", "_")
+    league = clean_string(league_name)
+    if league == prefix or league.startswith(f"{prefix}_"):
+        return league
+    return f"{prefix}_{league}"
 
 
 def write_ordered_csv(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -> None:

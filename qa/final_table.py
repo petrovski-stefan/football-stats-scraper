@@ -73,7 +73,7 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
         r.check(False, "no final table: the rebuilt standings are unchecked")
         return
     first_row = final_table.iloc[0]
-    deducted = deductions.deducted(int(first_row["league_id"]), str(first_row["season"]))
+    league, season = int(first_row["league_id"]), str(first_row["season"])
     for stage, page in final_table.groupby("stage", sort=False):
         label = f"stage {stage!r}: " if stage else ""
         matches = schedule[schedule["s1_stage"] == stage]
@@ -86,6 +86,7 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
         extra, missing = sorted(on_page - set(ranks)), sorted(set(ranks) - on_page)
         r.check(not extra, f"{label}teams on the page with no stored match: {extra}")
         r.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
+        deducted = deductions.deducted(league, season, str(stage))
         points = {team: table.line("total", team).points + deducted.get(team, 0) for team in ranks}
         for row in page[page["team_id"].astype(int).isin(ranks)].itertuples(index=False):
             _check_team(r, label, table, points, row)

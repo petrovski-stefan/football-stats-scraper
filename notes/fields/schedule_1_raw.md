@@ -5,9 +5,11 @@ only parsed. The user checks each row on the page (✓).
 
 - Page: the league page, <https://football.nowgoal26.com/league/2025-2026/36> for the reference
   match (round 24).
-- Files: `data/finished/1_raw/<league>_<season>_schedule.csv` (today
-  `data/raw/<league>_<season>.csv`) and `data/finished/1_raw/<league>_<season>_final_table.csv`
-  (new, a check only).
+- Files: `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` (today
+  `data/raw/<league>_<season>.csv`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`
+  (new, a check only). `<country>` is the config's country, `<league>` the league's name in the
+  page's title (2026-10-08: the title alone can leave the country out). A name that already starts
+  with the exact country keeps it once: `england_championship`, but `england_english_premier_league`.
 
 ## A. Match file — one row per finished match
 
@@ -105,6 +107,10 @@ The odds header offers AH, 1X2 and OU only. **No HT/FT odds on this page.**
 - **Opening odds:** S1.19–24 equal the Bet365 "Initial" row on the detail page for 2789361, lines
   and prices. Confirm on the page in P2.
 - **Duplicates:** S1.16–18 equal D1.03–05 in 99.7% of 379 EPL 2025-26 rows.
+- **A market the match does not carry** (found 2026-10-08): its odds cells keep the previous
+  market's numbers when the header switches, so 97 rows stored their 1X2 prices as S1.19–24 and
+  one stored its AH as S1.16–18. The scraper now leaves such a market empty
+  (`scrapers/schedule.py:drop_stale_odds`); files scraped before then keep the rows until re-scraped.
 - **The standings section** (EPL 2026-27 page, read 2026-10-05): the round dropdown lists `Total`
   plus one entry per finished round. `Round N` is the table after round N; `Total` is the table
   now. The FT / HT and Total / Home / Away filters combine with any finished round. Columns: rank,

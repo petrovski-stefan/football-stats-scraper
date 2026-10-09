@@ -5,7 +5,7 @@ needs more than its own row. This is the only place cross-row leakage can enter,
 states its **row window**. Claude writes them; the stats-reviewer agent checks them.
 
 - Reads: the schedule file of stage 2 (S3.03 rebuilds the standings from its results).
-- File: `data/finished/3_multi/<league>_<season>_schedule.csv` = the stage-2 file plus these
+- File: `data/finished/3_multi/<country>_<league>_<season>_schedule.csv` = the stage-2 file plus these
   columns. This is the schedule's analysis input.
 - **Window rule:** a field may use another row's **result** only when that row kicked off before
   this match. S3.01–02 read other rows' **kickoff times** only, never their results.

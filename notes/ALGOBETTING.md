@@ -134,7 +134,7 @@ Supremacy + total (from your model or inverted from sharp AH+total), split 45/55
 - **Incentive state**: season-context (objectives, matches left, is a draw useful) — absent from bulk odds feeds, so most valuable in small leagues.
 
 ### Layer 4 — Match context
-Lineup-derived re-rating once XIs drop; referee card/penalty tendencies; weather/pitch; rest asymmetry (a second-half supremacy shift barely priced into derivatives); kickoff time and travel (away slow starts, larger in Brazil/Russia/MLS).
+Lineup-derived re-rating once XIs drop; referee card/penalty tendencies; weather/pitch; rest asymmetry (a second-half supremacy shift barely priced into derivatives); kickoff time and travel (away slow starts, larger in Brazil/Russia).
 
 ### Layer 5 — Market features
 Sharp AH+total as the strength spine; per-book HT/FT bias fingerprints (which compiler model generates their prices); first-half Asian totals as a direct market check on your 45/55 estimate.

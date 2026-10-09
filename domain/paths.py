@@ -24,6 +24,9 @@ one source at a time. Its files sit under `data/finished/`, one directory per st
                   3_multi/  <league>_<season>_schedule.csv     features.schedule_multi
 
 Only `1_raw/` is scraper output; `2_row/` and `3_multi/` are rebuilt from it at any time.
+Here `<league>` is the config's country and then the league's name in the page's title
+(`lithuania_2.division`), joined by `scrapers/csv_io.py:league_slug`; a name that already
+starts with the exact country keeps it once (`england_championship`).
 
 Stdlib only, deliberately: `domain` depends on nothing internal and (apart from the
 pydantic models) nothing heavy, so a path lookup never drags pandas into a caller.
@@ -182,9 +185,10 @@ def schedule_csvs(stage: int) -> list[str]:
 
 
 def split_schedule_name(path: str) -> tuple[str, str]:
-    """`.../english_premier_league_2025-2026_schedule.csv` -> `("english_premier_league",
-    "2025-2026")`. The staged files carry a kind suffix after the season, so the suffix goes
-    first and `split_league_season` does the rest. `(stem, "")` when the name does not fit."""
+    """`.../england_english_premier_league_2025-2026_schedule.csv` ->
+    `("england_english_premier_league", "2025-2026")`. The staged files carry a kind suffix
+    after the season, so the suffix goes first and `split_league_season` does the rest.
+    `(stem, "")` when the name does not fit."""
     name = os.path.basename(path)
     if not name.endswith(SCHEDULE_SUFFIX):
         return _stem(path), ""

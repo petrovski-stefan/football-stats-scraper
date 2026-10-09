@@ -7,6 +7,13 @@ not a result. Nothing on the page tells them apart: each one here was found by t
 final-table check (`qa/final_table.py`) and confirmed in public reports, and is kept by
 hand. Stage 2 flags it (`s2_is_abandoned`), and the analysis leaves it out.
 
+**Forfeits.** A match never played (a team did not turn up, or it was called off and
+awarded) is listed with the awarded score, usually 3-0 with 0-0 at half-time. The page
+does not mark it either, and the pattern alone is no proof: real 3-0 wins look the same.
+Each one here was confirmed in public reports or, for one club's run at the end of a
+season, by the club folding. Stage 2 flags it (`s2_is_forfeit`); the standings count it as
+the league did, and the goal and comeback analysis leaves it out.
+
 A fixture's detail page lists each side's recent form and the head-to-head going back
 years, across every competition. Not all of it is usable, and the two exclusions here were
 established by measurement on 2026-09-22 — every one of the 11 matches whose goal timings
@@ -39,16 +46,38 @@ HISTORY_FROM_YEAR = 2023
 
 _YEAR_RE = re.compile(r"^\s*(\d{4})")
 
+# Match id -> what happened. The user decides each entry. Empty since 2026-10-08: both
+# matches listed so far left the project with their leagues.
+ABANDONED_MATCHES: dict[str, str] = {}
+
+_ZRINSKI = (
+    "CRO D2 2024-25, NK Zrinski Jurjevac's end of season: 0-0 at half-time, 3-0 to the "
+    "opponent, mostly with no odds; the club folded in 2025 (the user, 2026-10-08)"
+)
+
 # Match id -> what happened. The user decides each entry.
-ABANDONED_MATCHES = {
-    "2817917": "ENG NL 2025-26, Scunthorpe v Wealdstone: abandoned in added time at 2-1, "
-    "awarded 3-0 to Scunthorpe with no goals counted (the user, 2026-10-07)",
+FORFEITED_MATCHES = {
+    "2634927": "TFF 1. Lig 2024-25, Yeni Malatyaspor v Pendikspor: Yeni Malatyaspor did not "
+    "turn up for round 1 and lost 0-3 (the user, 2026-10-08)",
+    "2609242": "CYP D1 2024-25, Apollon v AEL: the Limassol derby was called off over crowd "
+    "safety; the page shows 3-0 (the user, 2026-10-08)",
+    "2753079": _ZRINSKI,
+    "2753094": _ZRINSKI,
+    "2753102": _ZRINSKI,
+    "2753105": _ZRINSKI,
+    "2753114": _ZRINSKI,
+    "2753116": _ZRINSKI,
 }
 
 
 def is_abandoned(match_id: object) -> bool:
     """Whether a stored match was stopped before full time."""
     return str(match_id) in ABANDONED_MATCHES
+
+
+def is_forfeit(match_id: object) -> bool:
+    """Whether a stored match was never played, its score awarded by the league."""
+    return str(match_id) in FORFEITED_MATCHES
 
 
 def is_friendly(league_name: str | None) -> bool:

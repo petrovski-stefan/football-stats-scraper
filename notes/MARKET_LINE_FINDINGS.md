@@ -111,14 +111,14 @@ three seasons are **complete** (latest fixture dates 26/05/2024, 25/05/2025, 31/
 a re-download reproduces the same files — nothing here depends on a live snapshot.
 
 Source: `https://www.football-data.co.uk/mmz4281/<SEASON>/<DIV>.csv`, where `<SEASON>` is
-`2324`, `2425`, `2526` and `<DIV>` is one of the 22 codes below. The on-disk layout was
+`2324`, `2425`, `2526` and `<DIV>` is one of the codes below. The on-disk layout was
 `football-data-co-uk/<country>/<YYYY-YYYY>/<DIV>.csv`, which is what
 `qa/validate.py:FD_SOURCES` expected.
 
 | country | codes | matches (3 seasons) |
 |---|---|---|
 | belgium | B1 | 935 |
-| england | E0, E1, E2, E3, EC | 7,764 |
+| england | E0, E1, E2, E3 | 6,108 |
 | france | F1, F2 | 1,909 |
 | germany | D1, D2 | 1,836 |
 | greece | G1 | 709 |
@@ -128,7 +128,10 @@ Source: `https://www.football-data.co.uk/mmz4281/<SEASON>/<DIV>.csv`, where `<SE
 | scotland | SC0, SC1, SC2, SC3 | 2,304 |
 | spain | SP1, SP2 | 2,526 |
 | turkey | T1 | 1,028 |
-| **total** | **22 divisions** | **23,127** |
+| **total** | **21 divisions** | **21,471** |
+
+One division (1,656 matches over the 3 seasons) was removed from this table on 2026-10-08, at
+the user's request. Every result in these notes was measured on all 22 divisions, 23,127 matches.
 
 Columns this study used: `FTHG FTAG HTHG HTAG` (targets), `B365>2.5 B365<2.5` (opening O/U),
 `B365C>2.5 B365C<2.5` / `PC>2.5 PC<2.5` (closing O/U, Bet365 and Pinnacle), `AHh` / `AHCh`

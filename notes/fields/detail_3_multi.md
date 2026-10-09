@@ -6,8 +6,8 @@ stats-reviewer agent checks them.
 
 - Reads: the detail files of stage 2, plus this match's `date`, `home_team_id` and `away_team_id`
   from the schedule (S1.07–09).
-- Files: `data/finished/3_multi/<league>_<season>_history.csv` (§A; a helper, still one row per
-  history row) and `data/finished/3_multi/<league>_<season>_detail.csv` (§B–E; one row per
+- Files: `data/finished/3_multi/<country>_<league>_<season>_history.csv` (§A; a helper, still one row per
+  history row) and `data/finished/3_multi/<country>_<league>_<season>_detail.csv` (§B–E; one row per
   match). The detail file is the analysis input, joined to the schedule's stage 3 by
   `match_id`.
 - No rounding: values are stored at full precision (today's averages are rounded to 3 decimals

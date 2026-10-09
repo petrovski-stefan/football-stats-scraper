@@ -67,3 +67,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 - **Removed:** `domain/stats.py:ht_ft_combo` (the betting-slip HT/FT label; its last user went with `domain/match.py`, and the HT/FT market returns in Phase C) and `scrapers/detail_parsers.py:_outcome` (replaced by the shared `domain/stats.py:team_result`).
 - **Added:** the stage-3 HT/FT record `s3_<side>_pre_htft_<venue>_<ht>_<ft>` (`domain/standings.py:HalfTimeFullTime`) and the QA check `qa/final_table.py`.
 
+## 2026-10-08
+
+- **Staged file names start with the country** (the user): `data/finished/<stage>/<country>_<league>_<season>_schedule.csv` and `_final_table.csv`, where `<country>` is the config's country and `<league>` the league's name in the page's title, which can leave the country out (`2.division_2024` → `lithuania_2.division_2024`). A name that already starts with the exact country keeps it once (`england_championship`, but `england_english_premier_league`). `scrapers/csv_io.py:league_slug` now takes the country; `scrapers/links.py:LeagueSeason` carries it. Every staged file on disk was renamed the same day, contents untouched. `s1_league_name` inside the files is unchanged. The old `data/raw/` and `data/processed/` names are unchanged.
+

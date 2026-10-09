@@ -55,8 +55,21 @@ def test_in_scope(league: str, date: str, usable: bool) -> None:
     assert scope.in_scope(league, date) is usable
 
 
-def test_is_abandoned_reads_the_list() -> None:
-    listed = next(iter(scope.ABANDONED_MATCHES))
-    assert scope.is_abandoned(listed)
-    assert scope.is_abandoned(int(listed))  # an id read as a number still matches
+# The lists are the user's and may be empty, so the tests add their own entry.
+def test_is_abandoned_reads_the_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(scope.ABANDONED_MATCHES, "999", "test entry")
+    assert scope.is_abandoned("999")
+    assert scope.is_abandoned(999)  # an id read as a number still matches
     assert not scope.is_abandoned("0")
+
+
+def test_is_forfeit_reads_the_list(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(scope.FORFEITED_MATCHES, "999", "test entry")
+    assert scope.is_forfeit("999")
+    assert scope.is_forfeit(999)
+    assert not scope.is_forfeit("0")
+
+
+def test_no_match_is_both_abandoned_and_forfeited() -> None:
+    # Stopped during play and never played are different facts about one match.
+    assert not set(scope.ABANDONED_MATCHES) & set(scope.FORFEITED_MATCHES)

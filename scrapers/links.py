@@ -65,6 +65,7 @@ class LeagueSeason:
     keep: tuple[str, ...]
     code: str  # the config's short code, e.g. "ENG LCH"
     name: str  # the config's name, for logs
+    country: str  # the config's country, the first part of the file names
 
 
 @dataclass(frozen=True)
@@ -106,7 +107,13 @@ def get_league_seasons(
         raise ValueError(f"league codes not in {path}: {unknown}")
     return [
         LeagueSeason(
-            s.url, s.season, league.league_id, tuple(league.keep), league.code, league.name
+            s.url,
+            s.season,
+            league.league_id,
+            tuple(league.keep),
+            league.code,
+            league.name,
+            league.country,
         )
         for league in leagues
         for s in league.seasons
