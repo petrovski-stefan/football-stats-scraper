@@ -2,9 +2,10 @@
 (`data/finished/1_raw/<country>_<league>_<season>_schedule.csv`).
 
 The stage-1 file holds page values only, so these checks test what the page gave us: the
-scores, the odds (`qa/odds.py`), and the shape of the season. Dataset-agnostic checks come
-from `qa/universal.py`; the page's final table against our rebuilt standings is
-`qa/final_table.py`.
+scores, the odds (`qa/odds.py`: plausible prices and lines, whole markets, coverage, and no
+round without odds), and the shape of the season. Dataset-agnostic checks come from
+`qa/universal.py`; the page's final table against our rebuilt standings is
+`qa/final_table.py`; the derived stage files against this one, `qa/stages.py`.
 
 The season-shape checks hold for a league played as a k-fold round robin, which every kept
 "League" stage is: each round has floor(teams / 2) matches, no team plays twice in one
@@ -21,7 +22,7 @@ import pandas as pd
 
 from domain.clock import parse_instant
 from domain.schedule import season_start_year
-from qa.odds import OddsColumns, check_all
+from qa.odds import OddsColumns, check_all, check_coverage, check_whole_markets
 from qa.report import Report
 
 # Where the stage-1 schedule keeps its three markets.
@@ -38,6 +39,10 @@ STAGED_ODDS = OddsColumns(
 )
 # No team plays two league matches this close together.
 MIN_GAP_BETWEEN_MATCHES = timedelta(hours=24)
+# A round of at least this many matches must have odds on one of them. One unpriced match
+# is the bookmaker's choice; a whole round without odds is a page that did not show them
+# when it was read (England League 2 2024-25, rounds 21 and 28, found 2026-10-10).
+BLANK_ROUND_MIN_MATCHES = 2
 # Text even when every value looks like a number, or is empty.
 _TEXT_COLUMNS = ("match_id", "s1_season", "s1_stage", "season", "stage")
 
@@ -53,6 +58,8 @@ def read_staged(path: str, columns: list[str] | None = None) -> pd.DataFrame:
 def validate(r: Report, df: pd.DataFrame) -> None:
     _check_scores(r, df)
     check_all(r, df, STAGED_ODDS)
+    check_whole_markets(r, df, STAGED_ODDS)
+    check_coverage(r, df, STAGED_ODDS)
     _check_kickoff_years(r, df)
     _check_no_team_twice_in_a_day(r, df)
     for stage, group in df.groupby("s1_stage", sort=False):
@@ -60,6 +67,7 @@ def validate(r: Report, df: pd.DataFrame) -> None:
         _check_round_sizes(r, group, label)
         _check_team_once_per_round(r, group, label)
         _check_pairs_meet_equally(r, group, label)
+        _check_rounds_have_odds(r, group, label)
 
 
 def _check_scores(r: Report, df: pd.DataFrame) -> None:
@@ -134,3 +142,17 @@ def _check_pairs_meet_equally(r: Report, group: pd.DataFrame, label: str) -> Non
     r.check(
         len(counts) <= 1, f"{label}pairs of teams meet unequally (meetings: pairs) {dict(counts)}"
     )
+
+
+def _check_rounds_have_odds(r: Report, group: pd.DataFrame, label: str) -> None:
+    """No round of `BLANK_ROUND_MIN_MATCHES` or more matches lacks odds on every match.
+    A table without the odds columns is skipped: `universal.check_required_columns` reports
+    them once."""
+    cells = STAGED_ODDS.cells()
+    if not set(cells) <= set(group.columns):
+        return
+    by_round = group[cells].notna().any(axis=1).groupby(group["s1_round"])
+    sizes, priced = by_round.size(), by_round.any()
+    rounds = zip(sizes.index.tolist(), sizes.tolist(), priced.tolist(), strict=True)
+    blank = [int(rnd) for rnd, n, odds in rounds if n >= BLANK_ROUND_MIN_MATCHES and not odds]
+    r.check(not blank, f"{label}{len(blank)} rounds without odds on any match (rounds) {blank}")

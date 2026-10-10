@@ -8,9 +8,13 @@ import pandas as pd
 
 from domain.clock import BERLIN, to_berlin
 from qa.report import Report
-from qa.schedule import read_staged, validate
+from qa.schedule import BLANK_ROUND_MIN_MATCHES, STAGED_ODDS, read_staged, validate
 
 _START = datetime(2025, 8, 9, 15, 0, tzinfo=BERLIN)
+# Plausible opening odds, the same on every match: 1X2, then O/U and AH line and prices.
+_ODDS = dict(
+    zip(STAGED_ODDS.cells(), [1.5, 4.0, 6.0, 2.75, 1.9, 1.95, 0.75, 1.9, 1.95], strict=True)
+)
 
 
 def _rounds(teams: int) -> list[list[tuple[int, int]]]:
@@ -45,6 +49,7 @@ def _season(teams: int = 4, legs: int = 2) -> pd.DataFrame:
                         "s1_ht_away_goals": 0,
                         "s1_ft_home_goals": 1,
                         "s1_ft_away_goals": 0,
+                        **_ODDS,
                     }
                 )
     return pd.DataFrame(rows)
@@ -106,6 +111,29 @@ def test_a_kickoff_in_the_wrong_year_fails() -> None:
     season = _season()
     season.loc[0, "s1_date"] = "2030-01-01 15:00+01:00"
     assert any("kickoffs outside" in issue for issue in _issues(season))
+
+
+def _blank_rounds(issues: list[str]) -> list[str]:
+    return [issue for issue in issues if "without odds on any match" in issue]
+
+
+def test_a_round_without_any_odds_fails() -> None:
+    season = _season()
+    season.loc[season["s1_round"] == 2, STAGED_ODDS.cells()] = float("nan")
+    assert _blank_rounds(_issues(season)) == ["1 rounds without odds on any match (rounds) [2]"]
+
+
+def test_one_priced_match_saves_its_round() -> None:
+    season = _season()
+    unpriced = season.index[season["s1_round"] == 2][1:]
+    season.loc[unpriced, STAGED_ODDS.cells()] = float("nan")
+    assert _blank_rounds(_issues(season)) == []
+
+
+def test_a_round_below_the_minimum_size_is_left_alone() -> None:
+    season = _season(teams=2 * (BLANK_ROUND_MIN_MATCHES - 1))
+    season.loc[:, STAGED_ODDS.cells()] = float("nan")
+    assert _blank_rounds(_issues(season)) == []
 
 
 def test_read_staged_keeps_text_columns(tmp_path: Path) -> None:

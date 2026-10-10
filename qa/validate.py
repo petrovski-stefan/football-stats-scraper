@@ -1,12 +1,16 @@
 """Post-scrape data validator.
 
-By default it checks the staged pipeline only (`data/finished/1_raw/`): every stage-1
-schedule, then the page's final table against the table rebuilt from its results
-(`qa/final_table.py`). The old pipeline's files, archived in `data/archived/` on
-2026-10-10 (the user's call), are checked only on request: per league-season the base
-league CSV, its detail CSV and their join with the enriched file, then the global goal and
-event stores. Dataset-agnostic rules come from `qa/universal.py`; rules that need to know
-what a column means come from `qa/schedule.py`, `qa/league.py` and `qa/detail.py`.
+By default it checks the staged pipeline only (`data/finished/`): every stage-1 schedule,
+the page's final table against the table rebuilt from its results (`qa/final_table.py`),
+and the schedule's stage-2 and stage-3 files against the stages before them
+(`qa/stages.py`); then, across all files, that no match id is in two league-seasons, every
+league-season's league is in `config/leagues.json`, and no derived file has lost its
+stage-1 file. The old pipeline's files, archived in
+`data/archived/` on 2026-10-10 (the user's call), are checked only on request: per
+league-season the base league CSV, its detail CSV and their join with the enriched file,
+then the global goal and event stores. Dataset-agnostic rules come from
+`qa/universal.py`; rules that need to know what a column means come from
+`qa/schedule.py`, `qa/league.py` and `qa/detail.py`.
 
 There are no exemptions. A column that is empty because a parser broke fails, whether
 or not the breakage is already known — the only declared allowances are
@@ -19,6 +23,7 @@ Run: `uv run python -m qa.validate` (the staged files)
 """
 
 import argparse
+import json
 import os
 
 import pandas as pd
@@ -41,8 +46,12 @@ from qa import final_table as final_table_checks
 from qa import goals as goal_checks
 from qa import league as league_checks
 from qa import schedule as schedule_checks
+from qa import stages as stage_checks
 from qa import universal
 from qa.report import Report
+
+# The module that rebuilds each derived stage of the schedule from the stage before it.
+_BUILDERS = {2: "features.schedule_row", 3: "features.schedule_multi"}
 
 
 def _ids(df: pd.DataFrame) -> list[str]:
@@ -187,8 +196,8 @@ def _history_scores(detail: pd.DataFrame) -> list[pd.DataFrame]:
 
 
 def validate_staged_schedule(schedule_path: str) -> bool:
-    """One staged league-season: its stage-1 schedule, then the page's final table
-    against the table rebuilt from it."""
+    """One staged league-season: its stage-1 schedule, the page's final table against the
+    table rebuilt from it, then its stage-2 and stage-3 files against the stages before."""
     league, season = paths.split_schedule_name(schedule_path)
     schedule = schedule_checks.read_staged(schedule_path)
 
@@ -205,17 +214,72 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     exists = os.path.exists(table_path)
     table = schedule_checks.read_staged(table_path) if exists else pd.DataFrame()
     final_table_checks.check(t, schedule, table)
-    return all([r.flush(), t.flush()])
+
+    reports = [r, t, *_derived_reports(schedule_path, schedule, f"{league} {season}")]
+    # A list, not a generator: `all()` would stop at the first failure and leave the
+    # remaining reports unprinted.
+    verdicts = [report.flush() for report in reports]
+    return all(verdicts)
+
+
+def _derived_reports(schedule_path: str, raw: pd.DataFrame, subject: str) -> list[Report]:
+    """Stage 2 and stage 3 of one league-season, each against every stage before it."""
+    earlier = {1: raw}
+    reports: list[Report] = []
+    for stage, builder in _BUILDERS.items():
+        r = Report(f"{subject} - schedule (stage {stage})")
+        path = paths.schedule_at_stage(schedule_path, stage)
+        if os.path.exists(path):
+            frame = schedule_checks.read_staged(path)
+            universal.check_required_columns(r, frame, stage_checks.declared_columns(stage))
+            universal.check_primary_key(r, frame)
+            stage_checks.validate(r, frame, stage, earlier)
+            earlier[stage] = frame
+        else:
+            r.check(False, f"no stage-{stage} file: run `uv run python -m {builder}`")
+        reports.append(r)
+    return reports
+
+
+def validate_corpus(schedule_paths: list[str]) -> bool:
+    """The checks across files: no match in two league-seasons, every league-season's
+    league in `config/leagues.json`, and no stage-2 or stage-3 file left without its
+    stage-1 file."""
+    r = Report(f"corpus - {len(schedule_paths)} staged league-seasons together")
+    keys = {
+        os.path.basename(path): schedule_checks.read_staged(path, ["match_id", "s1_league_id"])
+        for path in schedule_paths
+    }
+    universal.check_unique_across(r, {name: _ids(frame) for name, frame in keys.items()})
+    league_ids = _config_league_ids()
+    r.check(league_ids is not None, f"no {paths.LEAGUES_FILE}: the leagues go unchecked")
+    if league_ids is not None:
+        found = {name: frame["s1_league_id"].astype(str).tolist() for name, frame in keys.items()}
+        universal.check_declared(r, found, league_ids, f"league id not in {paths.LEAGUES_FILE}")
+    for stage in _BUILDERS:
+        stage_checks.check_no_orphans(r, schedule_paths, paths.schedule_csvs(stage), stage)
+    return r.flush()
+
+
+def _config_league_ids() -> set[str] | None:
+    """The league ids the config declares, as text; None when there is no config."""
+    if not os.path.exists(paths.LEAGUES_FILE):
+        return None
+    with open(paths.LEAGUES_FILE, encoding="utf-8") as f:
+        return {str(league["league_id"]) for league in json.load(f)}
 
 
 def validate_staged() -> bool:
-    """Every stage-1 schedule in `data/finished/1_raw/`, with its final table."""
-    staged = [validate_staged_schedule(path) for path in paths.schedule_csvs(1)]
-    if not staged:
+    """Every stage-1 schedule in `data/finished/1_raw/` with its final table and its later
+    stages, then the checks across files."""
+    schedule_paths = paths.schedule_csvs(1)
+    if not schedule_paths:
         print(f"no staged schedules found in {paths.stage_dir(1)}/")
         return False
+    staged = [validate_staged_schedule(path) for path in schedule_paths]
+    corpus = validate_corpus(schedule_paths)
     print(f"{staged.count(True)}/{len(staged)} staged league-seasons passed")
-    return all(staged)
+    return all(staged) and corpus
 
 
 def validate_archived() -> bool:

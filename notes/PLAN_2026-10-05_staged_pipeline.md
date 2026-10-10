@@ -138,7 +138,9 @@ it redoes both finished seasons:
 `uv run python -m scrapers.schedule --leagues "ENG L2" --before-year 2026 --force`
 (2 jobs, ~10 min). Before it: copy those 2 seasons' stage files aside. After it: rebuild stages 2
 and 3, run `qa.validate`, compare old and new files match by match (odds gained, anything else
-changed), and re-run `notes/runs/2026-10-10_odds_coverage/coverage.py`.
+changed), and re-run `notes/runs/2026-10-10_odds_coverage/coverage.py`. Until then `qa.validate`
+fails England League 2 2024-25 on the odds coverage floor and the blank-round check (`qa/CLAUDE.md`
+§5b), and stages 2 and 3 fail too between the re-scrape and their rebuild: both expected.
 
 ## 6. Open points Claude handles (no user decision needed)
 

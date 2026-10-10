@@ -51,6 +51,23 @@ def test_check_primary_key_null_blank_and_duplicate() -> None:
     ]
 
 
+def test_check_unique_across() -> None:
+    r = _report()
+    # A repeat inside one file is `check_primary_key`'s job, not this check's.
+    universal.check_unique_across(r, {"a.csv": ["1", "2", "2"], "b.csv": ["3"]})
+    assert r.ok
+    universal.check_unique_across(r, {"a.csv": ["1", "2"], "b.csv": ["2", "3"]})
+    assert r.issues == ["1 match_id values in more than one file, e.g. 2 in ['a.csv', 'b.csv']"]
+
+
+def test_check_declared() -> None:
+    r = _report()
+    universal.check_declared(r, {"a.csv": ["1", "1"], "b.csv": ["2"]}, {"1", "2", "3"}, "stray id")
+    assert r.ok
+    universal.check_declared(r, {"a.csv": ["1"], "b.csv": ["2", "4"]}, {"1", "2"}, "stray id")
+    assert r.issues == ["1 files with a stray id ['b.csv']"]
+
+
 def test_check_no_dead_columns() -> None:
     frame = pd.DataFrame({"full": [1, 2], "dead": [np.nan, np.nan]})
     r = _report()

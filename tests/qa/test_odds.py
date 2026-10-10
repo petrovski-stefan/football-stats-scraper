@@ -1,10 +1,12 @@
 """`qa/odds.py`: the odds checks, on any table given its column names."""
 
+from collections.abc import Callable
+
 import pandas as pd
 import pytest
 
 from qa import odds
-from qa.odds import OddsColumns, check_all
+from qa.odds import OddsColumns, check_all, check_coverage, check_whole_markets
 from qa.report import Report
 
 _COLUMNS = OddsColumns("h", "d", "a", "ou", "over", "under", "ah", "ah_h", "ah_a")
@@ -23,8 +25,14 @@ def _row(**overrides: float | None) -> dict[str, float | None]:
 
 
 def _issues(*rows: dict[str, float | None]) -> list[str]:
+    return _issues_of(check_all, *rows)
+
+
+def _issues_of(
+    check: Callable[[Report, pd.DataFrame, OddsColumns], None], *rows: dict[str, float | None]
+) -> list[str]:
     report = Report("test")
-    check_all(report, pd.DataFrame(list(rows)), _COLUMNS)
+    check(report, pd.DataFrame(list(rows)), _COLUMNS)
     return report.issues
 
 
@@ -100,3 +108,45 @@ def test_a_goal_line_above_the_handicap_passes() -> None:
 def test_an_ah_sign_against_the_favourite_fails() -> None:
     # Home is the 1X2 favourite (1.5 vs 6.0), so a negative AH line contradicts it.
     assert any("AH sign" in issue for issue in _issues(_row(ah=-1.25)))
+
+
+def test_markets_hold_every_cell_once() -> None:
+    assert list(_COLUMNS.markets()) == ["1X2", "OU", "AH"]
+    assert _COLUMNS.cells() == ["h", "d", "a", "ou", "over", "under", "ah", "ah_h", "ah_a"]
+
+
+@pytest.mark.parametrize("cell", ["ou", "over", "under"])
+def test_a_part_filled_market_fails(cell: str) -> None:
+    issues = _issues_of(check_whole_markets, _row(**{cell: None}))
+    assert issues == ["1 OU rows with only part of the market filled"]
+
+
+def test_a_market_missing_whole_passes() -> None:
+    assert _issues_of(check_whole_markets, _row(h=None, d=None, a=None)) == []
+
+
+@pytest.fixture
+def half_floor(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(odds, "COVERAGE_FLOOR", 0.5)
+
+
+@pytest.mark.usefixtures("half_floor")
+def test_coverage_at_the_floor_passes() -> None:
+    assert _issues_of(check_coverage, _row(), _row(ah=None, ah_h=None, ah_a=None)) == []
+
+
+@pytest.mark.usefixtures("half_floor")
+def test_coverage_below_the_floor_fails() -> None:
+    unpriced = _row(h=None, d=None, a=None)
+    issues = _issues_of(check_coverage, _row(), unpriced, unpriced)
+    assert issues == ["1/3 rows (33.3%) carry all three markets, below the 50% floor"]
+
+
+def test_coverage_skips_a_table_without_the_odds_columns() -> None:
+    report = Report("test")
+    check_coverage(report, pd.DataFrame({"match_id": ["1"]}), _COLUMNS)
+    assert report.ok
+
+
+def test_the_coverage_floor_is_a_share() -> None:
+    assert 0 < odds.COVERAGE_FLOOR <= 1

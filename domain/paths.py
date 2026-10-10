@@ -1,4 +1,4 @@
-"""Where the project's CSVs live, and how to get from one to its siblings.
+"""Where the project's CSVs and its league config live, and how to get from a CSV to its siblings.
 
 The physical counterpart to `domain/columns.py`: that module declares *which columns*
 a file has, this one declares *which file, where*. Both are contracts shared between
@@ -40,6 +40,10 @@ root — see CLAUDE.md.
 import glob
 import os
 import re
+
+# The league catalogue: `scrapers/links.py` reads the jobs from it, and `qa.validate` holds
+# the stored files against it. Written as it appears in messages.
+LEAGUES_FILE = "config/leagues.json"
 
 DATA_DIR = "data"
 ARCHIVED_DIR = os.path.join(DATA_DIR, "archived")

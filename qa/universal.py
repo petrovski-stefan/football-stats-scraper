@@ -7,7 +7,7 @@ an int64 id and a str id were being validated differently). Anything that needs 
 what a column *means* belongs in `qa/league.py` or `qa/detail.py` instead.
 """
 
-from collections.abc import Collection, Sequence
+from collections.abc import Collection, Mapping, Sequence
 
 import pandas as pd
 
@@ -58,6 +58,37 @@ def check_primary_key(r: Report, df: pd.DataFrame, key: str = "match_id") -> Non
 
     duplicate_count = int(normalised.duplicated().sum())
     r.check(duplicate_count == 0, f"{duplicate_count} duplicate {key}")
+
+
+def check_unique_across(
+    r: Report, ids: Mapping[str, Collection[str]], key: str = "match_id"
+) -> None:
+    """No id appears in more than one file. `ids` maps each file's name to its ids; a repeat
+    inside one file is `check_primary_key`'s job.
+
+    A match stored in two files is counted twice by anything that reads them together.
+    """
+    files: dict[str, list[str]] = {}
+    for name, values in ids.items():
+        for value in set(values):
+            files.setdefault(value, []).append(name)
+    shared = sorted((value, names) for value, names in files.items() if len(names) > 1)
+    example = f", e.g. {shared[0][0]} in {shared[0][1]}" if shared else ""
+    r.check(not shared, f"{len(shared)} {key} values in more than one file{example}")
+
+
+def check_declared(
+    r: Report, found: Mapping[str, Collection[str]], declared: Collection[str], what: str
+) -> None:
+    """Every file holds only declared values. `found` maps each file's name to its values;
+    `what` names a stray value in the message.
+
+    A file left behind when its entry was taken out of the declaration (a league removed
+    from the config) would still be read with the rest.
+    """
+    allowed = set(declared)
+    stray = sorted(name for name, values in found.items() if not set(values) <= allowed)
+    r.check(not stray, f"{len(stray)} files with a {what} {stray[:3]}")
 
 
 def check_no_dead_columns(

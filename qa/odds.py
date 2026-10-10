@@ -36,6 +36,10 @@ NO_PRICE_BAND = 1.10
 QUARTER = 0.25
 # Share of rows whose AH sign may disagree with the 1X2 favourite before it is a finding.
 AH_SIGN_TOLERANCE = 0.02
+# The smallest share of a table's rows that must carry all three markets (the user,
+# 2026-10-10). The kept leagues price every match but the rare one the bookmaker skipped,
+# such as an awarded match; a round the page did not show odds for takes a season below it.
+COVERAGE_FLOOR = 0.99
 
 
 @dataclass(frozen=True)
@@ -51,6 +55,18 @@ class OddsColumns:
     ah_line: str
     ah_home: str
     ah_away: str
+
+    def markets(self) -> dict[str, tuple[str, str, str]]:
+        """Each market's three cells, under the name the reports use."""
+        return {
+            "1X2": (self.home, self.draw, self.away),
+            "OU": (self.ou_line, self.over, self.under),
+            "AH": (self.ah_line, self.ah_home, self.ah_away),
+        }
+
+    def cells(self) -> list[str]:
+        """All nine cells, market by market."""
+        return [cell for market in self.markets().values() for cell in market]
 
 
 def _present(df: pd.DataFrame, *columns: str) -> pd.DataFrame:
@@ -178,7 +194,40 @@ def check_goal_line_above_handicap(r: Report, df: pd.DataFrame, c: OddsColumns) 
     r.check(flat.empty, f"{len(flat)} rows whose OU line is not above the AH line's size")
 
 
+def check_whole_markets(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+    """Each market is all or nothing: a row holds all three of its cells or none.
+
+    The page shows a market's line and prices together, and `scrapers/schedule.py:
+    drop_stale_odds` empties whole markets only, so a part-filled market is a misread cell.
+    """
+    for kind, cells in c.markets().items():
+        if not set(cells) <= set(df.columns):
+            continue
+        filled = df[list(cells)].notna().sum(axis=1)
+        part = int(((filled > 0) & (filled < len(cells))).sum())
+        r.check(part == 0, f"{part} {kind} rows with only part of the market filled")
+
+
+def check_coverage(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+    """At least `COVERAGE_FLOOR` of the rows carry all three markets.
+
+    A table without one of the columns is skipped: `universal.check_required_columns`
+    reports the column once.
+    """
+    if df.empty or not set(c.cells()) <= set(df.columns):
+        return
+    full = len(_present(df, *c.cells()))
+    share = full / len(df)
+    r.check(
+        share >= COVERAGE_FLOOR,
+        f"{full}/{len(df)} rows ({share:.1%}) carry all three markets, "
+        f"below the {COVERAGE_FLOOR:.0%} floor",
+    )
+
+
 def check_all(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+    """The checks every table gets. The staged schedule adds `check_whole_markets` and
+    `check_coverage` (`qa/schedule.py`); the archived files predate both."""
     check_1x2(r, df, c)
     check_asian(r, df, c)
     check_line_size(r, df, c)

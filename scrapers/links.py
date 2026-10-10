@@ -4,9 +4,8 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, model_validator
 
+from domain.paths import LEAGUES_FILE
 from domain.schedule import season_start_year
-
-LEAGUES_FILE = "config/leagues.json"
 
 # https://football.nowgoal26.com/league/2025-2026/36 -> season "2025-2026", id 36
 # https://football.nowgoal26.com/league/2025/71      -> season "2025",      id 71
