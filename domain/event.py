@@ -1,4 +1,4 @@
-"""The contract for one non-scoring event in `data/raw/events.csv`.
+"""The contract for one non-scoring event in `data/archived/raw/events.csv`.
 
 Cards and substitutions, one row per event, keyed by `match_id`. Goals live in their own
 store (`domain/goal.py`) because they are identified differently — by the running score
@@ -6,7 +6,7 @@ rather than the icon — and because a goal carries a score the event checks rec
 against, which a card does not.
 
 A match with no cards and no substitutions contributes **no rows at all**, so
-`data/raw/events_done.csv` is the record of what has been attempted, exactly as
+`data/archived/raw/events_done.csv` is the record of what has been attempted, exactly as
 `goals_done.csv` is for goals. That case is rare but real (an abandoned or unreported
 fixture), and deriving "already scraped" from the store would re-fetch it forever.
 

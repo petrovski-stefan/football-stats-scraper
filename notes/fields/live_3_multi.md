@@ -5,7 +5,7 @@ card aggregates. Each one combines the live stores (`live_1_raw.md`) with this m
 rows, so it needs other rows and other files. **As today, not redesigned yet (plan Q4).**
 
 - Built by `features/goals.py` and `features/events.py`; written today into
-  `data/processed/<league>_<season>_enriched.csv` by `features/enrich.py`.
+  `data/archived/processed/<league>_<season>_enriched.csv` by `features/enrich.py`.
 - **Row window today:** the history matches in this match's slots, depth 6, sections `home`,
   `away` and `h2h`. Under the locked windows the `h2h` section becomes at most 4 rows, none older
   than 2 years (`detail_3_multi.md`). A history match is always played before this one; its

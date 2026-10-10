@@ -1,21 +1,24 @@
 """Post-scrape data validator.
 
-Discovers every scraped league-season in `data/raw/` and validates three subjects per
-league-season: the base league CSV, its detail CSV, and the relationship between them
-and the enriched join in `data/processed/`. For every schedule on the staged pipeline
-(`data/finished/1_raw/`) it also holds the page's final table against the table rebuilt
-from the stored results (`qa/final_table.py`). Dataset-agnostic rules come from
-`qa/universal.py`; rules that need to know what a column means come from `qa/league.py`
-and `qa/detail.py`.
+By default it checks the staged pipeline only (`data/finished/1_raw/`): every stage-1
+schedule, then the page's final table against the table rebuilt from its results
+(`qa/final_table.py`). The old pipeline's files, archived in `data/archived/` on
+2026-10-10 (the user's call), are checked only on request: per league-season the base
+league CSV, its detail CSV and their join with the enriched file, then the global goal and
+event stores. Dataset-agnostic rules come from `qa/universal.py`; rules that need to know
+what a column means come from `qa/schedule.py`, `qa/league.py` and `qa/detail.py`.
 
 There are no exemptions. A column that is empty because a parser broke fails, whether
-or not the breakage is already known — the only declared allowance is
-`domain.columns.OPTIONAL_BASE_COLUMNS`, which names columns that are empty in a
-*correct* scrape. Exits non-zero if any subject fails.
+or not the breakage is already known — the only declared allowances are
+`domain.columns.OPTIONAL_SCHEDULE_COLUMNS` and, in the archive, `OPTIONAL_BASE_COLUMNS`,
+which name columns that are empty in a *correct* scrape. Exits non-zero if any subject
+fails.
 
-Run: `uv run python -m qa.validate`
+Run: `uv run python -m qa.validate` (the staged files)
+     `uv run python -m qa.validate --archived` (the old pipeline's files)
 """
 
+import argparse
 import os
 
 import pandas as pd
@@ -205,16 +208,22 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     return all([r.flush(), t.flush()])
 
 
-def main() -> None:
+def validate_staged() -> bool:
+    """Every stage-1 schedule in `data/finished/1_raw/`, with its final table."""
     staged = [validate_staged_schedule(path) for path in paths.schedule_csvs(1)]
-    if staged:
-        print(f"{staged.count(True)}/{len(staged)} staged league-seasons passed")
-        print()
+    if not staged:
+        print(f"no staged schedules found in {paths.stage_dir(1)}/")
+        return False
+    print(f"{staged.count(True)}/{len(staged)} staged league-seasons passed")
+    return all(staged)
 
+
+def validate_archived() -> bool:
+    """The old pipeline's league-seasons and global stores in `data/archived/`."""
     base_paths = paths.base_league_csvs()
     if not base_paths:
         print(f"no league CSVs found in {paths.RAW_DIR}/")
-        raise SystemExit(1)
+        return False
 
     results = [validate_league_season(path) for path in base_paths]
     failed = results.count(False)
@@ -228,7 +237,18 @@ def main() -> None:
     if events_ok is None:
         print("cards and substitutions: not scraped yet (skipped)")
 
-    if failed or False in staged or goals_ok is False or events_ok is False:
+    return not failed and goals_ok is not False and events_ok is not False
+
+
+def main(argv: list[str] | None = None) -> None:
+    parser = argparse.ArgumentParser(description="Validate the scraped data.")
+    parser.add_argument(
+        "--archived",
+        action="store_true",
+        help="check the old pipeline's files in data/archived/ instead of data/finished/",
+    )
+    args = parser.parse_args(argv)
+    if not (validate_archived() if args.archived else validate_staged()):
         raise SystemExit(1)
 
 

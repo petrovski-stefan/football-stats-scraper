@@ -4,13 +4,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Selenium + BeautifulSoup scraper that collects finished football match data (teams, kickoff, round, HT/FT goals, opening odds) from **nowgoal26.com** league pages. **The data is moving to a staged pipeline** (`notes/PLAN_2026-10-05_staged_pipeline.md`): each source is stored as read from the page (stage 1), then enriched with fields from one row (stage 2), then with fields that need other rows (stage 3), under `data/finished/`; every field is defined once in `notes/fields/`. The schedule is on the new pipeline (2026-10-06); the detail page, the live page and the analysis still use the old per-league CSVs in `data/raw/` until the plan's steps P4–P5. It serves analytics for two betting markets: **comebacks**, where the HT loser wins at FT (`is_comeback`, split into `is_comeback_home` / `is_comeback_away`), and **over 6.5 goals** (`is_seven_or_more_goals`). Package manager is **uv**; requires **Python 3.13** (pinned in `.python-version`).
+Selenium + BeautifulSoup scraper that collects finished football match data (teams, kickoff, round, HT/FT goals, opening odds) from **nowgoal26.com** league pages. **The data is moving to a staged pipeline** (`notes/PLAN_2026-10-05_staged_pipeline.md`): each source is stored as read from the page (stage 1), then enriched with fields from one row (stage 2), then with fields that need other rows (stage 3), under `data/finished/`; every field is defined once in `notes/fields/`. The schedule is on the new pipeline (2026-10-06); the detail page, the live page and the analysis still use the old per-league CSVs, archived in `data/archived/` on 2026-10-10, until the plan's steps P4–P5. It serves analytics for two betting markets: **comebacks**, where the HT loser wins at FT (`is_comeback`, split into `is_comeback_home` / `is_comeback_away`), and **over 6.5 goals** (`is_seven_or_more_goals`). Package manager is **uv**; requires **Python 3.13** (pinned in `.python-version`).
 
 Never call the site's data/API endpoints directly — always render pages in Selenium and parse the DOM.
 
 ## Commands
 
-All commands run from the repo root — the `data/raw/`, `data/processed/`, `notes/` and `config/` paths are relative to the working directory, not to the module.
+All commands run from the repo root — the `data/`, `notes/` and `config/` paths are relative to the working directory, not to the module.
 
 Pipeline, in order:
 
@@ -18,13 +18,13 @@ Pipeline, in order:
 - Run the league scraper: `uv run python -m scrapers.schedule` → `data/finished/1_raw/` (the schedule and the page's final table, `notes/fields/schedule_1_raw.md`). With no option it takes the `enabled` seasons; `--leagues "SCO PR,SCO CH"` / `--all`, `--before-year 2026`, `--list` (no page opens) and `--force` choose others (`scrapers/CLAUDE.md` §1). It resumes: a league-season already on disk is skipped.
 - Build schedule stage 2: `uv run python -m features.schedule_row` → `data/finished/2_row/` (`notes/fields/schedule_2_row.md`)
 - Build schedule stage 3: `uv run python -m features.schedule_multi` → `data/finished/3_multi/` (`notes/fields/schedule_3_multi.md`; the standings rebuilt at each kickoff)
-- Run the detail enricher: `uv run python -m scrapers.detail [--limit N]` → `data/raw/` (resumable; `--limit` caps the batch)
-- Scrape the live page: `uv run python -m scrapers.goals [--limit N] [--sections home,away,h2h] [--depth 6]` → `data/raw/goals.csv` **and** `data/raw/events.csv` (fourth stage; see `scrapers/CLAUDE.md`)
-- Build the enriched join: `uv run python -m features.enrich` → `data/processed/` — the third pipeline step, required after either scrape before anything in `features/` or `modelling/` sees new data.
+- Run the detail enricher: `uv run python -m scrapers.detail [--limit N]` → `data/archived/raw/` (resumable; `--limit` caps the batch)
+- Scrape the live page: `uv run python -m scrapers.goals [--limit N] [--sections home,away,h2h] [--depth 6]` → `data/archived/raw/goals.csv` **and** `data/archived/raw/events.csv` (fourth stage; see `scrapers/CLAUDE.md`)
+- Build the enriched join: `uv run python -m features.enrich` → `data/archived/processed/` — the third pipeline step, required after either scrape before anything in `features/` or `modelling/` sees new data.
 
 Validation, features, modelling:
 
-- Validate the corpus: `uv run python -m qa.validate` — exits non-zero on any failure; read `qa/CLAUDE.md` before touching it.
+- Validate the corpus: `uv run python -m qa.validate` — the staged files in `data/finished/` only (`--archived` checks the old pipeline's files instead); exits non-zero on any failure; read `qa/CLAUDE.md` before touching it.
 - Build the feature matrix: `uv run python -m features.engine` (`--self-check` proves the as-of-round invariant)
 - Validate the imported F11 completion curve: `uv run python -m features.chain --replicate-f11`
 - Screen features: `uv run python -m modelling.experiment --dev` → `notes/runs/`. **The holdout mode was deleted 2026-10-02: it targeted a spent season (see `modelling/CLAUDE.md` §2).** A `PreToolUse` hook (`.claude/settings.json` → `.claude/hooks/block-holdout.sh`) still blocks any Bash or PowerShell command containing `--holdout`, so an old checkout cannot run it either. The hook fails open if bash is unavailable; rerun its proof after any environment change.
@@ -60,7 +60,7 @@ The user's VS Code formats on save (Ruff for `.py`, pointed at the project's ruf
 ## Required runtime setup
 
 - `config/leagues.json` (gitignored; start from the committed template `config/leagues.example.json`, one fake league) — a list of leagues: `name`, `code`, `continent`, `country`, `league_id`, `stages` (every stage tab the league page shows, `[]` for none), `keep` (the stages to scrape) and `seasons` (`season`, `url`, `enabled`). `scrapers.schedule` scrapes only the seasons with `"enabled": true`. `scrapers/links.py` validates the whole file when it loads, and fails on any bad entry. Season URLs have the format `/league/<season>/<id>`. **`<season>` takes two forms**, both accepted: `2025-2026` for a cross-year European league (`.../league/2025-2026/36`) and `2025` for a calendar-year one — Scandinavia, Brazil, Japan and others that play inside a single year (`.../league/2025/71`). See "Season labels" in `domain/CLAUDE.md`.
-- `data/` — one gitignored tree, split by provenance: **`data/raw/`** is scraper output only (`<league>_<season>.csv` and `_detail.csv`), **`data/processed/`** is derived (`_enriched.csv`, written by `features/enrich.py`). **`data/finished/`** is the staged pipeline: `1_raw/` is scraper output only, `2_row/` and `3_multi/` are rebuilt from it; `data/scheduled/` and `data/predictions/` come later. All auto-create on write. Both are declared in **`domain/paths.py`**, the only place a data directory or a sibling-file path is constructed — never rebuild one by hand from a filename.
+- `data/` — one gitignored tree. **`data/finished/`** is the staged pipeline: `1_raw/` is scraper output only, `2_row/` and `3_multi/` are rebuilt from it; `data/scheduled/` and `data/predictions/` come later. **`data/archived/`** holds the old pipeline's files, moved there on 2026-10-10 (the user's call) and kept for refactoring the detail, goal and event sources: `raw/` (`<league>_<season>.csv`, `_detail.csv`, the goal and event stores) and `processed/` (`_enriched.csv`). The old tools still read and write there until steps P4–P5 move them, so don't run them on the archive. All auto-create on write. All are declared in **`domain/paths.py`**, the only place a data directory or a sibling-file path is constructed — never rebuild one by hand from a filename.
 - A locally installed **Chrome** — Selenium 4 auto-manages the driver and runs headless.
 
 ## Architecture
@@ -86,7 +86,7 @@ Modules and directories have been renamed several times. If code or a note cites
 - Absolute package imports only (`from domain import stats`), never relative — enforced by Ruff `TID`. Respect the layer direction in the table above.
 - Never hardcode a data directory or build a CSV's sibling by string surgery (`base_path.replace(".csv", "_enriched.csv")` was the old idiom and silently resolves to the wrong directory now). Go through `domain/paths.py`.
 - Open research decisions go to `notes/DECISIONS.md` instead of blocking the current task. Only stop and ask when the task genuinely can't continue without the answer.
-- Only `scrapers/` may write to `data/raw/` and `data/finished/1_raw/`. Everything else derives into `data/processed/` or the later stage directories and must be reproducible from the raw files — that is what makes the raw corpus safe to treat as ground truth and a derived file safe to delete.
+- Only `scrapers/` may write to `data/finished/1_raw/`. Everything else derives into the later stage directories and must be reproducible from the raw files — that is what makes the raw corpus safe to treat as ground truth and a derived file safe to delete.
 - Line endings: CRLF on disk for every text file, LF inside git (`.gitattributes`). `*.sh` stays LF, because bash fails on `\r`. The formatting hook converts each file Claude writes, since Write creates LF files.
 
 ## Where to read

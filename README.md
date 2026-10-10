@@ -12,10 +12,10 @@ A web scraper that collects football match data across multiple leagues — incl
    - Full-time and half-time goals
    - Betting odds in three flavours — 1X2, Asian Handicap, and Over/Under
    - Stage, round, date, and match position in the round
-5. Validates data with Pydantic and saves per-league CSV files to `data/raw/`
-6. Enriches each match from its detail page (recent form, H2H, odds movement) into `data/raw/`
-7. Scrapes each match's live page into two global stores — `data/raw/goals.csv` (goal timings) and `data/raw/events.csv` (yellow cards, red cards, substitutions)
-8. Joins them into `data/processed/` for the feature and modelling layers
+5. Validates data with Pydantic and saves per-league CSV files to `data/archived/raw/`
+6. Enriches each match from its detail page (recent form, H2H, odds movement) into `data/archived/raw/`
+7. Scrapes each match's live page into two global stores — `data/archived/raw/goals.csv` (goal timings) and `data/archived/raw/events.csv` (yellow cards, red cards, substitutions)
+8. Joins them into `data/archived/processed/` for the feature and modelling layers
 
 ## Tech stack
 
@@ -40,7 +40,7 @@ Five packages, imported absolutely and strictly one-directional:
 │   └── leagues.json          # Your real config (gitignored): leagues, stages to keep, seasons
 ├── data/
 │   ├── raw/              # Scraper output only — nothing else writes here
-│   └── processed/        # Derived files, all reproducible from data/raw/
+│   └── processed/        # Derived files, all reproducible from data/archived/raw/
 ├── domain/               # Pydantic contracts, column order, paths, pure stat kernel
 ├── scrapers/             # Selenium driver, DOM parsers, schedule/detail/live-page scrapes
 ├── features/             # The joins, goal/event aggregates, as-of-round feature matrix
@@ -82,10 +82,10 @@ It stops at the first failing stage and says which one. Rerun the same command t
 Or run the four stages by hand, in order:
 
 ```bash
-uv run python -m scrapers.schedule   # -> data/raw/<league>_<season>.csv
-uv run python -m scrapers.detail     # -> data/raw/<league>_<season>_detail.csv
-uv run python -m scrapers.goals      # -> data/raw/goals.csv + events.csv (global, not per league)
-uv run python -m features.enrich     # -> data/processed/<league>_<season>_enriched.csv
+uv run python -m scrapers.schedule   # -> data/archived/raw/<league>_<season>.csv
+uv run python -m scrapers.detail     # -> data/archived/raw/<league>_<season>_detail.csv
+uv run python -m scrapers.goals      # -> data/archived/raw/goals.csv + events.csv (global, not per league)
+uv run python -m features.enrich     # -> data/archived/processed/<league>_<season>_enriched.csv
 ```
 
 Both scrapes are resumable — they skip ids already done, so interrupt them freely. Detail
@@ -107,7 +107,7 @@ uv run python -m qa.validate
 The schedule is stored in three stages under `data/finished/`: the values read from the page
 (stage 1), fields computed from one row (stage 2), and fields that need other rows, such as
 the standings table at each kickoff (stage 3). The detail CSV (537 columns) still uses the old
-layout in `data/raw/` until the staged pipeline reaches it.
+layout in `data/archived/raw/` until the staged pipeline reaches it.
 
 **`domain/columns.py` is the authoritative list of column orders**, and **`notes/fields/`
 defines every column once**: its place on the page, meaning, example, timing and role. Neither

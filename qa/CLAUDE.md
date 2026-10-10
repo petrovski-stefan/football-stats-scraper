@@ -2,13 +2,13 @@
 
 ## 1. The validate command
 
-`uv run python -m qa.validate` checks internal self-consistency and **exits non-zero on any failure**. Its one cross-source check is the page's final table against our rebuilt standings (§5); the football-data.co.uk check was retired (see `notes/MIGRATIONS.md`).
+`uv run python -m qa.validate` checks internal self-consistency of the staged files in `data/finished/` and **exits non-zero on any failure**. `--archived` runs the old pipeline's checks instead, on the files archived in `data/archived/` on 2026-10-10 (base, detail, joins, the goal and event stores); use it when refactoring those sources. Its one cross-source check is the page's final table against our rebuilt standings (§5); the football-data.co.uk check was retired (see `notes/MIGRATIONS.md`).
 
 ## 2. Don't soften the canary
 
 Do not soften the canary in `qa/` to make the run green. A failure is a finding about the data, not a bug in the check.
 
-## 3. The current exit-1: friendly tournaments in the event store
+## 3. The archive's exit-1 (`--archived`): friendly tournaments in the event store
 
 It is a real finding rather than a stale one. **2 of 1,395 matches (0.14%) show 9-10 substitutions by one side**, which is impossible in competitive football. Both are pre-season friendly tournaments — `Germany Liga Total Cup` and `Emirates Cup` — that `domain/scope.py:FRIENDLY_MARKER` misses because neither name contains "friendly".
 

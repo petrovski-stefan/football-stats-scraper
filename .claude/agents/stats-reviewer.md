@@ -45,7 +45,7 @@ they win.
    confirmatory; any `--holdout` run. (`modelling/CLAUDE.md` §2; A9)
 3. **A10 eligibility** — every league-season named as confirmatory must be declared in a
    dated amendment committed before its scrape (A9.3), and must have no
-   `data/raw/<league>_<season>.csv`. Check the file with Glob, which sees gitignored files
+   `data/archived/raw/<league>_<season>.csv`. Check the file with Glob, which sees gitignored files
    (verified 2026-09-28). The history-slot and event-store conditions of A10.1 need a data
    measurement you cannot do: list them under "Not verified" and point to `/preregister`'s
    refusal step.

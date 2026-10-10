@@ -1,12 +1,12 @@
 """Second-stage scraper: render each match's detail page and produce one wide
 feature row per match, keyed by `match_id`.
 
-Enrichment (now): match ids come from the finished-match league CSVs in `data/raw/`.
+Enrichment (now): match ids come from the finished-match league CSVs in `data/archived/raw/`.
 A future prediction mode can feed upcoming ids to `scrape_match_detail` unchanged.
 
-Writes only `data/raw/<league>_<season>_detail.csv`. The join against the base league
+Writes only `data/archived/raw/<league>_<season>_detail.csv`. The join against the base league
 CSV is not a scrape and lives in `features/enrich.py` — run that afterwards to refresh
-`data/processed/<league>_<season>_enriched.csv`.
+`data/archived/processed/<league>_<season>_enriched.csv`.
 
 Run: `uv run python -m scrapers.detail [--limit N]`
 """

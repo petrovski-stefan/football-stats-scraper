@@ -6,9 +6,9 @@ it out also means a stale or deleted `_enriched.csv` can be rebuilt from the raw
 in seconds — previously the only way to regenerate one was to invoke the detail
 scraper, which starts Selenium even when there is nothing left to fetch.
 
-Reads `data/raw/`, writes `data/processed/`. The enriched file is the base columns, then
-the detail feature columns, then — when the goal-timing store exists — the derived timing
-aggregates from `features/goals.py`. Those are the one set of columns this module does not
+Reads `data/archived/raw/`, writes `data/archived/processed/`. The enriched file is the base
+columns, then the detail feature columns, then — when the goal-timing store exists — the derived
+timing aggregates from `features/goals.py`. Those are the one set of columns this module does not
 merely copy across, and they are appended last so the base-then-detail order is unchanged.
 
 Run: `uv run python -m features.enrich`

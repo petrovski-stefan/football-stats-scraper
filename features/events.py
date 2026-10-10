@@ -1,4 +1,4 @@
-"""Card and substitution features, derived from `data/raw/events.csv`.
+"""Card and substitution features, derived from `data/archived/raw/events.csv`.
 
 The companion to `features/goals.py`, built the same way: for each fixture, look up the
 events of the matches in the home side's recent form, the away side's recent form and the

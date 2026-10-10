@@ -1,4 +1,4 @@
-"""Goal-timing features, derived from the global store in `data/raw/goals.csv`.
+"""Goal-timing features, derived from the global store in `data/archived/raw/goals.csv`.
 
 These are *history-block* features, in the same shape as the existing `*_recent_*` and
 `h2h_*` aggregates: for each fixture, look up the goal timings of the matches in the home

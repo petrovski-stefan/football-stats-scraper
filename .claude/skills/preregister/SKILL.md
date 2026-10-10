@@ -39,7 +39,7 @@ Ask the user for anything missing; do not invent it.
 | **Family**               | Closed list. If the claim is one of RETRY's 15, the family is those 15 (A8.2). A claim not on the list becomes claim 16+, and the family grows by this amendment — only legal because it is declared before the confirmatory data exists (RETRY §6.1).                                                                                                          |
 | **Correction**           | Holm across the whole family (`modelling/experiment.py:holm`). State m.                                                                                                                                                                                                                                                                                         |
 | **Metric and bar**       | precision@top-N with Wilson 95% CI and lift, N fixed here. Pass = RETRY §7: Holm p < 0.05; Wilson LB > base rate; lift ≥ 1.25×; same sign leave-one-league-out. Estimator: Mantel–Haenszel over league-season strata. Never per league. Give the power line (`required_n`).                                                                                     |
-| **Confirmatory set**     | A9.2: league-seasons first scraped **after 2026-09-28** and never present in `data/raw/` or among the event store's referenced matches, plus 2026-27 as it accrues. List each as a `config/leagues.json` season URL (`/league/<season>/<id>`) with its season label, plus the **scrape start date**. Enumerate calendar-year labels (`2025`) explicitly (A8.5). |
+| **Confirmatory set**     | A9.2: league-seasons first scraped **after 2026-09-28** and never present in `data/archived/raw/` or among the event store's referenced matches, plus 2026-27 as it accrues. List each as a `config/leagues.json` season URL (`/league/<season>/<id>`) with its season label, plus the **scrape start date**. Enumerate calendar-year labels (`2025`) explicitly (A8.5). |
 | **Single opening**       | One run, the exact command, run once after the scrape completes and the dev screen is closed; its raw output goes to `notes/runs/<date>_<name>.txt` in the commit that reports it (`modelling/CLAUDE.md` §2). No second opening; a lost transcript is not regenerated (A7).                                                                                     |
 | **Inherited conditions** | e.g. claim 15 excludes the `english_premier_league 2025-2026` stratum (A8.4).                                                                                                                                                                                                                                                                                   |
 
@@ -50,10 +50,10 @@ anywhere disqualifies the whole league-season. For each proposed league-season, 
 of these and **refuse** on any hit:
 
 1. The scrape start date is on or before 2026-09-28, or already past (A9.2(i), A9.3).
-2. `data/raw/<league>_<season>.csv` exists (`domain/paths.py:base_league_csvs`).
+2. `data/archived/raw/<league>_<season>.csv` exists (`domain/paths.py:base_league_csvs`).
 3. The league id appears, dated inside that season, in any history slot of any
-   `data/raw/*_detail.csv` (`home_lastN_*`, `away_lastN_*`, `h2h_lastN_*`, N=1..6, columns
-   `_league_id` and `_date`), **or** any such match id is in `data/raw/goals.csv`,
+   `data/archived/raw/*_detail.csv` (`home_lastN_*`, `away_lastN_*`, `h2h_lastN_*`, N=1..6, columns
+   `_league_id` and `_date`), **or** any such match id is in `data/archived/raw/goals.csv`,
    `goals_done.csv`, `events.csv` or `events_done.csv`. Those are "the event store's
    referenced matches".
 

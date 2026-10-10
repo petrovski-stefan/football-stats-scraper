@@ -5,17 +5,20 @@ a file has, this one declares *which file, where*. Both are contracts shared bet
 the scrapers that write and the layers that read, which is why they sit in the base
 package every layer may import.
 
-One `data/` tree, split by provenance — a file's directory states what produced it:
+The old pipeline's files sit in `data/archived/` (moved there from `data/raw/` and
+`data/processed/` on 2026-10-10, the user's call), split by provenance as before:
 
-    data/raw/        <league>_<season>.csv           scrapers.schedule
-                     <league>_<season>_detail.csv    scrapers.detail
-    data/processed/  <league>_<season>_enriched.csv  features.enrich
+    data/archived/raw/        <league>_<season>.csv           scrapers.schedule (old format)
+                              <league>_<season>_detail.csv    scrapers.detail
+                              goals.csv, events.csv (+ _done) scrapers.goals
+    data/archived/processed/  <league>_<season>_enriched.csv  features.enrich
 
-Nothing but a scraper writes into `data/raw/`. Everything derived — today just the
-base+detail join — goes to `data/processed/` and is reproducible from the raw files,
-so the whole directory is safe to delete and rebuild.
+They are reference data for refactoring the detail, goal and event sources (plan steps
+P4-P5); `qa.validate --archived` still checks them. The old tools still read and write
+there through `RAW_DIR` and `PROCESSED_DIR` until those steps move them, so don't run them
+on the archive.
 
-The staged pipeline (`notes/PLAN_2026-10-05_staged_pipeline.md`) is replacing that tree,
+The staged pipeline (`notes/PLAN_2026-10-05_staged_pipeline.md`) replaces that tree,
 one source at a time. Its files sit under `data/finished/`, one directory per stage:
 
     data/finished/1_raw/    <league>_<season>_schedule.csv     scrapers.schedule
@@ -39,8 +42,9 @@ import os
 import re
 
 DATA_DIR = "data"
-RAW_DIR = os.path.join(DATA_DIR, "raw")
-PROCESSED_DIR = os.path.join(DATA_DIR, "processed")
+ARCHIVED_DIR = os.path.join(DATA_DIR, "archived")
+RAW_DIR = os.path.join(ARCHIVED_DIR, "raw")
+PROCESSED_DIR = os.path.join(ARCHIVED_DIR, "processed")
 
 DETAIL_SUFFIX = "_detail.csv"
 ENRICHED_SUFFIX = "_enriched.csv"
@@ -62,7 +66,7 @@ GOALS_DONE_FILE = "goals_done.csv"
 # Cards and substitutions, from the same live page and global for the same reason.
 EVENTS_FILE = "events.csv"
 EVENTS_DONE_FILE = "events_done.csv"
-# Files in data/raw/ that are NOT a league-season. `base_league_csvs()` must skip these,
+# Files in data/archived/raw/ that are NOT a league-season. `base_league_csvs()` must skip these,
 # or everything that iterates league-seasons — the validator, the enricher, the goals
 # work list — picks them up and tries to treat a global store as a league.
 GLOBAL_FILES = frozenset({GOALS_FILE, GOALS_DONE_FILE, EVENTS_FILE, EVENTS_DONE_FILE})
@@ -97,7 +101,7 @@ def split_league_season(path: str) -> tuple[str, str]:
 
 
 def base_league_csvs() -> list[str]:
-    """Every base league CSV in `data/raw/`, sorted.
+    """Every base league CSV in `data/archived/raw/`, sorted.
 
     Two kinds of file share the directory without being league-seasons and must be
     excluded, or every consumer treats them as one: the per-league `_detail.csv` scrapes,
@@ -157,7 +161,7 @@ def events_done_path() -> str:
 
 
 def enriched_csvs() -> list[str]:
-    """Every enriched league-season in `data/processed/`, sorted."""
+    """Every enriched league-season in `data/archived/processed/`, sorted."""
     return sorted(glob.glob(os.path.join(PROCESSED_DIR, "*" + ENRICHED_SUFFIX)))
 
 

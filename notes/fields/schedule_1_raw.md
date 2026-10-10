@@ -6,7 +6,7 @@ only parsed. The user checks each row on the page (✓).
 - Page: the league page, <https://football.nowgoal26.com/league/2025-2026/36> for the reference
   match (round 24).
 - Files: `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` (today
-  `data/raw/<league>_<season>.csv`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`
+  `data/archived/raw/<league>_<season>.csv`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`
   (new, a check only). `<country>` is the config's country, `<league>` the league's name in the
   page's title (2026-10-08: the title alone can leave the country out). A name that already starts
   with the exact country keeps it once: `brazil_serie_a`, but `england_english_premier_league`.

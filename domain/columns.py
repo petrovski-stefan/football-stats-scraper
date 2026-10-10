@@ -207,7 +207,7 @@ def per_match_columns() -> list[str]:
 DETAIL_ORDERED_COLUMNS = DETAIL_ORDERED_COLUMNS + per_match_columns()
 
 
-# --- Goal timings (data/raw/goals.csv, data/raw/goals_done.csv) ---------------
+# --- Goal timings (data/archived/raw/goals.csv, data/archived/raw/goals_done.csv) ---------------
 # A GLOBAL store keyed by match id, not a per-league-season file: the matches referenced by
 # a fixture's history come from cups, European competition and other leagues, so they
 # belong to no single league-season, and the whole point of keying on the id is that the
@@ -230,7 +230,7 @@ GOALS_ORDERED_COLUMNS = [
 GOALS_DONE_COLUMNS = ["match_id", "scraped_at", "n_goals"]
 
 
-# --- Cards and substitutions (data/raw/events.csv, data/raw/events_done.csv) --
+# --- Cards and substitutions (data/archived/raw/events.csv, data/archived/raw/events_done.csv) --
 # Global and keyed by match id for the same reason the goal store is: the events wanted
 # are those of the matches in a fixture's history, which span competitions. `player` and
 # `player_off` are stored because they are what makes de-duplication exact when a page

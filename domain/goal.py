@@ -1,7 +1,7 @@
-"""The contract for one goal in `data/raw/goals.csv`.
+"""The contract for one goal in `data/archived/raw/goals.csv`.
 
 One row per goal, keyed by `match_id`. A goalless match contributes **no rows at all**,
-which is why `data/raw/goals_done.csv` exists separately as the record of what has been
+which is why `data/archived/raw/goals_done.csv` exists separately as the record of what has been
 attempted — see `domain/paths.py`.
 
 Row-level validation only. The sequence invariants (scores advancing by exactly one, the

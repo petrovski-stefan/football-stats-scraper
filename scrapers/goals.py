@@ -2,8 +2,8 @@
 
 One page render per match fills both:
 
-  - `data/raw/goals.csv` — one row per goal (`domain/goal.py`);
-  - `data/raw/events.csv` — one row per card or substitution (`domain/event.py`).
+  - `data/archived/raw/goals.csv` — one row per goal (`domain/goal.py`);
+  - `data/archived/raw/events.csv` — one row per card or substitution (`domain/event.py`).
 
 Goal timings and discipline are *team traits*, so they are needed not just for the corpus
 matches but for the matches in each side's recent form and head-to-head history — those
@@ -13,7 +13,7 @@ match id rather than split per league-season.
 
 The work list is therefore the union of:
 
-  - every match in `data/raw/<league>_<season>.csv` (the corpus itself), and
+  - every match in `data/archived/raw/<league>_<season>.csv` (the corpus itself), and
   - every match referenced by a `*_lastN_match_id` column in the detail files.
 
 That union is **deduplicated before anything is fetched**. The same historical match is

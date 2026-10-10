@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # Scrape every enabled league season in config/leagues.json and rebuild the enriched CSVs.
 #
-#   1. scrapers.schedule  -> data/raw/<league>_<season>.csv
-#   2. scrapers.detail    -> data/raw/<league>_<season>_detail.csv
-#   3. scrapers.goals     -> data/raw/goals.csv + data/raw/events.csv
-#   4. features.enrich    -> data/processed/<league>_<season>_enriched.csv
+#   1. scrapers.schedule  -> data/archived/raw/<league>_<season>.csv
+#   2. scrapers.detail    -> data/archived/raw/<league>_<season>_detail.csv
+#   3. scrapers.goals     -> data/archived/raw/goals.csv + data/archived/raw/events.csv
+#   4. features.enrich    -> data/archived/processed/<league>_<season>_enriched.csv
 #
 # The order matters: goals builds its work list from the history match ids that only
 # the detail files carry, and enrich joins all three raw outputs.
@@ -17,7 +17,7 @@ usage() {
   cat <<'EOF'
 Usage: scripts/pipeline.sh [options]
 
-Scrapes every enabled league season in config/leagues.json, then rebuilds data/processed/.
+Scrapes every enabled league season in config/leagues.json, then rebuilds data/archived/processed/.
 
 Options:
   --limit N          cap the detail and goals batches at N matches each
@@ -126,4 +126,4 @@ run_stage 3 goals "$run_goals" scrapers.goals \
 run_stage 4 enrich 1 features.enrich
 
 log "pipeline done in $(elapsed "$SECONDS"). Enriched files:"
-ls -1 data/processed/*_enriched.csv
+ls -1 data/archived/processed/*_enriched.csv

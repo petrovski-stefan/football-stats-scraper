@@ -98,10 +98,10 @@ def check_ids_covered(
 def check_attempt_log(r: Report, rows: pd.DataFrame, done: pd.DataFrame, count_field: str) -> None:
     """A global store and its attempt log agree, in all three ways they can disagree.
 
-    Both `data/raw/goals.csv` and `data/raw/events.csv` are append-only stores whose resume
-    key is a separate log, because a match can legitimately produce zero rows — a 0-0 has
-    no goals, a clean match has no cards. That makes the log load-bearing: if it drifts
-    from the store, either work is silently repeated forever or rows are orphaned.
+    Both `data/archived/raw/goals.csv` and `data/archived/raw/events.csv` are append-only stores
+    whose resume key is a separate log, because a match can legitimately produce zero rows — a 0-0
+    has no goals, a clean match has no cards. That makes the log load-bearing: if it drifts from the
+    store, either work is silently repeated forever or rows are orphaned.
 
     The three failures, in increasing subtlety: a duplicated id (the match is re-scraped
     every run), a store row with no log entry (written outside the lock, or a crash between

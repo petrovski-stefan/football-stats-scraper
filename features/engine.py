@@ -1,6 +1,6 @@
 """Feature engine shared by both comeback studies.
 
-Builds, one row per match from `data/processed/*_enriched.csv`:
+Builds, one row per match from `data/archived/processed/*_enriched.csv`:
   - `FAMILIES` — the six nowgoal-exclusive families of the F12 re-test
     (notes/PREREGISTRATION.md), plus the mandatory market and totals controls;
   - `FILTER_FAMILIES` — the goal-focused G1/G2/G3 families of the exclusion-filter

@@ -1,4 +1,4 @@
-"""Checks specific to a detail-scrape CSV (`data/raw/<league>_<season>_detail.csv`).
+"""Checks specific to a detail-scrape CSV (`data/archived/raw/<league>_<season>_detail.csv`).
 
 The dataset-agnostic checks (key, schema, dead columns) are applied by `qa/validate.py`
 from `qa/universal.py`. What is specific here is the shape of the per-match history

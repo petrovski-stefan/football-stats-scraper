@@ -128,14 +128,14 @@ goals.
 
 1. Draw it from the schedule-page CSV (it prints to context only):
    ```
-   uv run python -c "import csv,random; r=[x for x in csv.DictReader(open('data/raw/english_premier_league_2025-2026.csv',encoding='utf-8')) if x['match_id']!='2789151' and x['ft_score'].replace(' ','')!='0-0']; x=random.choice(r); print(x['match_id'],x['date'],x['home_team_name'],'|',x['away_team_name'],'HT',x['ht_score'],'FT',x['ft_score'])"
+   uv run python -c "import csv,random; r=[x for x in csv.DictReader(open('data/archived/raw/english_premier_league_2025-2026.csv',encoding='utf-8')) if x['match_id']!='2789151' and x['ft_score'].replace(' ','')!='0-0']; x=random.choice(r); print(x['match_id'],x['date'],x['home_team_name'],'|',x['away_team_name'],'HT',x['ht_score'],'FT',x['ft_score'])"
    ```
    A 0-0 is excluded because it has no goal rows to check.
 2. Confirm that nothing the prober reads mentions the match. Grep `notes/`, every
    `**/CLAUDE.md` and `scrapers/` for the match id, and for the fixture written as
    `<home>[^|\n]{0,15}<away>`. On any hit, draw again.
 3. Take the expected answer **only from that CSV's `ht_score` and `ft_score`**. Never use
-   `data/raw/goals.csv`: it is the output of the parser under test, so it cannot be its
+   `data/archived/raw/goals.csv`: it is the output of the parser under test, so it cannot be its
    oracle.
 4. Spawn the prober with the template, filled in for this match.
 5. **PASS** if the prober's goal rows (the parser output, checked against its DOM rows)

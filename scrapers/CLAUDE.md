@@ -1,6 +1,6 @@
 # scrapers/ — Selenium scraping of nowgoal26
 
-Only this package may write to `data/raw/` and `data/finished/1_raw/`. All DOM selectors live in `scrapers/constants.py`.
+Only this package may write to `data/finished/1_raw/` (and, until plan steps P4–P5, the archived old stores in `data/archived/raw/`). All DOM selectors live in `scrapers/constants.py`.
 
 **Every navigation goes through `driver.open_page(driver, url)`; never call `driver.get` anywhere else.** `open_page` refuses, before any request, a URL on a host missing from `constants.ROBOTS_DISALLOW` and any path that host's robots.txt disallows. The page's own background loads (its scripts, its `/Ajax/` calls) are not checked: the rule covers the pages we choose to open. The user decided this on 2026-10-02 after a measurement: with those paths blocked as well, the h2h page never rendered and the live page showed 0 goals and 0 events. **Every driver comes from `driver.get_driver()`**, which gives it one `fake-useragent` string (Chrome, desktop) for its whole life. To open a new host, add its robots.txt rules to `ROBOTS_DISALLOW` first.
 
@@ -49,7 +49,7 @@ Only this package may write to `data/raw/` and `data/finished/1_raw/`. All DOM s
 `scrapers/detail.py` scrapes each finished match's detail page (`https://live11.nowgoal26.com/match/h2h-<match_id>` — same id as the schedule row) into **one wide feature row** per match.
 
 - `scrape_match_detail(driver, match_id)` is **mode-agnostic** (a future prediction mode can feed upcoming ids).
-- `enrich_finished(limit)` reads ids from `data/raw/*.csv` and is **resumable** — it skips ids already in `data/raw/<league>_detail.csv` and appends incrementally.
+- `enrich_finished(limit)` reads ids from `data/archived/raw/*.csv` and is **resumable** — it skips ids already in `data/archived/raw/<league>_detail.csv` and appends incrementally.
 - It runs a **`ThreadPoolExecutor` of `WORKERS = 3`**, each thread holding its own Chrome for the whole run (a Selenium session is not thread-safe to share); a lock serialises the CSV appends.
 - Detail is ~1 page render **per match** (heavy: ~380/season) — always run it resumable, not from scratch.
 - The scraper writes **nothing but that detail file**. Joining it to the base CSV is `features/enrich.py` (see `features/CLAUDE.md`).
@@ -65,7 +65,7 @@ Aggregate/odds fields are validated by `domain/match_detail.py:MatchDetail`; the
 
 ## 7. Live-page events: goals, cards, substitutions (fourth stage)
 
-`scrapers/goals.py` scrapes each match's **live** page (`https://live11.nowgoal26.com/match/live-<match_id>`) — a _different_ page from the h2h detail page, same match id. One render fills two stores: `data/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
+`scrapers/goals.py` scrapes each match's **live** page (`https://live11.nowgoal26.com/match/live-<match_id>`) — a _different_ page from the h2h detail page, same match id. One render fills two stores: `data/archived/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/archived/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
 
 ### Goals are identified by the running score, never by the icon
 
@@ -98,7 +98,7 @@ A fixture's history references cup ties, European games and other leagues, so a 
 
 ### Two attempt logs are the resume key
 
-- **`data/raw/goals_done.csv` is the resume key, not `goals.csv`.** A 0-0 match produces zero goal rows, so deriving "already scraped" from the goal store would re-fetch every goalless match on every run, forever. The attempt log records one row per _attempted_ match with its goal count.
+- **`data/archived/raw/goals_done.csv` is the resume key, not `goals.csv`.** A 0-0 match produces zero goal rows, so deriving "already scraped" from the goal store would re-fetch every goalless match on every run, forever. The attempt log records one row per _attempted_ match with its goal count.
 - **`goals_done.csv` and `events_done.csv` are separate**, which is what let the events store be added to a corpus already fully scraped for goals: such a match is fetched exactly once more, writes only the store it is missing, and is then done for both.
 
 ### The work list

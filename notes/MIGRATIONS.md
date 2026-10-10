@@ -71,3 +71,9 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 
 - **Staged file names start with the country** (the user): `data/finished/<stage>/<country>_<league>_<season>_schedule.csv` and `_final_table.csv`, where `<country>` is the config's country and `<league>` the league's name in the page's title, which can leave the country out (`2.division_2024` → `lithuania_2.division_2024`). A name that already starts with the exact country keeps it once (`brazil_serie_a`, but `england_english_premier_league`). `scrapers/csv_io.py:league_slug` now takes the country; `scrapers/links.py:LeagueSeason` carries it. Every staged file on disk was renamed the same day, contents untouched. `s1_league_name` inside the files is unchanged. The old `data/raw/` and `data/processed/` names are unchanged.
 
+## 2026-10-10
+
+- **`data/raw/` and `data/processed/` moved into `data/archived/`** (the user): every old-pipeline CSV now sits in `data/archived/raw/` (base league CSVs, `_detail.csv`, the goal and event stores) or `data/archived/processed/` (`_enriched.csv`), and the two old directories are deleted. `domain/paths.py:RAW_DIR` and `PROCESSED_DIR` point there, so the old tools still find their files until plan steps P4–P5 move them. A note citing `data/raw/` or `data/processed/` predates this.
+- **`qa.validate` checks only `data/finished/`** by default; `--archived` runs the old base, detail, join, goal and event checks on the archive.
+- **`qa/odds.py:AH_LINE_ABS_MAX` and `OU_LINE_MAX` removed**: the fixed limits gave way to `LINE_LIMITS`, the largest lines by the 1X2 favourite's price (`check_line_size`).
+- **`domain/deductions.py` keys gained the stage** (2026-10-09): `(league id, season, stage, team id)`, and `deducted()` takes the stage.

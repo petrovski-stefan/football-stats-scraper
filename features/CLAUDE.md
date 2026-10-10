@@ -1,6 +1,6 @@
 # features/ — derived data and the feature matrix
 
-Everything here derives into `data/processed/` or the later stage directories of `data/finished/`, and must be reproducible from the raw files.
+Everything here derives into the later stage directories of `data/finished/`, and must be reproducible from the raw files.
 
 ## 0. The schedule's stages 2 and 3
 
@@ -13,7 +13,7 @@ Everything here derives into `data/processed/` or the later stage directories of
 
 ## 1. The enrich join (third stage)
 
-`features/enrich.py` left-joins the detail file on `match_id` into `data/processed/<league>_enriched.csv`; both raw files are left untouched. It is cheap and idempotent (no browser), so re-run it freely. It lives here rather than in `scrapers/` because a join is not a scrape. The practical gain is that a stale or deleted enriched file is rebuilt in seconds without starting Selenium.
+`features/enrich.py` left-joins the detail file on `match_id` into `data/archived/processed/<league>_enriched.csv`; both raw files are left untouched. It is cheap and idempotent (no browser), so re-run it freely. It lives here rather than in `scrapers/` because a join is not a scrape. The practical gain is that a stale or deleted enriched file is rebuilt in seconds without starting Selenium.
 
 ## 2. History blocks go through `history.py`
 

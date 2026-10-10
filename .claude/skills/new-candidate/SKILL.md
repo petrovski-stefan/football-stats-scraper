@@ -117,7 +117,7 @@ Only after a–c pass.
    per-league test as a result (STATE: "Per-league testing" is Dead). Never AUC/Brier as
    the verdict.
 4. **Label: EXPLORATORY**, always, on the current corpus. Every league-season in
-   `data/raw/` today is EPL 2025-26, which is spent (A9.1); dev seasons are parked. A
+   `data/archived/raw/` today is EPL 2025-26, which is spent (A9.1); dev seasons are parked. A
    confirmatory test runs only on the A9.2 confirmatory set, only after `/preregister`
    has an amendment committed before that set is scraped.
 5. If the claim is #15, drop the EPL 2025-26 stratum (A8.4). On today's corpus that leaves
