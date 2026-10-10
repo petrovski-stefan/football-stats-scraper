@@ -1,6 +1,8 @@
 # PLAN — the staged pipeline (the data refactor)
 
-**Agreed with the user on 2026-10-05. Not started.**
+**Agreed with the user on 2026-10-05. In progress.** What is done is recorded in
+`notes/MIGRATIONS.md` (2026-10-05 to 2026-10-10) and deleted here (the user's rule, 2026-10-10),
+so this file holds only open work.
 
 **Why:** the user's goal is to cut the cognitive load of the field work and to understand what
 every field means, clearly. Each stage gets its own fields doc, and each doc answers one
@@ -47,15 +49,11 @@ aggregates. The join adds no fields, so it has no doc.
 
 ## 2. Layout
 
-`data/` gets one parent directory per match state (the user, 2026-10-05):
+`data/` has one parent directory per match state (the user, 2026-10-05). Still to add (the
+schedule's files are in place):
 
-- `data/finished/` — all work now. Played matches only.
+- `data/finished/` — played matches only.
   - `1_raw/` — scraper output only:
-    - `<country>_<league>_<season>_schedule.csv` — one row per finished match (the country
-      prefix since 2026-10-08, `notes/MIGRATIONS.md`);
-    - `<country>_<league>_<season>_final_table.csv` — the page's final FT / Total table, one row per team,
-      read once as a check against our rebuilt table (`notes/fields/schedule_1_raw.md` §B;
-      replaced the per-round standings file on 2026-10-06);
     - `<country>_<league>_<season>_detail.csv` — one row per match, the page's match-level values
       (~16 columns);
     - `<country>_<league>_<season>_history.csv` — one row per history row the page shows: `for_match_id`,
@@ -64,7 +62,7 @@ aggregates. The join adds no fields, so it has no doc.
       `home_team_name`, `away_team_name`, HT and FT goals, 1X2 odds, corners FT and HT. Up to
       20 rows per section (2789361 has 20 h2h rows), so up to ~60 per match;
     - `goals.csv`, `events.csv` and their done logs — unchanged for now (Q4).
-  - `2_row/` and `3_multi/` — the derived files, same names.
+  - `2_row/` and `3_multi/` — the derived detail files, same names.
 - `data/scheduled/` (or `unplayed/`) — later: upcoming matches, same three stages.
 - `data/predictions/` — later, maybe.
 
@@ -73,16 +71,6 @@ Paths are built only in `domain/paths.py`, so the names can change cheaply.
 ## 3. Decisions, 2026-10-05
 
 - **The three stages and one doc per stage:** the user's design.
-- **Q1, unplayed rows:** answered by the layout. `data/finished/` holds played matches only.
-  Consequence (Claude's to handle): `match_index_in_round` and `matches_in_round` count finished
-  matches only. In a completed season that is every match but the cancelled ones; a postponed
-  match counts once played. A QA check flags any round with fewer than teams ÷ 2 matches.
-- **Q2, standings: their own raw file** (Claude's recommendation, accepted). **Superseded
-  2026-10-06:** the user chose to rebuild the standings from our own results at each kickoff (the
-  2 h 30 min rule, `notes/fields/schedule_3_multi.md` §B), and to read only the page's final table
-  as a check. The paragraph below is kept as history. The round X−1
-  shift and its guard (`notes/FIELDS.md` D11) become a stage-3 step. The page clicks are the
-  same either way; idea 19's table check reads the file directly, points included.
 - **Q3, history rows: long format, every row the page shows** (Claude's recommendation,
   accepted). The form and h2h averages (today over up to 10 rows, while 6 are stored) become
   rebuildable, and the window becomes a stage-3 setting. Storing both team ids replaces the
@@ -100,39 +88,16 @@ Paths are built only in `domain/paths.py`, so the names can change cheaply.
   - "2 years" = the kickoff date minus 2 calendar years, inclusive (2026-01-31 → 2024-01-31);
   - head to head over all competitions the page lists, as today;
   - fewer qualifying matches → fewer rows; none → the h2h fields are empty, not zero.
-- **Times: Berlin time, with the offset in every value** (the user, later on 2026-10-05; it
-  replaces the same day's "store UTC"). `2026-01-31 18:30+01:00` in winter, `+02:00` in summer.
-  Found the same day: the league page's `data-t` is UTC+8 and was stored unconverted in every
-  schedule file, while the h2h page's history dates are UTC. Verified on 2789361 and on
-  Liverpool v Bournemouth (Friday 15 Aug 2025, 20:00 UK, stored `2025-08-16 03:00`).
-  - Wrong as a result: the weekday flags (`day_of_week`, `is_monday`, `is_midweek`): the stored
-    weekday differs from the Berlin weekday in 41% of EPL 2025-26 rows, 60–63% of the Algerian
-    and 77% of the Moroccan rows. Morocco 2024-25 stores 55 Mondays; 7 are
-    Mondays in Berlin time. Also anything comparing a schedule date with a history date
-    (`features/engine.py` congestion features: `days_since_last`, `matches_14d`).
-  - Not affected: anything comparing dates inside one schedule file (round order, the 2 h 30 min
-    and out-of-round rules), because every row there carries the same 8-hour shift.
-- **Value rules, 2026-10-06** (`notes/fields/README.md`, "Rules for values"): typed values, the
-  odds naming, no rounding and the doc-code prefix (`s1_`, `d3_`, …; row keys bare) are decided.
-  One name per fact is deferred: duplicates stay until the user reviews them. Positions must
-  mean the placement before the match: the user reviews that by hand (`schedule_3_multi.md` §B).
-- **HT/FT record, 2026-10-07 (the user):** stage 3 gets each team's half-time / full-time
-  counts before kickoff, team view, Total / Home / Away, 54 columns
-  (`notes/fields/schedule_3_multi.md` §B2). Claude's four HT-state fields were declined.
 - **Q4, goals and events: unchanged for now.** They already fit stage 1, apart from three
   columns kept as documented exceptions (`goal_index`, goal `side`, the copied `league_id`).
   Their three docs come after schedule and detail, ~0.5 day.
 
-## 4. Where today's 619 columns go
+## 4. Where the detail, goal and event columns go
 
-Counted from `domain/columns.py` and the EPL 2025-26 files on 2026-10-05: schedule 58, detail
-537 (51 + 18 history slots × 27), goals 9 + 3, events 9 + 3.
+Counted from `domain/columns.py` and the EPL 2025-26 files on 2026-10-05: detail 537 (51 + 18
+history slots × 27), goals 9 + 3, events 9 + 3.
 
-**Stage 1 (365 today):**
-- schedule (28): `season`, `league_id` (config URL); `league_name`, `stage`, `round`,
-  `match_id`, `date`, `{home,away}_team_id`, `{home,away}_team_name`; `ht_score`, `ft_score`,
-  `ht_{home,away}_goals`, `ft_{home,away}_goals`; the 1X2, O/U and AH odds (9);
-  `{home,away}_team_position` (move to the standings file);
+**Stage 1:**
 - detail (16): `match_id`, `odds_bookmaker`, `odds1x2_init_*` (3), `odds1x2_live_*` (3),
   `strength_*` (2), `h2h_compare_*_pct` (2), `guess_*_pct` (2), `*_next_fixture_days` (2);
 - history slot (17 × 18): `match_id`, `league_id`, `date`, `league`, `ht_score`, `ft_score`,
@@ -140,48 +105,36 @@ Counted from `domain/columns.py` and the EPL 2025-26 files on 2026-10-05: schedu
   the history file, plus the two team ids and names it lacks today;
 - goals (6), events (7), done logs' `match_id` (2). Bookkeeping: `scraped_at` (2).
 
-**Stage 2 (158 today):**
-- schedule (28): `total_goals`, `goals_1h`, `goals_2h`, `{home,away}_2h_goals`; `ht_result`,
-  `ft_result`, `ht_ft_combo`; `is_comeback*` (3), `btts`, `over_25`,
-  `is_seven_or_more_goals`; `day_of_week`, `is_monday`, `is_midweek`; `has_odds`,
-  `has_ou_odds`, `has_ah_odds`, `implied_prob_*` (2), `implied_over`, `implied_ah_home`,
-  `favorite`, `favorite_odds`, `underdog_odds`; `position_gap` (post-round inputs, so `after`:
-  dropped; the pre-kickoff gap is stage 3);
+**Stage 2:**
 - detail (4): `implied_{init,live}_{home,away}`;
 - history slot (7 × 18): `total_goals`, `ht_result`, `ft_result`, `over_25`, `btts`,
   `is_comeback`, `corners_total`.
 - Labels of other markets wait for their market (comebacks first).
 
-**Stage 3 (94 today):**
-- schedule (2): `match_index_in_round`, `matches_in_round`;
+**Stage 3:**
 - detail (31): `{home,away}_recent_*` (12 each), `h2h_*` (7);
 - history slot (3 × 18): `is_home`, `opponent`, `result`;
 - goals (3): `goal_index`, `side`, `league_id`; events (2): `event_index`, `league_id`; done
   logs (2): `n_goals`, `n_events` — the documented exceptions of Q4, left in stage 1 for now.
-- New, from `notes/FIELDS.md`: the pre-kickoff table (rebuilt from our results, S3.03), rest days
-  (D13), the survey's flags (K6). `ht_decisive` (K2) is new too, but single-row: stage 2.
+- New, from `notes/FIELDS.md`: rest days (D13, now `notes/fields/detail_3_multi.md` D3.24) and the
+  survey's flags (K6).
 
 ## 5. Steps — one at a time
 
 | step | what | who | size |
 |---|---|---|---|
-| P1 | **Done 2026-10-05.** Split `notes/FIELDS.md` into `notes/fields/`: an index, schedule × 3, detail × 3, live × 2 (as today) and the engine features. The S1 checks carried over: #1–11 to S1.01–11, #12–13 to S3.01–02. FIELDS.md is marked superseded, kept until the user confirms | Claude | 2–3 h |
-| P2 | The user's on-page check of the stage-1 docs, ≤ 20 fields a sitting. Decide which page candidates (FIELDS C1–C22) join stage 1, comebacks only | user + Claude | ~3 sittings |
-| P3 | **Code done 2026-10-06.** Schedule: stage-1 scraper (raw values plus the page's final table as a check), stage-2 and stage-3 builders (standings rebuilt at each kickoff). All 7 gates pass. Dry run on the old EPL file converted in memory: 380 rows valid, Chelsea v West Ham's pre-kickoff line as in the docs, rebuilt final table equal to the page's for all 20 teams. `domain/match.py` removed (`notes/MIGRATIONS.md` 2026-10-06). Left: the real EPL scrape (P6), with the user's go | Claude | ~1.5 days |
+| P2 | The user's on-page check of the detail and live stage-1 docs, ≤ 20 fields a sitting (progress in `notes/fields/README.md`). Decide which of the remaining page candidates (C5–C7, C9–C22) join stage 1, comebacks only | user + Claude | ~4 sittings |
 | P4 | Detail: stage-1 scraper (match-level + long history), stage-2 and stage-3 builders | Claude | ~2.5 days |
 | P5 | The join; re-point `features/`, `modelling/`, `qa/` and the goal/event work lists (`scrapers/goals.py:history_ids` reads the history file) | Claude | ~0.5 day |
-| P6 | Re-scrape EPL 2025-26 in the new format, then run every gate and self-check. **Schedule done 2026-10-07** (the user's go): 3 min, 380 matches, every match id, goal, odd and team name equal to the old file, all 380 kickoffs equal to the old UTC+8 text converted, all three odds markets present, and the table rebuilt from the new results equal to the page's final table for 20/20 teams. Stages 2 and 3 built. The final-table comparison is now an automatic QA check (`qa/final_table.py`, run by `qa.validate`; 2026-10-07). **The scraper is hardened for multi-league runs** (2026-10-07): `--leagues` / `--all`, `--before-year`, `--list`, resume, per-league failure isolation, 45 s first load, 15 s pause; it stays free of protocol knowledge, so the DEV run passes the 26 DEV codes of `notes/PREREGISTRATION_SURVEY.md` §2.1 on the command line (54 seasons, 1 on disk). **Trial 2026-10-07, two seasons of a "League" tab league** (removed from the project on 2026-10-10): 552 matches and 24 table rows each, 0 failures; P, W, D, L and GD equal the page for all 24 teams in both seasons; the final-table check fails only on points deductions and the ranks they shift. **QA for the staged schedule** (`qa/schedule.py`, `qa/odds.py`; 2026-10-07): scores, odds, kickoff years, no team twice within 24 h, round sizes and equal pair meetings. **The 51-season DEV run** started the same day (the user chose DEV first over spending CONFIRM). **DEV run done 2026-10-07:** 54/54 seasons on disk, 0 failed, 0 rows dropped; stages 2 and 3 built. `qa.validate` passes 31/54 staged league-seasons, and every failure has a known cause: (1) points deductions, 14 teams in 9 league-seasons, every amount matching public reports (dated: four in a league removed on 2026-10-10; Hamilton SCO CH 24/25 −15 on 17 Apr 2025; Inverness SCO L1 24/25 −15 on 22 Oct 2024; Bonnyrigg SCO L2 24/25 −6 on 12 Nov 2024. Roughly dated: Cosenza ITA D2 24/25 −4 around matchday 4; Brescia ITA D2 24/25 −4 after the season ended. Not yet dated: Lechia POL 25/26 −5, Dumbarton SCO L1 24/25 −15 and SCO L2 25/26 −5, Edinburgh City SCO L2 25/26 −15, Adana Demirspor TUR 24/25 −12 in three steps); (2) the page's tie-break rule, 10 league-seasons where only the order of teams level on points differs: head-to-head in Spain, Portugal, Italy and Poland, most wins in Belgium, and those rules reproduce all 21 such blocks exactly; (3) a match the page's table leaves out, 2 league-seasons: one abandoned and awarded, in a league since removed, and MAR D1 24/25 Fez v UTS (match 2666738, played 1–2 per Moroccan press, cause not found). Decided the same day: the rank's one tie rule stays and the QA rank check accepts any order among teams level on points (the user: fine when only the position is wrong and the counts are right). Abandoned matches (the user, 2026-10-07): flagged by stage 2's `s2_is_abandoned` (S2.30) from the hand-kept list `domain/scope.py:ABANDONED_MATCHES`, empty since 2026-10-08 because its matches' leagues were removed. **Morocco (MAR D1) was removed from the project the same day at the user's request:** its config entry, its stage files and its old `data/raw/` files are deleted, so 52 seasons remain. Deductions (the user, 2026-10-07): option A now, so stage 3 keeps the points earned on the pitch and `domain/deductions.py` declares the 16 for the final-table check (`notes/POINTS_DEDUCTIONS.md`); option C, applied from each date, later. **3 workers, 2026-10-08:** the schedule scraper now runs 3 league-seasons at once. Trial on MEX D1 2024-25 (Apertura and Clausura), BRA D1 2024 (no stage tabs) and a two-group league since removed: 7 min for all 3, 0 failures, 0 rows dropped, headless Chrome at most 0.8 GB. QA: MEX and BRA pass. **2026-10-08:** after more seasons were scraped and the user removed 28 leagues (config, data and notes; not named, at the user's request), 102 seasons are on disk. Fixed or added the same day: odds cells that repeat another market's numbers are emptied by the scraper (`scrapers/schedule.py:drop_stale_odds`; the files on disk keep them until the re-scrape); two more deductions (`notes/POINTS_DEDUCTIONS.md` #11–12 since 2026-10-10); file names start with the config's country (`notes/MIGRATIONS.md`); a hand-kept forfeit list (`domain/scope.py:FORFEITED_MATCHES`, stage 2's `s2_is_forfeit`, S2.31); and QA checks that a team plays at most once per round and that the O/U line is above the AH line's size. Full re-scrape: 2026-10-09. Detail and live: after P4 | Claude, with the user's go | ~1–2 h scrape |
+| P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 56k pages, ~28 h at the one measured rate (`notes/PLAN_2026-07-25_environment_filter.md` Phase 1) |
 | P7 | Freeze the stage-1 docs. With Phase S's other conditions, this unblocks the CONFIRM scrape | user | — |
 
-P1 and P2 come first: the docs are the spec the code is written to.
+P2 comes before P4: the docs are the spec the code is written to.
 
 ## 6. Open points Claude handles (no user decision needed)
 
 - The history rows' odds snapshot (Initial or Final?) — FIELDS #60–62, settle in P2.
 - `corners_ht_*` are stored as floats (`3.0`) because of empty cells: store nullable ints.
-- ~~When the page rebuilds `Round N` to include a postponed match~~ — answered 2026-10-06: `Round N`
-  counts by round number, so the standings are now rebuilt from our own results instead
-  (`notes/fields/schedule_3_multi.md` §B).
 - The join: a loader function or a written file — decide in P5.
 - **Weekday flags outside Europe, before the survey:** Berlin time puts a Sunday 21:00 kickoff in
   Brazil (01:00 Berlin) on Monday. For European and North African leagues the Berlin weekday

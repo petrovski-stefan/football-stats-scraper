@@ -254,6 +254,3 @@ test**, not as a per-league split.
 1. **The picks-per-week number.** Still unanswered, and still the gate on the prospective
    log — the only instrument that can read the un-encodable core of the filter.
 2. ~~Reading A or B for idea 2~~ — **resolved and closed 2026-09-20.** See §1.
-3. **When the next bulk scrape happens**, it should also carry the corrected fixture
-   columns (`PREREGISTRATION.md` §9), which are deferred for the same reason and cleared
-   by the same pass.

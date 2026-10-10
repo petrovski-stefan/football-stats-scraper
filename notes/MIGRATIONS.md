@@ -1,6 +1,8 @@
-# MIGRATIONS — renames, moves and deletions
+# MIGRATIONS — renames, moves, deletions and implemented plan items
 
 If code or a note cites a module, path or column that doesn't exist, it predates one of the changes below. Older `notes/` entries written before 2026-07-27 cite the earlier flat layout — module paths (`features.py`, `constants.py`, `df.py`, `stats.py`) and the single `data/` directory. **Their findings stand; only the paths moved** — see also the amendment log in `notes/PREREGISTRATION.md`.
+
+**Implemented plan items are recorded here too** (the user, 2026-10-10): whatever is implemented from a `notes/IDEAS_*.md` or `notes/PLAN_*.md` file goes here, under the date it was done, and is deleted from the file that first mentioned it. A partly done item keeps only its open part there.
 
 ## 2026-07-26
 
@@ -37,7 +39,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 
 ## 2026-10-01
 
-- **`config/LEAGUES.txt` replaced by `config/leagues.json`.** The league list is now JSON: one object per league (`name`, `code`, `continent`, `country`, `league_id`, `stages`, `keep`) with a `seasons` array (`season`, `url`, `enabled`). `enabled: true` replaces uncommenting a URL. `scrapers/links.py:get_leagues_links()` became `get_league_seasons()`, and the file is validated by `links.LeagueConfig`. The temporary `config/LEAGUE_STAGES.txt` review file was folded into the same JSON. Anything citing `config/LEAGUES.txt` or `get_leagues_links` predates 2026-10-01. Its findings stand.
+- **`config/LEAGUES.txt` replaced by `config/leagues.json`.** The league list is now JSON: one object per league (`name`, `code`, `continent`, `country`, `league_id`, `stages`, `keep`) with a `seasons` array (`season`, `url`, `enabled`). `enabled: true` replaces uncommenting a URL. `scrapers/links.py:get_leagues_links()` became `get_league_seasons()`, and the file is validated by `links.LeagueConfig`. The temporary `config/LEAGUE_STAGES.txt` review file was folded into the same JSON. Anything citing `config/LEAGUES.txt` or `get_leagues_links` predates 2026-10-01. Its findings stand. The file is also the league catalogue, which completes the league-id discovery step of `notes/PLAN_2026-07-25_environment_filter.md` Phase 0.
 - **Schedule scraper clicks stage tabs.** `scrapers.schedule` scrapes each stage named in `keep` and writes its name to `stage`. Before this, a page with several stages had every stage's round buttons read as one list, and the standings could show another stage's table. Downstream ordering is open: `notes/DECISIONS.md` D7.
 
 ## 2026-10-02
@@ -48,10 +50,20 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 - **Tools moved from runtime to dev dependencies; `uvx` retired.** `ruff`, `mypy`, `pandas-stubs`, `types-beautifulsoup4` and `ipykernel` moved from `[project] dependencies` to `[dependency-groups] dev`. `complexipy` and `pyscn`, until then run as `uvx complexipy@latest` / `uvx pyscn@latest`, joined them as pinned dev dependencies; every tool now runs through `uv run`. The `bs4==0.0.2` stub was replaced by `beautifulsoup4==4.13.5`, and `numpy` (imported directly, until then only a transitive dependency) is declared. Anything citing `uvx`, `bs4==0.0.2` or "complexipy and pyscn are not project dependencies" predates 2026-10-02.
 - **Holdout mode and `emit` removed from `modelling/`.** `modelling/experiment.py` lost its `--holdout` mode (2025-26 is spent, `notes/PREREGISTRATION.md` A9) and with it `holdout_run`, `_slate_report`, `calibration_table`, `ScreenResult` and the `notes/results_holdout_raw.txt` target; `--dev` is its only mode. `modelling/filter_study.py`'s `emit` closure became plain `print`, and `_as_markdown` was deleted. Both scripts now save every run's printed output to `notes/runs/<date>_<script>_<mode>.txt` through the new `modelling/runs.py:recorded`. **`notes/FILTER_STUDY_RAW.md` is no longer regenerated:** it stays as the frozen transcript of the 2026-07-25 `--bar` run. Anything citing `emit`, `holdout_run`, a `--holdout` mode that runs, or "FILTER_STUDY_RAW.md is overwritten on every run" predates 2026-10-02. The `block-holdout.sh` hook stays.
 - **Quality gates: five → six.** `deptry` (imports vs declared dependencies) was added to root `CLAUDE.md` and the `/check` skill. Anything citing "the five quality gates" or "run all five", the 2026-07-27 entry above included, predates 2026-10-02.
+- **Formatter hook** (IDEAS idea 23). A `PostToolUse` hook, `.claude/hooks/format-on-write.sh`, runs the user's VS Code formatters on every file Claude writes: Ruff for `.py` and Prettier (`.prettierrc`) for `.md`, with `notes/` left out (`.prettierignore`). Text files are CRLF on disk and LF in git (`.gitattributes`); the hook converts each file Claude writes.
 
 ## 2026-10-03
 
 - **Quality gates: six → seven; the repo has tests.** `pytest==9.1.1` (dev group) runs `tests/`, configured in `pyproject.toml` `[tool.pytest.ini_options]`. The first batch covers pure, mechanical functions only, in a tree that mirrors the packages (`tests/domain/test_paths.py` tests `domain/paths.py`). Root `CLAUDE.md` and `/check` list it as the 7th gate. Anything citing "the six quality gates", "run all six" or "no test framework" predates 2026-10-03.
+
+## 2026-10-04
+
+- **`notes/MARKET_COMEBACKS.md` added: the comebacks explainer** (IDEAS idea 5). Every fact about the market is sorted as definitional (never measured), structural (derived once from a goal model; each card has a Basis line) or empirical. Concepts only, in ASD-STE100, with no project results.
+
+## 2026-10-05
+
+- **`notes/FIELDS.md` split into `notes/fields/`** (PLAN_2026-10-05 step P1; IDEAS idea 17, the data dictionary): an index, `README.md`, and one doc per source and stage. The user's S1 checks carried over (#1–11 to S1.01–11, #12–13 to S3.01–02). `notes/FIELDS.md` stays, marked superseded, until the user confirms.
+- **Page inventory** (IDEAS idea 12b): what the three visited pages show but the scraper does not store is listed as candidates C1–C22 in the `notes/fields/*_1_raw.md` docs; the user decides each in plan step P2. None of the three pages shows HT/FT odds.
 
 ## 2026-10-06
 
@@ -61,15 +73,34 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 - **The per-round standings scrape is gone** (`driver.sync_standings_to_round`, `parsers.parse_standings`, `constants.STANDING_ROUND_ITEM`). The standings are rebuilt from results (`domain/standings.py`); the page's final table is read once as a check (`parsers.parse_final_table`, `driver.show_total_standings`).
 - **`domain/match.py` deleted.** `Match`, `round_sort_key` and `parse_match_datetime` had no user left; `season_start_year` moved to `domain/schedule.py`. `tests/domain/test_match.py` went with it (its season tests are in `tests/domain/test_schedule.py`), and `tests/domain/conftest.py` moved to `tests/conftest.py`. `scrapers/csv_io.py:save_df_to_csv` / `league_csv_path` became `save_unless_shrinking` / `league_slug`. Anything citing `domain/match.py` or `domain.match` predates 2026-10-06; for `season_start_year` read `domain/schedule.py`.
 - **New:** `domain/clock.py` (Berlin time), `domain/schedule.py`, `domain/standings.py`, `features/stage_io.py`, `features/schedule_row.py`, `features/schedule_multi.py`.
+- **Value rules for every stage file** (IDEAS idea 16): `notes/fields/README.md`, "Rules for values": Berlin time with its offset, typed values only, odds named `odds_<market>_<snapshot>_<selection>`, no rounding in stored data (round only in reports), and the doc-code prefix.
+- **New stage-2 field `s2_ht_decisive`** (FIELDS K2).
+- **Tests for the staged schedule.** `tests/features/test_schedule_multi.py` checks that the pre-kickoff table counts a match only once it finished `FINISHED_AFTER` (2 h 30 min) before kickoff: IDEAS idea 11's "standings are pre-kickoff" batch. `tests/scrapers/test_parsers.py` tests `parse_schedulis_row` and `parse_final_table` on built HTML.
 
 ## 2026-10-07
 
 - **Removed:** `domain/stats.py:ht_ft_combo` (the betting-slip HT/FT label; its last user went with `domain/match.py`, and the HT/FT market returns in Phase C) and `scrapers/detail_parsers.py:_outcome` (replaced by the shared `domain/stats.py:team_result`).
 - **Added:** the stage-3 HT/FT record `s3_<side>_pre_htft_<venue>_<ht>_<ft>` (`domain/standings.py:HalfTimeFullTime`) and the QA check `qa/final_table.py`.
+- **EPL 2025-26 re-scraped in the new format** (plan step P6, the user's go): 380 matches; every match id, goal, odd and team name equal to the old file, every kickoff equal to the old UTC+8 text converted, and the table rebuilt from the new results equal to the page's final table for 20/20 teams.
+- **`scrapers.schedule` hardened for multi-league runs:** `--leagues` / `--all`, `--before-year`, `--list`, `--force`. It resumes, skipping a league-season already on disk (IDEAS idea 10's "never re-scrape finished seasons"); one league's failure no longer stops the run; the first page load waits 45 s; each worker pauses between leagues. It stays free of protocol knowledge.
+- **QA for the staged schedule**, run by `qa.validate`: `qa/schedule.py` (scores, kickoff years, no team twice within `MIN_GAP_BETWEEN_MATCHES`, round sizes, equal pair meetings) and `qa/odds.py` (odds checks for any table, given its columns). The round-size check is plan Q1's flag for a round with fewer than teams ÷ 2 matches and `notes/PLAN_2026-07-25_environment_filter.md`'s per-league round-count check; with the pair and calendar checks it covers IDEAS idea 19's completeness and calendar checks.
+- **Rank ties and deductions in the final-table check** (the user): the rebuilt rank keeps one tie rule, and `qa/final_table.py` accepts any order among teams level on points, while P, W, D, L, GD and points must match. Deductions, option A: stage 3 keeps the points earned on the pitch, and `domain/deductions.py` declares each deduction for the check (date, cause and source in `notes/POINTS_DEDUCTIONS.md`).
+- **Abandoned matches:** a hand-kept list, `domain/scope.py:ABANDONED_MATCHES`, flagged by stage 2's `s2_is_abandoned` (S2.30). Empty since 2026-10-08: its matches' leagues were removed.
+- **MAR D1 removed** at the user's request: its config entry, its stage files and its old raw files.
+- **First multi-league run:** 54 league-seasons on disk, 0 failures, 0 rows dropped; stages 2 and 3 built.
 
 ## 2026-10-08
 
 - **Staged file names start with the country** (the user): `data/finished/<stage>/<country>_<league>_<season>_schedule.csv` and `_final_table.csv`, where `<country>` is the config's country and `<league>` the league's name in the page's title, which can leave the country out (`2.division_2024` → `lithuania_2.division_2024`). A name that already starts with the exact country keeps it once (`brazil_serie_a`, but `england_english_premier_league`). `scrapers/csv_io.py:league_slug` now takes the country; `scrapers/links.py:LeagueSeason` carries it. Every staged file on disk was renamed the same day, contents untouched. `s1_league_name` inside the files is unchanged. The old `data/raw/` and `data/processed/` names are unchanged.
+- **Several league-seasons at once:** `scrapers.schedule` runs league-seasons in parallel, 3 workers at first (headless Chrome at most 0.8 GB in the trial); `WORKERS = 4` and a 12 s pause between leagues since 2026-10-09.
+- **`scrapers/schedule.py:drop_stale_odds`:** an odds cell that repeats another market's numbers is emptied.
+- **Forfeits:** a hand-kept list, `domain/scope.py:FORFEITED_MATCHES`, flagged by stage 2's `s2_is_forfeit` (S2.31).
+- **Two more QA checks:** a team plays at most once per round (`qa/schedule.py`), and the O/U line is above the AH line's size (`qa/odds.py:check_goal_line_above_handicap`).
+- **28 leagues removed** by the user: config, data and notes (not named, at the user's request).
+
+## 2026-10-09
+
+- **Every finished season's schedule scraped in the new format** (plan step P6; this covers IDEAS step 9's schedule scrape). The user removed more leagues on 2026-10-09 and 2026-10-10 (not named); 230 league-seasons remain, 56,215 matches (counted 2026-10-10).
 
 ## 2026-10-10
 
@@ -77,3 +108,5 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 - **`qa.validate` checks only `data/finished/`** by default; `--archived` runs the old base, detail, join, goal and event checks on the archive.
 - **`qa/odds.py:AH_LINE_ABS_MAX` and `OU_LINE_MAX` removed**: the fixed limits gave way to `LINE_LIMITS`, the largest lines by the 1X2 favourite's price (`check_line_size`).
 - **`domain/deductions.py` keys gained the stage** (2026-10-09): `(league id, season, stage, team id)`, and `deducted()` takes the stage.
+- **`domain/deductions.py:PAGE_TOTALS`** (the user): where the page's final table applies less than the official deduction, the amount it does apply. Only the final-table check reads it (Adana Demirspor 2025-26, `notes/POINTS_DEDUCTIONS.md` #16).
+- **This file also records implemented plan items** (the user; rule in the header). The backlog from 2026-10-01 to 2026-10-10 was added the same day, and those items were deleted from `notes/IDEAS_2026-10-01.md` and the `notes/PLAN_*.md` files.

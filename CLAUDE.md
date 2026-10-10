@@ -86,6 +86,7 @@ Modules and directories have been renamed several times. If code or a note cites
 - Absolute package imports only (`from domain import stats`), never relative — enforced by Ruff `TID`. Respect the layer direction in the table above.
 - Never hardcode a data directory or build a CSV's sibling by string surgery (`base_path.replace(".csv", "_enriched.csv")` was the old idiom and silently resolves to the wrong directory now). Go through `domain/paths.py`.
 - Open research decisions go to `notes/DECISIONS.md` instead of blocking the current task. Only stop and ask when the task genuinely can't continue without the answer.
+- When an item from a `notes/IDEAS_*.md` or `notes/PLAN_*.md` file is implemented, record it in `notes/MIGRATIONS.md` under the date it was done and delete it from the file that first mentioned it; a partly done item keeps only its open part there (the user, 2026-10-10). The IDEAS and PLAN files then hold only open work.
 - Only `scrapers/` may write to `data/finished/1_raw/`. Everything else derives into the later stage directories and must be reproducible from the raw files — that is what makes the raw corpus safe to treat as ground truth and a derived file safe to delete.
 - Line endings: CRLF on disk for every text file, LF inside git (`.gitattributes`). `*.sh` stays LF, because bash fails on `\r`. The formatting hook converts each file Claude writes, since Write creates LF files.
 
@@ -93,12 +94,12 @@ Modules and directories have been renamed several times. If code or a note cites
 
 Start with **`notes/STATE.md`**, the current state of the research. Before proposing anything in prediction, features or analysis, also read `modelling/CLAUDE.md`.
 
-- `notes/PLAN_2026-10-05_staged_pipeline.md` — before any data-format, data-path or refactor work: the staged pipeline, its decisions and its steps P1–P7.
+- `notes/PLAN_2026-10-05_staged_pipeline.md` — before any data-format, data-path or refactor work: the staged pipeline, its decisions and its open steps.
 - `notes/fields/README.md` — before touching, adding or reading any column of a staged file: one doc per stage, every field defined once, with its place on the page, timing and role.
 
 - `notes/GLOSSARY.md` — when a term in a note or CLAUDE.md is unclear: short plain-language cards for the football, statistics, leakage, protocol and ledger terms. Concepts only: keep project results, code and file references, and named leagues or matches out of it, and write new cards in ASD-STE100 Simplified Technical English.
 - `notes/MARKET_COMEBACKS.md` — before measuring or reporting any comeback fact: every fact about the market sorted into definitional (never measure), structural (derived there once, from a goal model) and empirical. Concepts only, under the same rules as GLOSSARY.
-- `notes/MIGRATIONS.md` — when code or a note cites a module, path or column that doesn't exist.
+- `notes/MIGRATIONS.md` — when code or a note cites a module, path or column that doesn't exist, and to see what has been implemented from the IDEAS and PLAN notes.
 - `notes/HANDOFF.md` — before any prediction, feature or analysis work: strategy guide, base rates, pipeline-specific leakage traps, methodology rules, roadmap.
 - `notes/STATS_PRIMER.md` — when a roadmap step uses Empirical Bayes shrinkage, Brier scores, calibration curves or Dixon–Coles and you need the formulas.
 - `notes/ESOTERIC_MODELS.md` — when a modelling step matches one of its seven tools' tagged "reach for it when" moments.

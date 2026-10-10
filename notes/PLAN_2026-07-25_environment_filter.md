@@ -83,9 +83,6 @@ self-invalidates via F1's winner's curse:
    football-data.co.uk's catalog, so F1's bar applies to genuinely unsurveyed leagues;
 4. 3–5 already-surveyed leagues retained as cross-source validation controls.
 
-Needs a **league-id discovery step** — `config/LEAGUES.txt` is a handful of hand-written
-URLs today. Read nowgoal's league index via Selenium DOM; never its API.
-
 Deliverable: `notes/PREREGISTRATION_ENVIRONMENT.md` — league list, criteria, closed
 feature list, the Phase 2 bar, the evaluation protocol, and §1's figures recorded as prior
 evidence. Committed before the first page is scraped. The *claim* half of that
@@ -94,7 +91,8 @@ is the missing half.
 
 ## Phase 1 — Scrape the corpus
 
-~25 leagues × 3 seasons ≈ 75 league-seasons.
+~25 leagues × 3 seasons ≈ 75 league-seasons. The schedules are scraped (every finished season in
+`config/leagues.json`, `notes/MIGRATIONS.md` 2026-10-09); the detail and goal stages remain.
 
 **Cost note added 2026-09-23.** This phase originally read "schedule-only, do not run
 `scrapers/detail.py`" at 6–10 hours. That is no longer available: `features/goals.py`
@@ -104,10 +102,9 @@ measured ~2,000 renders/hour at `WORKERS = 4`:
 
 | stage | renders | rough time |
 |---|---|---|
-| schedule (2 odds passes per season) | — | 6–10h |
 | detail (~27,750) | 1 per corpus match | ~14h |
 | goals (~60,000 after dedupe) | 2–3× corpus | ~30h |
-| **total** | | **~50–55h** |
+| **total** | | **~44h** |
 
 That estimate rests on one throughput measurement — treat it as an order of magnitude, and
 re-measure on the first league before committing to the rest.
@@ -144,10 +141,8 @@ CIs against the ≥8%-over-≥600-matches bar, plus the persistence test.
 | file | change |
 |---|---|
 | `notes/PREREGISTRATION_ENVIRONMENT.md` | new — list, criteria, bar, protocol, prior evidence |
-| `config/LEAGUES.txt` | expanded to the approved list |
 | `features/engine.py` | make G2 (H2H) optional when no detail exists |
 | `modelling/filter_study.py` | keep-top-slate view + headroom-recovered metric, beside the existing exclusion curve |
-| `qa/validate.py` | per-league round-count checks |
 | `notes/ENVIRONMENT_RESULTS.md` | verdict either way |
 
 Reuse, don't rebuild: `features/engine.py`'s rolling as-of-round engine and `--self-check`;
