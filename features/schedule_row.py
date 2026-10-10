@@ -14,7 +14,7 @@ from typing import Any
 
 import pandas as pd
 
-from domain import paths, scope, stats
+from domain import paths, stats
 from domain.clock import parse_berlin
 from domain.columns import SCHEDULE_RAW_COLUMNS, SCHEDULE_ROW_COLUMNS
 from features.stage_io import read_stage_csv, write_stage_csv
@@ -96,8 +96,6 @@ def derive(row: Mapping[str, Any]) -> dict[str, Any]:
         **_goal_fields(ht, ft),
         **_date_fields(str(row["s1_date"])),
         **_odds_fields(row),
-        "s2_is_abandoned": scope.is_abandoned(row["match_id"]),
-        "s2_is_forfeit": scope.is_forfeit(row["match_id"]),
         **_comeback_fields(ht, ft),
     }
 

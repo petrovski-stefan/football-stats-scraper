@@ -158,14 +158,16 @@ def _scroll_page(driver: webdriver.Chrome, steps: int = 12) -> None:
     time.sleep(1.0)
 
 
-def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> None:
-    """Wait until the current round's odds cells have rendered.
+def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
+    """Wait until the current round's odds cells have rendered; return whether they did.
 
     Clicking a round (especially the first one after switching the odds type)
     swaps the schedule rows before the odds cells are populated; reading
     `page_source` too early yields blank odds. We wait until at least one row has
     a numeric first odds cell, which is when the whole column has rendered.
-    Falls back after the timeout so a genuinely odds-less round can't hang.
+    Gives up after the timeout so a genuinely odds-less round can't hang. False then
+    means no odds yet: the round may have none, or they may still be loading, and the
+    two look the same here, so the caller decides.
     """
 
     def some_row_has_odds(d: webdriver.Chrome) -> bool:
@@ -175,9 +177,12 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> None:
                 return True
         return False
 
-    with contextlib.suppress(TimeoutException):
+    try:
         WebDriverWait(driver, timeout).until(some_row_has_odds)
+    except TimeoutException:
+        return False
     time.sleep(0.3)
+    return True
 
 
 def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT_TIMEOUT) -> bool:

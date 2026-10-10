@@ -16,9 +16,18 @@ states its **row window**. Claude writes them; the stats-reviewer agent checks t
 |---|---|---|---|---|---|---|---|---|---|
 | S3.01 | `s3_match_index_in_round` | position of the match in its round by kickoff (1 = earliest); team names break ties. **Do not read 1 as "first match of the round"**: many matches share the earliest kickoff, and the tie-break is alphabetical | kickoff times of the finished rows of the same season, stage and round | int | 4 | before | input | ✓ | keep; formula moves from the scraper to stage 3 |
 | S3.02 | `s3_matches_in_round` | number of finished matches in the round | the same rows | int | 10 | before | check | ✓ | keep; **now finished matches only** (plan Q1). A QA check flags a round with fewer than teams ÷ 2 |
+| S3.09 | `s3_days_off_round` | this kickoff minus the median kickoff of its stage and round, in days: positive for a match played after its round, negative for one brought forward | kickoff times of the finished rows of the same season, stage and round (never their results) | float | −0.48 (Wolves v Arsenal, round 31, played 18 Feb: −30.95) | before | indicator, read-only for now (the user, 2026-10-10) |  | add (2026-10-10) |
+| S3.10 | `s3_is_rescheduled` | abs(S3.09) ≥ `features/schedule_multi.py:RESCHEDULED_AFTER_DAYS` (5) | through S3.09 | bool | False (Wolves v Arsenal: True) | before | indicator, read-only for now (the user, 2026-10-10) |  | add (2026-10-10). Not S3.07 (§C), whose survey wording misfires on a brought-forward match |
 
 The user's ✓ on S3.01–02 was given when they were scrape-derived (2026-10-05). The meaning is the
 same; only S3.02 now leaves out matches never played.
+
+**S3.09–10, the rescheduled match** (2026-10-10): the edge-case indicator kept; the forfeit and
+abandoned flags (S2.30–31) were dropped the same day (the user). On 74 leagues, 1,012 of 36,682
+matches (2.8%) are 5 or more days off their round: 768 later, 244 earlier. Such matches lack
+Bet365's opening odds about 7 times as often as the rest. Under 5 days a long round (Friday to
+Monday, a midweek split) still counts; the count barely changes from 5 to 7 days. A round with
+half its matches moved has its median between the two groups: rare, and visible in S3.09.
 
 ## B. Pre-kickoff table (rebuilt from our own results)
 

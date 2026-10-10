@@ -1,4 +1,5 @@
-"""`features/schedule_multi.py`: round positions and the table as it stood at each kickoff."""
+"""`features/schedule_multi.py`: round positions and offsets, and the table as it stood at each
+kickoff."""
 
 from datetime import datetime, timedelta
 from typing import Any
@@ -8,7 +9,13 @@ import pytest
 
 from domain.clock import BERLIN, to_berlin
 from domain.columns import HTFT_RESULTS, STANDING_SIDES, STANDING_VENUES
-from features.schedule_multi import FINISHED_AFTER, pre_kickoff_tables, round_positions
+from features.schedule_multi import (
+    FINISHED_AFTER,
+    RESCHEDULED_AFTER_DAYS,
+    pre_kickoff_tables,
+    round_offsets,
+    round_positions,
+)
 
 _START = datetime(2026, 1, 3, 15, 0, tzinfo=BERLIN)
 
@@ -53,6 +60,49 @@ def test_round_positions_order_by_kickoff_then_names() -> None:
     assert pos.loc["a", "s3_matches_in_round"] == 3
     assert pos.loc["d", "s3_match_index_in_round"] == 1
     assert pos.loc["d", "s3_matches_in_round"] == 1
+
+
+def test_round_offsets_leave_a_friday_to_monday_round_alone() -> None:
+    frame = _frame(
+        _match("fri", _START - timedelta(hours=19), (1, 2), (0, 0)),
+        _match("sat", _START, (3, 4), (0, 0)),
+        _match("sun", _START + timedelta(days=1), (5, 6), (0, 0)),
+        _match("mon", _START + timedelta(days=2, hours=5), (7, 8), (0, 0)),
+    )
+    offsets = round_offsets(frame)
+    assert not offsets["s3_is_rescheduled"].any()
+    assert offsets.at["fri", "s3_days_off_round"] < 0 < offsets.at["mon", "s3_days_off_round"]
+
+
+@pytest.mark.parametrize(
+    ("late", "flagged"),
+    [
+        (timedelta(days=RESCHEDULED_AFTER_DAYS), True),
+        (timedelta(days=RESCHEDULED_AFTER_DAYS) - timedelta(minutes=1), False),
+    ],
+)
+def test_round_offsets_flag_a_match_played_off_its_round(late: timedelta, flagged: bool) -> None:
+    frame = _frame(
+        *(_match(f"on{k}", _START, (2 * k, 2 * k + 1), (0, 0)) for k in range(1, 4)),
+        _match("late", _START + late, (90, 91), (0, 0)),
+        _match("early", _START - timedelta(days=30), (92, 93), (0, 0)),
+    )
+    offsets = round_offsets(frame)
+    assert offsets.at["late", "s3_days_off_round"] == pytest.approx(late / timedelta(days=1))
+    assert bool(offsets.at["late", "s3_is_rescheduled"]) is flagged
+    assert offsets.at["early", "s3_days_off_round"] == pytest.approx(-30)
+    assert bool(offsets.at["early", "s3_is_rescheduled"])
+    assert not any(offsets.at[m, "s3_is_rescheduled"] for m in ("on1", "on2", "on3"))
+
+
+def test_round_offsets_keep_each_stages_round_apart() -> None:
+    frame = _frame(
+        _match("a", _START, (1, 2), (0, 0), stage="Apertura"),
+        _match("b", _START + timedelta(hours=2), (3, 4), (0, 0), stage="Apertura"),
+        _match("c", _START + timedelta(days=180), (1, 3), (0, 0), stage="Clausura"),
+        _match("d", _START + timedelta(days=180, hours=2), (2, 4), (0, 0), stage="Clausura"),
+    )
+    assert not round_offsets(frame)["s3_is_rescheduled"].any()
 
 
 def test_the_first_match_sees_an_empty_table() -> None:

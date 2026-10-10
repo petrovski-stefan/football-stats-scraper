@@ -325,8 +325,6 @@ SCHEDULE_ROW_COLUMNS = [
     "s2_mkt_tot",
     "s2_implied_over",
     "s2_implied_ah_home",
-    "s2_is_abandoned",
-    "s2_is_forfeit",
     # Comebacks: the only market for now.
     "s2_is_comeback",
     "s2_is_comeback_home",
@@ -383,6 +381,8 @@ def pre_htft_columns() -> list[str]:
 SCHEDULE_MULTI_COLUMNS = [
     "s3_match_index_in_round",
     "s3_matches_in_round",
+    "s3_days_off_round",
+    "s3_is_rescheduled",
     *pre_kickoff_columns(),
     "s3_pre_rank_gap",
     *pre_htft_columns(),

@@ -94,6 +94,10 @@ WORKERS = 4
 FIRST_LOAD_TIMEOUT = 45
 # Between two leagues of one worker. The site sets no crawl delay, so the pace is ours.
 PAUSE_BETWEEN_JOBS = 12
+# A round whose odds have not shown after `wait_for_odds`'s own wait gets this much
+# longer before it is stored without odds, with a warning. Found 2026-10-10: two England
+# League 2 2024-25 rounds were stored with no odds at all, though the page shows them.
+ODDS_RETRY_TIMEOUT = 30
 
 
 @dataclass(frozen=True)
@@ -220,7 +224,9 @@ def _scrape_round(
     driver: webdriver.Chrome, round_number: int, ctx: _StagePass
 ) -> list[dict[str, Any]]:
     click_round(driver, round_number, ctx.stage.stage_id)
-    wait_for_odds(driver)
+    label = f"{ctx.stage.name} round {round_number}".strip()
+    if not wait_for_odds(driver) and not wait_for_odds(driver, ODDS_RETRY_TIMEOUT):
+        logger.warning("  %s: no odds on screen, stored without odds; check the page", label)
 
     secondary = _secondary_odds(driver)
 
@@ -245,7 +251,6 @@ def _scrape_round(
         stale += bool(drop_stale_odds(parsed))
         round_matches.append(parsed)
 
-    label = f"{ctx.stage.name} round {round_number}".strip()
     logger.info("  %s: %d finished / %d rows", label, len(round_matches), len(rows))
     if stale:
         logger.info("  %s: %d rows showed a market they do not carry; emptied", label, stale)

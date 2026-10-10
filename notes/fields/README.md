@@ -54,7 +54,17 @@ live aggregates) by `match_id`.
 2. **Decided by the user, 2026-10-06:**
    - typed values only: no score strings beside the goal columns;
    - odds as `odds_<market>_<snapshot>_<selection>`, snapshot `open` (the page's "Initial") or
-     `close` (the page's "Live"), stored as decimal odds;
+     `close` (the page's "Live"), stored as decimal odds. What the snapshots are (the user,
+     2026-10-10):
+     - **Initial** (`open`): the first price the bookmaker publishes for the match, usually about
+       7 days before kickoff (more or fewer by league, country and competition). nowgoal keeps it
+       as a snapshot that never changes, on the schedule and the h2h page alike. **Every odd on the
+       schedule page is Bet365's Initial**, finished or scheduled match, all three markets;
+     - **Live** (`close`, h2h page only): the price as it moves before kickoff. For a finished
+       match that is the last pre-kickoff price, the closing price. For a scheduled match it is
+       the price at the moment of reading, so it needs that moment stored beside it;
+     - **In-Play**: the price during the match, moving with the score, the clock and events. It
+       is after kickoff, so it is never stored as a field of its own match;
    - no rounding in stored data; round only in reports;
    - **every column name starts with the code of the doc that defines it:** source letter (`s`
      schedule, `d` detail, `l` live page) + stage number + `_`. Examples: `s1_date`,

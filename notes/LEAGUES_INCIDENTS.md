@@ -24,7 +24,7 @@ The user expects most of the leagues in sections 1 and 2 to be removed after scr
 
 ## 1. Incidents inside the data window — CAREFULLY READ THE DATA
 
-### Turkey — Süper Lig, TFF 1. Lig
+### Turkey — Süper Lig
 
 - **Incident (late 2025):** the Turkish federation found that about 150 of about 570 active referees held betting accounts, and that some of them bet on football matches. About 1,000 players were then referred for betting. Referees and at least one club president were arrested, and lower-league matches (2. Lig, 3. Lig) were paused for about two weeks.
 - **Window impact:** the betting activity covered several seasons, including 2024-25 and 2025-26. Referee decisions (cards, penalties) in those seasons are the risk.
@@ -35,7 +35,6 @@ The user expects most of the leagues in sections 1 and 2 to be removed after scr
 | League | 2026-2027 | 2025-2026 | 2024-2025 |
 |---|---|---|---|
 | Turkey Super Lig (TUR D1) | [link](https://football.nowgoal26.com/league/2026-2027/30) | [link](https://football.nowgoal26.com/league/2025-2026/30) | [link](https://football.nowgoal26.com/league/2024-2025/30) |
-| Turkey 1. Lig (TFF 1. Lig) | [link](https://football.nowgoal26.com/league/2026-2027/130) | [link](https://football.nowgoal26.com/league/2025-2026/130) | [link](https://football.nowgoal26.com/league/2024-2025/130) |
 
 ### China — Super League, Jia League, Yi League
 
@@ -73,13 +72,6 @@ No known incident falls inside the data window. The user decided to examine **ev
 | VIC Premier League (AUS VPL) | [2026](https://football.nowgoal26.com/league/2026/436) | [2025](https://football.nowgoal26.com/league/2025/436) | [2024](https://football.nowgoal26.com/league/2024/436) |
 | Victorian State League Division 1 (Aus VD1) | [2026](https://football.nowgoal26.com/league/2026/1073) | [2025](https://football.nowgoal26.com/league/2025/1073) | [2024](https://football.nowgoal26.com/league/2024/1073) |
 | National Premier Leagues Western Australia (WAUS D1) | [2026](https://football.nowgoal26.com/league/2026/481) | [2025](https://football.nowgoal26.com/league/2025/481) | [2024](https://football.nowgoal26.com/league/2024/481) |
-| National Premier Leagues Capital Football (NPLCF) | [2026](https://football.nowgoal26.com/league/2026/1063) | [2025](https://football.nowgoal26.com/league/2025/1063) | [2024](https://football.nowgoal26.com/league/2024/1063) |
-| Australia New South Wales Super League (AUS NSWSL) | [2026](https://football.nowgoal26.com/league/2026/1255) | [2025](https://football.nowgoal26.com/league/2025/1255) | [2024](https://football.nowgoal26.com/league/2024/1255) |
-| TAS Premier League (TSA TPL) | [2026](https://football.nowgoal26.com/league/2026/1450) | [2025](https://football.nowgoal26.com/league/2025/1450) | [2024](https://football.nowgoal26.com/league/2024/1450) |
-| Australia Northern NSW Premier League (NSW-N TPL) | [2026](https://football.nowgoal26.com/league/2026/1453) | [2025](https://football.nowgoal26.com/league/2025/1453) | [2024](https://football.nowgoal26.com/league/2024/1453) |
-| Queensland Premier League 3 (FQPL3) | [2026](https://football.nowgoal26.com/league/2026/1382) | [2025](https://football.nowgoal26.com/league/2025/1382) | [2024](https://football.nowgoal26.com/league/2024/1382) |
-| Australia Queensland State Leagues (QLD D1) | [2026](https://football.nowgoal26.com/league/2026/1868) | [2025](https://football.nowgoal26.com/league/2025/1868) | [2024](https://football.nowgoal26.com/league/2024/1868) |
-| Queensland Premier League 2 (FQPL2) | [2026](https://football.nowgoal26.com/league/2026/2334) | [2025](https://football.nowgoal26.com/league/2025/2334) | [2024](https://football.nowgoal26.com/league/2024/2334) |
 
 ---
 

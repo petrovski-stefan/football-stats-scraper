@@ -124,12 +124,21 @@ history slots × 27), goals 9 + 3, events 9 + 3.
 | step | what | who | size |
 |---|---|---|---|
 | P2 | The user's on-page check of the detail and live stage-1 docs, ≤ 20 fields a sitting (progress in `notes/fields/README.md`). Decide which of the remaining page candidates (C5–C7, C9–C22) join stage 1, comebacks only | user + Claude | ~4 sittings |
-| P4 | Detail: stage-1 scraper (match-level + long history), stage-2 and stage-3 builders | Claude | ~2.5 days |
+| P4 | Detail: stage-1 scraper (match-level + long history), stage-2 and stage-3 builders. Stage 2 of the history file carries a read-only `d2_is_friendly` per history row (the user, 2026-10-10), from `domain/scope.py:is_friendly`; tournament friendlies without "friendly" in their name slip through (`qa/CLAUDE.md` §3) | Claude | ~2.5 days |
 | P5 | The join; re-point `features/`, `modelling/`, `qa/` and the goal/event work lists (`scrapers/goals.py:history_ids` reads the history file) | Claude | ~0.5 day |
 | P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 56k pages, ~28 h at the one measured rate (`notes/PLAN_2026-07-25_environment_filter.md` Phase 1) |
 | P7 | Freeze the stage-1 docs. With Phase S's other conditions, this unblocks the CONFIRM scrape | user | — |
 
 P2 comes before P4: the docs are the spec the code is written to.
+
+**Pending schedule fix, not before 2026-10-12 (the user: no scraping until then).** Re-scrape the
+rounds the old silent odds wait lost (`notes/MIGRATIONS.md` 2026-10-10): England League 2 2024-25
+rounds 21 and 28 (the user saw round 21's odds on the page). The scraper takes whole leagues, so
+it redoes both finished seasons:
+`uv run python -m scrapers.schedule --leagues "ENG L2" --before-year 2026 --force`
+(2 jobs, ~10 min). Before it: copy those 2 seasons' stage files aside. After it: rebuild stages 2
+and 3, run `qa.validate`, compare old and new files match by match (odds gained, anything else
+changed), and re-run `notes/runs/2026-10-10_odds_coverage/coverage.py`.
 
 ## 6. Open points Claude handles (no user decision needed)
 

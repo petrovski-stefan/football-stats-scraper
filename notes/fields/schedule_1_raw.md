@@ -106,6 +106,13 @@ The odds header offers AH, 1X2 and OU only. **No HT/FT odds on this page.**
 
 - **Opening odds:** S1.19–24 equal the Bet365 "Initial" row on the detail page for 2789361, lines
   and prices. Confirm on the page in P2.
+- **Missing odds mean Bet365 did not price the match** (the user, 2026-10-10, on the h2h pages of
+  one match without schedule odds and one with): the schedule shows Bet365's prices only. The h2h
+  page's odds table also lists 18Bet, Ladbrokes, Vcbet, Interwetten, Sbobet, M88, 12Bet, Crown,
+  Easybet and Macauslot, which can price a match Bet365 left out. So `s2_has_odds` False means
+  "no Bet365 odds", not "no market". The h2h page agrees: for 2604629 (played 228 days after its
+  round) Bet365's row is empty in every snapshot and market, and one other bookmaker priced only
+  1X2 and O/U (the user, 2026-10-10). So the detail page cannot fill a schedule gap from Bet365.
 - **Duplicates:** S1.16–18 equal D1.03–05 in 99.7% of 379 EPL 2025-26 rows.
 - **A market the match does not carry** (found 2026-10-08): its odds cells keep the previous
   market's numbers when the header switches, so 97 rows stored their 1X2 prices as S1.19–24 and

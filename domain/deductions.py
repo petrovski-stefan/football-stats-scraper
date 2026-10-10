@@ -24,19 +24,9 @@ POINTS_DEDUCTIONS: dict[tuple[int, str, str, int], int] = {
     (152, "2025-2026", "League", 4939): -15,  # Edinburgh City
     (30, "2024-2025", "League", 5049): -12,  # Adana Demirspor
     (17, "2024-2025", "League", 246): -39,  # Vitesse
-    (130, "2024-2025", "League", 533): -21,  # Yeni Malatyaspor
-    (611, "2024", "League", 11047): -45,  # Barnechea
-    (611, "2024", "League", 7598): -9,  # Curico Unido
-    (611, "2025", "League", 3889): -9,  # Santiago Morning
-    (130, "2025-2026", "League", 5049): -63,  # Adana Demirspor; the page's table shows -42
     (17, "2025-2026", "League", 246): -12,  # Vitesse
-    (316, "2024-2025", "League", 3633): -6,  # Kuala Lumpur City
-    (316, "2024-2025", "League", 3624): -3,  # Kedah Darul Aman
-    (577, "2025-2026", "Apertura", 25433): -4,  # Juticalpa
     (616, "2025", "League", 7630): -3,  # Sydney Olympic
     (616, "2025", "League", 20722): -3,  # Western Sydney Wanderers (academy side)
-    (1255, "2025", "League", 8972): -3,  # Newcastle Jets (youth side)
-    (1122, "2024-2025", "League", 26404): -3,  # PSS Sleman
     (391, "2025", "Clausura", 4788): -3,  # Portuguesa
     (240, "2025", "Apertura", 2506): -1,  # Cerro
     (240, "2025", "Clausura", 2817): -3,  # Nacional
@@ -45,11 +35,9 @@ POINTS_DEDUCTIONS: dict[tuple[int, str, str, int], int] = {
 
 # Where the page's final table applies less than the official total above, the amount it
 # does apply, under the same key. Only the final-table check reads it; the official total
-# stays the entry above. One team only (the user, 2026-10-10): the page stopped counting
-# Adana's deductions after mid-February 2026 (notes/POINTS_DEDUCTIONS.md #16).
-PAGE_TOTALS: dict[tuple[int, str, str, int], int] = {
-    (130, "2025-2026", "League", 5049): -42,  # Adana Demirspor; official -63
-}
+# stays the entry above. Empty since 2026-10-10: its one entry (the user's exception of that
+# day) left the project with its league.
+PAGE_TOTALS: dict[tuple[int, str, str, int], int] = {}
 
 
 def _stage_entries(

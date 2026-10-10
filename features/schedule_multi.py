@@ -7,7 +7,7 @@ output is the schedule's analysis input: one row per match.
 This is the only schedule stage where another match's result can enter a row, so each
 field's row window is stated where it is built:
 
-- the round position reads other rows' kickoff times, never their results;
+- the round position and the round offset read other rows' kickoff times, never their results;
 - the pre-kickoff table and the half-time / full-time record count a match only if it
   kicked off at least 2 h 30 min before this one, so it had surely finished (the user's
   rule, 2026-10-06).
@@ -47,6 +47,11 @@ logger = logging.getLogger(__name__)
 # normal match is over about 1 h 55 min after kickoff.
 FINISHED_AFTER = timedelta(hours=2, minutes=30)
 
+# A match this many days or more from its round's median kickoff was rescheduled. Measured on
+# 2026-10-10 over 82 leagues: 1,155 matches (2.8%) at 5 days, 1,114 at 7, so 5 is where the
+# count stops falling; under 5 a long round (Friday to Monday, a split midweek) still counts.
+RESCHEDULED_AFTER_DAYS = 5
+
 _ROUND_KEY = ["s1_stage", "s1_round"]
 
 
@@ -76,6 +81,24 @@ def round_positions(frame: pd.DataFrame) -> pd.DataFrame:
         }
     )
     return positions.reindex(frame.index)
+
+
+def round_offsets(frame: pd.DataFrame) -> pd.DataFrame:
+    """`s3_days_off_round` and `s3_is_rescheduled`, from kickoff times only.
+
+    The offset is this kickoff minus the median kickoff of its (stage, round), in days:
+    positive for a match played after its round, negative for one brought forward. A match
+    `RESCHEDULED_AFTER_DAYS` or more off its round was rescheduled. A read-only indicator for
+    now (the user, 2026-10-10). Not `s3_out_of_round` (S3.07), whose survey wording misfires
+    on a brought-forward match.
+    """
+    kickoff = pd.to_datetime(frame["s1_date"].map(parse_instant), utc=True)
+    median = kickoff.groupby([frame[key] for key in _ROUND_KEY], dropna=False).transform("median")
+    days = (kickoff - median).dt.total_seconds() / 86400
+    return pd.DataFrame(
+        {"s3_days_off_round": days, "s3_is_rescheduled": days.abs() >= RESCHEDULED_AFTER_DAYS},
+        index=frame.index,
+    )
 
 
 def _matches_by_kickoff(group: pd.DataFrame) -> list[_Match]:
@@ -166,7 +189,9 @@ def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
 def build(row_path: str) -> str:
     """Write the stage-3 file for one stage-2 schedule file; return its path."""
     frame = read_stage_csv(row_path)
-    out = pd.concat([frame, round_positions(frame), pre_kickoff_tables(frame)], axis=1)
+    out = pd.concat(
+        [frame, round_positions(frame), round_offsets(frame), pre_kickoff_tables(frame)], axis=1
+    )
     out_path = paths.schedule_at_stage(row_path, 3)
     columns = SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS + SCHEDULE_MULTI_COLUMNS
     write_stage_csv(out, out_path, columns)

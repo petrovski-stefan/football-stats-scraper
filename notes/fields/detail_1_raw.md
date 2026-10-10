@@ -16,9 +16,9 @@ page and only parsed. The user checks each row on the page (✓).
 | D1.03 | `d1_odds_1x2_open_home` | Bet365 opening 1X2 price, home ("Initial" row) | float | odds table, Initial row, 1X2 cells | 1.40 | before | input |  | rename (today `odds1x2_init_home`) |
 | D1.04 | `d1_odds_1x2_open_draw` | same, draw | float | same | 4.75 | before | input |  | rename (today `odds1x2_init_draw`) |
 | D1.05 | `d1_odds_1x2_open_away` | same, away | float | same | 7.00 | before | input |  | rename (today `odds1x2_init_away`) |
-| D1.06 | `d1_odds_1x2_close_home` | Bet365 "Live" 1X2 price, home. The page has a separate "In-Play" row (1.01 here), so "Live" is the last price before kickoff | float | odds table, Live row, 1X2 cells | 1.61 | before ? (closing) | input |  | rename (today `odds1x2_live_home`) |
-| D1.07 | `d1_odds_1x2_close_draw` | same, draw | float | same | 4.33 | before ? | input |  | rename (today `odds1x2_live_draw`) |
-| D1.08 | `d1_odds_1x2_close_away` | same, away | float | same | 5.00 | before ? | input |  | rename (today `odds1x2_live_away`) |
+| D1.06 | `d1_odds_1x2_close_home` | Bet365 "Live" 1X2 price, home. The page has a separate "In-Play" row (1.01 here), so "Live" is the last price before kickoff (confirmed by the user, 2026-10-10: Live = the pre-kickoff price as it moves; In-Play = during the match) | float | odds table, Live row, 1X2 cells | 1.61 | before (closing) | input |  | rename (today `odds1x2_live_home`) |
+| D1.07 | `d1_odds_1x2_close_draw` | same, draw | float | same | 4.33 | before | input |  | rename (today `odds1x2_live_draw`) |
+| D1.08 | `d1_odds_1x2_close_away` | same, away | float | same | 5.00 | before | input |  | rename (today `odds1x2_live_away`) |
 | D1.09 | `d1_strength_home` | the page's strength rating, home (home + away = 100) | int | "Strength Comparison" block, `[class*='strength']` | 67 | before ? | input |  | keep |
 | D1.10 | `d1_strength_away` | same, away | int | same | 33 | before ? | input |  | keep |
 | D1.11 | `d1_h2h_compare_home_pct` | "H2H Comparison" bar, home share in % | float | Strength Comparison block | 84 | before ? | input |  | keep |
@@ -112,3 +112,8 @@ dated at or after this match's kickoff is an error.
 
 The history date `2026-10-02 18:45:00` belongs to a 20:45 CEST kickoff, which confirms that the
 page gives D1.22 in UTC.
+
+**An awarded match on this page** (the user, 2026-10-10, on the h2h page of 2609242, a listed forfeit, against a
+played match): the status still reads "Finished", but the In-Play odds rows are missing or incomplete. A match
+never played has no in-play market, so this is the page's one sign of an award found so far. The schedule
+page's status does not tell them apart.
