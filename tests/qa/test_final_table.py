@@ -104,6 +104,17 @@ def test_a_deduction_declared_with_the_wrong_amount_fails(monkeypatch: pytest.Mo
     assert not _run(_SCHEDULE, deducted).ok
 
 
+def test_the_pages_own_total_is_what_the_page_is_held_to(monkeypatch: pytest.MonkeyPatch) -> None:
+    key = (_LEAGUE, _SEASON, "", 1)
+    monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {key: -3})
+    monkeypatch.setattr(deductions, "PAGE_TOTALS", {key: -1})
+    # The page takes 1 of the 3 points off team 1, which stays top.
+    partly = [{**_PAGE[0], "s1_points": 2}, *_PAGE[1:]]
+    assert _run(_SCHEDULE, partly).ok
+    fully = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
+    assert not _run(_SCHEDULE, fully).ok
+
+
 def test_a_rank_outside_the_block_level_on_points_fails() -> None:
     wrong = [{**_PAGE[0], "s1_rank": 2}, *_PAGE[1:]]
     assert not _run(_SCHEDULE, wrong).ok

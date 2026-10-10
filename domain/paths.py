@@ -26,7 +26,7 @@ one source at a time. Its files sit under `data/finished/`, one directory per st
 Only `1_raw/` is scraper output; `2_row/` and `3_multi/` are rebuilt from it at any time.
 Here `<league>` is the config's country and then the league's name in the page's title
 (`lithuania_2.division`), joined by `scrapers/csv_io.py:league_slug`; a name that already
-starts with the exact country keeps it once (`england_championship`).
+starts with the exact country keeps it once (`brazil_serie_a`).
 
 Stdlib only, deliberately: `domain` depends on nothing internal and (apart from the
 pydantic models) nothing heavy, so a path lookup never drags pandas into a caller.

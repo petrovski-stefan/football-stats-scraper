@@ -310,17 +310,16 @@ is predictive — the team table in particular is **F4 wearing a jersey**, not a
 | league, season | comebacks | matches | rate |
 |---|---|---|---|
 | ENG League Two 2023-24 | 35 | 552 | 6.3% |
-| ENG Championship 2025-26 | 34 | 552 | 6.2% |
-| ENG Championship 2024-25 | 31 | 552 | 5.6% |
 
-One league's rows were removed from this list on 2026-10-08, at the user's request. Every
-figure in this study, these counts included, was measured with it in the corpus.
+Two leagues' rows were removed from this list, on 2026-10-08 and 2026-10-10, at the user's
+request. Every figure in this study, these counts included, was measured with both in the
+corpus.
 
 **Team-season, most completed comebacks:** four-way tie at **5** — Fulham (PL 2024-25),
-Fenerbahçe (TUR 2024-25), Man City (PL 2023-24), Southampton (Championship 2025-26).
+Fenerbahçe (TUR 2024-25), Man City (PL 2023-24) and a team of a league since removed.
 Aston Villa: 4 (PL 2025-26).
 
-**League, three seasons merged:** by count, ENG Championship 93/1,656 (5.6%); by rate,
+**League, three seasons merged:** by count, a league since removed (93/1,656, 5.6%); by rate,
 ENG Premier League 76/1,140 (6.7%) — the F1 winner's-curse extreme, not a real property.
 
 **Team, three seasons merged:**

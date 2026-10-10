@@ -9,7 +9,7 @@ only parsed. The user checks each row on the page (✓).
   `data/raw/<league>_<season>.csv`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`
   (new, a check only). `<country>` is the config's country, `<league>` the league's name in the
   page's title (2026-10-08: the title alone can leave the country out). A name that already starts
-  with the exact country keeps it once: `england_championship`, but `england_english_premier_league`.
+  with the exact country keeps it once: `brazil_serie_a`, but `england_english_premier_league`.
 
 ## A. Match file — one row per finished match
 

@@ -8,7 +8,8 @@ page's final table must equal the table rebuilt from every stored result of the 
 A difference is a finding about the data, never a reason to loosen the check: a points
 deduction (our rebuild cannot know it), a match the scrape missed, or a wrong score. A
 deduction confirmed in public reports is declared in `domain/deductions.py` and added to the
-rebuilt points before comparing; an undeclared one still fails. In a
+rebuilt points before comparing; an undeclared one still fails. Where the page's table applies
+less than the official total, the amount it does apply (`deductions.PAGE_TOTALS`) is used. In a
 league whose points carry from one stage into the next (Scotland's split, Belgium's halved
 points), the later stage differs until that league's carry-over rule exists
 (`notes/fields/schedule_3_multi.md` §B), which is the point.
@@ -86,7 +87,7 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
         extra, missing = sorted(on_page - set(ranks)), sorted(set(ranks) - on_page)
         r.check(not extra, f"{label}teams on the page with no stored match: {extra}")
         r.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
-        deducted = deductions.deducted(league, season, str(stage))
+        deducted = deductions.on_page(league, season, str(stage))
         points = {team: table.line("total", team).points + deducted.get(team, 0) for team in ranks}
         for row in page[page["team_id"].astype(int).isin(ranks)].itertuples(index=False):
             _check_team(r, label, table, points, row)

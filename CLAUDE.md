@@ -15,7 +15,7 @@ All commands run from the repo root — the `data/raw/`, `data/processed/`, `not
 Pipeline, in order:
 
 - Install deps: `uv sync`
-- Run the league scraper: `uv run python -m scrapers.schedule` → `data/finished/1_raw/` (the schedule and the page's final table, `notes/fields/schedule_1_raw.md`). With no option it takes the `enabled` seasons; `--leagues "ENG LCH,SCO PR"` / `--all`, `--before-year 2026`, `--list` (no page opens) and `--force` choose others (`scrapers/CLAUDE.md` §1). It resumes: a league-season already on disk is skipped.
+- Run the league scraper: `uv run python -m scrapers.schedule` → `data/finished/1_raw/` (the schedule and the page's final table, `notes/fields/schedule_1_raw.md`). With no option it takes the `enabled` seasons; `--leagues "SCO PR,SCO CH"` / `--all`, `--before-year 2026`, `--list` (no page opens) and `--force` choose others (`scrapers/CLAUDE.md` §1). It resumes: a league-season already on disk is skipped.
 - Build schedule stage 2: `uv run python -m features.schedule_row` → `data/finished/2_row/` (`notes/fields/schedule_2_row.md`)
 - Build schedule stage 3: `uv run python -m features.schedule_multi` → `data/finished/3_multi/` (`notes/fields/schedule_3_multi.md`; the standings rebuilt at each kickoff)
 - Run the detail enricher: `uv run python -m scrapers.detail [--limit N]` → `data/raw/` (resumable; `--limit` caps the batch)

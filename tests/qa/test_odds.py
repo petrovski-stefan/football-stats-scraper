@@ -3,10 +3,13 @@
 import pandas as pd
 import pytest
 
+from qa import odds
 from qa.odds import OddsColumns, check_all
 from qa.report import Report
 
 _COLUMNS = OddsColumns("h", "d", "a", "ou", "over", "under", "ah", "ah_h", "ah_a")
+# Two bands of our own, so the line-size tests do not depend on the project's limits.
+_BANDS = ((1.00, 6.0, 7.0), (1.20, 3.0, 5.0))
 
 
 def _row(**overrides: float | None) -> dict[str, float | None]:
@@ -37,8 +40,46 @@ def test_a_three_way_book_that_is_not_1x2_fails() -> None:
     assert any("overround" in issue for issue in _issues(_row(h=1.9, d=1.9, a=1.9)))
 
 
-def test_a_goal_line_out_of_range_fails() -> None:
-    assert any("OU rows with a line outside" in issue for issue in _issues(_row(ou=0.25)))
+@pytest.fixture
+def bands(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(odds, "LINE_LIMITS", _BANDS)
+    monkeypatch.setattr(odds, "NO_PRICE_BAND", _BANDS[1][0])
+
+
+def test_a_goal_line_below_the_minimum_fails() -> None:
+    assert any("OU rows with a line below" in issue for issue in _issues(_row(ou=0.25)))
+
+
+@pytest.mark.usefixtures("bands")
+@pytest.mark.parametrize(("h", "a", "ah"), [(1.05, 26.0, 5.5), (26.0, 1.05, -5.5)])
+def test_a_short_favourite_may_carry_big_lines(h: float, a: float, ah: float) -> None:
+    assert _issues(_row(h=h, d=11.0, a=a, ah=ah, ou=6.5)) == []
+
+
+@pytest.mark.usefixtures("bands")
+def test_a_big_handicap_on_a_longer_favourite_fails() -> None:
+    issues = _issues(_row(ah=3.5, ou=4.5))
+    assert any("AH rows with a line bigger" in issue for issue in issues)
+
+
+@pytest.mark.usefixtures("bands")
+def test_a_big_goal_line_on_a_longer_favourite_fails() -> None:
+    issues = _issues(_row(ou=5.5))
+    assert any("OU rows with a line below" in issue for issue in issues)
+
+
+@pytest.mark.usefixtures("bands")
+def test_a_row_without_1x2_prices_uses_the_no_price_band() -> None:
+    issues = _issues(_row(h=None, ah=5.5, ou=6.5))
+    assert any("AH rows with a line bigger" in issue for issue in issues)
+
+
+def test_line_limits_cover_every_price_and_shrink_as_the_favourite_lengthens() -> None:
+    starts, ah_limits, ou_limits = zip(*odds.LINE_LIMITS, strict=True)
+    assert starts[0] <= 1.0
+    assert list(starts) == sorted(starts)
+    assert list(ah_limits) == sorted(ah_limits, reverse=True)
+    assert list(ou_limits) == sorted(ou_limits, reverse=True)
 
 
 def test_a_line_off_the_quarter_grid_fails() -> None:

@@ -7,7 +7,7 @@ stage-1 files (`notes/fields/schedule_1_raw.md`):
   table, one row per team, read once per stage as a check on the standings we rebuild.
 
 `<country>` is the config's country and `<league>` the league's name in the page's title,
-written once when that name already starts with the exact country (`england_championship`).
+written once when that name already starts with the exact country (`brazil_serie_a`).
 
 Structured like `scrapers/detail.py`, the second stage: a unit function
 (`scrape_league`) that renders one league, an orchestration function (`scrape_all`) that
@@ -25,7 +25,7 @@ opens; otherwise each stage named in the league's `keep` list is clicked and scr
 turn, its name going into the `s1_stage` column.
 
 Run: `uv run python -m scrapers.schedule` (the `enabled` seasons)
-     `uv run python -m scrapers.schedule --leagues "ENG LCH,SCO PR" --before-year 2026 --list`
+     `uv run python -m scrapers.schedule --leagues "SCO PR,SCO CH" --before-year 2026 --list`
 """
 
 import argparse
@@ -387,7 +387,7 @@ def scraped_league_seasons() -> set[tuple[int, str]]:
     """(league id, season) of every league-season already in a stage-1 schedule file.
 
     Read from inside the files rather than from their names: a file is named after the
-    page's title, which need not match the config's name ("England Championship").
+    page's title, which need not match the config's name.
     """
     done: set[tuple[int, str]] = set()
     for path in paths.schedule_csvs(1):
@@ -502,7 +502,7 @@ def main() -> None:
         description="Scrape league schedules into data/finished/1_raw/."
     )
     which = parser.add_mutually_exclusive_group()
-    which.add_argument("--leagues", help='config codes, comma-separated, e.g. "ENG LCH,SCO PR"')
+    which.add_argument("--leagues", help='config codes, comma-separated, e.g. "SCO PR,SCO CH"')
     which.add_argument(
         "--all", action="store_true", dest="all_leagues", help="every league in the config"
     )

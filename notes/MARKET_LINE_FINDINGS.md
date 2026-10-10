@@ -118,7 +118,7 @@ Source: `https://www.football-data.co.uk/mmz4281/<SEASON>/<DIV>.csv`, where `<SE
 | country | codes | matches (3 seasons) |
 |---|---|---|
 | belgium | B1 | 935 |
-| england | E0, E1, E2, E3 | 6,108 |
+| england | E0, E2, E3 | 4,452 |
 | france | F1, F2 | 1,909 |
 | germany | D1, D2 | 1,836 |
 | greece | G1 | 709 |
@@ -128,10 +128,10 @@ Source: `https://www.football-data.co.uk/mmz4281/<SEASON>/<DIV>.csv`, where `<SE
 | scotland | SC0, SC1, SC2, SC3 | 2,304 |
 | spain | SP1, SP2 | 2,526 |
 | turkey | T1 | 1,028 |
-| **total** | **21 divisions** | **21,471** |
+| **total** | **20 divisions** | **19,815** |
 
-One division (1,656 matches over the 3 seasons) was removed from this table on 2026-10-08, at
-the user's request. Every result in these notes was measured on all 22 divisions, 23,127 matches.
+Two divisions (1,656 matches each over the 3 seasons) were removed from this table, on
+2026-10-08 and 2026-10-10, at the user's request. Every result in these notes was measured on all 22 divisions, 23,127 matches.
 
 Columns this study used: `FTHG FTAG HTHG HTAG` (targets), `B365>2.5 B365<2.5` (opening O/U),
 `B365C>2.5 B365C<2.5` / `PC>2.5 PC<2.5` (closing O/U, Bet365 and Pinnacle), `AHh` / `AHCh`

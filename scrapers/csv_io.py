@@ -13,7 +13,7 @@ def league_slug(country: str, league_name: str) -> str:
     """The league part of a staged file name: the config's country, then the league's name
     as the page's title gives it (`lithuania_2.division`). The title alone can leave the
     country out. A name that already starts with the exact country keeps it once
-    (`england_championship`, but `england_english_premier_league`; the user, 2026-10-08).
+    (`brazil_serie_a`, but `england_english_premier_league`; the user, 2026-10-08).
     Stays here rather than in `domain/paths.py` because it needs `clean_string`, and
     `domain` may not import from `scrapers`."""
     prefix = country.lower().replace(" ", "_")

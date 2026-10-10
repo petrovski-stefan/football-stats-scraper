@@ -63,7 +63,7 @@ class LeagueSeason:
     season: str
     league_id: int
     keep: tuple[str, ...]
-    code: str  # the config's short code, e.g. "ENG LCH"
+    code: str  # the config's short code, e.g. "SCO PR"
     name: str  # the config's name, for logs
     country: str  # the config's country, the first part of the file names
 
