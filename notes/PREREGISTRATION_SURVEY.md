@@ -209,7 +209,8 @@ Mantel–Haenszel risk ratio over strata.
 
 A claim first stated with its own effect size (T1: "essentially impossible"; T4: Monday at
 0.52×) is also reported **REFUTED AS STATED** when the 95% CI excludes that size. This is a
-reporting rule and spends no α.
+reporting rule and spends no α. (T4's 0.52× was most likely measured on Sundays:
+PLAN_2026-09-20 erratum 2.)
 
 ### 6.3 Robustness conditions (every PASS)
 
@@ -298,8 +299,8 @@ fails it is withdrawn by a dated amendment before the run, and Holm's m shrinks 
 | 2 | table vs market | the side higher in the **recomputed pre-kickoff table** (§13.1) is the market underdog (lower de-vigged win probability); both sides have played ≥ 5 league matches in this stage | match comeback | two-sided — the earlier 7.11% figure has no recorded definition (§13.1) | S |
 | 3 | round state (T3) | ≥ 1 comeback in the same (stage, round), in a match that kicked off ≥ 2 h 30 min before this one | match comeback | more | S |
 | 4 | exhaustion (T1) | the team's previous match in this league-season, by kickoff, was a comeback win for it | this team completes a comeback; unit = team-match, expected = B's directional P | fewer | S |
-| 5 | out of round | PLAN_2026-09-20 §1's ordinal definition: a round-X match that kicks off after the first kickoff of any round Y > X of the same stage | match comeback | two-sided — the claim said fewer; its only live cell (≥ 2 later rounds started) pointed up | S |
-| 6 | Monday (T4) | `is_monday` as stored | match comeback | fewer | S |
+| 5 | out of round | PLAN_2026-09-20 §1's ordinal definition: a round-X match that kicks off after the first kickoff of any round Y > X of the same stage. **It misfires** (PLAN_2026-09-20 erratum 1: 70 of 89 flags in 4 seasons were matches played on schedule); the replacement is open, IDEAS idea 13 | match comeback | two-sided — the claim said fewer; its only live cell (≥ 2 later rounds started) pointed up | S |
+| 6 | Monday (T4) | `s2_is_monday` (S2.09, the Berlin weekday since 2026-10-06; the old stored `is_monday` was UTC+8, PLAN_2026-09-20 erratum 2; the Americas' local weekday is open, IDEAS idea 13) | match comeback | fewer | S |
 | 10 | AH line adds over O/U | top 20% of \|`ah_line`\| within stratum | match comeback | two-sided | S |
 | 11 | pre-half-time concession | top 20% within stratum of the mean of `home_conceded_pre_ht_rate` and `away_conceded_pre_ht_rate` (the sides present; a match with neither is excluded) | HT-decisive; expected = B's P(HT-decisive) | more | D |
 | 12 | late-goal proneness | top 20% within stratum of the larger of `home_late_goal_rate` and `away_late_goal_rate` (the sides present) | match comeback | more | D |

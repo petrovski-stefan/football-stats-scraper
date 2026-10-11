@@ -21,7 +21,7 @@ Example: 2789361, Bet365 1X2 Initial 1.40 / 4.75 / 7.00, Live 1.61 / 4.33 / 5.00
 | D2.04 | `d2_implied_1x2_close_away` | 1 / D1.08 | float | 0.200 | before ? | input | keep ? (today `implied_live_away`) |
 
 If the user's later duplicate review drops the schedule's opening prices (S1.16–18), the
-margin-free fields S2.11, S2.14–23 are computed here from D1.03–05 instead.
+margin-free fields S2.11, S2.17–21 are computed here from D1.03–05 instead.
 
 ## B. History file — per history row
 

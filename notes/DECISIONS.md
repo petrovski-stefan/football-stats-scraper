@@ -104,6 +104,10 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
      table-vs-market divergence as 7.11%, 1.29×, p=0.060 and cites MARKET_LINE, but
      MARKET_LINE_FINDINGS has no such figure. Its §1 MH table (z=+1.12) does not reduce to
      p=0.060. Find the run that produced it, or mark the figure unsourced.
+     **Done 2026-10-11: marked unsourced** in the `notes/STATE.md` row. The run was never
+     committed, and the only table columns in that corpus were the post-round positions
+     (`home_team_position`, `away_team_position`, `position_gap`), which leak in this
+     claim's favour.
   3. *(audit #4)* **Dead path.** PREREGISTRATION A9.1 row 4 cites
      `notes/filter_study_raw.txt (1c5ac01)`. The file no longer exists and MIGRATIONS has
      no entry for it. Add a MIGRATIONS line pointing to `notes/FILTER_STUDY_RAW.md`.

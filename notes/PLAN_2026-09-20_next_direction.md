@@ -8,6 +8,24 @@ Status: **§1 out-of-round — disambiguated, tested, refuted.** **§2 prospecti
 recommended, not decided.** The one question still open across the whole document is the
 picks-per-week number in §2.
 
+> **Errata, 2026-10-11** (`notes/IDEAS_2026-10-01.md` idea 13; the text below is not edited):
+>
+> 1. **§1's refutation does not stand.** Its ordinal flag never checks that the match itself
+>    was moved. When one later-round match is brought forward, every match played after it
+>    is flagged. Recomputed on the 4 of its 6 seasons still held (kickoffs and rounds only),
+>    the flag gives exactly §1's counts (32, 41, 5, 11), and 70 of those 89 matches were
+>    played within 5 days of their round's median kickoff: 30 of 32 and 40 of 41 in the EPL,
+>    0 of 16 in the Ekstraklasa. So at most 41 of the 111 were rescheduled matches. The claim
+>    is reopened (`notes/STATE.md`). `s3_is_rescheduled` (S3.10) flags a match by its own
+>    distance from its round's median.
+> 2. **§3's T4 most likely did not measure Mondays.** Its script was not kept; survey claim
+>    #6, which copies its definition, reads `is_monday` as stored, and the stored flag was
+>    computed on the UTC+8 `date`: a stored "Monday" ran from Sunday 16:00 to Monday 16:00
+>    UTC. In the 4 seasons still held, 96 of the 103 stored Mondays were Sundays locally, and
+>    94 of the 101 real Mondays were stored as Tuesdays. The midweek half was mixed too: 108
+>    of 202 stored midweek matches were midweek locally. (The counts alone cannot show which
+>    flag T4 read: 103 stored Mondays against 101 real ones.)
+
 Companions: `notes/BEHAVIOURAL_RESULTS.md`, `notes/FILTER_RESULTS.md`, `notes/RESULTS.md`,
 `notes/MARKET_LINE_FINDINGS.md`, `notes/PLAN_2026-07-25_environment_filter.md`,
 `notes/RETRY_CANDIDATES_2026-09-23.md`, and the user's own

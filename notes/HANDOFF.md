@@ -138,6 +138,13 @@ These are the ways this specific pipeline can lie to you:
    show post-hoc live odds to the prediction engine as an analog.
 2. **Standings must be as-of-round.** The schedule scraper already syncs the standings
    dropdown per round — preserve this invariant in any refactor.
+
+   > **Erratum, 2026-10-11:** this rule was wrong. The page's round-N table already holds
+   > round N's own results (measured 2026-10-01), and it counts by round number, so it can
+   > also hold matches played later (2026-10-06). The per-round standings scrape was dropped
+   > on 2026-10-06. Stage 3 rebuilds the table at each kickoff from our own results
+   > (`notes/fields/schedule_3_multi.md` §B, S3.03). The old position columns
+   > (`home_team_position`, `away_team_position`, `position_gap`) are post-match.
 3. **Never evaluate with shuffled cross-validation.** Form features leak across a random
    split. Always walk-forward: train/tune on seasons ≤ N, evaluate on season N+1.
 4. **Web-search features cannot be backfilled.** "What was known 1 day before kickoff"

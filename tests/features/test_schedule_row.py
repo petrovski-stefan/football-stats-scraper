@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 
 from domain import stats
-from features.schedule_row import MIDWEEK, MONDAY, derive
+from features.schedule_row import derive
 
 
 def _row(ht: tuple[int, int], ft: tuple[int, int], **overrides: Any) -> dict[str, Any]:
@@ -47,23 +47,6 @@ def test_comeback_fields_agree_with_the_kernel(
         assert out["s2_is_comeback_home"] is stats.is_comeback_home(*ht, *ft), (ht, ft)
         assert out["s2_is_comeback_away"] is stats.is_comeback_away(*ht, *ft), (ht, ft)
         assert out["s2_ht_decisive"] is (ht[0] != ht[1]), (ht, ft)
-
-
-@pytest.mark.parametrize(
-    ("date", "weekday"),
-    [
-        ("2026-01-31 18:30+01:00", 6),  # Saturday
-        ("2026-02-02 21:00+01:00", MONDAY),
-        ("2026-02-03 20:45+01:00", MIDWEEK[0]),
-        # Just after midnight in Berlin is the next day, whatever the UK clock said.
-        ("2026-02-02 00:30+01:00", MONDAY),
-    ],
-)
-def test_weekday_is_the_berlin_one(date: str, weekday: int) -> None:
-    out = derive(_row((0, 0), (0, 0), s1_date=date))
-    assert out["s2_day_of_week"] == weekday
-    assert out["s2_is_monday"] is (weekday == MONDAY)
-    assert out["s2_is_midweek"] is (weekday in MIDWEEK)
 
 
 def test_market_fields() -> None:

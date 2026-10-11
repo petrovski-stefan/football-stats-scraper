@@ -148,8 +148,8 @@ fails England League 2 2024-25 on the odds coverage floor and the blank-round ch
 - `corners_ht_*` are stored as floats (`3.0`) because of empty cells: store nullable ints.
 - The join: a loader function or a written file — decide in P5.
 - **Weekday flags outside Europe, before the survey:** Berlin time puts a Sunday 21:00 kickoff in
-  Brazil (01:00 Berlin) on Monday. For European and North African leagues the Berlin weekday
-  matches the local one except within an hour or two of midnight. Settle the weekday's timezone
-  for the Americas and Asia at Phase S step 8, with survey claim #6.
+  Brazil (01:00 Berlin) on Monday. Measured 2026-10-11 (kickoff times only): the Berlin day
+  differs from the local day for 2,639 of 4,808 matches in the Americas (55%) and for none in
+  Europe or Asia. The decision is listed in `notes/IDEAS_2026-10-01.md` idea 13.
 - Module names and placement in the layer table; root `CLAUDE.md` (data paths, "only scrapers
   write `data/raw/`") and `notes/MIGRATIONS.md` are updated in the steps that change them.

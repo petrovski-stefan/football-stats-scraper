@@ -104,6 +104,9 @@ def test_clean_string_transliterates_portuguese_letters() -> None:
         # A Friday 20:00 UK kickoff in summer.
         ("2025-08-16 03:00", "2025-08-15 21:00+02:00"),
         ("2025-08-16 03:00:00", "2025-08-15 21:00+02:00"),
+        # The user's page check, 2026-10-11: shown as Sunday 21:00 Berlin, `data-t` holds
+        # Monday 03:00. The site's Time_Zone cookie moves the shown text, never `data-t`.
+        ("2026-07-20 03:00", "2026-07-19 21:00+02:00"),
         (" 2026-02-01 01:30 ", "2026-01-31 18:30+01:00"),
         ("", None),
         (None, None),

@@ -115,6 +115,6 @@ Start with **`notes/STATE.md`**, the current state of the research. Before propo
 - `notes/BEHAVIOURAL_RESULTS.md` — before proposing any hand-weighted candidate rule; it introduced the candidate protocol.
 - `notes/RETRY_CANDIDATES_2026-09-23.md` — before retrying anything that already failed, and before the multi-country scrape's analysis.
 - `notes/RELIABILITY_SCREEN_2026-09-23.md` — before building any history-block feature, especially one on cards or substitutions.
-- `notes/PLAN_2026-07-25_environment_filter.md` — when picking up the multi-country corpus scrape; the open phases of the comeback-environment plan (§1's ceiling figures are still current; its purpose was revised by `MARKET_LINE_FINDINGS.md` §7).
-- `notes/PLAN_2026-09-20_next_direction.md` — when deciding what to do next. Its §1 out-of-round claim is refuted; §2 (the prospective gut log) is still open.
+- `notes/PLAN_2026-07-25_environment_filter.md` — when picking up the multi-country corpus scrape; the open phases of the comeback-environment plan (§1's ceiling is an oracle: that it loses no comebacks is true by definition, `notes/MARKET_COMEBACKS.md` §1 "Filters that remove impossible matches"; its purpose was revised by `MARKET_LINE_FINDINGS.md` §7).
+- `notes/PLAN_2026-09-20_next_direction.md` — when deciding what to do next. Its §1 out-of-round refutation does not stand (erratum 2026-10-11: the flag misfired, so the claim is reopened), and its T4 most likely measured Sundays, not Mondays; §2 (the prospective gut log) is still open.
 - `notes/ALGOBETTING.md` — background only: a conversation summary on market structure, CLV, the modelling lineage and Asian handicaps. It predates every measured result here, so none of its claims are tested.

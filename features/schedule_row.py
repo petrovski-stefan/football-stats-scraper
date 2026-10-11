@@ -15,7 +15,6 @@ from typing import Any
 import pandas as pd
 
 from domain import paths, stats
-from domain.clock import parse_berlin
 from domain.columns import SCHEDULE_RAW_COLUMNS, SCHEDULE_ROW_COLUMNS
 from features.stage_io import read_stage_csv, write_stage_csv
 
@@ -25,9 +24,6 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 logger = logging.getLogger(__name__)
-
-MONDAY = 1
-MIDWEEK = (2, 3, 4)  # Tuesday to Thursday, ISO weekday numbers
 
 
 def _number(row: Mapping[str, Any], column: str) -> float | None:
@@ -47,15 +43,6 @@ def _goal_fields(ht: tuple[int, int], ft: tuple[int, int]) -> dict[str, Any]:
         "s2_away_2h_goals": ft[1] - ht[1],
         "s2_ht_result": stats.one_x_two(*ht),
         "s2_ft_result": stats.one_x_two(*ft),
-    }
-
-
-def _date_fields(kickoff: str) -> dict[str, Any]:
-    weekday = parse_berlin(kickoff).isoweekday()
-    return {
-        "s2_day_of_week": weekday,
-        "s2_is_monday": weekday == MONDAY,
-        "s2_is_midweek": weekday in MIDWEEK,
     }
 
 
@@ -94,7 +81,6 @@ def derive(row: Mapping[str, Any]) -> dict[str, Any]:
     ft = (int(row["s1_ft_home_goals"]), int(row["s1_ft_away_goals"]))
     return {
         **_goal_fields(ht, ft),
-        **_date_fields(str(row["s1_date"])),
         **_odds_fields(row),
         **_comeback_fields(ht, ft),
     }

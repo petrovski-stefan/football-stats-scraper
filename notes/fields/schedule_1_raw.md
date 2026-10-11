@@ -66,9 +66,6 @@ compared by the code.
 | S1.25 | `season` | same as S1.01 | text | config URL | 2025-2026 | — | key | ✓ (as S1.01) | add |
 | S1.26 | `league_id` | same as S1.02 | int | config URL | 36 | — | key | ✓ (as S1.02) | add |
 | S1.27 | `stage` | the stage the table belongs to; empty without stage tabs. A league with stages has one table per stage | text | the stage the standings are synced to | (empty) | — | key | ✓ (as S1.04) | add |
-| S1.28 | `round` | — | — | — | — | — | — | — | **dropped 2026-10-06**: only the final table is read |
-| S1.29 | `half` | — | — | — | — | — | — | — | **dropped 2026-10-06**: FT only |
-| S1.30 | `venue` | — | — | — | — | — | — | — | **dropped 2026-10-06**: Total only |
 | S1.31 | `team_id` | the team's id | int | row `toTeam(<id>)`, `ul#standingList li.standlis` | 24 | — | key | ✓ (the user kept it, 2026-10-07; value verified by the QA check: 20/20 ids match S1.08–09) | add |
 | S1.32 | `s1_team_name` | the team's name as shown | text | same row | Chelsea | — | key | ✓ | add |
 | S1.33 | `s1_rank` | the team's position in the final table | int | `span.rank em` | 10 | after the season | check | ✓ | add |
@@ -80,16 +77,6 @@ compared by the code.
 | S1.39 | `s1_points` | PTS | int | column PTS | 52 | after the season | check | ✓ | add |
 
 Role `check` only: this table is never an input. Pre-kickoff standings come from S3.03.
-
-## C. Dropped from today's file
-
-- `ht_score`, `ft_score` — text copies of S1.12–15 (plan rule 1). They also differ in format
-  (`0-2` vs `3 - 2`).
-- `home_team_position`, `away_team_position` — they were the table after the round, so never
-  inputs. The pre-kickoff table is rebuilt in stage 3 (S3.03); the per-round scrape is dropped.
-- `match_index_in_round`, `matches_in_round` — they need the round's other rows: S3.01–02. The
-  user's ✓ moved with them.
-- The 28 computed fields — stage 2 (`schedule_2_row.md`), or dropped there.
 
 ## D. On the page, not stored — candidates, decided in P2
 

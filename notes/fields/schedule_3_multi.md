@@ -22,8 +22,7 @@ states its **row window**. Claude writes them; the stats-reviewer agent checks t
 The user's ✓ on S3.01–02 was given when they were scrape-derived (2026-10-05). The meaning is the
 same; only S3.02 now leaves out matches never played.
 
-**S3.09–10, the rescheduled match** (2026-10-10): the edge-case indicator kept; the forfeit and
-abandoned flags (S2.30–31) were dropped the same day (the user). On 74 leagues, 1,012 of 36,682
+**S3.09–10, the rescheduled match** (2026-10-10): the edge-case indicator. On 74 leagues, 1,012 of 36,682
 matches (2.8%) are 5 or more days off their round: 768 later, 244 earlier. Such matches lack
 Bet365's opening odds about 7 times as often as the rest. Under 5 days a long round (Friday to
 Monday, a midweek split) still counts; the count barely changes from 5 to 7 days. A round with

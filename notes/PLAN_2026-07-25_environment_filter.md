@@ -28,6 +28,12 @@ comeback and the surviving slate's rate rises well above the 5–8% base.
 
 ### The ceiling is real, and higher than earlier notes implied
 
+> **Erratum, 2026-10-11** (`notes/IDEAS_2026-10-01.md` idea 13; the text below is not
+> edited): the ceiling is an oracle. That a filter on these three conditions loses no
+> comebacks is true by definition, not a measurement (`notes/MARKET_COMEBACKS.md` §1, "The
+> comeback environment" and "Filters that remove impossible matches"). Only the share of
+> matches inside the environment (34.5% here) is data.
+
 A comeback requires three necessary conditions. A perfect filter on their conjunction
 keeps 34.5% of matches, loses **zero** comebacks, and lifts 5.54% → **16.03%, i.e. 2.89×**:
 

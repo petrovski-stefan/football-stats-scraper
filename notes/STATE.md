@@ -34,18 +34,18 @@ Status: **Dead** = tested and failed · **Live-exploratory** = positive, not pre
 | Family E: cross-competition congestion | Dead | Holm p=1.000 | 1,182 dev | RESULTS §1 |
 | Family F: venue / H2H splits | Dead | Holm p=0.834 | 1,182 dev | RESULTS §1 |
 | The half-time state is pre-match predictable | Dead | market beats a constant by only 0.64% | 591 holdout | RESULTS §3 |
-| Pre-match exclusion filter | Dead | 27 missed vs 26.7 random; UB 8.25% vs <2% bar; goal-total AUC 0.559; ~15% of the needed distance; oracle 44.2% | 1,565 | FILTER_RESULTS §1–2; FILTER_STUDY_RAW |
+| Pre-match exclusion filter | Dead | 27 missed vs 26.7 random; UB 8.25% vs <2% bar; goal-total AUC 0.559; ~15% of the needed distance | 1,565 | FILTER_RESULTS §1–2; FILTER_STUDY_RAW. Its oracle (≤ 2 goals, 0 comebacks missed) is true by definition, not a finding: MARKET_COMEBACKS §1 (2026-10-11) |
 | Filter pilot inversion (low goal env → more comebacks) | Dead | did not replicate walk-forward | 591 → 1,565 | PREREG_FILTER §3; FILTER_RESULTS §1 |
 | In-house comeback-environment model | Dead | AUC 0.497; top-20% zero enrichment | 591 | PLAN_2026-07-25 §1 |
 | Market O/U 2.5 line ranks the environment | Live-exploratory; the 2025-26 confirmation MARKET_LINE §4 planned is void (A9), so it needs a new confirmatory set | AUC 0.592; top-20% 1.33× (Wilson LB 5.68% vs 5.16%) | 7,675 test | MARKET_LINE §2–3 (read §4); PREREGISTRATION A9 |
 | nowgoal's own O/U line reproduces it / AH adds over O/U | On-retry-list (#9, #10) | — | — | RETRY §5 |
 | Per-league testing of candidate rules | Dead | best-of-50 under a pure null clears the top-100 bar (2.03×); a per-league slate resolves only 2.52× | simulated | RETRY §0, §1a; PLAN_2026-09-20 §3 |
-| Table-vs-market divergence | On-retry-list (#2) | 7.11%, 1.29×, p=0.060 | 2,058 | RETRY §4 |
+| Table-vs-market divergence | On-retry-list (#2) | 7.11%, 1.29×, p=0.060: **unsourced** (2026-10-11). No definition or run was recorded (DECISIONS D6.2), and the only table columns in that corpus were the post-round positions, which move each match's winner up the table: the leak favours this claim. Not prior evidence; a retest uses the pre-kickoff table (S3.03) | 2,058 | RETRY §4 |
 | Behavioural candidate rule (last 5 + 3 H2H), 2026-08-29 | Dead | top-100: 5 hits, 4.90%, 0.88×; bar excluded at every slate ≥ 50; corr +0.004 HT-decisive, +0.006 goals | 2,058 | BEHAVIOURAL §0, §4 |
 | Global AUC/Brier can judge a candidate rule | Dead | a 3.6× rule scores AUC 0.527 | — | BEHAVIOURAL §1 |
 | Its five signals individually | Dead | 0 of 12 comparisons > 1.96 SE | 2,058 | BEHAVIOURAL §3 |
-| Out-of-round matches suppress comebacks | Dead | 5.41%, 0.98×, p=0.582 | 111 | PLAN_2026-09-20 §1 |
-| Out-of-round 1.5× slate; T1 exhaustion; T3 round state; T4 Monday; T2 structured BTTS | On-retry-list (#3–7) | Holm p 0.779–1.000 on first test | 2,058 | PLAN_2026-09-20 §3; RETRY §4 |
+| Out-of-round matches suppress comebacks | Reopened (2026-10-11) | 5.41%, 0.98×, p=0.582, on a flag that misfired: in the 4 of its 6 seasons still held, 70 of the 89 flagged matches were played on schedule (a later round had started early), so at most 41 of the 111 were rescheduled matches | 111 | PLAN_2026-09-20 §1 and its erratum |
+| Out-of-round 1.5× slate; T1 exhaustion; T3 round state; T4 Monday; T2 structured BTTS | On-retry-list (#3–7) | Holm p 0.779–1.000 on first test. Two of the five rest on faulty flags (2026-10-11): T4 most likely read the stored UTC+8 weekday (its script was not kept; survey claim #6 copies it as "`is_monday` as stored"), and 96 of the 103 stored Mondays in the 4 seasons still held were Sundays, so Mondays are untested; the slate used the misfiring out-of-round flag | 2,058 | PLAN_2026-09-20 §3 and its errata; RETRY §4 |
 | Goal-timing aggregates (`conceded_pre_ht_rate`, `late_goal_rate`, 36 buckets) | On-retry-list (#11–13) | — | — | RETRY §5 |
 | Card/sub team traits incl. `yellows_while_leading_avg` | On-retry-list (#15, EPL 2025-26 stratum excluded) | reliability @6: 0.290 | 20 teams | RETRY §5; PREREGISTRATION A8 |
 | Trailing-conditioned first-sub minute | Dead (reliability screen) | depth-6 reliability 0.000 (raw split-half −0.004) | 20 teams | RELIABILITY §2; erratum in PREREGISTRATION A9 |
@@ -69,15 +69,14 @@ Status: **Dead** = tested and failed · **Live-exploratory** = positive, not pre
 
 - **Retry list size:** 15 claims (A8.2). The "14" in RETRY §0 and RELIABILITY §6 predates A8 — PREREGISTRATION A9 erratum.
 - **Holdout status (2025-26):** spent, not "opened N times"; its labels informed at least eight analyses — PREREGISTRATION A9.
+- **Oracle and totals figures** (was conflict 4; resolved 2026-10-11): not a conflict. The two notes measured different sets (2,058 matches, and the 1,565 the walk-forward evaluated), and both quantities follow from the definition or the goal model: no comeback is possible with 2 goals or fewer, and the comeback rate by final goal total is structural (MARKET_COMEBACKS §1 "Minimum goals", §2 "Comeback rate by final goal total").
 
 ## Conflicts (listed, not resolved)
 
 1. **F1.** LEAGUE_STUDY F1 says league selection is dead. RETRY §2 moves it out of the graveyard, while saying it "does not overturn F1".
 2. **Corpus expansion.** RESULTS §7.4 says it is "not indicated". PLAN_2026-07-25, RETRY and MARKET_LINE §7 plan a multi-country scrape.
 3. **Role of over-6.5.** LEAGUE_STUDY F13 and RESULTS §7.3 call it the product. PLAN_2026-07-25 §0 calls it "an input feature, not a target".
-4. **Oracle and totals figures.**
-   - The ≤2-goal share is 45.1% in PREREG_FILTER §2 (n=2,058) but 44.2% in FILTER_RESULTS (n=1,565).
-   - Comeback rate at 4/5/6 goals is 5.1/10.9/2.5% in PREREG_FILTER §3 but 4.9/11.2/2.8% in FILTER_RESULTS §3.
+4. *(Resolved 2026-10-11: see "Resolved conflicts", oracle and totals figures.)*
 5. **HANDOFF vs LEAGUE_STUDY.** HANDOFF §2–3 (380 PL matches) trusts the competitiveness gate (3.2% vs 9.2%) and the Villa flag, with a 6.05% base rate. LEAGUE_STUDY F2/F3 refute both at 5.15%, and LEAGUE_STUDY says it wins.
 6. **ALGOBETTING vs measurements.**
    - ALGOBETTING §6 gives a comeback base of "~7–8%" against the measured 5.15%.
