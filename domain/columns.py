@@ -396,6 +396,11 @@ SCHEDULE_MULTI_COLUMNS = [
     "s3_matches_in_round",
     "s3_days_off_round",
     "s3_is_rescheduled",
+    # §A2: the round so far, before this kickoff (the user's choice, 2026-10-13).
+    "s3_round_pre_finished",
+    "s3_round_pre_comebacks",
+    "s3_round_pre_seven_plus",
+    "s3_round_pre_rare_events",
     *pre_kickoff_columns(),
     "s3_pre_rank_gap",
     *pre_htft_columns(),

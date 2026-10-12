@@ -8,6 +8,9 @@ This is the only schedule stage where another match's result can enter a row, so
 field's row window is stated where it is built:
 
 - the round position and the round offset read other rows' kickoff times, never their results;
+- the round so far (the user, 2026-10-13) counts the matches of the same round that kicked off
+  at least 2 h 30 min and less than `ROUND_LOOK_BACK` before this one, and which of them were
+  a comeback or had 7+ goals;
 - the pre-kickoff table and the half-time / full-time record count a match only if it
   kicked off at least 2 h 30 min before this one, so it had surely finished (the user's
   rule, 2026-10-06);
@@ -56,6 +59,15 @@ FINISHED_AFTER = timedelta(hours=2, minutes=30)
 # 2026-10-10 over 82 leagues: 1,155 matches (2.8%) at 5 days, 1,114 at 7, so 5 is where the
 # count stops falling; under 5 a long round (Friday to Monday, a split midweek) still counts.
 RESCHEDULED_AFTER_DAYS = 5
+
+# The round so far counts only round-mates that kicked off less than this before: the same 5
+# days that mark a rescheduled match, so a match played weeks earlier (brought forward, or the
+# rest of the round for a postponed one) is not "this round so far". It never reads a later
+# kickoff (Claude's choice, 2026-10-13, asked by the user).
+ROUND_LOOK_BACK = timedelta(days=RESCHEDULED_AFTER_DAYS)
+
+# The over 6.5 market: a match with at least this many goals.
+SEVEN_PLUS_GOALS = 7
 
 # The opening odds (Bet365's "Initial") are published about this long before kickoff (the
 # user, 2026-10-10: "usually about 7 days", more or fewer by league). A result between then
@@ -110,6 +122,39 @@ def round_offsets(frame: pd.DataFrame) -> pd.DataFrame:
         {"s3_days_off_round": days, "s3_is_rescheduled": days.abs() >= RESCHEDULED_AFTER_DAYS},
         index=frame.index,
     )
+
+
+def round_so_far(frame: pd.DataFrame) -> pd.DataFrame:
+    """`s3_round_pre_finished`, `_comebacks`, `_seven_plus` and `_rare_events`.
+
+    The round so far: the matches of the same (stage, round) that kicked off at least
+    `FINISHED_AFTER` and less than `ROUND_LOOK_BACK` before this one, and how many of them
+    were a comeback, had 7+ goals, or either (a match that was both counts once). The first
+    kickoff of a round sees 0 in all four.
+    """
+    finished_after = pd.Timedelta(FINISHED_AFTER).to_timedelta64()
+    look_back = pd.Timedelta(ROUND_LOOK_BACK).to_timedelta64()
+    keyed = frame.assign(_kickoff=pd.to_datetime(frame["s1_date"].map(parse_instant), utc=True))
+    parts = []
+    for _, group in keyed.groupby(_ROUND_KEY, sort=False):
+        kickoff = group["_kickoff"].to_numpy(dtype="datetime64[ns]")
+        # Row: this match; column: a round-mate. True where the round-mate counts.
+        gap = kickoff[:, None] - kickoff[None, :]
+        counted = (gap >= finished_after) & (gap < look_back)
+        comeback = group["s2_is_comeback"].to_numpy(dtype=bool)
+        seven_plus = group["s2_total_goals"].to_numpy() >= SEVEN_PLUS_GOALS
+        parts.append(
+            pd.DataFrame(
+                {
+                    "s3_round_pre_finished": counted.sum(axis=1),
+                    "s3_round_pre_comebacks": (counted & comeback).sum(axis=1),
+                    "s3_round_pre_seven_plus": (counted & seven_plus).sum(axis=1),
+                    "s3_round_pre_rare_events": (counted & (comeback | seven_plus)).sum(axis=1),
+                },
+                index=group.index,
+            )
+        )
+    return pd.concat(parts).reindex(frame.index)
 
 
 def _matches_by_kickoff(group: pd.DataFrame) -> list[_Match]:
@@ -240,7 +285,14 @@ def build(row_path: str) -> str:
     """Write the stage-3 file for one stage-2 schedule file; return its path."""
     frame = read_stage_csv(row_path)
     out = pd.concat(
-        [frame, round_positions(frame), round_offsets(frame), pre_kickoff_tables(frame)], axis=1
+        [
+            frame,
+            round_positions(frame),
+            round_offsets(frame),
+            round_so_far(frame),
+            pre_kickoff_tables(frame),
+        ],
+        axis=1,
     )
     out_path = paths.schedule_at_stage(row_path, 3)
     columns = SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS + SCHEDULE_MULTI_COLUMNS

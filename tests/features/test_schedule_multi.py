@@ -1,5 +1,5 @@
-"""`features/schedule_multi.py`: round positions and offsets, the table as it stood at each
-kickoff, and what is at stake."""
+"""`features/schedule_multi.py`: round positions and offsets, the round so far, the table as it
+stood at each kickoff, and what is at stake."""
 
 from datetime import datetime, timedelta
 from typing import Any
@@ -13,9 +13,12 @@ from features.schedule_multi import (
     FINISHED_AFTER,
     OPEN_LEAD,
     RESCHEDULED_AFTER_DAYS,
+    ROUND_LOOK_BACK,
+    SEVEN_PLUS_GOALS,
     pre_kickoff_tables,
     round_offsets,
     round_positions,
+    round_so_far,
 )
 
 _START = datetime(2026, 1, 3, 15, 0, tzinfo=BERLIN)
@@ -300,3 +303,66 @@ def test_a_result_is_news_only_after_the_odds_opened(gap: timedelta, change: int
     tables = pre_kickoff_tables(frame)
     # "news" lifts 3 above 1. It is in the table at the open only if it had surely finished.
     assert tables.at["target", "s3_home_rank_change_since_open"] == change
+
+
+# --- The round so far ------------------------------------------------------------------
+
+
+def _with_events(
+    match: dict[str, object], comeback: bool = False, goals: int = 2
+) -> dict[str, object]:
+    return {**match, "s2_is_comeback": comeback, "s2_total_goals": goals}
+
+
+def _counts(so_far: pd.DataFrame, match_id: str) -> list[int]:
+    """Finished, comebacks, 7+ goals and rare events, in that order."""
+    names = ("finished", "comebacks", "seven_plus", "rare_events")
+    return [int(so_far.at[match_id, f"s3_round_pre_{name}"]) for name in names]
+
+
+def test_round_so_far_counts_the_finished_round_mates() -> None:
+    frame = _frame(
+        _with_events(_match("a", _START, (1, 2), (3, 2)), comeback=True, goals=5),
+        _with_events(_match("b", _START, (3, 4), (5, 2)), goals=SEVEN_PLUS_GOALS),
+        _with_events(_match("c", _START + FINISHED_AFTER, (5, 6), (0, 0))),
+        _with_events(_match("d", _START + timedelta(hours=1), (7, 8), (0, 0))),
+        _with_events(_match("e", _START + FINISHED_AFTER, (9, 10), (0, 0), round_number=2)),
+    )
+    so_far = round_so_far(frame)
+    assert _counts(so_far, "c") == [2, 1, 1, 2]
+    # The first kickoff, a match kicking off before anything finished, another round.
+    for match in ("a", "b", "d", "e"):
+        assert _counts(so_far, match) == [0, 0, 0, 0]
+
+
+def test_a_comeback_with_seven_goals_is_one_rare_event() -> None:
+    frame = _frame(
+        _with_events(_match("a", _START, (1, 2), (4, 3)), comeback=True, goals=SEVEN_PLUS_GOALS),
+        _with_events(_match("b", _START + timedelta(days=1), (3, 4), (0, 0))),
+    )
+    assert _counts(round_so_far(frame), "b") == [1, 1, 1, 1]
+
+
+@pytest.mark.parametrize(
+    ("gap", "finished"),
+    [
+        (FINISHED_AFTER - timedelta(minutes=1), 0),
+        (FINISHED_AFTER, 1),
+        (ROUND_LOOK_BACK - timedelta(minutes=1), 1),
+        (ROUND_LOOK_BACK, 0),
+    ],
+)
+def test_round_so_far_looks_back_from_2h30_to_under_5_days(gap: timedelta, finished: int) -> None:
+    frame = _frame(
+        _with_events(_match("early", _START, (1, 2), (0, 0))),
+        _with_events(_match("later", _START + gap, (3, 4), (0, 0))),
+    )
+    assert round_so_far(frame).at["later", "s3_round_pre_finished"] == finished
+
+
+def test_round_so_far_keeps_each_stages_round_apart() -> None:
+    frame = _frame(
+        _with_events(_match("a", _START, (1, 2), (3, 2), stage="Apertura"), comeback=True, goals=5),
+        _with_events(_match("b", _START + timedelta(days=1), (3, 4), (0, 0), stage="Clausura")),
+    )
+    assert _counts(round_so_far(frame), "b") == [0, 0, 0, 0]

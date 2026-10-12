@@ -138,3 +138,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 ## 2026-10-12
 
 - **Stage 3 gains "what is at stake"** (the user, from Claude's brainstorm of the day): `s3_<side>_pre_matches_left` (S3.11), `s3_<side>_pre_pts_to_above` / `_below` (S3.12) and `s3_<side>_rank_change_since_open` (S3.13), 8 columns (`notes/fields/schedule_3_multi.md` §B3). Code: `features/schedule_multi.py` (`OPEN_LEAD`, the opening odds' assumed lead of 7 days), `domain/standings.py:Standings.points_gaps`, `domain/columns.py:stake_columns`. The zone-based fields of the same idea (points to the promotion, play-off and relegation lines) wait for a zone table.
+
+## 2026-10-13
+
+- **Stage 3 gains "the round so far"** (the user): `s3_round_pre_finished` (S3.14), `s3_round_pre_comebacks` (S3.15), `s3_round_pre_seven_plus` (S3.16) and `s3_round_pre_rare_events` (S3.17), 4 columns (`notes/fields/schedule_3_multi.md` §A2). Code: `features/schedule_multi.py:round_so_far`, `ROUND_LOOK_BACK` (5 days) and `SEVEN_PLUS_GOALS`; the column names in `domain/columns.py`. S3.05 (deferred) stays: it is S3.15 ≥ 1 without the 5-day limit.

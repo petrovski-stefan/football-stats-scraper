@@ -8,8 +8,8 @@ states its **row window**. Claude writes them; the stats-reviewer agent checks t
 - File: `data/finished/3_multi/<country>_<league>_<season>_schedule.csv` = the stage-2 file plus these
   columns. This is the schedule's analysis input.
 - **Window rule:** a field may use another row's **result** only when that row kicked off before
-  this match. S3.01–02, S3.09–10 and S3.11 read other rows' **kickoff times** only, never their
-  results.
+  this match. S3.01–02, S3.09–10, S3.11 and S3.14 read other rows' **kickoff times** only, never
+  their results.
 
 ## A. Position in the round
 
@@ -28,6 +28,38 @@ matches (2.8%) are 5 or more days off their round: 768 later, 244 earlier. Such 
 Bet365's opening odds about 7 times as often as the rest. Under 5 days a long round (Friday to
 Monday, a midweek split) still counts; the count barely changes from 5 to 7 days. A round with
 half its matches moved has its median between the two groups: rare, and visible in S3.09.
+
+## A2. The round so far
+
+**Chosen by the user, 2026-10-13:** running counts of the project's two rare events (a comeback,
+7+ goals) among the matches of the same round already played, under the 2 h 30 min rule, a match
+that was both counting once in S3.17. The 5-day look-back is Claude's choice, which the user
+asked for.
+
+| # | field | formula | row window | type | example | timing | role | status |
+|---|---|---|---|---|---|---|---|---|
+| S3.14 | `s3_round_pre_finished` | how many matches of the same stage and round kicked off at least 2 h 30 min and less than `features/schedule_multi.py:ROUND_LOOK_BACK` (5 days) before this kickoff | the round's rows: kickoff times only | int | before 2789361: 3 (it is the 4th of 10 in its round) | before | input | add (2026-10-13) |
+| S3.15 | `s3_round_pre_comebacks` | of S3.14's matches, how many were comebacks (S2.26) | S3.14's matches and their results | int | 0 | before | input | add (2026-10-13) |
+| S3.16 | `s3_round_pre_seven_plus` | of S3.14's matches, how many had 7 or more goals (S2.01 ≥ `SEVEN_PLUS_GOALS`) | as S3.15 | int | 0 | before | input | add (2026-10-13) |
+| S3.17 | `s3_round_pre_rare_events` | of S3.14's matches, how many were a comeback or had 7 or more goals; a match that was both (a 4-3 comeback) counts once | as S3.15 | int | 0 | before | input | add (2026-10-13) |
+
+- **Zeros:** the first kickoff of a round sees 0 in all four, and so does any match that kicks
+  off before a round-mate has finished. S3.14 is 0 for 32.9% of matches.
+- **The 5-day look-back:** a round-mate played 5 or more days earlier (a match brought forward;
+  for a postponed match, the rest of its round) does not count, so a result from weeks before
+  is not "this round so far". It reads no later kickoff, unlike S3.10. Measured on kickoff
+  times, 2026-10-13: 30 matches played on schedule lose a round-mate played 5 or more days
+  earlier, and the look-back changes which round-mates count on 777 rows (2.1%) against
+  leaving out S3.10's rescheduled matches instead.
+- **Values, 2026-10-13:** S3.17 is 1 or more for 14.7% of matches (S3.15 for 11.1%, S3.16 for
+  5.0%); none is above 3 (`notes/runs/2026-10-13_round_so_far/out.txt`).
+- **S3.05** (§C, deferred) is S3.15 ≥ 1, without the 5-day limit. Retry claim #3, the round
+  state, is the related claim (`notes/RETRY_CANDIDATES_2026-09-23.md` §4).
+- **Checked 2026-10-13:** a recount with plain loops gave the same four values on all 36,238
+  rows; scrambling the results of every match outside the window (the match's own included)
+  moved none of 150 sampled matches' values. Run record for every figure in this section:
+  `notes/runs/2026-10-13_round_so_far/` (`verify_round.py`, `out.txt`), on disk only:
+  `notes/runs/` is gitignored.
 
 ## B. Pre-kickoff table (rebuilt from our own results)
 
