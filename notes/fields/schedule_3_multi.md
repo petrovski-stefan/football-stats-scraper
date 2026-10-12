@@ -8,7 +8,8 @@ states its **row window**. Claude writes them; the stats-reviewer agent checks t
 - File: `data/finished/3_multi/<country>_<league>_<season>_schedule.csv` = the stage-2 file plus these
   columns. This is the schedule's analysis input.
 - **Window rule:** a field may use another row's **result** only when that row kicked off before
-  this match. S3.01–02 read other rows' **kickoff times** only, never their results.
+  this match. S3.01–02, S3.09–10 and S3.11 read other rows' **kickoff times** only, never their
+  results.
 
 ## A. Position in the round
 
@@ -94,6 +95,42 @@ trailed at half-time and won (a comeback), `w_l` = it led and lost (a blown lead
   one result moves a cell a lot. Related rates (half-time trailing rate, blown-lead rate) died
   as predictors in `notes/RESULTS.md` §1 (Families A and B): testing a claim built on these
   counts needs the candidate protocol first.
+
+## B3. What is at stake
+
+**Chosen by the user, 2026-10-12,** from Claude's brainstorm of that day. The hypothesis they
+are built for (untested, `notes/MARKET_COMEBACKS.md` §5 Q15, still open): how hard a side
+chases a deficit or protects a lead depends on what the result is worth to it, beyond what the
+opening 1X2 price carries. All three read the FT Total table of §B or the stage's fixture
+list. None needs the zone sizes (promotion, play-off and relegation places), which no file
+holds.
+
+| # | field | formula | row window | type | example | timing | role | status |
+|---|---|---|---|---|---|---|---|---|
+| S3.11 | `s3_{side}_pre_matches_left` | the side's matches in this stage from this one on, this one included: 1 = its last match of the stage | the side's rows of the same season and stage: that they exist and their kickoff times (the fixture list), never their results | int | before 2789361: Chelsea 15, West Ham 15 | before | input | add (2026-10-12) |
+| S3.12 | `s3_{side}_pre_pts_to_{dir}` — dir `above` / `below` | `above`: how many points the side trails the nearest team with more points by; `below`: how many it leads the nearest team with fewer points by, in the FT Total table of S3.03 (`domain/standings.py:Standings.points_gaps`). Empty when no team has more (fewer) points | as S3.03 | int | Chelsea 1 / 1, West Ham 5 / 5 | before | input | add (2026-10-12) |
+| S3.13 | `s3_{side}_rank_change_since_open` | the side's FT Total rank (S3.03) minus its rank `features/schedule_multi.py:OPEN_LEAD` (7 days) before kickoff, when the opening odds were published: positive = it fell, negative = it climbed. Empty when either rank is | as S3.03, at two instants: matches that kicked off at least 2 h 30 min before this kickoff, and at least 2 h 30 min before this kickoff minus 7 days | int | Chelsea −1, West Ham 0 | before | input | add (2026-10-12) |
+
+- **S3.11 reads later rows, but only that they exist.** The fixture list is known before the
+  season, and every kept stage is a k-fold round robin (`qa/schedule.py`), so the count is the
+  format's: in all 144 league-seasons every team of a stage has the same total.
+- **S3.12 reads points only.** A team level on points is neither above nor below, whatever the
+  tie-break, so a league that breaks ties by head-to-head (§B) gets the same gaps.
+- **S3.13's one assumption:** the opening price is published about 7 days before kickoff (the
+  user, 2026-10-10, `notes/fields/README.md`); it varies by league. A result between the two
+  instants is news the opening odds cannot hold, the side's own included (a midweek match).
+  Measured on the rebuilt files, 2026-10-12: the rank changed for 51.3% of the 69,380
+  team-matches with a rank at both instants, by 3 or more places for 10.4%; over the last 3
+  days alone, 24.9% and 2.3%. Moves of 10 or more places come almost all from the first rounds,
+  when the table is thin.
+- **Checked 2026-10-12:** both tables rebuilt from scratch for every match of three
+  league-seasons (EPL 2025-26, Liga MX 2025-26, Venezuela 2025 with its four-team Apertura-B)
+  gave the same S3.12–13 values; scrambling every result that kicked off less than 2 h 30 min
+  before kickoff, or later, moved none of 120 sampled matches' S3.11–13 values (a scratch
+  script, not a repo command); S3.11 counts down to 1 for every team.
+- **Reading it:** these are building blocks of "what is at stake", not a test of it. A
+  zone-based version (points to the promotion, play-off and relegation lines, a "nothing left
+  to play for" flag) needs a zone table per league-season first.
 
 ## C. The survey's planned flags (`notes/PREREGISTRATION_SURVEY.md` §7.4)
 

@@ -84,6 +84,19 @@ class Standings:
         keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
         return {team: 1 + sum(other > key for other in keys.values()) for team, key in keys.items()}
 
+    def points_gaps(self, venue: str, team: int) -> tuple[int | None, int | None]:
+        """How many points the team trails the nearest team with more points by, and leads
+        the nearest team with fewer points by; None where no team has more (or fewer).
+
+        Points only: a team level on points is neither above nor below, so no tie-break
+        enters, and a league that breaks ties by head-to-head gets the same gaps.
+        """
+        lines = self._lines[venue].values()
+        own = self._lines[venue][team].points
+        above = [line.points - own for line in lines if line.points > own]
+        below = [own - line.points for line in lines if line.points < own]
+        return min(above, default=None), min(below, default=None)
+
 
 class HalfTimeFullTime:
     """Each team's (half-time result, full-time result) pairs from its own side, by venue.

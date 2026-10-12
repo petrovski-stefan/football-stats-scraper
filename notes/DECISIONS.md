@@ -165,4 +165,22 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
 
 ## Closed
 
-(none yet)
+### D8 — The market-orthogonality low bar for the stake fields
+
+- **Raised and decided:** 2026-10-12. Raised by Claude; the user's choice: skip the low bar
+  for these fields.
+- **Question:** the low bar (`modelling/CLAUDE.md` §3: kill a candidate below |r| 0.05 with
+  the market) assumes a useful candidate overlaps the market price. The stake fields S3.11–13
+  (`notes/fields/schedule_3_multi.md` §B3) are built to carry what the opening odds cannot:
+  what a result is worth to each side, and results after the odds were published.
+- **Measured 2026-10-12**, under D4's working value (largest |r| across the opening 1X2
+  probabilities, the O/U line and the AH line): S3.11 0.091, S3.12 0.124 (`above`) and 0.177
+  (`below`), S3.13 0.043. The two flags of the planned test: "late and close" (S3.11 ≤ 5 and
+  S3.12 `above` ≤ 3) 0.026; "fell 2+ places since the odds opened" (S3.13 ≥ 2) 0.072. The low
+  bar would kill S3.13 and the first flag.
+- **Choice:** the low bar does not apply to S3.11–13 or to flags built from them. The high bar
+  (redundant above 0.80) still applies, and all of them pass it. D1 (the bar's value for other
+  candidates) stays open.
+- **Amendment log:** `modelling/CLAUDE.md` §3 asks for a dated entry in
+  `notes/PREREGISTRATION.md` §10 when a bar changes. Not written: the next numbers, A11 and
+  A12, are reserved by the survey draft (`notes/PREREGISTRATION_SURVEY.md` Appendix C). Open.

@@ -134,3 +134,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
   - *UTC+8 weekday (partly):* T4 most likely measured Sundays (96 of 103 stored Mondays in the 4 seasons still held); erratum 2 in `notes/PLAN_2026-09-20_next_direction.md`, the `notes/STATE.md` row, survey claim #6 now names `s2_is_monday`, and S2.08's status says fixed. Open: the Americas' local weekday.
   - *Out-of-round misfire (partly):* the ordinal flag reproduces PLAN_2026-09-20 §1's counts exactly, and 70 of its 89 flags in those 4 seasons were matches played on schedule. The claim went from Dead to **Reopened** in `notes/STATE.md`; erratum 1 in the PLAN, and root `CLAUDE.md`'s pointer updated. Open: the corrected flag.
   - Still open: F1's 8% bar as a test.
+
+## 2026-10-12
+
+- **Stage 3 gains "what is at stake"** (the user, from Claude's brainstorm of the day): `s3_<side>_pre_matches_left` (S3.11), `s3_<side>_pre_pts_to_above` / `_below` (S3.12) and `s3_<side>_rank_change_since_open` (S3.13), 8 columns (`notes/fields/schedule_3_multi.md` §B3). Code: `features/schedule_multi.py` (`OPEN_LEAD`, the opening odds' assumed lead of 7 days), `domain/standings.py:Standings.points_gaps`, `domain/columns.py:stake_columns`. The zone-based fields of the same idea (points to the promotion, play-off and relegation lines) wait for a zone table.

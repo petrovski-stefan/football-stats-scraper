@@ -374,6 +374,22 @@ def pre_htft_columns() -> list[str]:
     ]
 
 
+# notes/fields/schedule_3_multi.md §B3: what is at stake for each side at kickoff (the
+# user's choice, 2026-10-12): matches left, the points gaps to the teams around it, and how
+# far its rank moved after the opening odds were published.
+STAKE_FIELDS = (
+    "pre_matches_left",
+    "pre_pts_to_above",
+    "pre_pts_to_below",
+    "rank_change_since_open",
+)
+
+
+def stake_columns() -> list[str]:
+    """`s3_<side>_<field>`, in side/field order: 8 names."""
+    return [f"s3_{side}_{field}" for side in STANDING_SIDES for field in STAKE_FIELDS]
+
+
 # notes/fields/schedule_3_multi.md: fields that need the league-season's other rows.
 SCHEDULE_MULTI_COLUMNS = [
     "s3_match_index_in_round",
@@ -383,4 +399,5 @@ SCHEDULE_MULTI_COLUMNS = [
     *pre_kickoff_columns(),
     "s3_pre_rank_gap",
     *pre_htft_columns(),
+    *stake_columns(),
 ]

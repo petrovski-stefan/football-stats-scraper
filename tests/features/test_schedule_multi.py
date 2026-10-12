@@ -1,5 +1,5 @@
-"""`features/schedule_multi.py`: round positions and offsets, and the table as it stood at each
-kickoff."""
+"""`features/schedule_multi.py`: round positions and offsets, the table as it stood at each
+kickoff, and what is at stake."""
 
 from datetime import datetime, timedelta
 from typing import Any
@@ -11,6 +11,7 @@ from domain.clock import BERLIN, to_berlin
 from domain.columns import HTFT_RESULTS, STANDING_SIDES, STANDING_VENUES
 from features.schedule_multi import (
     FINISHED_AFTER,
+    OPEN_LEAD,
     RESCHEDULED_AFTER_DAYS,
     pre_kickoff_tables,
     round_offsets,
@@ -231,3 +232,71 @@ def test_htft_counts_agree_with_the_standings() -> None:
                 by_ft = _cells(tables, side, venue, every, (result,))
                 assert (by_ht == tables[f"s3_{side}_pre_ht_{venue}_{stat}"]).all()
                 assert (by_ft == tables[f"s3_{side}_pre_ft_{venue}_{stat}"]).all()
+
+
+# --- What is at stake ------------------------------------------------------------------
+
+
+def test_matches_left_count_this_match_and_the_later_ones() -> None:
+    week = timedelta(days=7)
+    frame = _frame(
+        _match("a", _START, (1, 2), (0, 0)),
+        _match("b", _START + week, (1, 3), (0, 0)),
+        _match("c", _START + 2 * week, (2, 1), (0, 0)),
+        _match("d", _START + 3 * week, (1, 3), (0, 0), stage="Clausura"),
+    )
+    tables = pre_kickoff_tables(frame)
+    # Team 1 plays a, b and c in the first stage; d belongs to another stage.
+    assert tables.at["a", "s3_home_pre_matches_left"] == 3
+    assert tables.at["b", "s3_home_pre_matches_left"] == 2
+    assert tables.at["c", "s3_away_pre_matches_left"] == 1
+    assert tables.at["d", "s3_home_pre_matches_left"] == 1
+
+
+def test_points_gaps_read_the_table_at_kickoff() -> None:
+    frame = _frame(
+        _match("a", _START, (1, 2), (1, 0)),
+        _match("b", _START, (3, 4), (0, 0)),
+        _match("c", _START + timedelta(days=7), (1, 3), (0, 0)),
+    )
+    tables = pre_kickoff_tables(frame)
+    # Before c: 1 has 3 points, 3 and 4 have 1, 2 has none.
+    assert pd.isna(tables.at["c", "s3_home_pre_pts_to_above"])
+    assert tables.at["c", "s3_home_pre_pts_to_below"] == 2
+    assert tables.at["c", "s3_away_pre_pts_to_above"] == 2
+    assert tables.at["c", "s3_away_pre_pts_to_below"] == 1
+    # The first matches see an empty table.
+    assert pd.isna(tables.at["a", "s3_home_pre_pts_to_above"])
+    assert pd.isna(tables.at["a", "s3_home_pre_pts_to_below"])
+
+
+def test_rank_change_since_open_counts_the_results_after_the_opening_odds() -> None:
+    frame = _frame(
+        _match("a", _START, (1, 2), (1, 0)),
+        _match("b", _START, (3, 4), (0, 0)),
+        _match("c", _START + timedelta(days=5), (2, 4), (3, 0)),
+        _match("d", _START + timedelta(days=8), (2, 3), (0, 0)),
+    )
+    tables = pre_kickoff_tables(frame)
+    # When d's odds opened only a and b had been played: 1 first, 3 and 4 joint second, 2
+    # last. By kickoff c lifted 2 to first (3 points, GD +2) and 3 fell to third.
+    assert tables.at["d", "s3_home_rank_change_since_open"] == -3
+    assert tables.at["d", "s3_away_rank_change_since_open"] == 1
+    # Nothing had been played when a's odds opened.
+    assert pd.isna(tables.at["a", "s3_home_rank_change_since_open"])
+
+
+@pytest.mark.parametrize(
+    ("gap", "change"),
+    [(OPEN_LEAD + FINISHED_AFTER, 0), (OPEN_LEAD + FINISHED_AFTER - timedelta(minutes=1), 1)],
+)
+def test_a_result_is_news_only_after_the_odds_opened(gap: timedelta, change: int) -> None:
+    played = _START + timedelta(days=1)
+    frame = _frame(
+        _match("first", _START, (1, 2), (1, 0)),
+        _match("news", played, (3, 4), (2, 0)),
+        _match("target", played + gap, (1, 3), (0, 0)),
+    )
+    tables = pre_kickoff_tables(frame)
+    # "news" lifts 3 above 1. It is in the table at the open only if it had surely finished.
+    assert tables.at["target", "s3_home_rank_change_since_open"] == change

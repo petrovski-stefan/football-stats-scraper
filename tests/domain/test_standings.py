@@ -59,6 +59,25 @@ def test_a_team_that_has_not_played_is_still_ranked() -> None:
     assert (ranks[2], ranks[3], ranks[1]) == (1, 2, 3)
 
 
+def test_points_gaps_count_only_teams_with_more_or_fewer_points() -> None:
+    table = Standings([1, 2, 3, 4])
+    table.add(1, 2, 1, 0)
+    table.add(3, 4, 0, 0)
+    table.add(1, 3, 2, 0)
+    table.add(2, 4, 1, 0)
+    # Points: 1 has 6, 2 has 3, 3 and 4 have 1 each.
+    assert table.points_gaps("total", 1) == (None, 3)
+    assert table.points_gaps("total", 2) == (3, 2)
+    # 3 ranks below 4 on goal difference, but a team level on points is neither side.
+    assert table.points_gaps("total", 3) == (2, None)
+    assert table.points_gaps("total", 4) == (2, None)
+
+
+def test_points_gaps_are_empty_on_an_empty_table() -> None:
+    table = Standings([1, 2])
+    assert table.points_gaps("total", 1) == (None, None)
+
+
 # --- The half-time / full-time record (team view) --------------------------------------
 
 

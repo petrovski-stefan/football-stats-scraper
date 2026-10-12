@@ -10,12 +10,16 @@ field's row window is stated where it is built:
 - the round position and the round offset read other rows' kickoff times, never their results;
 - the pre-kickoff table and the half-time / full-time record count a match only if it
   kicked off at least 2 h 30 min before this one, so it had surely finished (the user's
-  rule, 2026-10-06).
+  rule, 2026-10-06);
+- what is at stake (the user, 2026-10-12): the matches left read the stage's fixture list,
+  never a result; the points gaps read the pre-kickoff table; the rank change compares it
+  with the table as it stood `OPEN_LEAD` before kickoff, under the same 2 h 30 min rule.
 
 Run: `uv run python -m features.schedule_multi`
 """
 
 import logging
+from collections import Counter
 from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any, NamedTuple
@@ -32,6 +36,7 @@ from domain.columns import (
     STANDING_VENUES,
     pre_htft_columns,
     pre_kickoff_columns,
+    stake_columns,
 )
 from domain.standings import HalfTimeFullTime, Standings
 from features.stage_io import read_stage_csv, write_stage_csv
@@ -51,6 +56,12 @@ FINISHED_AFTER = timedelta(hours=2, minutes=30)
 # 2026-10-10 over 82 leagues: 1,155 matches (2.8%) at 5 days, 1,114 at 7, so 5 is where the
 # count stops falling; under 5 a long round (Friday to Monday, a split midweek) still counts.
 RESCHEDULED_AFTER_DAYS = 5
+
+# The opening odds (Bet365's "Initial") are published about this long before kickoff (the
+# user, 2026-10-10: "usually about 7 days", more or fewer by league). A result between then
+# and kickoff is news the opening odds cannot hold; `s3_<side>_rank_change_since_open`
+# measures how far such results moved the table.
+OPEN_LEAD = timedelta(days=7)
 
 _ROUND_KEY = ["s1_stage", "s1_round"]
 
@@ -144,21 +155,54 @@ def _htft(record: HalfTimeFullTime, team: int, side: str) -> dict[str, int | Non
     }
 
 
+def _stakes(
+    table: Standings, at_open: Standings, left: Counter[int], team: int, side: str
+) -> dict[str, int | None]:
+    """What is at stake for one team at kickoff, as `s3_<side>_<field>`: its matches left,
+    the points gaps around it, and how far its rank moved after the opening odds."""
+    above, below = table.points_gaps("total", team)
+    rank, rank_at_open = table.ranks("total").get(team), at_open.ranks("total").get(team)
+    return {
+        f"s3_{side}_pre_matches_left": left[team],
+        f"s3_{side}_pre_pts_to_above": above,
+        f"s3_{side}_pre_pts_to_below": below,
+        f"s3_{side}_rank_change_since_open": (
+            None if rank is None or rank_at_open is None else rank - rank_at_open
+        ),
+    }
+
+
+def _finished_by(matches: list[_Match], start: int, instant: Any) -> int:
+    """The end of the matches, from `start` on, that kicked off at least `FINISHED_AFTER`
+    before `instant`. Sorted by kickoff, so the counted matches are always a prefix."""
+    end = start
+    while end < len(matches) and matches[end].kickoff <= instant - FINISHED_AFTER:
+        end += 1
+    return end
+
+
 def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | None]]]:
-    """Each match of one stage with both teams' lines and HT/FT records at its kickoff."""
+    """Each match of one stage with both teams' lines, HT/FT records and stakes at its
+    kickoff."""
     matches = _matches_by_kickoff(group)
     teams = {m.home for m in matches} | {m.away for m in matches}
     tables = {"ft": Standings(teams), "ht": Standings(teams)}
     record = HalfTimeFullTime(teams)
-    counted = 0
+    at_open = Standings(teams)
+    # Each team's matches from this one on, this one included: the fixture list, no result.
+    left = Counter([m.home for m in matches] + [m.away for m in matches])
+    counted = opened = 0
     for match in matches:
-        # Sorted by kickoff, so the counted matches are always a prefix of the list.
-        while counted < len(matches) and matches[counted].kickoff <= match.kickoff - FINISHED_AFTER:
-            done = matches[counted]
+        end = _finished_by(matches, counted, match.kickoff)
+        for done in matches[counted:end]:
             tables["ft"].add(done.home, done.away, *done.ft)
             tables["ht"].add(done.home, done.away, *done.ht)
             record.add(done.home, done.away, done.ht, done.ft)
-            counted += 1
+        counted = end
+        end = _finished_by(matches, opened, match.kickoff - OPEN_LEAD)
+        for done in matches[opened:end]:
+            at_open.add(done.home, done.away, *done.ft)
+        opened = end
         yield (
             match.index,
             {
@@ -166,21 +210,27 @@ def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | No
                 **_lines(tables, match.away, "away"),
                 **_htft(record, match.home, "home"),
                 **_htft(record, match.away, "away"),
+                **_stakes(tables["ft"], at_open, left, match.home, "home"),
+                **_stakes(tables["ft"], at_open, left, match.away, "away"),
             },
         )
+        left[match.home] -= 1
+        left[match.away] -= 1
 
 
 def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
-    """Both teams' standings (96 columns), `s3_pre_rank_gap` and HT/FT records (54).
+    """Both teams' standings (96 columns), `s3_pre_rank_gap`, HT/FT records (54) and what is
+    at stake (8).
 
     One table and one record per stage, each counting only the matches that kicked off at
-    least `FINISHED_AFTER` before this one.
+    least `FINISHED_AFTER` before this one; the rank change compares the table with the one
+    `OPEN_LEAD` earlier.
     """
     rows: dict[Any, dict[str, int | None]] = {}
     for _, group in frame.groupby("s1_stage", sort=False):
         rows.update(_stage_tables(group))
     tables = pd.DataFrame.from_dict(rows, orient="index").reindex(
-        index=frame.index, columns=pre_kickoff_columns() + pre_htft_columns()
+        index=frame.index, columns=pre_kickoff_columns() + pre_htft_columns() + stake_columns()
     )
     gap = (tables["s3_home_pre_ft_total_rank"] - tables["s3_away_pre_ft_total_rank"]).abs()
     return tables.assign(s3_pre_rank_gap=gap).astype("Int64")

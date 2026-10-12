@@ -68,6 +68,12 @@ def test_pre_kickoff_columns_cover_every_combination() -> None:
     assert names[0] == "s3_home_pre_ft_total_rank"
 
 
+def test_stake_columns_cover_both_sides() -> None:
+    names = columns.stake_columns()
+    assert len(names) == len(set(names)) == len(columns.STANDING_SIDES) * len(columns.STAKE_FIELDS)
+    assert set(names) <= set(columns.SCHEDULE_MULTI_COLUMNS)
+
+
 def test_htft_columns_cover_every_combination() -> None:
     names = columns.pre_htft_columns()
     expected = (
