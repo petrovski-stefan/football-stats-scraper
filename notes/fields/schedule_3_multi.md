@@ -34,7 +34,10 @@ half its matches moved has its median between the two groups: rare, and visible 
 **Chosen by the user, 2026-10-13:** running counts of the project's two rare events (a comeback,
 7+ goals) among the matches of the same round already played, under the 2 h 30 min rule, a match
 that was both counting once in S3.17. The 5-day look-back is Claude's choice, which the user
-asked for.
+asked for. Later the same day the round's goals joined them (S3.18–20, the user's choice from
+Claude's proposal C): how many round-mates ended with both teams scoring, and their average
+goals beside their average opening O/U line, so the difference shows how far the round's
+finished matches scored above or below their opening lines.
 
 | # | field | formula | row window | type | example | timing | role | status |
 |---|---|---|---|---|---|---|---|---|
@@ -42,9 +45,27 @@ asked for.
 | S3.15 | `s3_round_pre_comebacks` | of S3.14's matches, how many were comebacks (S2.26) | S3.14's matches and their results | int | 0 | before | input | add (2026-10-13) |
 | S3.16 | `s3_round_pre_seven_plus` | of S3.14's matches, how many had 7 or more goals (S2.01 ≥ `SEVEN_PLUS_GOALS`) | as S3.15 | int | 0 | before | input | add (2026-10-13) |
 | S3.17 | `s3_round_pre_rare_events` | of S3.14's matches, how many were a comeback or had 7 or more goals; a match that was both (a 4-3 comeback) counts once | as S3.15 | int | 0 | before | input | add (2026-10-13) |
+| S3.18 | `s3_round_pre_btts` | of S3.14's matches, how many ended with both teams scoring (S1.14 ≥ 1 and S1.15 ≥ 1) | as S3.15 | int | 1 (Brighton 1-1; Leeds 0-4 and Wolves 0-2 did not) | before | input | add (2026-10-13) |
+| S3.19 | `s3_round_pre_avg_goals` | the average goals (S2.01) of S3.14's matches that have an opening O/U line (S1.19); empty when none has | as S3.15 | float | 2.67 (2, 4 and 2 goals) | before | input | add (2026-10-13) |
+| S3.20 | `s3_round_pre_avg_ou_line` | the average opening O/U line (S1.19) of the same matches as S3.19; empty when S3.19 is | S3.14's matches and their opening lines | float | 2.58 (2.5, 2.5 and 2.75) | before | input | add (2026-10-13) |
 
-- **Zeros:** the first kickoff of a round sees 0 in all four, and so does any match that kicks
-  off before a round-mate has finished. S3.14 is 0 for 32.9% of matches.
+- **Zeros:** the first kickoff of a round sees 0 in every count and empty averages, and so does
+  any match that kicks off before a round-mate has finished. S3.14 is 0 for 32.9% of matches.
+- **S3.19 against S3.20:** the difference is how far the round's finished matches scored above
+  or below their opening lines, computed at analysis time (2789361: +0.08). It is not centred
+  at 0: the opening line is the market's 50/50 point, not its expected goals, and a match
+  scores 0.126 goals above its line on average (+0.22 at a line of 2, +0.01 at 3.5), so a
+  round that goes as priced reads about +0.12. Compare rounds with each other, not with 0:
+  2789361's round-mates would typically read +0.12, so their +0.08 is slightly below that.
+  The average alone mostly repeats the league's goal level, which this match's own odds
+  already carry. Both averages cover the same matches, so a round-mate without a line is left
+  out of both: 21 rows have a finished round-mate but no line among them. The line ranks
+  matches like a goal model fitted to the opening odds (correlation 0.982,
+  `notes/runs/2026-10-09_corpus_scan/out_2026-10-09/a3_model.txt`) but sits below it in
+  level. Read either average with S3.14: after one finished match it is that match's own
+  score.
+- **S3.18 and the rare events:** every comeback has both teams scoring (the leader scored
+  before half-time, the trailer has to score to win), so S3.15 ≤ S3.18 by definition.
 - **The 5-day look-back:** a round-mate played 5 or more days earlier (a match brought forward;
   for a postponed match, the rest of its round) does not count, so a result from weeks before
   is not "this round so far". It reads no later kickoff, unlike S3.10. Measured on kickoff
@@ -52,14 +73,16 @@ asked for.
   earlier, and the look-back changes which round-mates count on 777 rows (2.1%) against
   leaving out S3.10's rescheduled matches instead.
 - **Values, 2026-10-13:** S3.17 is 1 or more for 14.7% of matches (S3.15 for 11.1%, S3.16 for
-  5.0%); none is above 3 (`notes/runs/2026-10-13_round_so_far/out.txt`).
+  5.0%); none is above 3 (`notes/runs/2026-10-13_round_so_far/out.txt`). S3.18 is 1 or more
+  for 56.1%, and S3.19–20 have a value for 67.0% (`notes/runs/2026-10-13_round_goals/out.txt`).
 - **S3.05** (§C, deferred) is S3.15 ≥ 1, without the 5-day limit. Retry claim #3, the round
   state, is the related claim (`notes/RETRY_CANDIDATES_2026-09-23.md` §4).
-- **Checked 2026-10-13:** a recount with plain loops gave the same four values on all 36,238
-  rows; scrambling the results of every match outside the window (the match's own included)
-  moved none of 150 sampled matches' values. Run record for every figure in this section:
-  `notes/runs/2026-10-13_round_so_far/` (`verify_round.py`, `out.txt`), on disk only:
-  `notes/runs/` is gitignored.
+- **Checked 2026-10-13:** a recount with plain loops gave the same values on all 36,238 rows,
+  for S3.14–17 and for S3.18–20; scrambling the results and lines of every match outside the
+  window (the match's own included) moved none of 150 sampled matches' values, in each run.
+  Run records: `notes/runs/2026-10-13_round_so_far/` (`verify_round.py`, `out.txt`) for
+  S3.14–17 and `notes/runs/2026-10-13_round_goals/` (`verify_round_goals.py`, `out.txt`) for
+  S3.18–20, on disk only: `notes/runs/` is gitignored.
 
 ## B. Pre-kickoff table (rebuilt from our own results)
 

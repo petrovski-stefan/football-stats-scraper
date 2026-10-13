@@ -142,3 +142,4 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 ## 2026-10-13
 
 - **Stage 3 gains "the round so far"** (the user): `s3_round_pre_finished` (S3.14), `s3_round_pre_comebacks` (S3.15), `s3_round_pre_seven_plus` (S3.16) and `s3_round_pre_rare_events` (S3.17), 4 columns (`notes/fields/schedule_3_multi.md` §A2). Code: `features/schedule_multi.py:round_so_far`, `ROUND_LOOK_BACK` (5 days) and `SEVEN_PLUS_GOALS`; the column names in `domain/columns.py`. S3.05 (deferred) stays: it is S3.15 ≥ 1 without the 5-day limit.
+- **The round's goals join it** (the user): `s3_round_pre_btts` (S3.18), `s3_round_pre_avg_goals` (S3.19) and `s3_round_pre_avg_ou_line` (S3.20), 3 columns, same window and same function (`features/schedule_multi.py:round_so_far`).

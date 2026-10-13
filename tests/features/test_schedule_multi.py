@@ -309,9 +309,14 @@ def test_a_result_is_news_only_after_the_odds_opened(gap: timedelta, change: int
 
 
 def _with_events(
-    match: dict[str, object], comeback: bool = False, goals: int = 2
+    match: dict[str, object], comeback: bool = False, goals: int = 2, line: float = 2.5
 ) -> dict[str, object]:
-    return {**match, "s2_is_comeback": comeback, "s2_total_goals": goals}
+    return {
+        **match,
+        "s2_is_comeback": comeback,
+        "s2_total_goals": goals,
+        "s1_odds_ou_open_line": line,
+    }
 
 
 def _counts(so_far: pd.DataFrame, match_id: str) -> list[int]:
@@ -358,6 +363,43 @@ def test_round_so_far_looks_back_from_2h30_to_under_5_days(gap: timedelta, finis
         _with_events(_match("later", _START + gap, (3, 4), (0, 0))),
     )
     assert round_so_far(frame).at["later", "s3_round_pre_finished"] == finished
+
+
+def test_round_so_far_averages_goals_and_lines_and_counts_both_teams_scoring() -> None:
+    frame = _frame(
+        _with_events(_match("a", _START, (1, 2), (1, 1)), goals=2, line=2.5),
+        _with_events(_match("b", _START, (3, 4), (0, 4)), goals=4, line=2.5),
+        _with_events(_match("c", _START, (5, 6), (0, 2)), goals=2, line=2.75),
+        _with_events(_match("d", _START + FINISHED_AFTER, (7, 8), (3, 2)), goals=5, line=3.25),
+    )
+    so_far = round_so_far(frame)
+    assert so_far.at["d", "s3_round_pre_avg_goals"] == pytest.approx(8 / 3)
+    assert so_far.at["d", "s3_round_pre_avg_ou_line"] == pytest.approx(7.75 / 3)
+    assert so_far.at["d", "s3_round_pre_btts"] == 1
+    # Nothing had finished at the first kickoff: no average, no count.
+    assert pd.isna(so_far.at["a", "s3_round_pre_avg_goals"])
+    assert pd.isna(so_far.at["a", "s3_round_pre_avg_ou_line"])
+    assert so_far.at["a", "s3_round_pre_btts"] == 0
+
+
+def test_a_round_mate_without_a_line_counts_but_stays_out_of_both_averages() -> None:
+    nan = float("nan")
+    frame = _frame(
+        _with_events(_match("a", _START, (1, 2), (3, 3)), goals=6, line=nan),
+        _with_events(_match("b", _START, (3, 4), (1, 0)), goals=1, line=2.25),
+        _with_events(_match("c", _START + FINISHED_AFTER, (5, 6), (0, 0))),
+        _with_events(_match("x", _START, (7, 8), (2, 2), round_number=2), goals=4, line=nan),
+        _with_events(_match("y", _START + FINISHED_AFTER, (9, 10), (0, 0), round_number=2)),
+    )
+    so_far = round_so_far(frame)
+    assert so_far.at["c", "s3_round_pre_finished"] == 2
+    assert so_far.at["c", "s3_round_pre_btts"] == 1
+    assert so_far.at["c", "s3_round_pre_avg_goals"] == pytest.approx(1.0)
+    assert so_far.at["c", "s3_round_pre_avg_ou_line"] == pytest.approx(2.25)
+    # Round 2's only finished match has no line: both averages stay empty.
+    assert so_far.at["y", "s3_round_pre_finished"] == 1
+    assert pd.isna(so_far.at["y", "s3_round_pre_avg_goals"])
+    assert pd.isna(so_far.at["y", "s3_round_pre_avg_ou_line"])
 
 
 def test_round_so_far_keeps_each_stages_round_apart() -> None:

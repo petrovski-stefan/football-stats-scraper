@@ -9,8 +9,8 @@ field's row window is stated where it is built:
 
 - the round position and the round offset read other rows' kickoff times, never their results;
 - the round so far (the user, 2026-10-13) counts the matches of the same round that kicked off
-  at least 2 h 30 min and less than `ROUND_LOOK_BACK` before this one, and which of them were
-  a comeback or had 7+ goals;
+  at least 2 h 30 min and less than `ROUND_LOOK_BACK` before this one, which of them were a
+  comeback, had 7+ goals or both teams scoring, and their average goals and opening O/U line;
 - the pre-kickoff table and the half-time / full-time record count a match only if it
   kicked off at least 2 h 30 min before this one, so it had surely finished (the user's
   rule, 2026-10-06);
@@ -27,6 +27,7 @@ from collections.abc import Iterator
 from datetime import timedelta
 from typing import Any, NamedTuple
 
+import numpy as np
 import pandas as pd
 
 from domain import paths
@@ -125,36 +126,53 @@ def round_offsets(frame: pd.DataFrame) -> pd.DataFrame:
 
 
 def round_so_far(frame: pd.DataFrame) -> pd.DataFrame:
-    """`s3_round_pre_finished`, `_comebacks`, `_seven_plus` and `_rare_events`.
+    """The round so far: `s3_round_pre_finished`, `_comebacks`, `_seven_plus`,
+    `_rare_events`, `_btts`, `_avg_goals` and `_avg_ou_line`.
 
-    The round so far: the matches of the same (stage, round) that kicked off at least
-    `FINISHED_AFTER` and less than `ROUND_LOOK_BACK` before this one, and how many of them
-    were a comeback, had 7+ goals, or either (a match that was both counts once). The first
-    kickoff of a round sees 0 in all four.
+    A round-mate counts when it is of the same (stage, round) and kicked off at least
+    `FINISHED_AFTER` and less than `ROUND_LOOK_BACK` before this one. The counts say how many
+    of those were a comeback, had 7+ goals, either (a match that was both counts once), or
+    ended with both teams scoring. The two averages, goals per match and the opening O/U
+    line, cover the counted round-mates that have a line, so their difference is how far the
+    round scored above or below its opening lines (not centred at 0: the line is the market's
+    50/50 point, and a match scores about 0.13 goals above it on average); both are empty when
+    there is none. The first kickoff of a round sees 0 in every count.
     """
-    finished_after = pd.Timedelta(FINISHED_AFTER).to_timedelta64()
-    look_back = pd.Timedelta(ROUND_LOOK_BACK).to_timedelta64()
     keyed = frame.assign(_kickoff=pd.to_datetime(frame["s1_date"].map(parse_instant), utc=True))
-    parts = []
-    for _, group in keyed.groupby(_ROUND_KEY, sort=False):
-        kickoff = group["_kickoff"].to_numpy(dtype="datetime64[ns]")
-        # Row: this match; column: a round-mate. True where the round-mate counts.
-        gap = kickoff[:, None] - kickoff[None, :]
-        counted = (gap >= finished_after) & (gap < look_back)
-        comeback = group["s2_is_comeback"].to_numpy(dtype=bool)
-        seven_plus = group["s2_total_goals"].to_numpy() >= SEVEN_PLUS_GOALS
-        parts.append(
-            pd.DataFrame(
-                {
-                    "s3_round_pre_finished": counted.sum(axis=1),
-                    "s3_round_pre_comebacks": (counted & comeback).sum(axis=1),
-                    "s3_round_pre_seven_plus": (counted & seven_plus).sum(axis=1),
-                    "s3_round_pre_rare_events": (counted & (comeback | seven_plus)).sum(axis=1),
-                },
-                index=group.index,
-            )
-        )
+    parts = [_round_counts(group) for _, group in keyed.groupby(_ROUND_KEY, sort=False)]
     return pd.concat(parts).reindex(frame.index)
+
+
+def _round_counts(group: pd.DataFrame) -> pd.DataFrame:
+    """`round_so_far` for one (stage, round)."""
+    kickoff = group["_kickoff"].to_numpy(dtype="datetime64[ns]")
+    # Row: this match; column: a round-mate. True where the round-mate counts.
+    gap = kickoff[:, None] - kickoff[None, :]
+    counted = (gap >= pd.Timedelta(FINISHED_AFTER).to_timedelta64()) & (
+        gap < pd.Timedelta(ROUND_LOOK_BACK).to_timedelta64()
+    )
+    goals = group["s2_total_goals"].to_numpy(dtype=float)
+    comeback = group["s2_is_comeback"].to_numpy(dtype=bool)
+    seven_plus = goals >= SEVEN_PLUS_GOALS
+    btts = (group["s1_ft_home_goals"].to_numpy() >= 1) & (group["s1_ft_away_goals"].to_numpy() >= 1)
+    line = group["s1_odds_ou_open_line"].to_numpy(dtype=float)
+    priced = counted & ~np.isnan(line)
+    with np.errstate(invalid="ignore"):
+        # 0 / 0 where no counted round-mate has a line: empty, not zero.
+        avg_goals = np.where(priced, goals, 0.0).sum(axis=1) / priced.sum(axis=1)
+        avg_line = np.where(priced, line, 0.0).sum(axis=1) / priced.sum(axis=1)
+    return pd.DataFrame(
+        {
+            "s3_round_pre_finished": counted.sum(axis=1),
+            "s3_round_pre_comebacks": (counted & comeback).sum(axis=1),
+            "s3_round_pre_seven_plus": (counted & seven_plus).sum(axis=1),
+            "s3_round_pre_rare_events": (counted & (comeback | seven_plus)).sum(axis=1),
+            "s3_round_pre_btts": (counted & btts).sum(axis=1),
+            "s3_round_pre_avg_goals": avg_goals,
+            "s3_round_pre_avg_ou_line": avg_line,
+        },
+        index=group.index,
+    )
 
 
 def _matches_by_kickoff(group: pd.DataFrame) -> list[_Match]:
