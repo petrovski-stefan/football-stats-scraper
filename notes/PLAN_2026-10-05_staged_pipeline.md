@@ -9,8 +9,9 @@ every field means, clearly. Each stage gets its own fields doc, and each doc ans
 question. More CSV files is an accepted cost.
 
 **Supersedes:**
-- `notes/IDEAS_2026-10-01.md` Phase A1 steps 2–4 (14b layout, 2 refactor, 17 dictionary). The
-  plan takes 16's naming and format rules.
+- `notes/IDEAS_2026-10-01.md` ideas 14b (layout), 2 (refactor) and 17 (dictionary). It took
+  16's naming and format rules, now "Rules for values" in `notes/fields/README.md`. Since
+  2026-10-13 the IDEAS file groups its open steps by page: ideas 2a (detail) and 2b (live).
 - the class split in `notes/FIELDS.md` (raw / scrape-derived / derived). Its rows, page
   locations, examples and the user's S1 checks carry over (step P1).
 
@@ -76,7 +77,7 @@ Paths are built only in `domain/paths.py`, so the names can change cheaply.
   rebuildable, and the window becomes a stage-3 setting. Storing both team ids replaces the
   majority-vote subject guess (`scrapers/detail_parsers.py:subject_team_id`) behind `is_home`,
   `opponent` and `result`. Stage 3 turns the history back into one row per match: the
-  averages, plus only the slots analysis uses. The column names change under 16's rules.
+  averages, plus only the slots analysis uses. The column names change under the value rules (`notes/fields/README.md`).
 - **History windows (the user, later on 2026-10-05):** each team's last 5 or 6 matches; head
   to head at most 4, each played no earlier than 2 years before this match. These are
   stage-3 settings: stage 1 still stores every row the page shows. Two reasons: the 2-year cut
@@ -126,7 +127,7 @@ history slots × 27), goals 9 + 3, events 9 + 3.
 | P2 | The user's on-page check of the detail and live stage-1 docs, ≤ 20 fields a sitting (progress in `notes/fields/README.md`). Decide which of the remaining page candidates (C5–C7, C9–C22) join stage 1, comebacks only | user + Claude | ~4 sittings |
 | P4 | Detail: stage-1 scraper (match-level + long history), stage-2 and stage-3 builders. Stage 2 of the history file carries a read-only `d2_is_friendly` per history row (the user, 2026-10-10), from `domain/scope.py:is_friendly`; tournament friendlies without "friendly" in their name slip through (`qa/CLAUDE.md` §3) | Claude | ~2.5 days |
 | P5 | The join; re-point `features/`, `modelling/`, `qa/` and the goal/event work lists (`scrapers/goals.py:history_ids` reads the history file) | Claude | ~0.5 day |
-| P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 56k pages, ~28 h at the one measured rate (`notes/PLAN_2026-07-25_environment_filter.md` Phase 1) |
+| P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 36k pages (36,238 matches, 2026-10-13), ~18 h at the one measured rate (`notes/PLAN_2026-07-25_environment_filter.md` Phase 1) |
 | P7 | Freeze the stage-1 docs. With Phase S's other conditions, this unblocks the CONFIRM scrape | user | — |
 
 P2 comes before P4: the docs are the spec the code is written to.
