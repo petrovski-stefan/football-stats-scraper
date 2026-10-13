@@ -1,6 +1,6 @@
 """`features/schedule_multi.py`: round positions and offsets, the round so far, the table as it
-stood at each kickoff, what is at stake, and that nothing of a match still to finish reaches a
-row."""
+stood at each kickoff, what is at stake, and that no score or odds of an unfinished match
+reaches a row."""
 
 import random
 from datetime import datetime, timedelta
@@ -414,7 +414,7 @@ def test_round_so_far_keeps_each_stages_round_apart() -> None:
     assert _counts(round_so_far(frame), "b") == [0, 0, 0, 0]
 
 
-# --- No leak: nothing of a match still to finish reaches a row --------------------------
+# --- No leak: no score or odds of an unfinished match reaches a row ---------------------
 
 
 def _results_and_odds(rng: random.Random) -> dict[str, object]:
@@ -502,7 +502,7 @@ def _differing(before: pd.DataFrame, after: pd.DataFrame, match_id: str) -> list
     return columns
 
 
-def test_nothing_of_a_match_still_to_finish_reaches_a_row() -> None:
+def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row() -> None:
     # For each match, scramble the score and odds of every match that kicked off less than
     # FINISHED_AFTER before it, or later, the match itself included. Only their fixture
     # (teams, kickoff, round) may be read, so no stage-3 value of the match may move.
