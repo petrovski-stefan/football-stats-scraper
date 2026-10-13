@@ -131,17 +131,6 @@ history slots × 27), goals 9 + 3, events 9 + 3.
 
 P2 comes before P4: the docs are the spec the code is written to.
 
-**Pending schedule fix, not before 2026-10-12 (the user: no scraping until then).** Re-scrape the
-rounds the old silent odds wait lost (`notes/MIGRATIONS.md` 2026-10-10): England League 2 2024-25
-rounds 21 and 28 (the user saw round 21's odds on the page). The scraper takes whole leagues, so
-it redoes both finished seasons:
-`uv run python -m scrapers.schedule --leagues "ENG L2" --before-year 2026 --force`
-(2 jobs, ~10 min). Before it: copy those 2 seasons' stage files aside. After it: rebuild stages 2
-and 3, run `qa.validate`, compare old and new files match by match (odds gained, anything else
-changed), and re-run `notes/runs/2026-10-10_odds_coverage/coverage.py`. Until then `qa.validate`
-fails England League 2 2024-25 on the odds coverage floor and the blank-round check (`qa/CLAUDE.md`
-§5b), and stages 2 and 3 fail too between the re-scrape and their rebuild: both expected.
-
 ## 6. Open points Claude handles (no user decision needed)
 
 - The history rows' odds snapshot (Initial or Final?) — FIELDS #60–62, settle in P2.
