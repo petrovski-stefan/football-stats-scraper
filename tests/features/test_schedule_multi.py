@@ -1,13 +1,15 @@
 """`features/schedule_multi.py`: round positions and offsets, the round so far, the table as it
-stood at each kickoff, and what is at stake."""
+stood at each kickoff, what is at stake, and that nothing of a match still to finish reaches a
+row."""
 
+import random
 from datetime import datetime, timedelta
 from typing import Any
 
 import pandas as pd
 import pytest
 
-from domain.clock import BERLIN, to_berlin
+from domain.clock import BERLIN, parse_instant, to_berlin
 from domain.columns import HTFT_RESULTS, STANDING_SIDES, STANDING_VENUES
 from features.schedule_multi import (
     FINISHED_AFTER,
@@ -15,11 +17,13 @@ from features.schedule_multi import (
     RESCHEDULED_AFTER_DAYS,
     ROUND_LOOK_BACK,
     SEVEN_PLUS_GOALS,
+    derive,
     pre_kickoff_tables,
     round_offsets,
     round_positions,
     round_so_far,
 )
+from features.schedule_row import derive as derive_row
 
 _START = datetime(2026, 1, 3, 15, 0, tzinfo=BERLIN)
 
@@ -408,3 +412,122 @@ def test_round_so_far_keeps_each_stages_round_apart() -> None:
         _with_events(_match("b", _START + timedelta(days=1), (3, 4), (0, 0), stage="Clausura")),
     )
     assert _counts(round_so_far(frame), "b") == [0, 0, 0, 0]
+
+
+# --- No leak: nothing of a match still to finish reaches a row --------------------------
+
+
+def _results_and_odds(rng: random.Random) -> dict[str, object]:
+    """A made-up score and opening odds for one match."""
+    ht = (rng.randint(0, 2), rng.randint(0, 2))
+    ft = (ht[0] + rng.randint(0, 3), ht[1] + rng.randint(0, 3))
+    p_home, p_draw = rng.uniform(0.2, 0.6), rng.uniform(0.2, 0.3)
+    return {
+        "s1_ht_home_goals": ht[0],
+        "s1_ht_away_goals": ht[1],
+        "s1_ft_home_goals": ft[0],
+        "s1_ft_away_goals": ft[1],
+        "s1_odds_1x2_open_home": round(1 / (1.05 * p_home), 2),
+        "s1_odds_1x2_open_draw": round(1 / (1.05 * p_draw), 2),
+        "s1_odds_1x2_open_away": round(1 / (1.05 * (1 - p_home - p_draw)), 2),
+        "s1_odds_ou_open_line": rng.choice([2.25, 2.5, 2.75, 3.0]),
+        "s1_odds_ou_open_over": 1.9,
+        "s1_odds_ou_open_under": 1.9,
+        "s1_odds_ah_open_line": rng.choice([-0.5, 0.0, 0.25, 0.75]),
+        "s1_odds_ah_open_home": 1.9,
+        "s1_odds_ah_open_away": 1.95,
+    }
+
+
+def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
+    """Six teams, a double round robin of 10 rounds. Each round has two simultaneous kickoffs
+    and a third that starts exactly FINISHED_AFTER later, a minute less, 1 h or 4 h later; one
+    match is played 10 days late and one a month early. The minute-less gap is what catches a
+    window that counts a match too soon."""
+    rng = random.Random(seed)
+    teams = list(range(1, 7))
+    single = []
+    for _ in range(len(teams) - 1):
+        single.append([(teams[i], teams[-1 - i]) for i in range(len(teams) // 2)])
+        teams = [teams[0], teams[-1], *teams[1:-1]]
+    rounds = single + [[(away, home) for home, away in pairs] for pairs in single]
+    gaps = (
+        FINISHED_AFTER,
+        FINISHED_AFTER - timedelta(minutes=1),
+        timedelta(hours=1),
+        timedelta(hours=4),
+    )
+    moved = {(2, 2): timedelta(days=10), (7, 0): -timedelta(days=30)}
+    rows: list[dict[str, object]] = []
+    for r, pairs in enumerate(rounds):
+        for i, (home, away) in enumerate(pairs):
+            kickoff = _START + timedelta(days=7 * r) + (gaps[r % 4] if i == 2 else timedelta())
+            rows.append(
+                {
+                    "match_id": f"r{r + 1}m{i}",
+                    "s1_stage": "",
+                    "s1_round": r + 1,
+                    "s1_date": to_berlin(kickoff + moved.get((r, i), timedelta())),
+                    "s1_home_team_id": home,
+                    "s1_away_team_id": away,
+                    "s1_home_team_name": f"Team {home}",
+                    "s1_away_team_name": f"Team {away}",
+                    **_results_and_odds(rng),
+                }
+            )
+    return rows
+
+
+def _stage_2(rows: list[dict[str, object]]) -> pd.DataFrame:
+    """The rows with their stage-2 fields, as `features.schedule_row` would write them."""
+    return pd.DataFrame([{**row, **derive_row(row)} for row in rows]).set_index(
+        "match_id", drop=False
+    )
+
+
+def _kickoff(row: dict[str, object]) -> datetime:
+    return parse_instant(str(row["s1_date"]))
+
+
+def _differing(before: pd.DataFrame, after: pd.DataFrame, match_id: str) -> list[str]:
+    """The stage-3 columns whose value for one match differs between two builds."""
+    columns = []
+    for column in before.columns:
+        a, b = before.at[match_id, column], after.at[match_id, column]
+        if pd.isna(a) or pd.isna(b):
+            if not (pd.isna(a) and pd.isna(b)):
+                columns.append(str(column))
+        elif a != b:
+            columns.append(str(column))
+    return columns
+
+
+def test_nothing_of_a_match_still_to_finish_reaches_a_row() -> None:
+    # For each match, scramble the score and odds of every match that kicked off less than
+    # FINISHED_AFTER before it, or later, the match itself included. Only their fixture
+    # (teams, kickoff, round) may be read, so no stage-3 value of the match may move.
+    rows = _made_up_season()
+    before = derive(_stage_2(rows))
+    rng = random.Random(11)
+    for target in rows:
+        cutoff = _kickoff(target) - FINISHED_AFTER
+        scrambled = [
+            {**row, **_results_and_odds(rng)} if _kickoff(row) > cutoff else row for row in rows
+        ]
+        after = derive(_stage_2(scrambled))
+        assert _differing(before, after, str(target["match_id"])) == [], target["match_id"]
+
+
+def test_the_leak_check_can_fail() -> None:
+    # The check above is not empty: scrambling the matches that had finished before the last
+    # kickoff does move the last match's values.
+    rows = _made_up_season()
+    before = derive(_stage_2(rows))
+    last = max(rows, key=_kickoff)
+    cutoff = _kickoff(last) - FINISHED_AFTER
+    rng = random.Random(11)
+    scrambled = [
+        {**row, **_results_and_odds(rng)} if _kickoff(row) <= cutoff else row for row in rows
+    ]
+    after = derive(_stage_2(scrambled))
+    assert _differing(before, after, str(last["match_id"]))

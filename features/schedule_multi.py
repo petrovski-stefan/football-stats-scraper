@@ -299,12 +299,10 @@ def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
     return tables.assign(s3_pre_rank_gap=gap).astype("Int64")
 
 
-def build(row_path: str) -> str:
-    """Write the stage-3 file for one stage-2 schedule file; return its path."""
-    frame = read_stage_csv(row_path)
+def derive(frame: pd.DataFrame) -> pd.DataFrame:
+    """Every stage-3 column of one league-season's stage-2 rows, in declared order."""
     out = pd.concat(
         [
-            frame,
             round_positions(frame),
             round_offsets(frame),
             round_so_far(frame),
@@ -312,6 +310,13 @@ def build(row_path: str) -> str:
         ],
         axis=1,
     )
+    return out[SCHEDULE_MULTI_COLUMNS]
+
+
+def build(row_path: str) -> str:
+    """Write the stage-3 file for one stage-2 schedule file; return its path."""
+    frame = read_stage_csv(row_path)
+    out = pd.concat([frame, derive(frame)], axis=1)
     out_path = paths.schedule_at_stage(row_path, 3)
     columns = SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS + SCHEDULE_MULTI_COLUMNS
     write_stage_csv(out, out_path, columns)
