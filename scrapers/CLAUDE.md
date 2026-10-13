@@ -43,7 +43,7 @@ Only this package may write to `data/finished/1_raw/` (and, until plan steps P4�
 - **The schedule's odds are the opening prices** (`s1_odds_<market>_open_*`): its O/U and AH equal Bet365's "Initial" row on the detail page for the reference match.
 - **For AH and O/U the informative column is the line, not the price.** nowgoal moves the handicap/goal line and holds both prices near 1.90, so `s1_odds_ah_open_line` and `s1_odds_ou_open_line` carry the signal and `s2_implied_over` / `s2_implied_ah_home` are only the tilt around it.
 - `parse_line()` handles split quarter-lines, where nowgoal hangs one minus sign off whichever half it reaches first so the sign belongs to the whole expression (`0/-0.5` → -0.25, `-1/1.5` → -1.25).
-- **Positive `ah_line` means the home side is favoured and gives the handicap — the opposite sign to football-data.co.uk's `AHh`**, so any comparison against that source has to flip one of them.
+- **Positive `ah_line` means the home side is favoured and gives the handicap.**
 
 ## 6. Detail enrichment (second stage)
 

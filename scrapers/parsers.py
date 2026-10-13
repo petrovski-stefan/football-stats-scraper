@@ -107,8 +107,7 @@ def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     """Read the row's Asian Handicap cells as (home_odds, handicap_line, away_odds).
 
     Sign convention, verified 10/10 against the 1X2 favourite on live rows:
-    **positive means the home side is favoured** and gives the handicap. Note this is
-    the opposite of football-data.co.uk's `AHh`, where negative means home gives.
+    **positive means the home side is favoured** and gives the handicap.
     """
     cells = _odds_cells(row)
     if cells is None:

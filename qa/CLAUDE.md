@@ -2,7 +2,7 @@
 
 ## 1. The validate command
 
-`uv run python -m qa.validate` checks internal self-consistency of the staged files in `data/finished/` and **exits non-zero on any failure**. `--archived` runs the old pipeline's checks instead, on the files archived in `data/archived/` on 2026-10-10 (base, detail, joins, the goal and event stores); use it when refactoring those sources. Its one cross-source check is the page's final table against our rebuilt standings (§5); the football-data.co.uk check was retired (see `notes/MIGRATIONS.md`).
+`uv run python -m qa.validate` checks internal self-consistency of the staged files in `data/finished/` and **exits non-zero on any failure**. `--archived` runs the old pipeline's checks instead, on the files archived in `data/archived/` on 2026-10-10 (base, detail, joins, the goal and event stores); use it when refactoring those sources. Its one cross-source check is the page's final table against our rebuilt standings (§5).
 
 ## 2. Don't soften the canary
 

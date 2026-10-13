@@ -76,8 +76,7 @@ ORDERED_DF_COLUMNS = [
     "over_odds",
     "under_odds",
     "implied_over",
-    # Asian Handicap — positive `ah_line` means the HOME side is favoured (opposite of
-    # football-data.co.uk's AHh convention).
+    # Asian Handicap — positive `ah_line` means the HOME side is favoured.
     "has_ah_odds",
     "ah_line",
     "ah_home_odds",
