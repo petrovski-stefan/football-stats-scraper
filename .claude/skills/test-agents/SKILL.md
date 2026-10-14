@@ -16,13 +16,13 @@ whole prompt.
 
 ## Blindness rules
 
-- **Never write an expected answer into `notes/`, any `CLAUDE.md` or `notes/DECISIONS.md`.**
+- **Never write an expected answer into `notes/`, any `CLAUDE.md` or `notes/WORKING/DECISIONS.md`.**
   The agents read those files as their instructions, so an answer placed there turns a
   known-answer test into a reading test. This includes a planted leak's column or line, a
   random match's scores, and which variant or match was drawn.
 - Random draws (test 1's variant, test 4's second match) exist only in this session's
   context and in the final summary. Do not write them to a file, not even the scratchpad.
-- Two answers are already exposed and stay exposed. The leak in `notes/DECISIONS.md` D5
+- Two answers are already exposed and stay exposed. The leak in `notes/WORKING/DECISIONS.md` D5
   (`combined_recent_gf` + FT goals) is therefore **not** in test 1's pool. Match 2789151's
   answer is in `scrapers/CLAUDE.md` §7, so test 4 draws a second, blind match.
 
@@ -42,7 +42,7 @@ Rules for every planted edit:
   reviewer then correctly reports that file as modified.
 - Restore with `git restore <that file>` only, never `git restore .`: the baseline may hold
   the user's own uncommitted work.
-- Run tests 1–3 **sequentially**. The reviewer and the auditor both read `notes/STATE.md`, so
+- Run tests 1–3 **sequentially**. The reviewer and the auditor both read `notes/WORKING/STATE.md`, so
   a planted edit that is still live contaminates the next test.
 
 ## 1. stats-reviewer — planted leak
@@ -86,7 +86,7 @@ follow.`) directly above `def _vig_free`. Change nothing else.
 
 ## 3. ledger-auditor — planted inconsistency
 
-1. Pick one row of the **Ledger** table in `notes/STATE.md` that is **not** mentioned under
+1. Pick one row of the **Ledger** table in `notes/WORKING/STATE.md` that is **not** mentioned under
    "Conflicts (listed, not resolved)". Read its cited source section and confirm the key
    number matches there. Then change one key number in the STATE row only. Used so far:
    2026-09-28 "Out-of-round matches suppress comebacks" (0.98× → 0.68×) and "Leader's 2H
@@ -94,9 +94,9 @@ follow.`) directly above `def _vig_free`. Change nothing else.
 2. Spawn `ledger-auditor` with the prompt `Scope: full`, and nothing else. Do not name the
    row.
 3. **PASS** if the report lists that row with verdict **source wins**. Other rows it
-   reports are pre-existing issues (see `notes/DECISIONS.md` D6): list their count, do not
+   reports are pre-existing issues (see `notes/WORKING/DECISIONS.md` D6): list their count, do not
    judge them.
-4. `git restore notes/STATE.md`, then confirm the state matches the baseline.
+4. `git restore notes/WORKING/STATE.md`, then confirm the state matches the baseline.
 
 ## 4. dom-prober — two live pages
 

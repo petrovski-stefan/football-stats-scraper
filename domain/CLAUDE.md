@@ -4,13 +4,13 @@ Imports nothing internal.
 
 ## 1. Stage-1 models hold page values only; derived fields live in later stages
 
-The staged pipeline (`notes/PLAN_2026-10-05_staged_pipeline.md`, fields in `notes/fields/`) splits every source into three stages. The stage-1 models (`domain/schedule.py:ScheduleRow`, `FinalTableRow`) accept values read from the page and nothing computed: `extra="forbid"` refuses a derived field. A field computed from one row goes in a stage-2 builder (`features/schedule_row.py`); a field that needs other rows goes in a stage-3 builder (`features/schedule_multi.py`). New DOM extraction goes in `scrapers/parsers.py` (see `scrapers/CLAUDE.md` §3).
+The staged pipeline (`notes/WORKING/PLAN_2026-10-05_STAGED_PIPELINE.md`, fields in `notes/FIELDS/`) splits every source into three stages. The stage-1 models (`domain/schedule.py:ScheduleRow`, `FinalTableRow`) accept values read from the page and nothing computed: `extra="forbid"` refuses a derived field. A field computed from one row goes in a stage-2 builder (`features/schedule_row.py`); a field that needs other rows goes in a stage-3 builder (`features/schedule_multi.py`). New DOM extraction goes in `scrapers/parsers.py` (see `scrapers/CLAUDE.md` §3).
 
 `stats.py` is the per-match kernel the builders and the detail records share (comeback, 1X2 result, implied and margin-free probabilities). `standings.py` rebuilds a standings table from results. Both are pure.
 
-Field names are column names, and carry the code of the doc that defines them (`s1_`, `s2_`, `s3_`; row keys like `match_id` stay bare): `notes/fields/README.md`. No score strings beside the goal ints; no rounding in stored values.
+Field names are column names, and carry the code of the doc that defines them (`s1_`, `s2_`, `s3_`; row keys like `match_id` stay bare): `notes/FIELDS/README.md`. No score strings beside the goal ints; no rounding in stored values.
 
-The old `domain/match.py:Match`, which computed every derived column as a `@computed_field` inside the raw file, was removed on 2026-10-06 (`notes/MIGRATIONS.md`). The detail model (`match_detail.py`) still works the old way until plan step P4.
+The old `domain/match.py:Match`, which computed every derived column as a `@computed_field` inside the raw file, was removed on 2026-10-06 (`notes/LOG/MIGRATIONS.md`). The detail model (`match_detail.py`) still works the old way until plan step P4.
 
 ## 1a. One clock: Berlin time with its offset
 

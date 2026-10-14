@@ -1,6 +1,6 @@
 """The project's one clock: every stored date and time is Berlin time with its offset.
 
-Decided by the user on 2026-10-05 (`notes/fields/README.md`, "Rules for values"). Berlin
+Decided by the user on 2026-10-05 (`notes/FIELDS/README.md`, "Rules for values"). Berlin
 time is the clock in Berlin, UTC+1 in winter and UTC+2 in summer, and the offset is
 written into every value: `2026-01-31 18:30+01:00`, `2025-08-15 21:00+02:00`. With the
 offset in the text, a value names one instant even across the autumn clock change, when

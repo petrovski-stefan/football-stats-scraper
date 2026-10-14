@@ -1,4 +1,4 @@
-"""Chained comeback pricer for the F12 re-test (see notes/PREREGISTRATION.md).
+"""Chained comeback pricer for the F12 re-test (see notes/RECORD/PREREGISTRATION.md).
 
     P(comeback) = SUM_d  P(trails by d at HT | features)
                          x  F11_completion(trailer odds, d, venue)
@@ -8,7 +8,7 @@ The first factor is fitted here; the second is imported wholesale.
 Factor 1 is a pair of Poisson regressions on first-half goals, turned into a
 Skellam distribution over half-time margins. Factor 2 is F11's completion model,
 imported wholesale so it costs no degrees of freedom. F11 and its study were dropped
-on 2026-10-13 (notes/MIGRATIONS.md); this module goes with plan step P5.
+on 2026-10-13 (notes/LOG/MIGRATIONS.md); this module goes with plan step P5.
 
 Baseline and candidate differ *only* in factor 1's feature set, so any difference
 between them is attributable to the half-time state and nothing else.

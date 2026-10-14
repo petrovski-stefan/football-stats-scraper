@@ -10,9 +10,9 @@ allowed-tools: Read Grep Glob Bash(git log *) Bash(git status *)
 Candidate: **$ARGUMENTS**
 
 Sources this skill must agree with — re-read them if they changed since the skill was
-written: `notes/STATE.md`, `modelling/CLAUDE.md`, `notes/PREREGISTRATION.md` A8 + A9,
-`notes/RETRY_CANDIDATES_2026-09-23.md`, `notes/RELIABILITY_SCREEN_2026-09-23.md`,
-`notes/BEHAVIOURAL_RESULTS.md`, `features/CLAUDE.md` §5. If a note disagrees with this
+written: `notes/WORKING/STATE.md`, `modelling/CLAUDE.md`, `notes/RECORD/PREREGISTRATION.md` A8 + A9,
+`notes/RECORD/RETRY_CANDIDATES_2026-09-23.md`, `notes/RECORD/RELIABILITY_SCREEN_2026-09-23.md`,
+`notes/RECORD/BEHAVIOURAL_RESULTS.md`, `features/CLAUDE.md` §5. If a note disagrees with this
 file, the note wins; say so.
 
 ## Rules for the whole run
@@ -36,7 +36,7 @@ file, the note wins; say so.
 
 ## a. Graveyard check
 
-1. Read the ledger in `notes/STATE.md` and `RETRY_CANDIDATES` §3 (Tier 1, "do not retry").
+1. Read the ledger in `notes/WORKING/STATE.md` and `RETRY_CANDIDATES` §3 (Tier 1, "do not retry").
    Find the 1–3 closest rows by **mechanism**, not wording: the quantity measured, the
    side (leader/trailer/team/league), and the time it is known (pre-match vs HT vs in-play).
 2. If the closest row is **Dead** (any variant: "Dead", "Dead (priced)", "Dead (reliability
@@ -131,7 +131,7 @@ The slate and MH code do not exist → stop and ask before writing them.
 
 Write the complete stdout of step d, unedited, to `notes/runs/<YYYY-MM-DD>_<slug>.txt`
 (create `notes/runs/`). Then tell the user: commit it **in the same commit as the note that
-reports the result**, and update `notes/STATE.md` in that commit (`modelling/CLAUDE.md` §2;
+reports the result**, and update `notes/WORKING/STATE.md` in that commit (`modelling/CLAUDE.md` §2;
 STATE maintenance rule). Do not commit.
 
 ## Verdict — exactly one of

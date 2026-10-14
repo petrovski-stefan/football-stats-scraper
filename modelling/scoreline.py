@@ -1,4 +1,4 @@
-"""Generative scoreline model for the exclusion filter (notes/PREREGISTRATION_FILTER.md).
+"""Generative scoreline model for the exclusion filter (notes/RECORD/PREREGISTRATION_FILTER.md).
 
 Comeback rate is non-monotone in total goals — zero below 3, peaking at exactly 3
 (14.6%), collapsing on even totals because a comeback needs a *decisive* result. A

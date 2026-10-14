@@ -1,7 +1,7 @@
 """Stage 2 of the schedule: the fields computed from one stage-1 row and nothing else.
 
 Reads `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` and writes the same rows plus
-the `s2_` columns to `data/finished/2_row/` (`notes/fields/schedule_2_row.md`). `derive`
+the `s2_` columns to `data/finished/2_row/` (`notes/FIELDS/SCHEDULE_2_ROW.md`). `derive`
 sees one row at a time, so no field here can carry another match's result into a row.
 
 Run: `uv run python -m features.schedule_row`

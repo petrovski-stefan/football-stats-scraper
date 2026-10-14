@@ -9,7 +9,7 @@ allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *)
 Root `CLAUDE.md` ("Quality gates") requires all seven tools on every change **and** a caller
 sweep by hand, because ruff and mypy pass clean on unused functions, unreferenced constants
 and private names called across modules, and pyscn's dead-code detector misses
-unreferenced definitions too (`notes/MIGRATIONS.md`). This skill does both.
+unreferenced definitions too (`notes/LOG/MIGRATIONS.md`). This skill does both.
 
 Run everything from the repo root. Do not fix anything unless the user asks; this skill
 reports.

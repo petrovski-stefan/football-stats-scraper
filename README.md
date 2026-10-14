@@ -109,7 +109,7 @@ The schedule is stored in three stages under `data/finished/`: the values read f
 the standings table at each kickoff (stage 3). The detail CSV (537 columns) still uses the old
 layout in `data/archived/raw/` until the staged pipeline reaches it.
 
-**`domain/columns.py` is the authoritative list of column orders**, and **`notes/fields/`
+**`domain/columns.py` is the authoritative list of column orders**, and **`notes/FIELDS/`
 defines every column once**: its place on the page, meaning, example, timing and role. Neither
 is duplicated here, because a hand-copied schema table goes stale silently and this one did.
 

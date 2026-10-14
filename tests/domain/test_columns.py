@@ -26,7 +26,7 @@ def test_per_match_columns_naming() -> None:
 
 # --- The staged pipeline ---------------------------------------------------------------
 
-# The columns that identify a row in their own file stay bare (notes/fields/README.md).
+# The columns that identify a row in their own file stay bare (notes/FIELDS/README.md).
 _SCHEDULE_KEYS = {"match_id"}
 _FINAL_TABLE_KEYS = {"season", "league_id", "stage", "team_id"}
 

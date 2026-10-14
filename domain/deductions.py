@@ -4,7 +4,7 @@ cannot see.
 Stage 3 keeps the points earned on the pitch (option A, the user's decision, 2026-10-07),
 so only the final-table check (`qa/final_table.py`) reads this list: a declared deduction
 does not fail it. The date, cause and source of each entry are in
-`notes/POINTS_DEDUCTIONS.md`. Later (option C) stage 3 applies each one from its date.
+`notes/REFERENCE/POINTS_DEDUCTIONS.md`. Later (option C) stage 3 applies each one from its date.
 
 An entry belongs to one stage, because the page shows each stage's table on its own: an
 Apertura deduction is not in the Clausura table. A league without stage tabs has the one

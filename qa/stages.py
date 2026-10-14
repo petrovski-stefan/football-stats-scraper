@@ -33,7 +33,7 @@ _ADDED: dict[int, list[str]] = {
 # none by more than 1 unit in the last place; an exact comparison would fail them all.
 TOLERANCE = 1e-9
 # Each market's stage-2 flag, and the stage-2 values computed from its cells
-# (`notes/fields/schedule_2_row.md`).
+# (`notes/FIELDS/SCHEDULE_2_ROW.md`).
 _MARKET_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "1X2": (
         "s2_has_odds",

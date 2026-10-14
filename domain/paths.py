@@ -18,7 +18,7 @@ P4-P5); `qa.validate --archived` still checks them. The old tools still read and
 there through `RAW_DIR` and `PROCESSED_DIR` until those steps move them, so don't run them
 on the archive.
 
-The staged pipeline (`notes/PLAN_2026-10-05_staged_pipeline.md`) replaces that tree,
+The staged pipeline (`notes/WORKING/PLAN_2026-10-05_STAGED_PIPELINE.md`) replaces that tree,
 one source at a time. Its files sit under `data/finished/`, one directory per stage:
 
     data/finished/1_raw/    <league>_<season>_schedule.csv     scrapers.schedule

@@ -2,13 +2,13 @@
 
 Builds, one row per match from `data/archived/processed/*_enriched.csv`:
   - `FAMILIES` — the six nowgoal-exclusive families of the F12 re-test
-    (notes/PREREGISTRATION.md), plus the mandatory market and totals controls;
+    (notes/RECORD/PREREGISTRATION.md), plus the mandatory market and totals controls;
   - `FILTER_FAMILIES` — the goal-focused G1/G2/G3 families of the exclusion-filter
-    study (notes/PREREGISTRATION_FILTER.md).
+    study (notes/RECORD/PREREGISTRATION_FILTER.md).
 
 No scraping: rolling team form is derived as-of-round from the base league columns,
 and the rest from the detail page's per-match history blocks (match-anchored, see
-notes/HANDOFF.md S4).
+notes/HISTORY/HANDOFF.md S4).
 
 The as-of invariant: every rolling feature for a match in round R uses only that
 team's matches in rounds < R. Each team plays exactly once per round in these
@@ -74,7 +74,7 @@ FAMILIES: dict[str, list[str]] = {
     "F_venue_h2h": ["venue_ppg_gap", "h2h_ht_nondraw_rate"],
 }
 
-# --- Exclusion-filter families (notes/PREREGISTRATION_FILTER.md S5) -----------
+# --- Exclusion-filter families (notes/RECORD/PREREGISTRATION_FILTER.md S5) -----------
 # Closed list, and deliberately goal-focused: the filter's job is to forecast the
 # scoreline environment, not to score teams.
 FILTER_FAMILIES: dict[str, list[str]] = {
@@ -106,9 +106,9 @@ FILTER_FAMILIES: dict[str, list[str]] = {
 
 # --- Market Asian lines (captured from 2026-09-22) ---------------------------
 # Deliberately NOT added to FAMILIES or FILTER_FAMILIES, both of which are closed lists
-# fixed by notes/PREREGISTRATION.md S4 and notes/PREREGISTRATION_FILTER.md S5. Widening
-# a preregistered family is a protocol amendment, not a code change, so these live in
-# their own set and stay exploratory until a preregistration admits them.
+# fixed by notes/RECORD/PREREGISTRATION.md S4 and notes/RECORD/PREREGISTRATION_FILTER.md S5.
+# Widening a preregistered family is a protocol amendment, not a code change, so these live
+# in their own set and stay exploratory until a preregistration admits them.
 #
 # The goal line is Asian and variable: nowgoal moves the line and holds both prices near
 # 1.90, so `ou_line` is the market's goal-total forecast and `implied_over` is only the
@@ -118,7 +118,7 @@ MARKET_LINE_FEATURES = ["ou_line", "implied_over", "ah_line", "abs_ah_line", "im
 
 # --- Goal timings (captured from 2026-09-22) ---------------------------------
 # Same standing as MARKET_LINE_FEATURES: exploratory, and deliberately NOT added to
-# FAMILIES or FILTER_FAMILIES, which notes/PREREGISTRATION*.md close. Built by
+# FAMILIES or FILTER_FAMILIES, which notes/RECORD/PREREGISTRATION*.md close. Built by
 # features/goals.py from the global store and joined in by features/enrich.py.
 # Taken from features/goals.py rather than restated, so the two cannot drift apart when a
 # feature is added there. Timelines are deliberately excluded: they are strings for
@@ -192,7 +192,7 @@ def round_position(df: pd.DataFrame) -> pd.DataFrame:
     round they describe the finished subset — `matches_in_round` is the scrape-time count.
 
     Deliberately wired into no preregistered family: FAMILIES and FILTER_FAMILIES are
-    closed lists (notes/PREREGISTRATION.md S4).
+    closed lists (notes/RECORD/PREREGISTRATION.md S4).
     """
     dates = pd.to_datetime(df["date"], errors="coerce")
     group = dates.groupby([df[c] for c in ROUND_GROUP], dropna=False)
@@ -232,7 +232,7 @@ def _warn_unassigned(df: pd.DataFrame) -> None:
     """Announce league-seasons that fall in neither split, instead of dropping them mutely.
 
     `TRAIN_SEASONS` / `TEST_SEASONS` are literal labels fixed by
-    `notes/PREREGISTRATION.md` §2, so a newly scraped league-season — and in particular a
+    `notes/RECORD/PREREGISTRATION.md` §2, so a newly scraped league-season — and in particular a
     calendar-year league, whose labels ("2025") can never match a cross-year list —
     correctly lands outside both. That exclusion is the *right* behaviour: the
     preregistered corpus is closed. Silence about it is not, because a whole league can

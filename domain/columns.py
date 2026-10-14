@@ -252,13 +252,13 @@ EVENTS_DONE_COLUMNS = ["match_id", "scraped_at", "n_events"]
 
 
 # =====================================================================================
-# The staged pipeline (notes/PLAN_2026-10-05_staged_pipeline.md). Every column is defined
-# once in notes/fields/, and its name starts with the code of the doc that defines it
+# The staged pipeline (notes/WORKING/PLAN_2026-10-05_STAGED_PIPELINE.md). Every column is defined
+# once in notes/FIELDS/, and its name starts with the code of the doc that defines it
 # (`s1_` = schedule stage 1, ...). Only the columns that identify a row in their own file
 # are bare. Each stage file is the previous stage's file plus that stage's columns.
 # =====================================================================================
 
-# notes/fields/schedule_1_raw.md §A: one row per finished match, as the league page shows it.
+# notes/FIELDS/SCHEDULE_1_RAW.md §A: one row per finished match, as the league page shows it.
 SCHEDULE_RAW_COLUMNS = [
     "match_id",
     "s1_season",
@@ -286,7 +286,7 @@ SCHEDULE_RAW_COLUMNS = [
     "s1_odds_ah_open_away",
 ]
 
-# notes/fields/schedule_1_raw.md §B: the page's final table, one row per team, a check only.
+# notes/FIELDS/SCHEDULE_1_RAW.md §B: the page's final table, one row per team, a check only.
 FINAL_TABLE_COLUMNS = [
     "season",
     "league_id",
@@ -302,7 +302,7 @@ FINAL_TABLE_COLUMNS = [
     "s1_points",
 ]
 
-# notes/fields/schedule_2_row.md: computed from one stage-1 row and nothing else.
+# notes/FIELDS/SCHEDULE_2_ROW.md: computed from one stage-1 row and nothing else.
 SCHEDULE_ROW_COLUMNS = [
     "s2_total_goals",
     "s2_goals_1h",
@@ -328,7 +328,7 @@ SCHEDULE_ROW_COLUMNS = [
     "s2_ht_decisive",
 ]
 
-# notes/fields/schedule_3_multi.md §B: each team's line in the standings table as it stood
+# notes/FIELDS/SCHEDULE_3_MULTI.md §B: each team's line in the standings table as it stood
 # at the match's kickoff, for full-time and half-time results, overall and by venue.
 STANDING_SIDES = ("home", "away")
 STANDING_HALVES = ("ft", "ht")
@@ -356,7 +356,7 @@ def pre_kickoff_columns() -> list[str]:
     ]
 
 
-# notes/fields/schedule_3_multi.md §B2: each team's half-time / full-time record before the
+# notes/FIELDS/SCHEDULE_3_MULTI.md §B2: each team's half-time / full-time record before the
 # match, from the team's own side ("team view", the user's choice 2026-10-07): `l_w` = it
 # trailed at half-time and won, `w_l` = it led and lost.
 HTFT_RESULTS = ("w", "d", "l")
@@ -373,7 +373,7 @@ def pre_htft_columns() -> list[str]:
     ]
 
 
-# notes/fields/schedule_3_multi.md §B3: what is at stake for each side at kickoff (the
+# notes/FIELDS/SCHEDULE_3_MULTI.md §B3: what is at stake for each side at kickoff (the
 # user's choice, 2026-10-12): matches left, the points gaps to the teams around it, and how
 # far its rank moved after the opening odds were published.
 STAKE_FIELDS = (
@@ -389,7 +389,7 @@ def stake_columns() -> list[str]:
     return [f"s3_{side}_{field}" for side in STANDING_SIDES for field in STAKE_FIELDS]
 
 
-# notes/fields/schedule_3_multi.md: fields that need the league-season's other rows.
+# notes/FIELDS/SCHEDULE_3_MULTI.md: fields that need the league-season's other rows.
 SCHEDULE_MULTI_COLUMNS = [
     "s3_match_index_in_round",
     "s3_matches_in_round",

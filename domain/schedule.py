@@ -1,6 +1,6 @@
 """The stage-1 contracts of the league page: what the scraper may write, and nothing else.
 
-Every field is a value read from the page and only parsed (`notes/fields/schedule_1_raw.md`).
+Every field is a value read from the page and only parsed (`notes/FIELDS/SCHEDULE_1_RAW.md`).
 Nothing here is computed: derived fields live in the stage-2 and stage-3 builders
 (`features/schedule_row.py`, `features/schedule_multi.py`). Field names are the column
 names, so a row dumps straight to the CSV in `domain/columns.py` order.

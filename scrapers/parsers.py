@@ -188,7 +188,7 @@ def parse_kickoff(raw: str | None) -> str | None:
 
     The league page gives kickoffs in UTC+8 (China time), with no offset written: the EPL's
     Saturday 31 Jan 2026, 17:30 UK kickoff reads "2026-02-01 01:30". Every schedule file
-    before the staged pipeline stored that text unconverted (`notes/fields/schedule_1_raw.md`
+    before the staged pipeline stored that text unconverted (`notes/FIELDS/SCHEDULE_1_RAW.md`
     S1.07).
     """
     text = (raw or "").strip()
@@ -206,7 +206,7 @@ def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
 
     Only what the row itself shows: ids, teams, kickoff, goals and the 1X2 prices (the
     caller adds the league context and the O/U and AH prices, read with the header switched).
-    Nothing is computed here: `notes/fields/schedule_1_raw.md`.
+    Nothing is computed here: `notes/FIELDS/SCHEDULE_1_RAW.md`.
     """
     ft = parse_score(attr(row, "score") or tag_text(row.select_one("span.score")))
     ht = parse_score(tag_text(row.select_one("span.ht")))

@@ -12,7 +12,7 @@ rebuilt points before comparing; an undeclared one still fails. Where the page's
 less than the official total, the amount it does apply (`deductions.PAGE_TOTALS`) is used. In a
 league whose points carry from one stage into the next (Scotland's split, Belgium's halved
 points), the later stage differs until that league's carry-over rule exists
-(`notes/fields/schedule_3_multi.md` §B), which is the point.
+(`notes/FIELDS/SCHEDULE_3_MULTI.md` §B), which is the point.
 
 Rank: the page breaks a tie on points by its league's own rule (head-to-head in Spain,
 Portugal, Italy and Poland, most wins in Belgium), ours by goal difference and goals for in

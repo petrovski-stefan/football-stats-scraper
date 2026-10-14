@@ -1,4 +1,4 @@
-"""The pre-match exclusion filter study (notes/PREREGISTRATION_FILTER.md).
+"""The pre-match exclusion filter study (notes/RECORD/PREREGISTRATION_FILTER.md).
 
 Not a prediction study. The question is whether a large subset of matches can be
 identified pre-match in which a comeback is effectively impossible — judged on

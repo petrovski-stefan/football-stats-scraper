@@ -4,7 +4,7 @@ Everything here derives into the later stage directories of `data/finished/`, an
 
 ## 0. The schedule's stages 2 and 3
 
-`schedule_row.py` (stage 2) and `schedule_multi.py` (stage 3) build the schedule's derived files from `data/finished/1_raw/` (`notes/fields/schedule_2_row.md`, `schedule_3_multi.md`). Both are cheap and idempotent: no browser, rebuild them freely. Read and write stage files only through `stage_io.py`, which keeps text columns (`match_id`, a calendar-year `s1_season`, an empty `s1_stage`) from turning into numbers or NaN.
+`schedule_row.py` (stage 2) and `schedule_multi.py` (stage 3) build the schedule's derived files from `data/finished/1_raw/` (`notes/FIELDS/SCHEDULE_2_ROW.md`, `SCHEDULE_3_MULTI.md`). Both are cheap and idempotent: no browser, rebuild them freely. Read and write stage files only through `stage_io.py`, which keeps text columns (`match_id`, a calendar-year `s1_season`, an empty `s1_stage`) from turning into numbers or NaN.
 
 - **Stage 2 sees one row.** `schedule_row.derive` takes a single row, so nothing there can carry another match's result.
 - **Stage 3 states each field's row window.** The round position and the round offset (`s3_days_off_round`, `s3_is_rescheduled`: a match played 5 or more days off its round; a read-only indicator, 2026-10-10) read other rows' kickoff times only. The pre-kickoff table (`s3_<side>_pre_<half>_<venue>_<stat>`, 96 columns) counts a match only if it kicked off at least `schedule_multi.FINISHED_AFTER` (2 h 30 min) before this one: the user's rule, 2026-10-06, chosen over a per-round snapshot because it never leaves out a finished result and is right for the last rounds. It compares instants (`clock.parse_instant`), never wall-clock times (`domain/CLAUDE.md` §1a).
@@ -36,7 +36,7 @@ They were split on 2026-09-23 after measuring a combined string at 12.1 entries 
 
 ## 5. Reliability screen — run it before testing against outcomes
 
-**Screen a history-block feature for reliability before testing it against outcomes.** The screen costs no outcome data and no Holm budget, which is why it goes first. Method: split-half reliability on the 2025-2026 corpus (each team's 38 matches split odd/even, correlated across 20 teams), then Spearman–Brown extrapolated to the six-match depth these features actually have. Figures below are reliability **at depth 6**, with the raw split-half r in brackets (`notes/RELIABILITY_SCREEN_2026-09-23.md` §2).
+**Screen a history-block feature for reliability before testing it against outcomes.** The screen costs no outcome data and no Holm budget, which is why it goes first. Method: split-half reliability on the 2025-2026 corpus (each team's 38 matches split odd/even, correlated across 20 teams), then Spearman–Brown extrapolated to the six-match depth these features actually have. Figures below are reliability **at depth 6**, with the raw split-half r in brackets (`notes/RECORD/RELIABILITY_SCREEN_2026-09-23.md` §2).
 
 - Plain yellows 0.295 (split-half 0.570), `yellows_while_leading` 0.290 (0.564) — conditioning is nearly free, so it was kept.
 - A **trailing-conditioned first-substitution minute came out at 0.000 (split-half -0.004)**: managers have no stable "how fast I react when behind", so it was deliberately not built.
@@ -44,7 +44,7 @@ They were split on 2026-09-23 after measuring a combined string at 12.1 entries 
 - `minutes trailing` correlates -0.925 with points per game, i.e. it is team strength wearing a hat.
 - **`first_sub_minute_avg` is kept unconditioned and is not a candidate** — it correlates 0.428 with the quantity its own docstring claimed, and the honest version is noise; do not "fix" it by conditioning it.
 
-Caveat on all of it: n=20 teams, one league-season, so the intervals are wide. Full write-up: `notes/RELIABILITY_SCREEN_2026-09-23.md`.
+Caveat on all of it: n=20 teams, one league-season, so the intervals are wide. Full write-up: `notes/RECORD/RELIABILITY_SCREEN_2026-09-23.md`.
 
 ## 6. Position within a round: use `round_position`
 
@@ -52,4 +52,4 @@ Caveat on all of it: n=20 teams, one league-season, so the intervals are wide. F
 
 ## 7. `TRAIN_SEASONS` / `TEST_SEASONS`
 
-The constants in `features/engine.py` are literal labels fixed by `notes/PREREGISTRATION.md` §2, and **a calendar-year league can never match them** (why: "Season labels" in `domain/CLAUDE.md`). That exclusion is correct — the preregistered corpus is closed, and widening it is a protocol amendment, not a code change. `load_enriched` emits a `UserWarning` naming any league-season in neither split, so a newly scraped league cannot sit in `data/` contributing to nothing unnoticed.
+The constants in `features/engine.py` are literal labels fixed by `notes/RECORD/PREREGISTRATION.md` §2, and **a calendar-year league can never match them** (why: "Season labels" in `domain/CLAUDE.md`). That exclusion is correct — the preregistered corpus is closed, and widening it is a protocol amendment, not a code change. `load_enriched` emits a `UserWarning` naming any league-season in neither split, so a newly scraped league cannot sit in `data/` contributing to nothing unnoticed.

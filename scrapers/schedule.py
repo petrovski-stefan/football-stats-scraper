@@ -1,5 +1,5 @@
 """First-stage scraper: render each configured league season's schedule and write its
-stage-1 files (`notes/fields/schedule_1_raw.md`):
+stage-1 files (`notes/FIELDS/SCHEDULE_1_RAW.md`):
 
 - `data/finished/1_raw/<country>_<league>_<season>_schedule.csv`: one row per finished
   match, the values its row on the page shows and nothing computed;
@@ -188,7 +188,7 @@ def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: s
 def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, Any]]:
     """The stage's final table as the page shows it: `Total`, FT, read once.
 
-    A check only (`notes/fields/schedule_1_raw.md` §B). The standings have their own
+    A check only (`notes/FIELDS/SCHEDULE_1_RAW.md` §B). The standings have their own
     sub-table picker that ignores the stage tabs, so a stage page points it at its own
     sub-table first; a stage whose table cannot be shown gets none, never another's.
     """

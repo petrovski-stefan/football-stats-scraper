@@ -1,6 +1,6 @@
 """The standings table, rebuilt from results. Pure and stdlib only.
 
-Decided by the user on 2026-10-06 (`notes/fields/schedule_3_multi.md` §B): the project
+Decided by the user on 2026-10-06 (`notes/FIELDS/SCHEDULE_3_MULTI.md` §B): the project
 builds its own tables instead of scraping them, because the page's `Round N` table counts
 by round number and so can hold results played after a match. A table here holds exactly
 the results it is given; which results those are (the 2 h 30 min rule) is the caller's.

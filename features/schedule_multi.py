@@ -1,7 +1,7 @@
 """Stage 3 of the schedule: the fields that need the league-season's other rows.
 
 Reads `data/finished/2_row/<country>_<league>_<season>_schedule.csv` and writes the same rows plus
-the `s3_` columns to `data/finished/3_multi/` (`notes/fields/schedule_3_multi.md`). The
+the `s3_` columns to `data/finished/3_multi/` (`notes/FIELDS/SCHEDULE_3_MULTI.md`). The
 output is the schedule's analysis input: one row per match.
 
 This is the only schedule stage where another match's result can enter a row, so each

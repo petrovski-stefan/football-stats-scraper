@@ -1,4 +1,4 @@
-"""Evaluation harness for the F12 re-test (see notes/PREREGISTRATION.md).
+"""Evaluation harness for the F12 re-test (see notes/RECORD/PREREGISTRATION.md).
 
 `--dev` runs an expanding-window walk-forward over the development seasons: all
 screening, tuning and family selection happen here. Rerunnable. The run's output is
@@ -283,7 +283,7 @@ def main() -> None:
 
     with runs.recorded("experiment_dev"):
         if not chain.replicate_f11(usable):
-            raise SystemExit("F11 import invalid — see notes/PREREGISTRATION.md A3")
+            raise SystemExit("F11 import invalid — see notes/RECORD/PREREGISTRATION.md A3")
         if not leakage_check(raw):
             raise SystemExit("leakage regression failed")
         dev_screen(dev)

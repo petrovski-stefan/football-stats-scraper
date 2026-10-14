@@ -1,6 +1,6 @@
 ---
 name: preregister
-description: Draft a dated preregistration amendment for notes/PREREGISTRATION.md (hypothesis, closed family, Holm, metric and bar, A9 confirmatory set, single opening), refuse if the confirmatory data already exists, and append only after the user approves the full draft.
+description: Draft a dated preregistration amendment for notes/RECORD/PREREGISTRATION.md (hypothesis, closed family, Holm, metric and bar, A9 confirmatory set, single opening), refuse if the confirmatory data already exists, and append only after the user approves the full draft.
 argument-hint: '<claim or family to preregister>'
 disable-model-invocation: true
 allowed-tools: Read Grep Glob Bash(git log *) Bash(git status *) Bash(uv run python -c *) Agent
@@ -10,8 +10,8 @@ allowed-tools: Read Grep Glob Bash(git log *) Bash(git status *) Bash(uv run pyt
 
 Claim: **$ARGUMENTS**
 
-Read first, in full: `notes/PREREGISTRATION.md` (the template, §1–§8, and every amendment in
-§10, especially **A8** and **A9**), `notes/STATE.md`, `notes/RETRY_CANDIDATES_2026-09-23.md`
+Read first, in full: `notes/RECORD/PREREGISTRATION.md` (the template, §1–§8, and every amendment in
+§10, especially **A8** and **A9**), `notes/WORKING/STATE.md`, `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md`
 §4–§7, `modelling/CLAUDE.md`. If they disagree with this file, they win.
 
 ## 0. Ledger audit
@@ -73,7 +73,7 @@ appended, then stop and wait for explicit approval. Do not edit any file before 
 
 ## 5. After approval
 
-1. Append the approved text verbatim to the end of `notes/PREREGISTRATION.md` §10.
+1. Append the approved text verbatim to the end of `notes/RECORD/PREREGISTRATION.md` §10.
 2. Tell the user: commit it **before the scrape starts** (A9.3 — a league-season scraped
-   without a committed amendment is dev data), and update `notes/STATE.md`'s open lead 1 in
+   without a committed amendment is dev data), and update `notes/WORKING/STATE.md`'s open lead 1 in
    the same commit. Do not commit.

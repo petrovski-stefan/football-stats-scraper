@@ -24,11 +24,11 @@ git, Python or any pipeline command, and nothing below asks you to.
 
 ## Read before reviewing
 
-- `notes/STATE.md` — the ledger, open leads, resolved conflicts.
+- `notes/WORKING/STATE.md` — the ledger, open leads, resolved conflicts.
 - Root `CLAUDE.md`, `features/CLAUDE.md`, `modelling/CLAUDE.md`, `domain/CLAUDE.md`.
-- `notes/PREREGISTRATION.md` §2 and every amendment in §10 from A7 on.
-- `notes/RETRY_CANDIDATES_2026-09-23.md` §0 and §4–§7.
-- `notes/HANDOFF.md` §5 (leakage traps).
+- `notes/RECORD/PREREGISTRATION.md` §2 and every amendment in §10 from A7 on.
+- `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md` §0 and §4–§7.
+- `notes/HISTORY/HANDOFF.md` §5 (leakage traps).
 
 Read other notes only when the diff cites them. Where those files disagree with this prompt,
 they win.
@@ -57,13 +57,13 @@ they win.
    with Wilson CI and lift. (`modelling/CLAUDE.md` §3)
 6. **Per-league testing** instead of Mantel–Haenszel over league-season strata.
    (`modelling/CLAUDE.md` §4)
-7. **Dead claims** — re-testing a Dead row of `notes/STATE.md` (including a rewording,
+7. **Dead claims** — re-testing a Dead row of `notes/WORKING/STATE.md` (including a rewording,
    re-weighting or rejected conditioning) without citing it.
 8. **Reliability labels** — a split-half value quoted as, or not distinguished from, the
    depth-6 value. (A9.4; `modelling/CLAUDE.md` "Screening bars")
 9. **Run records** — a note reporting an outcome-reading run with no
    `notes/runs/<date>_<name>.txt` in the same diff; a concluded study with no matching
-   `notes/STATE.md` update. (`modelling/CLAUDE.md` §2; STATE maintenance rule)
+   `notes/WORKING/STATE.md` update. (`modelling/CLAUDE.md` §2; STATE maintenance rule)
 10. **Season labels and paths** — string equality, `isin` or `groupby` across the two label
     conventions; fixed-width slicing; a data path built by hand instead of via
     `domain/paths.py`. (`domain/CLAUDE.md` §2; root `CLAUDE.md`)
@@ -86,7 +86,7 @@ get it. Do not pad the report to look thorough.
   also blocked by the project hook.)_
 - Open any file under `data/` with Read or Grep — its CSVs carry outcome labels, and
   reading them is one more look. Glob for existence only. _(Prompt-only.)_
-- Draft `notes/DECISIONS.md` entries or recommend research directions. _(Prompt-only.)_
+- Draft `notes/WORKING/DECISIONS.md` entries or recommend research directions. _(Prompt-only.)_
 
 ## Output
 

@@ -16,9 +16,9 @@ definition, the retry-list size, and amendment numbering.
 
 ## Read
 
-`notes/STATE.md` first — each row names its source. Then the source notes for the rows in
-scope, `notes/PREREGISTRATION.md` §10 (every amendment), `notes/MIGRATIONS.md`,
-`notes/DECISIONS.md`, and the root and package `CLAUDE.md` files.
+`notes/WORKING/STATE.md` first — each row names its source. Then the source notes for the rows in
+scope, `notes/RECORD/PREREGISTRATION.md` §10 (every amendment), `notes/LOG/MIGRATIONS.md`,
+`notes/WORKING/DECISIONS.md`, and the root and package `CLAUDE.md` files.
 
 ## Checks
 
@@ -28,7 +28,7 @@ scope, `notes/PREREGISTRATION.md` §10 (every amendment), `notes/MIGRATIONS.md`,
 4. Counts: retry-list size, Holm m, amendment numbering without gaps.
 5. Stale claims: superseded by a later amendment or note with no pointer to it.
 6. Dead paths: a cited module, path or column that Glob cannot find and that
-   `notes/MIGRATIONS.md` does not explain. Glob sees gitignored files (verified
+   `notes/LOG/MIGRATIONS.md` does not explain. Glob sees gitignored files (verified
    2026-09-28), so paths under `data/` are checkable too — by existence only.
 7. Ambiguous labels: a number without the definition that decides its meaning (e.g.
    split-half vs depth-6).
