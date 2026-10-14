@@ -1,168 +1,129 @@
 # ESOTERIC_MODELS.md — The Back-Shelf Toolbox
 
-Companion to `HANDOFF.md` (strategy) and `STATS_PRIMER.md` (core methods). This file
-preserves seven less-common statistical tools, each with a *specific* use case in this
-project. None are on the critical path — the roadmap in `HANDOFF.md` §9 comes first —
-but each one is the right upgrade at a known future moment, noted per tool as
-**"reach for this when…"**.
+**Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
-Ordering is by expected usefulness to this project.
+This file keeps seven less common statistical tools. Each tool has a *specific* use in this project. Companions: `HANDOFF.md` (strategy) and `STATS_PRIMER.md` (core methods).
 
----
+No tool is on the critical path: the roadmap in `HANDOFF.md` §9 comes first. But each tool is the correct upgrade at a known time in the future. The **"Reach for this when"** line of each tool gives that time.
 
-## 1. Shin's method — proper vig removal for longshot markets
-
-**What it is.** The naive way to strip a bookmaker's margin is proportional
-normalization: divide each `1/odds` by `Σ(1/odds)`. Shin (1993) modeled a bookmaker
-defending against *insider traders* and showed the margin is not spread evenly — it is
-loaded onto **longshots**, because informed money hurts the book most there. His method
-solves for the insider fraction `z` and recovers true probabilities from quoted odds.
-
-**Why it matters here.** This project's markets (HT/FT comeback, over 6.5) are priced as
-longshots — exactly where proportional normalization is most wrong. Comparing the
-engine's probability to a proportionally-normalized implied probability can "find" edge
-that is only misallocated vig.
-
-**Concrete use case.** Replace `stats.implied_prob` + proportional normalization with a
-Shin adjustment wherever the engine's output is benchmarked against market prices
-(HANDOFF §7.6). One-page algebra; iterative solution; libraries exist (`shin` on PyPI).
-
-**Reach for this when:** closing/HT-FT odds are being collected and the first
-model-vs-market comparison is built.
+The tools are in the order of their expected use to this project.
 
 ---
 
-## 2. The favorite–longshot bias — measure the headwind first
+## 1. Shin's method — correct vig removal on long odds
 
-**What it is.** The most robust empirical anomaly in betting markets, documented for a
-century: bettors systematically overpay for longshots, so quoted longshot odds are
-*shorter* than fair. A true 5% comeback may be priced as if 7–8%.
+**What it is.** The simple method to remove a bookmaker's margin is proportional normalisation: divide each `1/odds` by `Σ(1/odds)`. Shin (1993) made a model of a bookmaker who must protect the book against *insider traders*. He showed that the margin is not spread evenly. The bookmaker puts more of it on **long odds**, because informed money causes the largest losses there. His method calculates the insider fraction `z`. Then it calculates the true probabilities from the quoted odds.
 
-**Why it matters here.** The market's systematic error on longshot markets runs
-*against* the bettor — the tilt of the pitch this project plays on. It is the structural
-reason "pre-match directional completion may be unbeatable" (HANDOFF §9.5, §10).
+**Why it matters here.** This project's markets (the HT/FT comeback, over 6.5) have long odds. On long odds, proportional normalisation has its largest error. So the engine can seem to have an edge over a proportionally normalised implied probability. That "edge" can be only vig in the wrong place.
 
-**Concrete use case.** Once multi-league closing odds exist: bucket all matches by
-implied-probability decile, compare implied vs observed frequency per bucket. One table
-quantifies the bias in *this* dataset and calibrates how much model edge is needed to
-overcome it.
+**Concrete use.** Use a Shin adjustment in place of `stats.implied_prob` and proportional normalisation. Do this everywhere that the engine's output is compared with market prices (HANDOFF §7.6). The algebra fits on one page. The solution is iterative. Use the `shin` package from PyPI, not code of our own (the user, 2026-10-14).
 
-**Reach for this when:** ≥ ~2,000 matches with closing odds are archived.
+**Reach for this when:** the project collects closing odds or HT/FT odds, and builds its first comparison of a model with the market.
 
 ---
 
-## 3. The match as an absorbing Markov chain — comeback as absorption probability
+## 2. The favourite–longshot bias — measure the bias against you first
 
-**What it is.** Model the score state (level, home +1, away +1, ±2, …) as a Markov
-chain over match minutes with estimated transition intensities. A comeback is a *path
-property*: from state "trailing by 1 at minute 45", the probability of absorbing in
-"trailing team wins" by full time.
+**What it is.** It is the most robust empirical anomaly in betting markets. Research has recorded it for a century. Bettors consistently pay too much for long odds. So the quoted long odds are *shorter* than fair odds. A comeback with a true chance of 5% can have the price of a 7–8% chance.
+
+**Why it matters here.** On long odds, the consistent error of the market goes *against* the bettor. This project works on those markets. The bias is the structural reason why "pre-match directional completion may be unbeatable" (HANDOFF §9.5, §10).
+
+**Concrete use.** When closing odds from many leagues exist:
+
+1. Put all matches into buckets by decile of implied probability.
+2. In each bucket, compare the implied frequency with the observed frequency.
+
+One table then gives the size of the bias in *this* data set. It also shows the minimum edge that a model needs against the bias.
+
+**Reach for this when:** the archive holds about 2,000 matches or more with closing odds.
+
+---
+
+## 3. The match as an absorbing Markov chain — a comeback as an absorption probability
+
+**What it is.** Make a model of the score state (level, home +1, away +1, ±2, …) as a Markov chain over the minutes of the match. Estimate its transition intensities. A comeback is a property of the *path*. Start from the state "behind by 1 at minute 45". The comeback chance is then the probability of absorption in the state "the trailing team wins" at full time.
 
 **Why it matters here.**
-- Directly produces the HT-conditional product (HANDOFF roadmap item 6).
-- Transition intensities are estimated from **every goal in every match** — the same
-  data-efficiency argument as Dixon–Coles, but finer-grained.
-- Decomposes "equalize but not win" (HANDOFF §2) into two separately modelable
-  transitions: trailing→level (common; 21.8% of −1 trailers end in a draw) and
-  level→winning-late (rare; the actual bottleneck).
 
-**Concrete use case.** v1 needs no new data: a 9-state HT→FT transition matrix from the
-existing `ht_result`/`ft_result` columns. v2 (minute-level) needs goal timings.
+- It gives the HT-conditional product directly (HANDOFF roadmap item 6).
+- It estimates the transition intensities from **every goal in every match**. This is the same argument for data efficiency as for Dixon–Coles, at a finer level.
+- It splits "equalize but not win" (HANDOFF §2) into two transitions, and each transition can have its own model:
+  - behind → level is common: 21.8% of the teams that are behind by 1 at HT end in a draw;
+  - level → a late win is rare. This step is the real limit.
 
-**Reach for this when:** building the HT-conditional evaluator; upgrade to minute-level
-once goal timings are scraped.
+**Concrete use.** Version 1 needs no new data: a 9-state HT→FT transition matrix from the existing `ht_result` and `ft_result` columns. Version 2 (by minute) needs goal timings.
+
+**Reach for this when:** you build the HT-conditional evaluator. For the minute level, use the goal store of the live page (`scrapers.goals`). The project has scraped it since September 2026.
 
 ---
 
-## 4. Survival analysis on leads — the hazard rate of the equalizer
+## 4. Survival analysis on leads — the hazard rate of the equaliser
 
-**What it is.** Treat a half-time lead as a subject and the equalizer as the event; fit
-a hazard curve over minutes 45–90 with covariates (deficit size, leader's blown-lead
-profile, trailer's 2H supremacy). Cox proportional hazards is the standard tool.
+**What it is.** Treat a half-time lead as a subject, and the equaliser as the event. Fit a hazard curve over minutes 45–90. Use three covariates: the size of the deficit, the leader's blown-lead profile, and the trailing team's 2H supremacy. The standard tool is Cox proportional hazards.
 
-**Why it matters here.** Football's scoring intensity *rises* through the match (~10% of
-goals in the first 15 minutes vs ~14%+ in the last 15, more with stoppage time), and
-game-state effects amplify it: trailing teams press, leaders retreat. The late-match
-window is structurally the comeback window. A lead-survival model answers *which leads
-are fragile* — the completion problem stated properly.
+**Why it matters here.** The scoring rate *increases* during a match. About 10% of goals come in the first 15 minutes. About 14% or more come in the last 15, and more with added time. Game-state effects make this larger: teams that are behind attack more, and leaders defend deeper. So, by the structure of the match, the late minutes are the comeback window. A lead-survival model shows *which leads are fragile*. That is the correct statement of the completion problem.
 
-**Concrete use case.** The single best argument for adding **goal timings** to the
-detail scraper (they typically render on match detail pages — DOM-only rule applies).
-Also yields the "share of goals after 75'" team trait, a better comeback-proneness
-measure than comeback counts (HANDOFF §9.8).
+**Concrete use.** This was the best argument to add **goal timings** to the scrape. They come from the live page, not the detail page (`scrapers.goals`, since September 2026), and the DOM-only rule applies. The model also gives the team trait "share of goals after 75'". That trait measures comeback-proneness better than comeback counts do (HANDOFF §9.7).
 
-**Reach for this when:** goal-minute scraping lands.
+**Reach for this when:** the project scrapes goal minutes. It does, since September 2026 (the live page). The re-scrape in the new format is IDEAS idea 2b.
 
 ---
 
-## 5. Dynamic ratings via state-space models — form as a latent state
+## 5. Dynamic ratings from state-space models — form as a latent state
 
-**What it is.** Instead of last-5/last-10 windows (step functions: a match falls out of
-the window and the rating jumps), model team strength as a hidden state evolving by a
-small random walk each week, observed noisily through results (Rue & Salvesen 2000;
-Kalman-filter Elo variants).
+**What it is.** Form features from last-5 or last-10 windows are step functions: when a match leaves the window, the rating jumps. In place of the windows, make a model of team strength as a hidden state. The state changes by a small random walk each week. The results are noisy observations of the state (Rue & Salvesen 2000; Kalman-filter Elo variants).
 
-**Why it matters here.** Smooth decay instead of window cliffs; explicit uncertainty
-(a team after a winter break gets *wider error bars*, not stale point estimates);
-promoted teams start with large variance instead of a guessed mean. Subsumes the
-Dixon–Coles time-decay ξ (STATS_PRIMER §4) as a special case.
+**Why it matters here.**
 
-**Concrete use case.** Upgrade path for the `*_recent_*` window features once they prove
-predictive but crude — feed filtered strength states into the matchup card instead of
-raw window aggregates.
+- Old matches lose weight smoothly. There are no sudden steps at the edge of a window.
+- The uncertainty is explicit. After a winter break, a team gets *wider error bars*, not an old point estimate.
+- A promoted team starts with a large variance, not a guessed mean.
+- The Dixon–Coles time decay ξ (STATS_PRIMER §4) is a special case of this model.
 
-**Reach for this when:** window-based form features show signal in the gate retro-tests
-and their jumpiness becomes the limiting factor. Not before — windows are fine to start.
+**Concrete use.** It is the upgrade for the `*_recent_*` window features, after they show signal but are too coarse. Put the filtered strength states into the matchup card, in place of the raw window aggregates.
+
+**Reach for this when:** form features from windows show signal in the gate retro-tests, and their sudden jumps become the limit. Not before: windows are sufficient at the start.
 
 ---
 
-## 6. Pythagorean expectation — the lie detector for the league table
+## 6. Pythagorean expectation — a luck check for the league table
 
-**What it is.** Bill James's baseball estimator adapted to football: expected points
-share from `GF^c / (GF^c + GA^c)` with c ≈ 1.3. The residual (actual points −
-Pythagorean points) flags luck: over-performers regress, under-performers rebound.
+**What it is.** It is Bill James's estimator from baseball, changed for football. The expected share of points is `GF^c / (GF^c + GA^c)`, with c ≈ 1.3. The residual (actual points − Pythagorean points) shows luck. Teams above their expected points usually move back down toward them. Teams below them usually move back up.
 
-**Why it matters here.** Two uses:
-1. A better strength input than raw table position for the matchup card.
-2. A **motivation corrector**: a team 8th in the table but 14th by Pythagoras has
-   relegation-shaped underlying numbers — desperation asymmetry (a Mode 2 hypothesis,
-   HANDOFF §3) that table-readers misprice.
+**Why it matters here.** It has two uses:
 
-**Concrete use case.** One computed column in the league context card, derivable today
-from existing goals data. Cheapest item in this file.
+1. A better strength input for the matchup card than the raw table position.
+2. A **motivation corrector**. Take a team that is 8th in the table but 14th by Pythagoras. Its underlying numbers look like those of a team near relegation. That is desperation asymmetry (a Mode 2 hypothesis, HANDOFF §3). People who read only the table give it the wrong price.
 
-**Reach for this when:** building the context-card generator (HANDOFF roadmap item 2).
+**Concrete use.** One calculated column in the league context card. You can calculate it today from the goal data that exists. It is the cheapest item in this file.
+
+**Reach for this when:** you build the context-card generator (HANDOFF roadmap item 2).
 
 ---
 
-## 7. Kelly as epistemology — scoring the project in nats
+## 7. Kelly as epistemology — a score for the project, in nats
 
-**What it is.** The Kelly criterion's deep form (not bet sizing): the long-run log
-growth rate of a Kelly bettor equals the **KL divergence between your probability
-distribution and the market's**.
+**What it is.** This is the deep form of the Kelly criterion, not its rule for the size of a bet. The long-run log growth rate of a Kelly bettor is equal to the **KL divergence between your probability distribution and the market's**.
 
-**Why it matters here.** With no money involved, simulated log-Kelly growth of the
-engine's probabilities against Shin-adjusted closing odds is a single number measuring
-*how much more the model knows than the market*. Zero is a legitimate, publishable
-finding: "the market already knows everything the scraper can see."
+**Why it matters here.** No money is necessary. Simulate the log-Kelly growth of the engine's probabilities against Shin-adjusted closing odds. The result is one number. It measures *how much more the model knows than the market*. Zero is a valid finding, and you can publish it: "the market already knows everything the scraper can see."
 
-**Concrete use case.** Add simulated flat-Kelly log growth to the evaluation loop
-(HANDOFF §7.5) alongside Brier and calibration, once closing odds exist. It is the
-final-verdict metric for the whole project.
+**Concrete use.** When closing odds exist, add the simulated flat-Kelly log growth to the evaluation loop (HANDOFF §7.5), next to Brier and calibration. It is the metric for the final verdict on the whole project.
 
-**Reach for this when:** the logging/scoring loop is live and closing odds are archived.
+**Reach for this when:** the loop that logs and scores predictions runs, and the archive holds closing odds.
 
 ---
 
-## Cross-cutting notes
+## Notes for all tools
 
-- **The arc:** tools 1–2 are about *not fooling yourself with prices*; 3–5 model the
-  *game's actual structure*; 6 audits the table; 7 scores the enterprise. The esoteric
-  stuff is mostly rigorous humility with better math.
-- Everything here obeys the standing rules: DOM-only scraping, walk-forward validation,
-  shrink small-sample team parameters, and no tool ships without paying its way in
-  Brier/calibration/Kelly terms (STATS_PRIMER §5).
-- References: Shin (1993, *Economic Journal*) on insider trading and odds;
-  Rue & Salvesen (2000, *The Statistician*) on dynamic football models;
-  Cox (1972) proportional hazards; Kelly (1956) *A New Interpretation of Information
-  Rate*; the favorite–longshot bias survey in Ottaviani & Sørensen (2008).
+- **The order of the tools:**
+  - Tools 1–2 make sure that prices do not give you false conclusions.
+  - Tools 3–5 make a model of the *real structure of the match*.
+  - Tool 6 checks the table.
+  - Tool 7 gives a score to the whole project.
+- Most of these tools have one purpose: with better mathematics, they stop you from believing more than the data shows.
+- All tools obey the standing rules:
+  - DOM-only scraping;
+  - walk-forward validation;
+  - shrink the team parameters that come from small samples;
+  - no tool goes into use unless it improves the Brier, calibration or Kelly results (STATS_PRIMER §5).
+- References: Shin (1993, *Economic Journal*) on insider trading and odds; Rue & Salvesen (2000, *The Statistician*) on dynamic football models; Cox (1972) proportional hazards; Kelly (1956) *A New Interpretation of Information Rate*; the favourite–longshot bias survey in Ottaviani & Sørensen (2008).

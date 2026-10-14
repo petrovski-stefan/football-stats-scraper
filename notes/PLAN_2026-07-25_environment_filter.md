@@ -80,29 +80,33 @@ contains the base rate. Headroom recovered: ~11%.
 
 ## Phase 0 — League list and preregistration (before any scraping)
 
-Criteria, fixed in writing and unrelated to comeback rate — any comeback-based selection
-self-invalidates through the winner's curse:
+The criteria are fixed in writing, and they have no relation to the comeback rate. A
+selection by comeback rate makes itself invalid, through the winner's curse:
 
-1. nowgoal data completeness — standings dropdown present, 1X2 and O/U odds populated;
+1. nowgoal data completeness — 1X2, O/U and AH opening odds populated. Since 2026-10-10, a
+   league stays only if every match without odds is a proven forfeit (`notes/MIGRATIONS.md`).
+   The standings dropdown is no longer a criterion: the per-round standings scrape was removed
+   on 2026-10-06;
 2. ≥ 240 matches per season (power per league-season);
 3. country and tier spread.
 
-Deliverable: `notes/PREREGISTRATION_ENVIRONMENT.md` — league list, criteria, closed
-feature list, the Phase 2 bar, the evaluation protocol, and §1's figures recorded as prior
-evidence. Committed before the first page is scraped. The *claim* half of that
-preregistration already exists as `notes/RETRY_CANDIDATES_2026-09-23.md`; the league list
-is the missing half.
+Deliverable: `notes/PREREGISTRATION_ENVIRONMENT.md`. It holds the league list, the
+criteria, the closed feature list, the Phase 2 bar, the evaluation protocol, and §1's
+figures as prior evidence. Commit it before the first page is scraped. The *claim* half of
+that preregistration already exists as `notes/RETRY_CANDIDATES_2026-09-23.md`. The league
+list is the missing half.
 
 ## Phase 1 — Scrape the corpus
 
-~25 leagues × 3 seasons ≈ 75 league-seasons. The schedules are scraped (every finished season in
-`config/leagues.json`, `notes/MIGRATIONS.md` 2026-10-09); the detail and goal stages remain.
+The plan was ~25 leagues × 3 seasons ≈ 75 league-seasons. The corpus has 73 leagues and 144
+finished league-seasons (`notes/MIGRATIONS.md`, 2026-10-10). The schedules are scraped (every finished season in
+`config/leagues.json`, `notes/MIGRATIONS.md` 2026-10-09). The detail and goal stages remain.
 
-**Cost note added 2026-09-23.** This phase originally read "schedule-only, do not run
-`scrapers/detail.py`" at 6–10 hours. That is no longer available: `features/goals.py`
-reads `{section}_last{n}_match_id`, which exists only in the detail file, so the
-goal-timing features cannot be built without the detail scrape. Extrapolating from a
-measured ~2,000 renders/hour at `WORKERS = 4`:
+**Cost note added 2026-09-23.** At first, this phase said "schedule-only, do not run
+`scrapers/detail.py`", at 6–10 hours. That option no longer exists. `features/goals.py`
+reads `{section}_last{n}_match_id`, and only the detail file has it. So the goal-timing
+features need the detail scrape. An extrapolation from a measured ~2,000 renders/hour at
+`WORKERS = 4`:
 
 | stage | renders | rough time |
 |---|---|---|
@@ -110,34 +114,39 @@ measured ~2,000 renders/hour at `WORKERS = 4`:
 | goals (~60,000 after dedupe) | 2–3× corpus | ~30h |
 | **total** | | **~44h** |
 
-That estimate rests on one throughput measurement — treat it as an order of magnitude, and
-re-measure on the first league before committing to the rest.
+That estimate comes from one throughput measurement. Use it only as an order of magnitude.
+Measure again on the first league, before you start the others.
 
-Per-league smoke test — one season, then `qa/validate.py` — before committing to a country.
-Split/playoff formats will violate the one-match-per-team-per-round invariant asserted in
-`features/engine.py:_rolling_form`; that assertion is the guard. Fix or drop, and record which.
+Do a smoke test per league before you scrape a full country: one season, then
+`qa/validate.py`. Split and play-off formats will break the one-match-per-team-per-round
+invariant that `features/engine.py:_rolling_form` asserts. That assertion is the guard. Fix
+the league or drop it, and record which.
 
 ## Phase 2 — The preregistered study
 
-**Bar:** keep the **top 20%** of fixtures by model score; that slate's comeback rate must
-have a **Wilson 95% lower bound above the pooled base rate**, on leagues and seasons not
-used to build the rule. At ~25,000 matches a 20% slate is ~5,000 fixtures, so even a 1.2×
-lift (5.5% → 6.6%) clears it decisively.
+**Bar:** keep the **top 20%** of fixtures by model score. The comeback rate of that slate
+must have a **Wilson 95% lower bound above the pooled base rate**, on leagues and seasons
+that were not used to build the rule. At ~25,000 matches, a 20% slate is ~5,000 fixtures.
+So even a 1.2× lift (5.5% → 6.6%) passes it clearly.
 
 **Two independent splits, both required:**
 
-- *walk-forward in time* — expanding window, reuse `modelling/experiment.py:walk_forward`;
-- *leave-one-league-out* — the claim is that the filter generalises, and league-holdout is
-  the only test of that. It also substitutes for the clean holdout the project no longer
-  has (2025-26 was opened three times).
+- *walk-forward in time*: an expanding window. Use `modelling/experiment.py:walk_forward`
+  again;
+- *leave-one-league-out*: the claim is that the filter works in other leagues, and a league
+  holdout is the only test of that. It also takes the place of the clean holdout that the
+  project no longer has (2025-26 was opened three times).
 
 **Models:** the existing generative `modelling/scoreline.py`, plus a direct classifier on
 P(HT decisive ∧ FT decisive ∧ ≥3 goals).
 
-**Always reported:** the retained-rate curve (keep top 5%–65%) with CIs; the oracle ceiling
-recomputed on the new corpus; **headroom recovered** = (achieved − base) / (ceiling − base),
-the headline number either way; and per-component AUC, which is what diagnosed the failure
-this time.
+**Always reported:**
+
+- the retained-rate curve (keep the top 5%–65%), with CIs;
+- the oracle ceiling, calculated again on the new corpus;
+- **headroom recovered** = (achieved − base) / (ceiling − base). It is the main number,
+  whatever the result;
+- the AUC per component. That AUC found the cause of the failure this time.
 
 ## Files
 
@@ -148,19 +157,24 @@ this time.
 | `modelling/filter_study.py` | keep-top-slate view + headroom-recovered metric, beside the existing exclusion curve |
 | `notes/ENVIRONMENT_RESULTS.md` | verdict either way |
 
-Reuse, don't rebuild: `features/engine.py`'s rolling as-of-round engine and `--self-check`;
-`modelling/scoreline.py`'s generative model with its `--self-check` / `--leak-check` gates;
-`modelling/filter_study.py:_exclude`; `modelling/experiment.py:wilson_ci` and `walk_forward`.
+Use the existing code again. Do not build it again:
+
+- the rolling as-of-round engine of `features/engine.py`, and its `--self-check`;
+- the generative model of `modelling/scoreline.py`, with its `--self-check` /
+  `--leak-check` gates;
+- `modelling/filter_study.py:_exclude`;
+- `modelling/experiment.py:wilson_ci` and `walk_forward`.
 
 ## Verification
 
-- `uv run ruff check && uv run ruff format --check && uv run mypy .` clean.
+- The seven quality gates of root `CLAUDE.md` are clean: ruff check, ruff format, mypy,
+  complexipy, pyscn, deptry and pytest.
 - `uv run python -m qa.validate` — every new league-season passes.
 - `uv run python -m features.engine --self-check` — as-of-round invariant on the full corpus.
-- `uv run python -m modelling.scoreline --self-check --leak-check` — recalibrated; mass, zero-floor,
-  parity and no-post-match-column gates still pass.
-- `uv run python -m modelling.filter_study --curve` then `--bar` — curve, recomputed ceiling, and the
-  preregistered pass/fail under both splits.
+- `uv run python -m modelling.scoreline --self-check --leak-check` — recalibrated. The mass,
+  zero-floor, parity and no-post-match-column gates still pass.
+- `uv run python -m modelling.filter_study --curve` then `--bar` — the curve, the ceiling
+  calculated again, and the preregistered pass/fail under both splits.
 
 ## Honest expectation
 

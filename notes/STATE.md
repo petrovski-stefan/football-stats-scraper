@@ -1,6 +1,6 @@
 # STATE — the claim ledger
 
-**Maintenance rule: whenever a study concludes, update this file in the same commit.** Numbers here are copied from the source note; if they disagree, the source note wins and this file is the bug. How to act on the ledger (holdout, candidate protocol, binding rules): `modelling/CLAUDE.md`.
+**Maintenance rule: whenever a study concludes, update this file in the same commit.** The numbers here are copies from the source note. If they disagree, the source note is correct, and this file has the error. How to act on the ledger (holdout, candidate protocol, binding rules): `modelling/CLAUDE.md`.
 
 Evidence: only the exclusion-filter row has committed raw output (`FILTER_STUDY_RAW.md`). Every other row is **note-only** until its output is committed under `notes/runs/` (rule: `modelling/CLAUDE.md` §2).
 
@@ -36,17 +36,17 @@ Status: **Dead** = tested and failed · **Live-exploratory** = positive, not pre
 
 ## Open leads, in priority order
 
-1. **Declare the confirmatory set** (league list + date) in a dated amendment before any new scrape starts (PREREGISTRATION A9(c)). 2025-26 is spent and cannot confirm anything.
-2. **Phase 0 of the scrape:** neutral league list plus `PREREGISTRATION_ENVIRONMENT.md` (PLAN_2026-07-25 Phase 0). Then evaluate the 6 remaining retry claims with Holm, MH strata and LOLO (RETRY §6–7).
-3. **Decide `FRIENDLY_MARKER`**; it gates what the scrape fetches (PREREGISTRATION A8.6; `qa/CLAUDE.md` §3).
-4. **Set picks-per-week** to unblock the prospective gut log; 2026-27 is part of the confirmatory set as it accrues (PLAN_2026-09-20 §2, §4; A9(b)).
+1. **Declare the confirmatory set** (league list + date) in a dated amendment before any new scrape starts (PREREGISTRATION A9(c)). 2025-26 is spent, and it cannot confirm anything.
+2. **Phase 0 of the scrape:** a neutral league list and `PREREGISTRATION_ENVIRONMENT.md` (PLAN_2026-07-25 Phase 0). Then evaluate the 6 remaining retry claims with Holm, MH strata and LOLO (RETRY §6–7).
+3. **Decide `FRIENDLY_MARKER`.** It controls what the scrape fetches (PREREGISTRATION A8.6; `qa/CLAUDE.md` §3).
+4. **Set picks-per-week.** The prospective gut log cannot start without it. 2026-27 becomes part of the confirmatory set as its matches are played (PLAN_2026-09-20 §2, §4; A9(b)).
 5. **The filter's 10–15% coverage dip:** 5 missed vs 8.9 expected, P≈0.13. It needs more data, not more modelling (FILTER_RESULTS §4).
 
 ## Resolved conflicts
 
-- **Retry list size:** 15 claims (A8.2). The "14" in RETRY §0 and RELIABILITY §6 predates A8 — PREREGISTRATION A9 erratum. Six are left after the 2026-10-13 drop.
-- **Holdout status (2025-26):** spent, not "opened N times"; its labels informed at least eight analyses — PREREGISTRATION A9.
-- **Oracle and totals figures** (was conflict 4; resolved 2026-10-11): not a conflict. The two notes measured different sets (2,058 matches, and the 1,565 the walk-forward evaluated), and both quantities follow from the definition or the goal model: no comeback is possible with 2 goals or fewer, and the comeback rate by final goal total is structural (MARKET_COMEBACKS §1 "Minimum goals", §2 "Comeback rate by final goal total").
+- **Retry list size:** 15 claims (A8.2). The "14" in RETRY §0 and RELIABILITY §6 is from before A8 (PREREGISTRATION A9 erratum). Six are left after the 2026-10-13 drop.
+- **Holdout status (2025-26):** spent, not "opened N times". Its labels informed at least eight analyses (PREREGISTRATION A9).
+- **Oracle and totals figures** (was conflict 4; resolved 2026-10-11): not a conflict. The two notes measured different sets: 2,058 matches, and the 1,565 matches that the walk-forward evaluated. Both quantities follow from the definition or from the goal model. No comeback is possible with 2 goals or fewer. The comeback rate by final goal total is structural (MARKET_COMEBACKS §1 "Minimum goals", §2 "Comeback rate by final goal total").
 
 ## Conflicts (listed, not resolved)
 
@@ -57,7 +57,7 @@ Status: **Dead** = tested and failed · **Live-exploratory** = positive, not pre
 5. *(Dropped 2026-10-13 with the claims it compared.)*
 6. **ALGOBETTING vs measurements.**
    - It calls comebacks "substitute-driven", but RELIABILITY §4 finds substitution timing null.
-7. **Stale claim.** RESULTS §7.3 says the pipeline doesn't collect the O/U line; it was built 2026-09-23.
+7. **Stale claim.** RESULTS §7.3 says that the pipeline does not collect the O/U line. The pipeline collects it since 2026-09-23.
 
 ## Method notes
 

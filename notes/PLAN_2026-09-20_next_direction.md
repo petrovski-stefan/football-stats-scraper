@@ -133,16 +133,16 @@ Nothing of the exclusion claim. Two notes for later:
 
 ## 2. Still open — the prospective gut log
 
-In flight and easy to lose. `Proprietary_Filter_Explanation_v2.md` concludes the core
-filter **cannot be encoded** — the matchup-combination trigger, the odds pattern, the
-weight system and the 2-3 second instant are all listed under "What Cannot Be Encoded".
-Consequence: **it cannot be backfilled onto historical matches**, so the only valid
-instrument is a prospective log (same structural problem as `HANDOFF` §5.4, web-search
-features).
+In progress, and easy to lose. `Proprietary_Filter_Explanation_v2.md` concludes that the
+core filter **cannot be encoded**. It lists four things under "What Cannot Be Encoded": the
+matchup-combination trigger, the odds pattern, the weight system and the 2-3 second
+instant. So **it cannot be backfilled onto historical matches**. The only valid instrument
+is a prospective log. This is the same structural problem as the web-search features of
+`HANDOFF` §5.4.
 
-That is statistically the **cleanest test this project can run**: k = 1, no formula
-selection, no winner's curse, zero contamination, needs 11 hits per 100 picks. The schema
-at the end of the user's own document is already the right one.
+Statistically, that is the **cleanest test this project can run**: k = 1, no formula
+selection, no winner's curse and zero contamination. It needs 11 hits per 100 picks. The
+schema at the end of the user's own document is already the correct one.
 
 **Blocked on one number: picks per week.**
 
@@ -152,7 +152,7 @@ at the end of the user's own document is already the right one.
 | 4 | ~100 | **one season, fully powered.** Needs 11 hits |
 | 8 | ~200 | one season, needs 18. Tighter CI |
 
-The 2026-27 season is live and was on **round 5** on 2026-09-20 — a genuinely untouched
+The 2026-27 season is live. It was on **round 5** on 2026-09-20. It is a really untouched
 holdout, which this project has not had since 2025-26 was opened three times.
 
 ---
@@ -211,6 +211,7 @@ test**, not as a per-league split.
 
 ## 4. What to decide first, when this is picked up
 
-1. **The picks-per-week number.** Still unanswered, and still the gate on the prospective
-   log — the only instrument that can read the un-encodable core of the filter.
+1. **The picks-per-week number.** It is still not answered. The prospective log cannot
+   start without it. That log is the only instrument that can read the core of the filter,
+   which cannot be encoded.
 2. ~~Reading A or B for idea 2~~ — **resolved and closed 2026-09-20.** See §1.

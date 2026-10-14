@@ -1,25 +1,20 @@
 # PLAN — the staged pipeline (the data refactor)
 
-**Agreed with the user on 2026-10-05. In progress.** What is done is recorded in
-`notes/MIGRATIONS.md` (2026-10-05 to 2026-10-10) and deleted here (the user's rule, 2026-10-10),
-so this file holds only open work.
+**Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
-**Why:** the user's goal is to cut the cognitive load of the field work and to understand what
-every field means, clearly. Each stage gets its own fields doc, and each doc answers one
-question. More CSV files is an accepted cost.
+**Agreed with the user on 2026-10-05. In progress.** What is done goes into `notes/MIGRATIONS.md` (2026-10-05 to 2026-10-10), and is deleted here (the user's rule, 2026-10-10). So this file holds only open work.
+
+**Why:** the user has two goals: less cognitive load in the field work, and a clear understanding of what each field means. Each stage gets its own fields doc. Each doc answers one question. More CSV files are an accepted cost.
 
 **Supersedes:**
-- `notes/IDEAS_2026-10-01.md` ideas 14b (layout), 2 (refactor) and 17 (dictionary). It took
-  16's naming and format rules, now "Rules for values" in `notes/fields/README.md`. Since
-  2026-10-13 the IDEAS file groups its open steps by page: ideas 2a (detail) and 2b (live).
-- the class split in `notes/FIELDS.md` (raw / scrape-derived / derived). Its rows, page
-  locations, examples and the user's S1 checks carry over (step P1).
+- `notes/IDEAS_2026-10-01.md` ideas 14b (layout), 2 (refactor) and 17 (dictionary). This plan also took the naming and format rules of idea 16. They are now "Rules for values" in `notes/fields/README.md`. Since 2026-10-13, the IDEAS file groups its open steps by page: ideas 2a (detail) and 2b (live).
+- the class split in `notes/FIELDS.md` (raw / scrape-derived / derived). Its rows, page locations, examples and the user's S1 checks moved to the new docs (step P1).
 
 ---
 
 ## 1. The stages
 
-Each source (schedule, then detail) goes through the same three stages:
+Each source (the schedule, then the detail) goes through the same three stages:
 
 | stage | reads | adds | the doc answers | checked by |
 |---|---|---|---|---|
@@ -29,96 +24,68 @@ Each source (schedule, then detail) goes through the same three stages:
 
 **Rules:**
 
-1. **Stage 1 only parses: one page value in, one typed value out.** Allowed: `"0-2"` → two
-   ints, `"2.5/3"` → 2.75, UTC+8 → UTC, a page name → a slug. Anything that reads a second value
-   is not stage 1. The score strings are dropped: they repeat the goal ints.
-2. **Stage 2 reads only its own row.** A stage-2 field's timing is the latest timing of its
-   inputs, so a field built from a post-kickoff input is `after` by construction.
-3. **Every stage-3 field states its row window:** which rows it reads, and that all of them
-   kicked off before this match. This line is the leakage guard. Cross-row leakage can only
-   enter at stage 3; same-row leakage (a value only known after kickoff) is caught by stage 1's
-   timing column.
-4. **Each stage file is the previous file plus new columns.** Each doc lists only its new
-   columns.
-5. **Only stage 1 is scraper output.** Stages 2 and 3 are rebuilt from stage 1 at any time, so
-   only a stage-1 change forces a re-scrape. The big CONFIRM scrape waits for the stage-1 docs
-   to freeze, not for stages 2–3.
+1. **Stage 1 only parses: one page value in, one typed value out.** Examples of what is permitted: `"0-2"` → two ints, `"2.5/3"` → 2.75, UTC+8 → UTC, a page name → a slug. A step that reads a second value is not stage 1. The score strings are dropped, because they repeat the goal ints.
+2. **Stage 2 reads only its own row.** The timing of a stage-2 field is the latest timing of its inputs. So a field built from a post-kickoff input is `after` by construction.
+3. **Every stage-3 field states its row window:** which rows it reads, and that all of them kicked off before this match. This line is the leakage guard. Cross-row leakage can enter only at stage 3. The timing column of stage 1 catches same-row leakage (a value that is known only after kickoff).
+4. **Each stage file is the previous file plus new columns.** Each doc lists only its new columns.
+5. **Only stage 1 is scraper output.** Stages 2 and 3 can be rebuilt from stage 1 at any time. So only a change in stage 1 makes a re-scrape necessary. A scrape of new data for a confirmatory test (`notes/PREREGISTRATION.md` A9.2–A9.3) waits until the stage-1 docs are frozen. It does not wait for stages 2–3.
 
-**Analysis input:** schedule stage 3 alone, or schedule stage 3 joined to detail stage 3 by
-`match_id` (the labels live in the schedule file), optionally with the goal and event
-aggregates. The join adds no fields, so it has no doc.
+**Analysis input:** schedule stage 3 alone, or schedule stage 3 joined to detail stage 3 by `match_id` (the labels are in the schedule file). The goal and event aggregates can be added. The join adds no fields, so it has no doc.
 
 ## 2. Layout
 
-`data/` has one parent directory per match state (the user, 2026-10-05). Still to add (the
-schedule's files are in place):
+`data/` has one parent directory for each match state (the user, 2026-10-05). The schedule's files are in place. These are still to add:
 
 - `data/finished/` — played matches only.
   - `1_raw/` — scraper output only:
-    - `<country>_<league>_<season>_detail.csv` — one row per match, the page's match-level values
-      (~16 columns);
-    - `<country>_<league>_<season>_history.csv` — one row per history row the page shows: `for_match_id`,
-      `section` (home / away / h2h), `n` (1 = most recent), then the history match's own
-      `match_id`, `league_id`, `date`, `league`, `home_team_id`, `away_team_id`,
-      `home_team_name`, `away_team_name`, HT and FT goals, 1X2 odds, corners FT and HT. Up to
-      20 rows per section (2789361 has 20 h2h rows), so up to ~60 per match;
+    - `<country>_<league>_<season>_detail.csv` — one row per match, with the page's match-level values (~16 columns);
+    - `<country>_<league>_<season>_history.csv` — one row for each history row that the page shows. The columns: `for_match_id`, `section` (home / away / h2h), `n` (1 = most recent), then the history match's own `match_id`, `league_id`, `date`, `league`, `home_team_id`, `away_team_id`, `home_team_name`, `away_team_name`, HT and FT goals, 1X2 odds, corners FT and HT. A section has up to 20 rows (2789361 has 20 h2h rows). So a match has up to ~60 rows;
     - `goals.csv`, `events.csv` and their done logs — unchanged for now (Q4).
-  - `2_row/` and `3_multi/` — the derived detail files, same names.
-- `data/scheduled/` (or `unplayed/`) — later: upcoming matches, same three stages.
-- `data/predictions/` — later, maybe.
+  - `2_row/` and `3_multi/` — the derived detail files, with the same names.
+- `data/scheduled/` (or `unplayed/`) — later: upcoming matches, with the same three stages.
+- `data/predictions/` — later, possibly.
 
-Paths are built only in `domain/paths.py`, so the names can change cheaply.
+Only `domain/paths.py` builds paths. So the names are cheap to change.
 
 ## 3. Decisions, 2026-10-05
 
 - **The three stages and one doc per stage:** the user's design.
-- **Q3, history rows: long format, every row the page shows** (Claude's recommendation,
-  accepted). The form and h2h averages (today over up to 10 rows, while 6 are stored) become
-  rebuildable, and the window becomes a stage-3 setting. Storing both team ids replaces the
-  majority-vote subject guess (`scrapers/detail_parsers.py:subject_team_id`) behind `is_home`,
-  `opponent` and `result`. Stage 3 turns the history back into one row per match: the
-  averages, plus only the slots analysis uses. The column names change under the value rules (`notes/fields/README.md`).
-- **History windows (the user, later on 2026-10-05):** each team's last 5 or 6 matches; head
-  to head at most 4, each played no earlier than 2 years before this match. These are
-  stage-3 settings: stage 1 still stores every row the page shows. Two reasons: the 2-year cut
-  compares the history date with this match's date, which rule 1 keeps out of stage 1; and a
-  cut made at scrape time can only change with a re-scrape, while the stored rows add no
-  columns and no page loads. Claude's defaults, each a one-line change with no re-scrape:
-  - team window **6, locked by the user**. It applies to the per-match slots and to the form
-    averages, which today use 10 rows;
+- **Q3, history rows: long format, every row the page shows** (Claude's recommendation, accepted).
+  - The form and h2h averages can then be rebuilt. Today they use up to 10 rows, but only 6 are stored.
+  - The window becomes a stage-3 setting.
+  - Both team ids are stored. They replace the majority-vote guess of the subject team (`scrapers/detail_parsers.py:subject_team_id`) behind `is_home`, `opponent` and `result`.
+  - Stage 3 turns the history back into one row per match: the averages, plus only the slots that the analysis uses.
+  - The column names change under the value rules (`notes/fields/README.md`).
+- **History windows (the user, later on 2026-10-05):** each team's last 5 or 6 matches. Head to head: at most 4, each played no earlier than 2 years before this match. These are stage-3 settings, and stage 1 still stores every row that the page shows. There are two reasons:
+  1. The 2-year cut compares the history date with the date of this match. Rule 1 keeps that comparison out of stage 1.
+  2. A cut at scrape time can change only with a re-scrape. The stored rows add no columns and no page loads.
+
+  Claude's defaults. Each one is a one-line change, with no re-scrape:
+  - team window **6, locked by the user**. It applies to the per-match slots and to the form averages, which use 10 rows today;
   - "2 years" = the kickoff date minus 2 calendar years, inclusive (2026-01-31 → 2024-01-31);
-  - head to head over all competitions the page lists, as today;
-  - fewer qualifying matches → fewer rows; none → the h2h fields are empty, not zero.
-- **Q4, goals and events: unchanged for now.** They already fit stage 1, apart from three
-  columns kept as documented exceptions (`goal_index`, goal `side`, the copied `league_id`).
-  Their three docs come after schedule and detail, ~0.5 day.
+  - head to head over all competitions that the page lists, as today;
+  - fewer qualifying matches → fewer rows. No qualifying match → the h2h fields are empty, not zero.
+- **Q4, goals and events: unchanged for now.** They already fit stage 1. Three columns stay as documented exceptions: `goal_index`, the goal `side` and the copied `league_id`. Their three docs come after the schedule and detail docs, ~0.5 day.
 
 ## 4. Where the detail, goal and event columns go
 
-Counted from `domain/columns.py` and the EPL 2025-26 files on 2026-10-05: detail 537 (51 + 18
-history slots × 27), goals 9 + 3, events 9 + 3.
+Counted on 2026-10-05 from `domain/columns.py` and the EPL 2025-26 files: detail 537 (51 + 18 history slots × 27), goals 9 + 3, events 9 + 3.
 
 **Stage 1:**
-- detail (16): `match_id`, `odds_bookmaker`, `odds1x2_init_*` (3), `odds1x2_live_*` (3),
-  `strength_*` (2), `h2h_compare_*_pct` (2), `guess_*_pct` (2), `*_next_fixture_days` (2);
-- history slot (17 × 18): `match_id`, `league_id`, `date`, `league`, `ht_score`, `ft_score`,
-  HT/FT goals (4), `odds_{home,draw,away}`, `corners_{ft,ht}_{home,away}` (4). Becomes one row of
-  the history file, plus the two team ids and names it lacks today;
+- detail (16): `match_id`, `odds_bookmaker`, `odds1x2_init_*` (3), `odds1x2_live_*` (3), `strength_*` (2), `h2h_compare_*_pct` (2), `guess_*_pct` (2), `*_next_fixture_days` (2);
+- history slot (17 × 18): `match_id`, `league_id`, `date`, `league`, `ht_score`, `ft_score`, HT/FT goals (4), `odds_{home,draw,away}`, `corners_{ft,ht}_{home,away}` (4). Each slot becomes one row of the history file. That row also gets the two team ids and names, which the slot does not have today;
 - goals (6), events (7), done logs' `match_id` (2). Bookkeeping: `scraped_at` (2).
 
 **Stage 2:**
 - detail (4): `implied_{init,live}_{home,away}`;
-- history slot (7 × 18): `total_goals`, `ht_result`, `ft_result`, `over_25`, `btts`,
-  `is_comeback`, `corners_total`.
+- history slot (7 × 18): `total_goals`, `ht_result`, `ft_result`, `over_25`, `btts`, `is_comeback`, `corners_total`.
 - Labels of other markets wait for their market (comebacks first).
 
 **Stage 3:**
 - detail (31): `{home,away}_recent_*` (12 each), `h2h_*` (7);
 - history slot (3 × 18): `is_home`, `opponent`, `result`;
-- goals (3): `goal_index`, `side`, `league_id`; events (2): `event_index`, `league_id`; done
-  logs (2): `n_goals`, `n_events` — the documented exceptions of Q4, left in stage 1 for now.
-- New, from `notes/FIELDS.md`: rest days (D13, now `notes/fields/detail_3_multi.md` D3.24) and the
-  survey's flags (K6).
+- goals (3): `goal_index`, `side`, `league_id`; events (2): `event_index`, `league_id`; done logs (2): `n_goals`, `n_events` — the documented exceptions of Q4. They stay in stage 1 for now.
+- New, from `notes/FIELDS.md`: rest days (D13, now `notes/fields/detail_3_multi.md` D3.24). Of the survey's flags (K6), only the out-of-round flag is left. It is a schedule field now (`notes/fields/schedule_3_multi.md` S3.07). The other two left the project on 2026-10-13 (`notes/MIGRATIONS.md`).
 
 ## 5. Steps — one at a time
 
@@ -130,16 +97,11 @@ history slots × 27), goals 9 + 3, events 9 + 3.
 | P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 36k pages (36,238 matches, 2026-10-13), ~18 h at the one measured rate (`notes/PLAN_2026-07-25_environment_filter.md` Phase 1) |
 | P7 | Freeze the stage-1 docs | user | — |
 
-P2 comes before P4: the docs are the spec the code is written to.
+P2 comes before P4, because the docs are the specification for the code.
 
 ## 6. Open points Claude handles (no user decision needed)
 
-- The history rows' odds snapshot (Initial or Final?) — FIELDS #60–62, settle in P2.
-- `corners_ht_*` are stored as floats (`3.0`) because of empty cells: store nullable ints.
-- The join: a loader function or a written file — decide in P5.
-- **Weekday flags outside Europe, before the survey:** Berlin time puts a Sunday 21:00 kickoff in
-  Brazil (01:00 Berlin) on Monday. Measured 2026-10-11 (kickoff times only): the Berlin day
-  differs from the local day for 2,639 of 4,808 matches in the Americas (55%) and for none in
-  Europe or Asia. The decision is listed in `notes/IDEAS_2026-10-01.md` idea 13.
-- Module names and placement in the layer table; root `CLAUDE.md` (data paths, "only scrapers
-  write `data/raw/`") and `notes/MIGRATIONS.md` are updated in the steps that change them.
+- The odds snapshot of the history rows (Initial or Final?): FIELDS #60–62. Settle it in P2.
+- `corners_ht_*` are stored as floats (`3.0`) because of empty cells. Store them as nullable ints.
+- The join: a loader function or a written file. Decide in P5.
+- Module names, and their place in the layer table. The steps that change them also update root `CLAUDE.md` (data paths, and the rule "Only `scrapers/` may write to `data/finished/1_raw/`") and `notes/MIGRATIONS.md`.

@@ -1,28 +1,28 @@
 # POINTS_DEDUCTIONS — teams whose league took points off them
 
-**Found 2026-10-07** by the final-table check (`qa/final_table.py`) on the 52 DEV schedule seasons:
-the page's final points minus the points rebuilt from our results. For every team below, P, W, D, L
-and goal difference equal the page, so only the points differ. Every amount matches public reports
-(sources at the end). Two more were found on 2026-10-08, and sixteen more on 2026-10-09 in the full
-scrape. The entries of leagues removed from the project on 2026-10-10 (four, five, two, then three more) were
-taken out, and the rest renumbered.
+**Found 2026-10-07** by the final-table check (`qa/final_table.py`) on the 52 DEV schedule seasons.
+The check takes the page's final points minus the points rebuilt from our results. For every team
+below, P, W, D, L and goal difference equal the page, so only the points differ. Every amount agrees
+with public reports (sources at the end). Two more were found on 2026-10-08, and sixteen more on
+2026-10-09 in the full scrape. The entries of the leagues that left the project on 2026-10-10 (four,
+five, two, then three more) were removed, and the other entries were renumbered.
 
 ## How the project treats them (the user, 2026-10-07)
 
 - **Now, option A.** Stage 3 keeps the points earned on the pitch (`s3_<side>_pre_ft_total_points`
-  and `_rank`). The amounts are declared in `domain/deductions.py`, which only the final-table
-  check reads, so a known deduction does not fail QA. An undeclared one still does.
-- **Later, option C.** Stage 3 applies each deduction from the date it was announced, so each
-  pre-kickoff table matches the official one at that time. The "when" column is kept for that.
+  and `_rank`). `domain/deductions.py` declares the amounts, and only the final-table check reads
+  that file. So a known deduction does not fail QA. A deduction that is not declared still fails it.
+- **Later, option C.** Stage 3 applies each deduction from the date of its announcement. So each
+  pre-kickoff table agrees with the official table at that time. The "when" column is kept for that.
 - A deduction changes only `points` and `rank` of the full-time total table. Results and goals
   stay as played.
 - **Each entry belongs to one stage** (2026-10-09). The page shows the Apertura and Clausura tables
-  apart, so a deduction is declared for the stage whose table carries it. A league without stage
-  tabs has the one stage "League".
-- **Causes:** financial rules, insolvency, unpaid debts or wages, licensing and crowd
-  trouble. None is match-fixing: the one such entry left with its league on 2026-10-10. Turkey
-  2024-25 is in both notes, by coincidence: Adana's points went for licence, walk-off and debt
-  penalties, not the betting case.
+  separately. So a deduction is declared for the stage whose table carries it. A league without
+  stage tabs has one stage, "League".
+- **Causes:** financial rules, insolvency, unpaid debts or wages, licensing and crowd trouble.
+  None is match-fixing: the one such entry left the project with its league on 2026-10-10. Turkey
+  2024-25 is in both notes by coincidence. Adana lost its points for licence, walk-off and debt
+  penalties, not for the betting case.
 
 ## The list (18 teams, 13 league-seasons)
 
@@ -47,9 +47,9 @@ taken out, and the rest renumbered.
 | 17 | URU D1 (240) | 2025, Clausura | Nacional (2817) | −3 | during the Clausura (day not found); upheld by CAS | crowd violence at the Torneo Intermedio final |
 | 18 | FIN D2 (212) | 2025 | PK-35 Vantaa (2594) | −2 | not found | league licence criteria not met |
 
-**#11 and #12 overlap.** The page's 2024-25 table counts all 39 points, the 12 of April 2025
-included, and its 2025-26 table counts those 12 again. The KNVB appeal ruling (published 9 Jul 2025)
-puts the 12 in 2025-26; whether the official 2024-25 table kept them is not clear. It matters for
+**#11 and #12 overlap.** The page's 2024-25 table counts all 39 points, including the 12 of April
+2025. Its 2025-26 table counts those 12 again. The KNVB appeal ruling (published 9 Jul 2025) puts
+the 12 in 2025-26. It is not clear if the official 2024-25 table kept them. This is important for
 option C only.
 
 **For option C, still missing:** the exact day for #6, #8, Adana's licence step (#10), #16, #17
@@ -57,9 +57,11 @@ and #18.
 
 ## Adding one
 
-When the final-table check fails on points alone, confirm the deduction in public reports, then
-add its total to `domain/deductions.py`, under the stage whose table carries it, and its row, date
-and source here.
+When the final-table check fails on points alone:
+
+1. Confirm the deduction in public reports.
+2. Add its total to `domain/deductions.py`, under the stage whose table carries it.
+3. Add its row, date and source here.
 
 ## Sources
 
