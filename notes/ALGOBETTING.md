@@ -40,7 +40,6 @@ Notes from a deep-dive conversation on quantitative football betting: market str
 - Joseph Buchdahl — *Squares & Sharps*, *Monte Carlo or Bust* (market efficiency, CLV)
 - David Sumpter — *Soccermatics* (modeling intuition)
 - Miller & Davidow — *The Logic of Sports Betting* (market structure)
-- Tools/data: `penaltyblog` Python package, understat, FBref
 
 ## 4. Why algobettors target small leagues
 
@@ -156,4 +155,3 @@ The main line already contains *how good* the teams are. Every HT/FT feature tha
 - Dixon & Robinson (1998) — in-play birth process (score/time effects)
 - Karlis & Ntzoufras — bivariate Poisson; Rue & Salvesen — dynamic strengths
 - Buchdahl — *Squares & Sharps*, *Monte Carlo or Bust*; Sumpter — *Soccermatics*; Miller & Davidow — *The Logic of Sports Betting*
-- Data/tools: `penaltyblog`, understat, FBref
