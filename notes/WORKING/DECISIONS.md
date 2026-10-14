@@ -16,7 +16,7 @@ This file holds the questions that need an owner's decision but must not block t
   1. Keep "< 0.05" (current, provisional).
   2. Make it inclusive: kill at |r| ≤ 0.05.
   3. Raise it to a higher value (for example 0.10) that is clearly above the behavioural rule.
-- **Context:** `modelling/CLAUDE.md` §3 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5; `.claude/skills/new-candidate/SKILL.md` step c.
+- **Context:** `modelling/CLAUDE.md` §3 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
 
 ### D2 — Is 0.80 too loose as a redundancy bound?
 
@@ -28,39 +28,39 @@ This file holds the questions that need an owner's decision but must not block t
   3. Replace the raw-|r| test with an incremental test: the partial association of the candidate, with the market as a control. The old league study (dropped 2026-10-13) did this.
 - **Context:** `modelling/CLAUDE.md` §3 "Screening bars". Its examples were dropped on 2026-10-13: the old league study's F10 (shot share, "priced") and F11 (venue "already priced"), and their STATE rows.
 
-### D3 — Step c for candidates that are themselves market prices
+### D3 — The market-orthogonality screen for candidates that are themselves market prices
 
-- **Raised:** 2026-09-28, by Claude (an interpretation adopted in `/new-candidate`)
-- **Question:** Retry claims #9 (nowgoal's O/U line) and #10 (the AH line) *are* market lines. Their |r| with the market is about 1. So the redundancy bar would kill them automatically. Today the skill marks step c "not applicable" for a market-price candidate. Both claims were dropped on 2026-10-13. The question stays open for any later candidate that is a market price.
+- **Raised:** 2026-09-28, by Claude
+- **Question:** Retry claims #9 (nowgoal's O/U line) and #10 (the AH line) *are* market lines. Their |r| with the market is about 1. So the redundancy bar would kill them automatically. The current working value: the screen is "not applicable" to a market-price candidate. Both claims were dropped on 2026-10-13. The question stays open for any later candidate that is a market price.
 - **Options:**
   1. Keep "not applicable" (current, provisional).
-  2. Apply the bar anyway, which kills such a candidate at step c.
+  2. Apply the bar anyway, which kills such a candidate at this screen.
   3. For a market candidate, correlate only against the *other* market columns (for example AH against O/U). This fits the framing of the dropped #10, "adds over O/U".
-- **Context:** `.claude/skills/new-candidate/SKILL.md` step c. #9 and #10 were in `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md` §5 until 2026-10-13.
+- **Context:** `modelling/CLAUDE.md` §3 "Screening bars". #9 and #10 were in `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md` §5 until 2026-10-13.
 
 ### D4 — What "the market price" means for the screen
 
-- **Raised:** 2026-09-28, by Claude (an interpretation adopted in `/new-candidate`)
+- **Raised:** 2026-09-28, by Claude
 - **Question:** `BEHAVIOURAL_RESULTS.md` §4–5 says "the market price", but it does not name a column. Today the bar applies to the **largest |r| across the pre-kickoff market columns** (`implied_init_*`, `implied_live_*`, and the O/U line where it exists). The largest |r| makes the low bar easier to pass, and the high bar easier to trip.
 - **Options:**
   1. Keep max |r| across the pre-kickoff market columns (current, provisional).
   2. Name one column (for example the favourite's `implied_live_*` probability, or the O/U line).
   3. Use one composite market score (for example the multiple correlation R of the candidate on all market columns).
-- **Context:** `.claude/skills/new-candidate/SKILL.md` step c; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
+- **Context:** `modelling/CLAUDE.md` §3 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
 
 ### D5 — Give `features.engine --self-check` a post-match leak check (engineering task)
 
-- **Raised:** 2026-09-28, by Claude (agent known-answer tests, test 1)
+- **Raised:** 2026-09-28, by Claude (a planted-leak test of the stats-reviewer agent)
 - **Question:** Should the engine get a leak check like `modelling.scoreline --leak-check`? That check sets every post-match column to NaN, builds again, and requires identical output.
 - **Evidence:** A planted edit added `df["ft_home_goals"] + df["ft_away_goals"]` to `combined_recent_gf` in `features/engine.py` `build_features`. The as-of-round self-check still **passed** ("1600 comparisons, 0 mismatches"). It compares rolling features against the target round only, but this line reads the outcome columns of the target row itself. Only the stats-reviewer agent caught it (BLOCK, with the line cited). A leak that does not go through the reviewer has no automatic guard. An example is a leak committed without `/check`.
 - **Options:**
   1. Add `--leak-check` to `features.engine`. It sets the columns of its post-match list to NaN (`engine.py`, the "never model features" block), builds again, and requires every feature column to stay the same.
   2. Leave it to the reviewer (current).
-- **Context:** `features/engine.py` `self_check`, `build_features`; `modelling/scoreline.py` `--leak-check`; `.claude/skills/test-agents/SKILL.md` test 1.
+- **Context:** `features/engine.py` `self_check`, `build_features`; `modelling/scoreline.py` `--leak-check`.
 
 ### D6 — Notes cleanup from the 2026-09-28 full ledger audit
 
-- **Raised:** 2026-09-28, by the `ledger-auditor` agent (scope full). These issues existed before the test. They are not the issue that the test planted.
+- **Raised:** 2026-09-28, by two full consistency audits of the notes. These issues existed before the audits.
 - **Handling rule:** fix them with dated errata (in `notes/RECORD/PREREGISTRATION.md` §10, or in the amendment log of the relevant note), and with pointers from `notes/WORKING/STATE.md`. **Do not edit the historical notes' text.**
 - **Items:**
   1. *(audit #2)* **Ambiguous label.** PREREGISTRATION A8.3 gives the reliability of P(FT win | HT loss) as 0.000. It does not say if that value is split-half or depth-6. RELIABILITY_SCREEN §2 has no row for this quantity. STATE already flags it on its row. **Moot 2026-10-13:** the claim was dropped.
@@ -71,7 +71,7 @@ This file holds the questions that need an owner's decision but must not block t
   6. *(second audit, #7)* **Truncated key number.** The STATE row "Rest days / calendar / open→close odds movement" gives the rest-days result as p=0.77. LEAGUE_STUDY F10 gives three sub-tests: p = 0.77 / 0.15 / 0.48 (min, differential, the trailing team's own). Fix it in the STATE row. **Moot 2026-10-13:** the claim was dropped.
   7. *(second audit, #8)* **Citation format.** STATE Open leads items 1 and 4 (5 before 2026-10-13) cite "PREREGISTRATION A9(c)" and "A9(b)". A9 numbers its sub-items 1–4, and A10 cites them as "A9.2". So these must read A9.3 (declare first) and A9.2 (the confirmatory set). Fix it in STATE.
   8. *(second audit, #9)* **Stale instruction.** The RESULTS.md header still says "Reproduce with `uv run python -m modelling.experiment --holdout`". A7 says that the transcript must not be regenerated, and A9.1 says that `--holdout` must not be run. Do not edit RESULTS. Add a STATE pointer, or extend the A9 erratum, to record that its reproduce line is void.
-- **Context:** neither audit report is saved. To reproduce them, run `ledger-auditor` again with scope full. Items 1–5 come from the first run. Items 6–8 come from the second run on the same day.
+- **Context:** neither audit report is saved. Items 1–5 come from the first audit. Items 6–8 come from the second audit on the same day.
 
 ### D7 — Order rounds by stage in `features/` and `modelling/` (engineering task)
 

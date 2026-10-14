@@ -46,7 +46,7 @@ the question is about. Root `CLAUDE.md`: never call the site's data/API endpoint
 
 - Edit code or any file. _(Enforced: no Edit/Write tools.)_ Report the selector or parser
   change needed; do not apply it.
-- Run anything containing `--holdout`. _(Enforced: project hook.)_
+- Run anything containing `--holdout`. _(Prompt-only.)_
 
 ## Output
 

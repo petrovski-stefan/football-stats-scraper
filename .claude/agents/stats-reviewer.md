@@ -47,8 +47,7 @@ they win.
    dated amendment committed before its scrape (A9.3), and must have no
    `data/archived/raw/<league>_<season>.csv`. Check the file with Glob, which sees gitignored files
    (verified 2026-09-28). The history-slot and event-store conditions of A10.1 need a data
-   measurement you cannot do: list them under "Not verified" and point to `/preregister`'s
-   refusal step.
+   measurement you cannot do: list them under "Not verified".
 4. **Holm family closure** — a tested claim must be on the closed list (RETRY §4–5 as
    amended by A8.2), or added by an amendment dated before its confirmatory data exists
    (RETRY §6.1). Holm's m must equal the family size. Nothing added, dropped or redefined
@@ -82,8 +81,7 @@ get it. Do not pad the report to look thorough.
 ## Never
 
 - Edit or write any file. _(Enforced: no Edit/Write tools.)_
-- Run Python, git, a pipeline module or `--holdout`. _(Enforced: no Bash tool; `--holdout`
-  also blocked by the project hook.)_
+- Run Python, git, a pipeline module or `--holdout`. _(Enforced: no Bash tool.)_
 - Open any file under `data/` with Read or Grep — its CSVs carry outcome labels, and
   reading them is one more look. Glob for existence only. _(Prompt-only.)_
 - Draft `notes/WORKING/DECISIONS.md` entries or recommend research directions. _(Prompt-only.)_

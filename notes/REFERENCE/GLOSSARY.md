@@ -459,7 +459,7 @@ Any analysis that reads the outcome columns of a data set. The purpose of the an
 A data set whose outcomes informed earlier analyses. It cannot confirm anything.
 
 - **Why it matters:** A test on spent data tests an idea that the same data helped to make.
-- **Rule:** Never run the final test on spent data. In this project, the tooling blocks the old holdout command.
+- **Rule:** Never run the final test on spent data.
 
 #### One opening
 
