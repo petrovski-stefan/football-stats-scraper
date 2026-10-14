@@ -27,7 +27,7 @@ picks-per-week number in §2.
 >    flag T4 read: 103 stored Mondays against 101 real ones.)
 
 Companions: `notes/BEHAVIOURAL_RESULTS.md`, `notes/FILTER_RESULTS.md`, `notes/RESULTS.md`,
-`notes/MARKET_LINE_FINDINGS.md`, `notes/PLAN_2026-07-25_environment_filter.md`,
+`notes/PLAN_2026-07-25_environment_filter.md`,
 `notes/RETRY_CANDIDATES_2026-09-23.md`, and the user's own
 `Proprietary_Filter_Explanation_v2.md` (kept outside the repo, on the Desktop; written
 ~March 2026, not updated since).
@@ -39,9 +39,7 @@ Companions: `notes/BEHAVIOURAL_RESULTS.md`, `notes/FILTER_RESULTS.md`, `notes/RE
 Target is still **comeback**, still **pre-match only**. Every articulated feature tested
 so far measures at roughly 1.0x lift: six nowgoal families (`RESULTS.md`), the exclusion
 filter (`FILTER_RESULTS.md`), the behavioural candidate rule (`BEHAVIOURAL_RESULTS.md`,
-0.88x), and four more claims tested on 2026-09-20 (§3 below, all dead after Holm). The one
-thing that has ever beaten the base rate is the **bookmaker's Over/Under 2.5 line**
-(`MARKET_LINE_FINDINGS.md`, exploratory).
+0.88x), and four more claims tested on 2026-09-20 (§3 below, all dead after Holm).
 
 ---
 
@@ -59,7 +57,7 @@ This is an **ordinal** definition — "a later round has already begun" — not 
 "days away from the round's centre" proxy measured earlier that evening. It is sharper,
 and it catches more: 111 matches rather than 41.
 
-The user also supplied the two things `F1`'s bar requires:
+The user also supplied a mechanism and a direction:
 
 - **Mechanism: isolation.** The match stands alone, with no other results around it, so it
   carries a different psychological frame.
@@ -163,75 +161,19 @@ holdout, which this project has not had since 2025-26 was opened three times.
 
 ### Four claims from `Proprietary_Filter_Explanation_v2.md`, tested
 
+> **Dropped, 2026-10-13:** T1, T2 and T3 left the project with the other rerun claims; their
+> text is deleted. T4 stays.
+
 Exploratory, one family, Holm-corrected. Corpus n = 2,058, 114 comebacks, base 5.54%.
 **All four dead.**
 
 ```
-T3_round_state       raw p=0.195  Holm p=0.779  dead
 T4_monday_midweek    raw p=0.297  Holm p=0.891  dead
-T2_structured_btts   raw p=0.590  Holm p=1.000  dead
-T1_exhaustion        raw p=0.643  Holm p=1.000  dead
 ```
-
-**T1 — the consecutive turnaround rule ("energy exhaustion").** Refuted precisely.
-
-| after... | n | comeback wins | rate | lift |
-|---|---|---|---|---|
-| a comeback WIN | 109 | 3 | 2.75% | 0.99x |
-| being the VICTIM | 109 | 2 | 1.83% | 0.66x |
-| neither (control) | 3,784 | 107 | 2.83% | 1.02x |
-
-Per-team-match base is 2.77%; observed 3 against 3.0 expected. The claim was "essentially
-impossible". The ordering is also **inverted** — the victim shows more suppression than
-the winner, the opposite of the model, though not significantly. Power limit: even 0 of
-109 would have reached only p = 0.047 uncorrected, so this test could never have strongly
-*confirmed* the rule.
-
-**T2 — structured BTTS (one team scores 1H, the other 2H).** Dead, and the control beat it.
-
-| tercile | structured BTTS | raw BTTS (control) |
-|---|---|---|
-| low | 5.67% | 4.54% |
-| mid | 5.69% | 5.48% |
-| high | 5.05% (0.91x) | 7.30% (1.32x, p = 0.087) |
-
-The refinement is flat and slightly inverted; plain BTTS rate is monotone. Note raw BTTS
-rate is a goal-volume proxy, so this is `LEAGUE_STUDY` F10's known totals dial
-reappearing, not a new signal. Lesson: **goal volume carries a little, goal pattern
-carries none.** The operator's ">= 4 of 6" threshold hit n = 22 — unusable.
-
-**T3 — round state.** 0 earlier comebacks 5.11% (n=1,390); 1 earlier 7.36% (n=299,
-lift 1.33x); 2+ earlier 6.25% (n=48). Non-monotone, CI contains base. Needs 1,422 matches
-in the middle bucket.
 
 **T4 — Monday / midweek.** Monday 2.90% (n=138, **4 comebacks**, lift 0.52x); midweek
 **5.70%** (lift 1.03x); rest of week 5.73%. The combined claim is half wrong — midweek
 shows zero suppression. Calling the Monday effect needs 444 Monday matches; 138 available.
-
-### The two leagues are not interchangeable
-
-| | n | comebacks | rate | 95% CI |
-|---|---|---|---|---|
-| English PL | 1,140 | 76 | 6.67% | [5.36%, 8.27%] |
-| Ekstraklasa | 918 | 38 | 4.14% | [3.03%, 5.63%] |
-
-chi2 = 5.73, p = **0.017**.
-
-**Superseded in part on 2026-09-23.** This section originally attributed about half the
-gap to goal environment. The chain decomposition does not support that: P(HT-decisive) is
-62.1% vs 60.5% — nearly equal — and the whole gap sits in the completion rate, 10.73% vs
-6.85%, z = +2.39, p = 0.017. See `notes/RETRY_CANDIDATES_2026-09-23.md` §2, which is the
-current reading and which moved F1 out of the graveyard on the strength of it.
-
-Two observations from here still stand:
-
-- **Ekstraklasa's season stability is too good to be a league trait.** Observed
-  season-to-season sd **0.19pp** against **1.14pp** of binomial noise; EPL 0.85pp against
-  1.28pp. Three seasons landing that close happens about 3% of the time.
-- `LEAGUE_STUDY` F1 remains the governing measurement: across 22 divisions, p = 0.18,
-  between-league true-rate sd 0.08pp, rankings do not persist (r = 0.108). It explicitly
-  warns that a two-league comparison (England vs Portugal, z = 2.09) looked significant
-  *because those were the extremes of 22 draws*.
 
 ### Why per-league A/B testing was rejected
 

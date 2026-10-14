@@ -34,10 +34,11 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
   1. Keep 0.80 (current, provisional).
   2. Lower it to a stated value.
   3. Replace the raw-|r| test with an incremental one: the candidate's partial
-     association after controlling for the market, as in LEAGUE_STUDY F10.
-- **Context:** `modelling/CLAUDE.md` §3 "Screening bars"; `notes/LEAGUE_STUDY.md` F10
-  (shot share, "priced"), F11 (venue "already priced"); `notes/STATE.md` ledger row
-  "Rolling last-5 shot share".
+     association after controlling for the market, as the old league study did (dropped
+     2026-10-13).
+- **Context:** `modelling/CLAUDE.md` §3 "Screening bars". Its examples, the old league
+  study's F10 (shot share, "priced") and F11 (venue "already priced") and their STATE rows,
+  were dropped on 2026-10-13.
 
 ### D3 — Step c for candidates that are themselves market prices
 
@@ -63,12 +64,11 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
   the largest |r| makes the low bar easier to pass and the high bar easier to trip.
 - **Options:**
   1. Keep max |r| across the pre-kickoff market columns (current, provisional).
-  2. Name one column (e.g. the favourite's `implied_live_*` probability, or the O/U line,
-     which MARKET_LINE found to be the one live ranker).
+  2. Name one column (e.g. the favourite's `implied_live_*` probability, or the O/U line).
   3. Use one composite market score (e.g. the multiple correlation R of the candidate on
      all market columns).
 - **Context:** `.claude/skills/new-candidate/SKILL.md` step c;
-  `notes/BEHAVIOURAL_RESULTS.md` §4, §5; `notes/MARKET_LINE_FINDINGS.md` §2–3.
+  `notes/BEHAVIOURAL_RESULTS.md` §4, §5.
 
 ### D5 — Give `features.engine --self-check` a post-match leak check (engineering task)
 
@@ -99,7 +99,7 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
 - **Items:**
   1. *(audit #2)* **Ambiguous label.** PREREGISTRATION A8.3 gives P(FT win | HT loss)
      reliability as 0.000 without saying whether it is split-half or depth-6.
-     RELIABILITY_SCREEN §2 has no row for this quantity. STATE already flags it on its row.
+     RELIABILITY_SCREEN §2 has no row for this quantity. STATE already flags it on its row. **Moot 2026-10-13:** the claim was dropped.
   2. *(audit #3)* **Figure not found in its cited source.** RETRY_CANDIDATES §4 row 2 gives
      table-vs-market divergence as 7.11%, 1.29×, p=0.060 and cites MARKET_LINE, but
      MARKET_LINE_FINDINGS has no such figure. Its §1 MH table (z=+1.12) does not reduce to
@@ -107,7 +107,7 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
      **Done 2026-10-11: marked unsourced** in the `notes/STATE.md` row. The run was never
      committed, and the only table columns in that corpus were the post-round positions
      (`home_team_position`, `away_team_position`, `position_gap`), which leak in this
-     claim's favour.
+     claim's favour. **Moot 2026-10-13:** the claim was dropped.
   3. *(audit #4)* **Dead path.** PREREGISTRATION A9.1 row 4 cites
      `notes/filter_study_raw.txt (1c5ac01)`. The file no longer exists and MIGRATIONS has
      no entry for it. Add a MIGRATIONS line pointing to `notes/FILTER_STUDY_RAW.md`.
@@ -119,12 +119,12 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
      the environment" puts AUC 0.592 (MARKET_LINE §2, environment target, pooled dev
      n=15,475) and 1.33× (§3, comeback target, test n=7,675) under the single n "7,675
      test". Split the key number and n in the STATE row. This is the one item that edits
-     STATE, not a historical note.
+     STATE, not a historical note. **Moot 2026-10-13:** the claim was dropped.
   6. *(second audit, #7)* **Truncated key number.** The STATE row "Rest days / calendar /
      open→close odds movement" gives the rest-days result as p=0.77. LEAGUE_STUDY F10 gives
      three sub-tests: p = 0.77 / 0.15 / 0.48 (min, differential, trailer's own). Fix in the
-     STATE row.
-  7. *(second audit, #8)* **Citation format.** STATE Open leads items 1 and 5 cite
+     STATE row. **Moot 2026-10-13:** the claim was dropped.
+  7. *(second audit, #8)* **Citation format.** STATE Open leads items 1 and 4 (5 before 2026-10-13) cite
      "PREREGISTRATION A9(c)" and "A9(b)". A9 numbers its sub-items 1–4, and A10 cites them
      as "A9.2", so these should read A9.3 (declare first) and A9.2 (the confirmatory set).
      Fix in STATE.
@@ -182,5 +182,5 @@ dated entry in the `notes/PREREGISTRATION.md` amendment log.
   (redundant above 0.80) still applies, and all of them pass it. D1 (the bar's value for other
   candidates) stays open.
 - **Amendment log:** `modelling/CLAUDE.md` §3 asks for a dated entry in
-  `notes/PREREGISTRATION.md` §10 when a bar changes. Not written: the next numbers, A11 and
-  A12, are reserved by the survey draft (`notes/PREREGISTRATION_SURVEY.md` Appendix C). Open.
+  `notes/PREREGISTRATION.md` §10 when a bar changes. Not written yet: the survey draft that reserved A11 and A12 was deleted on 2026-10-13, so the
+  next number is A11. Open.

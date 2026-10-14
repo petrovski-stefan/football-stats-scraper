@@ -67,7 +67,7 @@ contains the base rate. Headroom recovered: ~11%.
 
 - At n=591 the standard error on AUC is ≈0.03, so a true 0.55 sits inside the interval.
   **591 matches cannot resolve this; 25,000 can.**
-- The corpus serves the project goal regardless, and yields F1's league-bar survey free.
+- The corpus serves the project goal regardless.
 
 ## 2. Decisions taken 2026-07-25
 
@@ -81,13 +81,11 @@ contains the base rate. Headroom recovered: ~11%.
 ## Phase 0 — League list and preregistration (before any scraping)
 
 Criteria, fixed in writing and unrelated to comeback rate — any comeback-based selection
-self-invalidates via F1's winner's curse:
+self-invalidates through the winner's curse:
 
 1. nowgoal data completeness — standings dropdown present, 1X2 and O/U odds populated;
 2. ≥ 240 matches per season (power per league-season);
-3. country and tier spread, weighted toward the ~30 countries **not** in
-   football-data.co.uk's catalog, so F1's bar applies to genuinely unsurveyed leagues;
-4. 3–5 already-surveyed leagues retained as cross-source validation controls.
+3. country and tier spread.
 
 Deliverable: `notes/PREREGISTRATION_ENVIRONMENT.md` — league list, criteria, closed
 feature list, the Phase 2 bar, the evaluation protocol, and §1's figures recorded as prior
@@ -138,9 +136,8 @@ P(HT decisive ∧ FT decisive ∧ ≥3 goals).
 
 **Always reported:** the retained-rate curve (keep top 5%–65%) with CIs; the oracle ceiling
 recomputed on the new corpus; **headroom recovered** = (achieved − base) / (ceiling − base),
-the headline number either way; per-component AUC, which is what diagnosed the failure
-this time; and the **F1 league-bar survey** by-product — every league's comeback rate with
-CIs against the ≥8%-over-≥600-matches bar, plus the persistence test.
+the headline number either way; and per-component AUC, which is what diagnosed the failure
+this time.
 
 ## Files
 

@@ -536,15 +536,9 @@ The saved raw output of a run that reads outcomes. Commit it in the same commit 
 
 #### F-numbers
 
-An F-number (F1 to F13) names one finding of the league study.
+An F-number (F1 to F13) names one finding of an old league study. The project dropped that study on 2026-10-13.
 
-- **Why it matters:** The notes cite findings by these numbers.
-
-#### League bar (F1's bar)
-
-The preregistered bar for a new league. It has three parts: a minimum comeback rate over a minimum number of matches, a persistence test, and a mechanism story.
-
-- **Why it is high:** The best of many leagues shows a high rate by chance alone. See [winner's curse](#winners-curse).
+- **Why it matters:** Older notes still cite findings by these numbers.
 
 #### Retry list
 

@@ -112,8 +112,8 @@ FILTER_FAMILIES: dict[str, list[str]] = {
 #
 # The goal line is Asian and variable: nowgoal moves the line and holds both prices near
 # 1.90, so `ou_line` is the market's goal-total forecast and `implied_over` is only the
-# sub-quarter tilt around it. That is the opposite split from football-data.co.uk's fixed
-# 2.5 line, where the price carries everything (notes/MARKET_LINE_FINDINGS.md).
+# sub-quarter tilt around it. A fixed 2.5 line is the opposite split: there the price
+# carries everything.
 MARKET_LINE_FEATURES = ["ou_line", "implied_over", "ah_line", "abs_ah_line", "implied_ah_home"]
 
 # --- Goal timings (captured from 2026-09-22) ---------------------------------
@@ -341,7 +341,8 @@ def _block(df: pd.DataFrame, section: str, n: int, field: str) -> "pd.Series[Any
 def _corner_goal_share_gap(df: pd.DataFrame, section: str) -> "pd.Series[Any]":
     """Last-6 corner share minus goal share, from the subject team's perspective.
 
-    F7 (LEAGUE_STUDY): comeback teams out-shoot even ordinary winners, so a team
+    F7 of the old league study (dropped 2026-10-13): comeback teams out-shoot even
+    ordinary winners, so a team
     winning the corner count by more than the scoreline is the "deserved dominance
     not yet converted" candidate. Corners are the pressure proxy this corpus has.
     """
@@ -372,8 +373,8 @@ def _congestion(df: pd.DataFrame, section: str) -> tuple["pd.Series[Any]", "pd.S
     """Competitive matches in the last 14 days, and days since the last match.
 
     Genuinely nowgoal-exclusive: the history blocks carry cup and European
-    fixtures that football-data.co.uk omits entirely, so this is a different
-    variable from F10's (dead) league-only rest-days.
+    fixtures that league-only schedules omit, so this is a different variable
+    from league-only rest days.
     """
     played = pd.Series(0, index=df.index, dtype="int64")
     most_recent = pd.Series(pd.NaT, index=df.index, dtype="datetime64[ns]")
@@ -431,9 +432,7 @@ def _h2h_ht_nondraw_rate(df: pd.DataFrame) -> "pd.Series[Any]":
 def _market_lines(df: pd.DataFrame) -> dict[str, Any]:
     """The schedule page's Asian goal line and handicap, plus the handicap magnitude.
 
-    `abs_ah_line` is the match-mismatch measure `notes/MARKET_LINE_FINDINGS.md` used as
-    its negative control (|AHh| predicted comebacks at 0.502, dead, while predicting
-    decisiveness at 0.563). The sign convention differs from football-data's: here
+    `abs_ah_line` is the match-mismatch measure. Sign convention: here
     **positive means the home side is favoured**, so the absolute value is the comparable
     quantity, not the raw line.
 

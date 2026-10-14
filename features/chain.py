@@ -6,8 +6,9 @@
 The first factor is fitted here; the second is imported wholesale.
 
 Factor 1 is a pair of Poisson regressions on first-half goals, turned into a
-Skellam distribution over half-time margins. Factor 2 is LEAGUE_STUDY F11's
-completion model, imported wholesale so it costs no degrees of freedom.
+Skellam distribution over half-time margins. Factor 2 is F11's completion model,
+imported wholesale so it costs no degrees of freedom. F11 and its study were dropped
+on 2026-10-13 (notes/MIGRATIONS.md); this module goes with plan step P5.
 
 Baseline and candidate differ *only* in factor 1's feature set, so any difference
 between them is attributable to the half-time state and nothing else.
@@ -27,7 +28,7 @@ from features.engine import CONTROLS, FAMILIES
 from features.ratepair import RatePair
 
 # --- Factor 2: the imported F11 completion model ------------------------------
-# Coefficients published in notes/LEAGUE_STUDY.md F11, fitted there on 9,195
+# Coefficients published in F11 of the old league study (dropped 2026-10-13), fitted on 9,195
 # trailing states and validated walk-forward on 4,526 more. F11 reports slopes but
 # not the constant, so the intercept is recovered by n-weighted least squares
 # against F4's published eight-octile completion table (see recover_intercept()).

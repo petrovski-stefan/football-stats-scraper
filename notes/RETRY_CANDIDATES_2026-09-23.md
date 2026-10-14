@@ -3,6 +3,11 @@
 **Date:** 2026-09-23
 **Status:** list CLOSED. Amendments go in `PREREGISTRATION.md`'s log with a date, not here.
 
+> **Dropped, 2026-10-13** (the user): claims #1, #2, #3, #4, #7, #8, #9, #10 and #14 left the
+> project, with the old league study's findings. Six remain (#5, #6, #11, #12, #13, #15), and
+> they are §6's Holm family now. §1's example table measured claim #2; its method decision
+> stands.
+
 ## 0. Why this document exists before the data
 
 The corpus is about to grow from 6 league-seasons to a target of ~30 countries. Several
@@ -54,36 +59,9 @@ therefore the default for every claim below. It stays **one test**.
 seasons. Nothing fits on that.
 
 **Use a league dummy, not a goal-environment covariate.** The goal-env tercile recovers
-only ~60% of the stratified gain, and section 2 explains why.
+only ~60% of the stratified gain.
 
-## 2. The finding that re-tiers F1
-
-The EPL/Ekstraklasa comeback gap is **not** goal environment. Chain decomposition:
-
-| league | P(HT-decisive) | P(complete given HT-dec) | product |
-|---|---|---|---|
-| english_premier_league | 62.1% | **10.73%** | 6.67% |
-| poland_ekstraklasa | 60.5% | **6.85%** | 4.14% |
-
-P(HT-decisive) is nearly equal. The entire gap sits in the completion rate: z=+2.39,
-**p=0.017**. Per-league-season goals/match correlates with comeback rate at only +0.586
-across six points, and Ekstraklasa's season-to-season sd is 0.19pp against 1.14pp of
-binomial noise — too stable to be sampling noise.
-
-**This does not overturn F1.** `LEAGUE_STUDY` F1 measured 22 divisions and found a
-between-league true sd of 0.08pp at p=0.18, and it explicitly warns that a two-league
-comparison (England vs Portugal, z=2.09) looked significant "because those are the extremes
-of 22 draws." Ours is one hand-picked pair of two. p=0.017 uncorrected is exactly the
-warned-about case.
-
-It does mean F1 is **unresolved rather than dead**, and that the right target is the
-*completion rate* conditional on HT-decisive, not the raw comeback rate F1 pooled. That is
-a different quantity, and F1 never tested it per league.
-
-Replication power: to detect 10.73% vs 6.85% at 80% power, alpha=0.05 needs **832
-HT-decisive matches per league**, about 1,340 matches ~ 3.5 league-seasons each, ~7 total.
-Cheap. Resolving the full between-league variance needs ~20 leagues, which the planned
-scrape has.
+## 2. (dropped 2026-10-13: it held claim #1)
 
 ## 3. Tier 1 — more data will NOT help (do not retry)
 
@@ -91,14 +69,8 @@ These failed with adequate power. Retrying them spends multiplicity budget on kn
 
 | claim | source | measurement |
 |---|---|---|
-| F2 team comeback-proneness | LEAGUE_STUDY | Spearman 0.068 across seasons |
-| F3 balanced-match precondition | LEAGUE_STUDY | r=0.002, p=0.81 |
-| F12 chained pricer beats market | RESULTS | Brier 0.04809 vs 0.04812 |
-| half-time state is predictable | RESULTS | market beats a constant by 0.64% |
 | six nowgoal feature families | RESULTS | all six died on a preregistered slate |
 | behavioural hand-weighted rule | BEHAVIOURAL_RESULTS | 0.88x lift, corr +0.004 with HT-decisive |
-
-**F1 (league identity) has been REMOVED from this tier** — see section 2. It is now Tier 2.
 
 ## 4. Tier 2 — more data would help (the closed retry list)
 
@@ -107,15 +79,10 @@ Each row carries the matches needed for 80% power at alpha=0.05, computed with
 
 | # | claim | measured | needed | L-S | source |
 |---|---|---|---|---|---|
-| 1 | league completion-rate gap | 10.73% vs 6.85%, p=0.017 | ~2,700 | 7 | section 2 |
-| 2 | table-vs-market divergence | 7.11%, 1.29x, p=0.060 | ~1,900 | 5 | MARKET_LINE |
-| 3 | T3 round state | 7.36%, 1.33x, p=0.195 | ~1,400 | 4 | PLAN_2026-09-20 |
-| 4 | T1 exhaustion | 2.75% vs 2.77% | ~200 | 1 | PLAN_2026-09-20 |
 | 5 | out-of-round slate at 1.5x | 5.41%, 0.98x | ~12,000 | 35 | PLAN_2026-09-20 |
 | 6 | Monday suppression | 2.90% on 4 comebacks | ~6,600 | 19 | PLAN_2026-09-20 |
-| 7 | structured BTTS >=4/6 | 9.09% on n=22 | ~17,700 | 51 | PLAN_2026-09-20 |
 
-Rows 5-7 need more than the planned scrape delivers. They are on the list so that a later
+Rows 5–6 need more than the planned scrape delivers. They are on the list so that a later
 positive result cannot be presented as if it had been powered; they are **not** expected to
 resolve, and a null from them is uninformative.
 
@@ -126,13 +93,9 @@ family, because they are tested on the same corpus at the same time.
 
 | # | claim | instrument |
 |---|---|---|
-| 8 | comeback structure in the unsurveyed ~30 countries | the scrape itself; F1's preregistered bar |
-| 9 | nowgoal O/U 2.5 line reproduces the AUC 0.592 result | MARKET_LINE_FINDINGS on an in-house line |
-| 10 | Asian Handicap line adds over the O/U line | new columns, `parse_ah_odds` |
 | 11 | `conceded_pre_ht_rate` (36-45') predicts HT-decisive | `features/goals.py` |
 | 12 | `late_goal_rate` (>=75') beats comeback counts as proneness | HANDOFF section 9 item 7 |
 | 13 | the 36 time buckets carry anything the aggregates do not | `features/goals.py:BUCKETS` |
-| 14 | over-6.5 via the scoreline model (F9/F13) | `modelling/scoreline.py` |
 | 15 | cards and substitutions as team traits, incl. `yellows_while_leading_avg` | `features/events.py` |
 
 **Claim 15 was added by amendment `PREREGISTRATION.md` A8 (2026-09-23), before the scrape.**
@@ -142,11 +105,6 @@ comeback labels were looked at while designing the family. And every feature in 
 already passed the §6.7 reliability screen; two candidates that did not —
 a trailing-conditioned first-substitution minute (-0.004) and `P(FT win | HT loss)`
 (0.000) — were dropped before costing a test.
-
-Item 14 is the one with a *prior positive*: F9 found real league structure in over-6.5
-(chi2=79.6, p=9e-9, r=0.84 with goals/match, 5x spread). Unlike comebacks, splitting by
-league is substantively correct there — but as a **continuous goal-environment covariate**,
-which generalises to a country not yet scraped, rather than a dummy that does not.
 
 ## 6. Protocol
 
@@ -181,9 +139,9 @@ A claim passes only with all four: Holm-corrected p < 0.05; Wilson lower bound a
 base rate; lift >= 1.25x at a slate size fixed **before** looking; and the same sign in
 leave-one-league-out. Three of four is a null with a note, not a finding.
 
-## 8. Reproducing section 1 and section 2
+## 8. Reproducing section 1
 
-Both were measured on the 6-league-season backup (EPL + Ekstraklasa, 2023-24 through
+It was measured on the 6-league-season backup (EPL + Ekstraklasa, 2023-24 through
 2025-26), which was trimmed out of `data/` on 2026-09-22 to speed up schema iteration. The
 numbers above are the record; re-deriving them needs that corpus back, which the planned
 full scrape restores as a by-product. No code was added to the repo for this — the analysis

@@ -105,7 +105,7 @@ def holm(pvalues: dict[str, float]) -> dict[str, tuple[float, bool]]:
 def walk_forward(df: pd.DataFrame, feature_names: list[str], alpha: float) -> pd.DataFrame:
     """Expanding-window walk-forward: predict each round from strictly earlier matches.
 
-    Training pools across leagues (LEAGUE_STUDY F1: leagues don't differ), but is
+    Training pools across leagues, but is
     always cut off by date, so no future match ever informs a prediction.
     """
     df = df.sort_values("date").reset_index(drop=True)

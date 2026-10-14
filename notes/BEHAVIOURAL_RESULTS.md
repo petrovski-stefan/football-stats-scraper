@@ -11,7 +11,7 @@ ones that were reported at the time. Treat them as a faithful record of a measur
 that was made, not as a reproducible artefact: no code for this rule is in the repo, so
 re-deriving it means re-implementing it from §2.
 
-Companions: `notes/RESULTS.md`, `notes/FILTER_RESULTS.md`, `notes/LEAGUE_STUDY.md` F2.
+Companions: `notes/RESULTS.md`, `notes/FILTER_RESULTS.md`.
 
 ---
 
@@ -108,7 +108,7 @@ neither. This is the same wall `RESULTS.md` §3 hit from the other direction —
 bookmaker's full information beat a constant on the half-time state by 0.64%; here, a
 team's own recovery and collapse history correlates with it at 0.004.
 
-It also closes a loop with `LEAGUE_STUDY.md` **F2**, which killed comeback-proneness built
+It also closes a loop with **F2** of the old league study (dropped 2026-10-13), which killed comeback-proneness built
 from *comeback counts* and recommended building it from *mechanisms* instead. This rule
 did exactly that — HT-state transitions, half-splits, goal volume — and the mechanism
 version dies too, on this corpus.

@@ -75,8 +75,6 @@ finished matches scored above or below their opening lines.
 - **Values, 2026-10-13:** S3.17 is 1 or more for 14.7% of matches (S3.15 for 11.1%, S3.16 for
   5.0%); none is above 3 (`notes/runs/2026-10-13_round_so_far/out.txt`). S3.18 is 1 or more
   for 56.1%, and S3.19–20 have a value for 67.0% (`notes/runs/2026-10-13_round_goals/out.txt`).
-- **S3.05** (§C, deferred) is S3.15 ≥ 1, without the 5-day limit. Retry claim #3, the round
-  state, is the related claim (`notes/RETRY_CANDIDATES_2026-09-23.md` §4).
 - **Checked 2026-10-13:** a recount with plain loops gave the same values on all 36,238 rows,
   for S3.14–17 and for S3.18–20; scrambling the results and lines of every match outside the
   window (the match's own included) moved none of 150 sampled matches' values, in each run.
@@ -187,22 +185,16 @@ holds.
   zone-based version (points to the promotion, play-off and relegation lines, a "nothing left
   to play for" flag) needs a zone table per league-season first.
 
-## C. The survey's planned flags (`notes/PREREGISTRATION_SURVEY.md` §7.4)
+## C. Planned flag
 
 | # | field | formula | row window | type | example | timing | role | status |
 |---|---|---|---|---|---|---|---|---|
-| S3.05 | `s3_round_state` | at least 1 comeback (S2.26) in the same stage and round, in a match that kicked off 2 h 30 min or more before this one | rows of the same season, stage and round with kickoff ≤ this kickoff − 2 h 30 min | bool | ? | before | input | **deferred** to Phase S step 10, the survey build (claim #3) |
-| S3.06 | `s3_{side}_prev_comeback_win` | the side's previous match in this league-season, by kickoff, was a comeback win for it (S2.27 or S2.28, on its side) | the side's rows of the same league-season with kickoff < this kickoff; the latest one | bool | ? | before | input | **deferred** to Phase S step 10 (claim #4) |
-| S3.07 | `s3_out_of_round` | a round-X match that kicks off after the first kickoff of any round Y > X of the same stage | kickoff times of the same stage's later rounds that are earlier than this kickoff | bool | ? | before | input | **deferred** to Phase S step 10 (claim #5). **Problem with the definition**, below |
+| S3.07 | `s3_out_of_round` | a round-X match that kicks off after the first kickoff of any round Y > X of the same stage | kickoff times of the same stage's later rounds that are earlier than this kickoff | bool | ? | before | input | **deferred** until IDEAS idea 13 settles the out-of-round definition. **Problem with the definition**, below |
 
-Survey claim #2 (table vs market) is built at analysis time from S3.03 and S2.17–19; it adds no
-stored field.
-
-**S3.07's definition, as the survey draft words it, misfires on a brought-forward match** (found
+**S3.07's definition misfires on a brought-forward match** (found
 2026-10-06). EPL 2025-26's round 31 started with Wolves v Arsenal on 18 Feb, a month early. By
 "kicks off after the first kickoff of any round Y > X", every match of rounds 27–30 (played after
-18 Feb) is then out of round. Settle the wording at Phase S step 8 (`notes/IDEAS_2026-10-01.md`,
-idea 13's list).
+18 Feb) is then out of round. Settle the wording in `notes/IDEAS_2026-10-01.md` idea 13.
 
 ## D. Open points — Claude's, no user decision needed
 

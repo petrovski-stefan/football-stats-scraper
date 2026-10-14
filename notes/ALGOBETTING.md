@@ -156,4 +156,4 @@ The main line already contains *how good* the teams are. Every HT/FT feature tha
 - Dixon & Robinson (1998) — in-play birth process (score/time effects)
 - Karlis & Ntzoufras — bivariate Poisson; Rue & Salvesen — dynamic strengths
 - Buchdahl — *Squares & Sharps*, *Monte Carlo or Bust*; Sumpter — *Soccermatics*; Miller & Davidow — *The Logic of Sports Betting*
-- Data/tools: `penaltyblog`, understat, FBref, football-data (historical odds & minute data)
+- Data/tools: `penaltyblog`, understat, FBref

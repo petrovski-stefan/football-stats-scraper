@@ -1,5 +1,9 @@
 # PREREGISTRATION.md — Can nowgoal-exclusive features overturn F12?
 
+> **2026-10-13:** F12, F11 and every other F-number below belong to the old league study,
+> dropped from the project that day (`notes/MIGRATIONS.md`). The text is history, except that
+> the outside corpus is no longer named.
+
 **Written 2026-07-25, before any model was fitted and before the holdout season was
 touched.** Everything in this document is fixed. Nothing may be added to the family list,
 no bar may be moved, and no split may be redrawn after results are seen. Deviations, if
@@ -11,10 +15,10 @@ silently.
 ## 1. The claim under test
 
 `notes/LEAGUE_STUDY.md` **F12** concluded that pre-match comeback prediction is refuted:
-on 23,127 football-data.co.uk matches the best constructible chained model scored a
+on 23,127 matches from an outside corpus the best constructible chained model scored a
 held-out Brier of 0.04809 against 0.04812 for a constant "always say 5%" — a tie.
 
-That verdict was reached with football-data's entire feature vocabulary: **closing 1X2
+That verdict was reached with that corpus's entire feature vocabulary: **closing 1X2
 odds, an Asian-handicap line, and an over/under 2.5 price.** It contained no team-level
 information of any kind. F12 is therefore a statement about *what a price can predict*,
 not about what is predictable.
@@ -86,7 +90,7 @@ All are computed with a strict as-of cutoff (`round < current round`, 5-round bu
 
 **Family E is genuinely exclusive and is backward-looking only.** The history blocks carry
 FA Cup, League Cup, Champions League, Europa League, Conference League, Club World Cup and
-friendly fixtures — competitions football-data.co.uk omits entirely, so its "rest days"
+friendly fixtures — competitions the outside corpus omits entirely, so its "rest days"
 (dead at p = 0.77 in F10) measured only *league* gaps and is a different variable from
 this one. Friendlies are excluded from the congestion count; competitive matches only.
 The forward-looking half is **dropped** — see §9.
@@ -217,9 +221,9 @@ Established 2026-07-25, before modelling:
   drift, not of a settled price. A post-match price would have driven Brier toward ~0.05.
   Re-verified per league in `modelling/experiment.py` as a standing regression test.
 - All other `qa/validate.py` checks pass. At the time of writing this included
-  cross-source reconciliation of every Premier League season against football-data.co.uk
+  cross-source reconciliation of every Premier League season against an outside corpus
   (scores, comeback counts, 7+ counts); that check was retired with the corpus on
-  2026-07-26 — see `notes/MARKET_LINE_FINDINGS.md` §6.
+  2026-07-26 (`notes/MIGRATIONS.md`).
 
 ## 10. Amendments
 
@@ -422,7 +426,7 @@ PLANs: three times; RETRY §6.6 and A8.4: "unspent"). Every recorded use of 2025
 
 | # | date | analysis | recorded in | committed raw output |
 |---|---|---|---|---|
-| 0 | ≤ 2026-07-26 | LEAGUE_STUDY F11–F13 tested on 2025-26 (football-data corpus) | LEAGUE_STUDY F11–F13 | none |
+| 0 | ≤ 2026-07-26 | LEAGUE_STUDY F11–F13 tested on 2025-26 (outside corpus) | LEAGUE_STUDY F11–F13 (dropped 2026-10-13) | none |
 | 1 | 2026-07-25 | `modelling.experiment --holdout`, 591 matches | RESULTS §2; A7 | none — transcript lost (A7) |
 | 2 | 2026-07-25 | filter pilot, 2023-25 → 2025-26 | PREREG_FILTER §3 | none |
 | 3 | 2026-07-25 | environment-model held-out AUC, n=591 | PLAN_2026-07-25 §1 | none |

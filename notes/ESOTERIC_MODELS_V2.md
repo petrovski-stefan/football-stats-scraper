@@ -3,6 +3,10 @@
 **Status: PARKED, 2026-10-01. Nothing here is tested or scheduled.** It belongs to
 `notes/IDEAS_2026-10-01.md` Phase C (idea 14a).
 
+> **2026-10-13:** the survey draft this review leans on (baseline B, its families) and the old
+> league study, whose F-numbers it cites, were dropped (`notes/MIGRATIONS.md`). The text is not
+> edited.
+
 The source is a proposal written by another AI and pasted in by the user. Claude reviewed it
 against this project's data and findings. The proposal's content is kept where it holds; where
 it does not, the correction is stated. Numbering continues from `notes/ESOTERIC_MODELS.md`
@@ -22,7 +26,7 @@ it does not, the correction is stated. Numbering continues from `notes/ESOTERIC_
    information the market lacks?" last, as Hypothesis 8. Here it is the gate.
    `notes/RESULTS.md` §3: the price beats a constant on the half-time state by 0.64%, and six
    team-level feature families added 4% of that. Every model below is tested *beyond the
-   market* (draft `notes/PREREGISTRATION_SURVEY.md` §6.1), or it has not been tested.
+   market*, or it has not been tested.
 3. **The data that exists.**
    - **Have:** HT/FT scores; opening 1X2, main AH and main O/U odds; goal minutes; card and
      substitution minutes with player names (live page, Tier D); six-match history blocks.
@@ -175,8 +179,7 @@ Made specific for this project:
   lift, tested beyond B.
 - **Pricing questions:** log loss, Brier, calibration curves and PIT diagnostics, out of
   sample in time.
-- **Fresh data:** a model chosen on DEV is judged once on data it never saw (draft
-  `notes/PREREGISTRATION_SURVEY.md` §2).
+- **Fresh data:** a model chosen on DEV is judged once on data it never saw.
 
 ## References
 

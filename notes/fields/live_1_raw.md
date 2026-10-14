@@ -64,7 +64,7 @@ it is an input only for later matches, through their history (`live_3_multi.md`)
 
 | C | what the page shows | where | timing | proposal |
 |---|---|---|---|---|
-| C16 | **match statistics**, about 30 per team, for the full match and each half: corners, cards, shots, shots on goal, attacks, dangerous attacks, possession, passes, fouls, offsides, saves and more. Example: shots 14–11, shots on goal 6–6, possession 70%–30% | "Statistics" | after (as history: before) | add ? per-half shots and attacks for history matches. Shots bring back F7 (idea 18) |
+| C16 | **match statistics**, about 30 per team, for the full match and each half: corners, cards, shots, shots on goal, attacks, dangerous attacks, possession, passes, fouls, offsides, saves and more. Example: shots 14–11, shots on goal 6–6, possession 70%–30% | "Statistics" | after (as history: before) | add ? per-half shots and attacks for history matches |
 | C17 | Bet365 corner over/under odds (Initial 11, Live 11.5) | "Bet365 Corner Odds" | before | skip ? (corners market) |
 | C18 | team averages over the last 3 and last 10 matches: goals, conceded, opponent shots, corners, yellow cards, fouls, possession | "Team Statistics" | ? (which date are they counted to?) | ? |
 | C19 | rate of goals scored and conceded by 15-minute bucket, last 30 and last 50 matches | "The Rate of Scored / Conceded" | ? | ? |

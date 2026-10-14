@@ -29,10 +29,8 @@ Fixed before any new feature was screened against them. Both screens are outcome
 
 - **Stratify by league, never test per league.** Pool with Mantel–Haenszel over league-season strata.
 - The retry list for the multi-country scrape is **closed**: `notes/RETRY_CANDIDATES_2026-09-23.md`. Do not add claims after the data arrives.
-- **F1 is out of the graveyard.** Do not treat it as refuted; its retest is defined in the retry list.
 - Do not propose a new pre-match comeback feature without reading `notes/RESULTS.md` and `notes/FILTER_RESULTS.md`.
-- The market-line result is exploratory, not preregistered: read `notes/MARKET_LINE_FINDINGS.md` §4 before quoting it.
 
 ## 5. `scoreline.py`
 
-`modelling/scoreline.py` is a calibrated generative model of the full scoreline distribution. It is the reusable asset from the filter study, and the natural instrument for the over-6.5 market (F9/F13), which is a direct functional of the same goal distribution. Validate with `--self-check --leak-check`.
+`modelling/scoreline.py` is a calibrated generative model of the full scoreline distribution. It is the reusable asset from the filter study, and the natural instrument for the over-6.5 market, which is a direct functional of the same goal distribution. Validate with `--self-check --leak-check`.

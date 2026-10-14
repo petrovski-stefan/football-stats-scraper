@@ -44,7 +44,7 @@ file, the note wins; say so.
    rewording, a re-weighting, a different window, or a conditioning that the note already
    rejected (e.g. RELIABILITY §3 forbids conditioning `first_sub_minute_avg`) — **stop**.
    Cite the row verbatim (claim, status, key number, n, source) and the source section.
-3. Otherwise, check the closed retry list (RETRY §4–5 as amended by A8: **15 claims**).
+3. Otherwise, check the closed retry list (RETRY §4–5 as amended by A8; **6 claims** left after the 2026-10-13 drop).
    - On it → record the claim number. Claim 15 carries the A8.4 condition: the
      `english_premier_league 2025-2026` stratum is excluded.
    - Not on it → label the run **EXPLORATORY-ONLY** for every later step. The list is
@@ -85,10 +85,9 @@ No code exists for this screen → stop and ask before writing it (see Rules).
 
 BEHAVIOURAL §5.2 / RETRY §6.5: correlate the candidate's score with the market price
 before any outcome test. Use the pre-kickoff market columns in the detail/enriched files
-(`implied_init_*`, `implied_live_*`; the O/U line if the corpus carries it — MARKET_LINE
-found it the one live ranker). Report Pearson r per market column, with n and a 95% CI.
+(`implied_init_*`, `implied_live_*`; the O/U line if the corpus carries it). Report Pearson r per market column, with n and a 95% CI.
 
-If the candidate **is** a market price or line (e.g. retry claims #9, #10), correlating it
+If the candidate **is** a market price or line (e.g. the O/U line), correlating it
 with the market is meaningless: write "c: not applicable (candidate is a market price)"
 and go to d.
 

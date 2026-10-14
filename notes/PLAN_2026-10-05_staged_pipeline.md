@@ -128,7 +128,7 @@ history slots × 27), goals 9 + 3, events 9 + 3.
 | P4 | Detail: stage-1 scraper (match-level + long history), stage-2 and stage-3 builders. Stage 2 of the history file carries a read-only `d2_is_friendly` per history row (the user, 2026-10-10), from `domain/scope.py:is_friendly`; tournament friendlies without "friendly" in their name slip through (`qa/CLAUDE.md` §3) | Claude | ~2.5 days |
 | P5 | The join; re-point `features/`, `modelling/`, `qa/` and the goal/event work lists (`scrapers/goals.py:history_ids` reads the history file) | Claude | ~0.5 day |
 | P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 36k pages (36,238 matches, 2026-10-13), ~18 h at the one measured rate (`notes/PLAN_2026-07-25_environment_filter.md` Phase 1) |
-| P7 | Freeze the stage-1 docs. With Phase S's other conditions, this unblocks the CONFIRM scrape | user | — |
+| P7 | Freeze the stage-1 docs | user | — |
 
 P2 comes before P4: the docs are the spec the code is written to.
 

@@ -4,6 +4,10 @@
 was fitted; three amendments, all logged before the holdout was opened). Reproduce with
 `uv run python -m modelling.experiment --holdout`.
 
+> **2026-10-13:** F12, which this study tested against, F11, which it imported, and every
+> other F-number below belong to the old league study, dropped from the project that day
+> (`notes/MIGRATIONS.md`). The six families stay; §3 and §4 are deleted.
+
 ## Verdict
 
 **No. Both preregistered bars fail, and the well-powered test fails cleanly.**
@@ -80,49 +84,9 @@ second-to-last. Being unpriced is not the same as being informative.
      top third                n=195  hits= 7  rate= 3.59%  lift=0.64x  CI[1.75%, 7.22%]  fail
 ```
 
-## 3. Why it fails — the finding underneath the null
+## 3. (dropped 2026-10-13: the half-time state's predictability)
 
-The decomposition was supposed to rescue power by moving the test onto the common factors.
-It did exactly that, and the well-powered factor-1 test is what makes this a real negative
-rather than an underpowered shrug. The measurement:
-
-| predictor of "someone leads at half-time" | Brier | gain vs constant |
-|---|---|---|
-| constant (61.1%) | 0.237717 | — |
-| market price + totals | 0.236200 | −0.001517 (**0.64%**) |
-| + all six nowgoal families | 0.236141 | −0.001576 (0.66%) |
-
-**The half-time state is very close to unpredictable, by anyone.** A professional
-bookmaker's price — carrying lineups, injuries, motivation and everything else the market
-knows — improves on a constant by 0.64%. That is the ceiling, and it is a low one. The
-nowgoal features add 0.000059 on top: about 4% of the market's own tiny gain, with a CI
-spanning zero in both directions.
-
-This is the mechanism behind F12's null, and it explains why no feature set can rescue the
-chain. P(comeback) = P(someone trails) × P(they complete). The second factor is steeply
-predictable (F4: 2.6% → 25.6% across trailer strength) but it only activates at half-time.
-The first factor is what a *pre-match* model must supply, and it is nearly a coin flip. A
-chained pre-match pricer is therefore bounded by the least predictable link in the chain,
-and no amount of team-level history changes which link that is.
-
-The features are not broken — they learn the right directions. In the fitted candidate,
-`home_ht_trail_rate` carries −0.043 on home first-half goals and `away_ht_trail_rate`
-+0.044: a team that trails often scores fewer first-half goals, and its opponent scores
-more. Correct sign, right mechanism, magnitude too small to matter.
-
-## 4. What did replicate
-
-**LEAGUE_STUDY F11's completion model, imported wholesale, works on this corpus.** Its
-coefficients were fitted on 9,195 trailing states from a disjoint corpus
-(football-data.co.uk); its intercept was recovered from F4's published octile table with
-no data from this corpus. Applied to our 1,090 trailing states it comes out monotone
-(0.4% → 6.6% → 12.0% → 17.5% by quartile) and predicts 8.8% against 9.0% observed. On the
-holdout's 361 trailing states it beats a constant by 2.0% relative — the largest effect
-anywhere in this study, though its CI also spans zero at n=361.
-
-That is a genuine cross-corpus, cross-source replication: an nowgoal-scraped corpus
-independently confirms a model fitted on football-data.co.uk. It validates both F11 and
-this pipeline's data quality.
+## 4. (dropped 2026-10-13: the F11 replication)
 
 ## 5. Reading the slate inversion
 

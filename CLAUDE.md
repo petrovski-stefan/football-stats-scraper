@@ -103,18 +103,16 @@ Start with **`notes/STATE.md`**, the current state of the research. Before propo
 - `notes/HANDOFF.md` — before any prediction, feature or analysis work: strategy guide, base rates, pipeline-specific leakage traps, methodology rules, roadmap.
 - `notes/STATS_PRIMER.md` — when a roadmap step uses Empirical Bayes shrinkage, Brier scores, calibration curves or Dixon–Coles and you need the formulas.
 - `notes/ESOTERIC_MODELS.md` — when a modelling step matches one of its seven tools' tagged "reach for it when" moments.
-- `notes/LEAGUE_STUDY.md` — before designing any comeback feature, and before admitting a new country as a comeback-candidate league (defines the bar).
 - `notes/POINTS_DEDUCTIONS.md` — before touching standings points or rank, or when the final-table check fails on points: every known deduction with its date, cause and source (option A now, C later).
 - `notes/LEAGUES_INCIDENTS.md` — before analysing, keeping or dropping any scraped league: known match-fixing incidents per league (unverified), and the rule that such decisions use outcome-blind data-quality checks only.
 - `notes/PREREGISTRATION.md` — before testing any claim; it is the template (closed family list, Holm correction, one holdout opening, dated amendments).
-- `notes/RESULTS.md` — before proposing any new pre-match comeback feature (the F12 re-test with nowgoal-exclusive features).
+- `notes/RESULTS.md` — before proposing any new pre-match comeback feature (six nowgoal-exclusive feature families, all dead).
 - `notes/PREREGISTRATION_FILTER.md` — when reading or re-running the exclusion-filter study; the closed preregistration it was held to (its verdict is in `FILTER_RESULTS.md`).
 - `notes/FILTER_RESULTS.md` — before proposing any filter that excludes "comeback-impossible" matches.
 - `notes/FILTER_STUDY_RAW.md` — only when auditing the filter study's numbers; the frozen raw transcript of the 2026-07-25 `filter_study --bar` run. Later runs save to `notes/runs/` instead.
-- `notes/MARKET_LINE_FINDINGS.md` — before quoting the market-line result or planning the corpus scrape (its §4 caveats and §7 purpose change are required reading).
 - `notes/BEHAVIOURAL_RESULTS.md` — before proposing any hand-weighted candidate rule; it introduced the candidate protocol.
 - `notes/RETRY_CANDIDATES_2026-09-23.md` — before retrying anything that already failed, and before the multi-country scrape's analysis.
 - `notes/RELIABILITY_SCREEN_2026-09-23.md` — before building any history-block feature, especially one on cards or substitutions.
-- `notes/PLAN_2026-07-25_environment_filter.md` — when picking up the multi-country corpus scrape; the open phases of the comeback-environment plan (§1's ceiling is an oracle: that it loses no comebacks is true by definition, `notes/MARKET_COMEBACKS.md` §1 "Filters that remove impossible matches"; its purpose was revised by `MARKET_LINE_FINDINGS.md` §7).
+- `notes/PLAN_2026-07-25_environment_filter.md` — when picking up the multi-country corpus scrape; the open phases of the comeback-environment plan (§1's ceiling is an oracle: that it loses no comebacks is true by definition, `notes/MARKET_COMEBACKS.md` §1 "Filters that remove impossible matches").
 - `notes/PLAN_2026-09-20_next_direction.md` — when deciding what to do next. Its §1 out-of-round refutation does not stand (erratum 2026-10-11: the flag misfired, so the claim is reopened), and its T4 most likely measured Sundays, not Mondays; §2 (the prospective gut log) is still open.
 - `notes/ALGOBETTING.md` — background only: a conversation summary on market structure, CLV, the modelling lineage and Asian handicaps. It predates every measured result here, so none of its claims are tested.

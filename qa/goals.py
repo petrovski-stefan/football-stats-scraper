@@ -25,8 +25,8 @@ from qa.report import Report
 MAX_MINUTE = 90  # regulation only; extra time is dropped at parse time
 MAX_STOPPAGE = 20
 HALF_TIME = 45
-# notes/LEAGUE_STUDY.md: second halves carry 55.5% of goals, league range 53.7-57.0%,
-# measured on a disjoint 23,127-match corpus. Widened slightly for sampling noise.
+# Band for the second-half share of goals, set from an outside corpus that was dropped on
+# 2026-10-13. Re-derive it from our own HT and FT scores at plan step P5.
 SECOND_HALF_SHARE_MIN = 0.52
 SECOND_HALF_SHARE_MAX = 0.59
 MIN_GOALS_FOR_SHARE = 500
@@ -187,8 +187,7 @@ def _per_match_totals(goals: pd.DataFrame) -> dict[str, tuple[int, int, int, int
 def second_half_share(goals: pd.DataFrame) -> float | None:
     """Share of goals scored after half-time.
 
-    `notes/LEAGUE_STUDY.md` measured 55.5% on a disjoint 23,127-match corpus, league range
-    53.7-57.0%. The same quantity is computable from the stored ht/ft columns with no
+    The same quantity is computable from the stored ht/ft columns with no
     minute data at all, so agreement between the two is a real check, not a tautology.
     """
     if goals.empty:
@@ -209,10 +208,10 @@ def _check_half_split(r: Report, goals: pd.DataFrame) -> None:
     if len(goals) < MIN_GOALS_FOR_SHARE:
         print(f"    (info) 2H goal share {share:.1%} on {len(goals)} goals (too few to judge)")
         return
-    print(f"    (info) second-half goal share {share:.1%} (LEAGUE_STUDY: 55.5%)")
+    print(f"    (info) second-half goal share {share:.1%}")
     r.check(
         SECOND_HALF_SHARE_MIN <= share <= SECOND_HALF_SHARE_MAX,
         f"second-half goal share {share:.1%} outside the {SECOND_HALF_SHARE_MIN:.1%}-"
-        f"{SECOND_HALF_SHARE_MAX:.1%} band LEAGUE_STUDY measured across 22 divisions — "
+        f"{SECOND_HALF_SHARE_MAX:.1%} band — "
         f"minutes may be systematically mis-assigned to a half",
     )
