@@ -1,0 +1,222 @@
+"""The odds yardstick: the goal rates that the opening prices imply, and what they expect.
+
+For each match, the yardstick finds the home and away goal rates of the basic goal model
+(independent Poisson counts, `notes/REFERENCE/MARKET_COMEBACKS.md` "The basic goal model")
+that best reproduce the market: Shin's home and away probabilities from the opening 1X2
+(`methods/shin.py`) and the fair over price at the opening Asian O/U line (stage 2's
+`s2_implied_over`). One first-half share, taken from the data, splits each rate into
+halves. The four rates then give the model's chances of a comeback, a decisive half-time,
+7+ goals, 0-0 and 1-1, and of a completion from the half-time score that happened.
+
+The fit is a nearest neighbour on a grid of rate pairs, one KD-tree per O/U line, in the
+space of (home win, away win, fair over) probabilities. Three market numbers meet two
+rates, so the fit is a least-squares compromise, and `fit_error` says how far it is.
+"""
+
+from dataclasses import dataclass
+
+import numpy as np
+import pandas as pd
+from scipy import stats as sps
+from scipy.spatial import cKDTree
+
+from analysis.methods import shin
+
+RATE_STEP = 0.02
+RATES = np.arange(RATE_STEP, 6.0 + 1e-9, RATE_STEP)
+MAX_GOALS = 25  # per team, for the grid's win probabilities; the mass beyond is negligible
+MAX_DEFICIT = 11  # half-time deficits summed over for a comeback
+OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
+
+
+@dataclass(frozen=True)
+class Grid:
+    """Every pair of rates on the grid, with the model's home and away win chances."""
+
+    home: np.ndarray
+    away: np.ndarray
+    p_home: np.ndarray
+    p_away: np.ndarray
+
+
+def build_grid(rates: np.ndarray = RATES) -> Grid:
+    """The rate pairs and their win chances under independent Poisson goals."""
+    home, away = (axis.ravel() for axis in np.meshgrid(rates, rates, indexing="ij"))
+    goals = np.arange(MAX_GOALS)
+    pmf_home = sps.poisson.pmf(goals[None, :], home[:, None])
+    pmf_away = sps.poisson.pmf(goals[None, :], away[:, None])
+    # P(the other side scores fewer than k goals), for each k: the cdf one goal behind.
+    fewer_away = np.cumsum(pmf_away, axis=1) - pmf_away
+    fewer_home = np.cumsum(pmf_home, axis=1) - pmf_home
+    p_home = (pmf_home * fewer_away).sum(axis=1)
+    p_away = (pmf_away * fewer_home).sum(axis=1)
+    return Grid(home, away, p_home, p_away)
+
+
+def fair_over(total: np.ndarray, line: float) -> np.ndarray:
+    """The fair over chance W / (W + L) at an Asian goal line, for Poisson goal totals.
+
+    A quarter line (2.25) splits the stake between its two neighbours (2.0 and 2.5). An
+    integer line returns the stake when the total equals it, so the push drops out.
+    """
+    parts = (line - 0.25, line + 0.25) if round(line * 4) % 2 == 1 else (line,)
+    win = np.zeros(np.shape(total))
+    loss = np.zeros(np.shape(total))
+    for part in parts:
+        floor = int(np.floor(part + 1e-9))
+        is_integer = abs(part - round(part)) < 1e-9
+        win += sps.poisson.sf(floor, total)
+        loss += sps.poisson.cdf(floor - 1 if is_integer else floor, total)
+    return np.asarray(win / (win + loss))
+
+
+def fit_rates(
+    grid: Grid, p_home: np.ndarray, p_away: np.ndarray, over: np.ndarray, lines: np.ndarray
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """Per match, the grid's home and away rates nearest to its three market numbers.
+
+    Returns the two rates and the fit error: the Euclidean distance, in probability, from
+    (P(home), P(away), fair over) of the market to the same three numbers of the model.
+    """
+    lam_home, lam_away, error = (np.full(len(lines), np.nan) for _ in range(3))
+    total = grid.home + grid.away
+    for line in np.unique(lines):
+        rows = np.flatnonzero(lines == line)
+        tree = cKDTree(np.column_stack([grid.p_home, grid.p_away, fair_over(total, float(line))]))
+        distance, nearest = tree.query(np.column_stack([p_home[rows], p_away[rows], over[rows]]))
+        lam_home[rows] = grid.home[nearest]
+        lam_away[rows] = grid.away[nearest]
+        error[rows] = distance
+    return lam_home, lam_away, error
+
+
+def implied(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.DataFrame:
+    """The model's chances per match, from the two rates and the first-half share.
+
+    `m_cb_home` sums, over each half-time deficit d of the home team, P(behind by d at HT)
+    times P(win the second half by more than d); `m_cb_away` mirrors it.
+    """
+    h1, a1 = share * lam_home, share * lam_away
+    h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
+    cb_home = np.zeros(len(lam_home))
+    cb_away = np.zeros(len(lam_home))
+    for deficit in range(1, MAX_DEFICIT + 1):
+        cb_home += sps.skellam.pmf(-deficit, h1, a1) * sps.skellam.sf(deficit, h2, a2)
+        cb_away += sps.skellam.pmf(deficit, h1, a1) * sps.skellam.cdf(-deficit - 1, h2, a2)
+    total = lam_home + lam_away
+    return pd.DataFrame(
+        {
+            "m_cb_home": cb_home,
+            "m_cb_away": cb_away,
+            "m_cb": cb_home + cb_away,
+            "m_ht_decisive": 1.0 - sps.skellam.pmf(0, h1, a1),
+            "m_seven": sps.poisson.sf(6, total),
+            "m_00": np.exp(-total),
+            "m_11": lam_home * lam_away * np.exp(-total),
+            "m_goals": total,
+            "m_goals_1h": share * total,
+            "m_goals_2h": (1 - share) * total,
+        }
+    )
+
+
+def completion_given_ht(
+    lam_home: np.ndarray,
+    lam_away: np.ndarray,
+    share: float,
+    ht_margin: np.ndarray,
+    home_factor: "float | np.ndarray" = 1.0,
+    away_factor: "float | np.ndarray" = 1.0,
+) -> np.ndarray:
+    """The model's chance that the team behind at half-time wins, from that HT score.
+
+    `ht_margin` is home minus away goals at half-time. A level half-time gives 0: no team
+    is behind, so no comeback can happen. `home_factor` and `away_factor` scale each side's
+    second-half rate; 1 is the basic model.
+    """
+    h2 = (1 - share) * lam_home * home_factor
+    a2 = (1 - share) * lam_away * away_factor
+    deficit = np.abs(ht_margin)
+    home_behind = sps.skellam.sf(deficit, h2, a2)
+    away_behind = sps.skellam.cdf(-deficit - 1, h2, a2)
+    return np.asarray(
+        np.where(ht_margin < 0, home_behind, np.where(ht_margin > 0, away_behind, 0.0))
+    )
+
+
+def first_half_share(matches: pd.DataFrame) -> float:
+    """The share of all goals that came in the first half: one number for every match."""
+    return float(matches["s2_goals_1h"].sum() / matches["s2_total_goals"].sum())
+
+
+def priced(matches: pd.DataFrame) -> pd.DataFrame:
+    """The matches that have all three opening 1X2 prices and the opening O/U market."""
+    return matches.dropna(subset=[*shin.ODDS, *OU])
+
+
+def frame(
+    matches: pd.DataFrame,
+    grid: Grid,
+    share: float | None = None,
+    proportional: bool = False,
+) -> pd.DataFrame:
+    """Every match with both opening markets, with its fitted rates and the model's chances.
+
+    The 1X2 margin goes by Shin's method, or proportionally with `proportional=True`. The
+    first-half share defaults to that of the priced matches. Outcomes come along as
+    floats, so an observed count and an expected count add up the same way. `cluster` is
+    the league-season.
+    """
+    rows = priced(matches)
+    if proportional:
+        probs = rows[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
+    else:
+        probs = shin.shin_frame(rows)[shin.PROBS]
+    lines = rows["s1_odds_ou_open_line"].to_numpy(dtype=float)
+    lam_home, lam_away, error = fit_rates(
+        grid,
+        probs["shin_p_home"].to_numpy(dtype=float),
+        probs["shin_p_away"].to_numpy(dtype=float),
+        rows["s2_implied_over"].to_numpy(dtype=float),
+        lines,
+    )
+    share = first_half_share(rows) if share is None else share
+    out = rows[shin.KEYS].copy()
+    out[shin.PROBS] = probs.to_numpy()
+    out["line"] = lines
+    out["lam_home"], out["lam_away"], out["fit_error"] = lam_home, lam_away, error
+    model = implied(lam_home, lam_away, share)
+    out[model.columns] = model.to_numpy()
+    ht_margin = (rows["s1_ht_home_goals"] - rows["s1_ht_away_goals"]).to_numpy()
+    out["m_completion"] = completion_given_ht(lam_home, lam_away, share, ht_margin)
+    out = out.join(_outcomes(rows, ht_margin))
+    out["fav_p"] = out[["shin_p_home", "shin_p_away"]].max(axis=1)
+    out["fav_is_home"] = out["shin_p_home"] >= out["shin_p_away"]
+    out["cluster"] = rows["s1_league_id"].astype(str) + " " + rows["s1_season"]
+    return out
+
+
+def _outcomes(rows: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
+    """The observed side of each comparison, as floats on the priced index."""
+    home, away = rows["s1_ft_home_goals"], rows["s1_ft_away_goals"]
+    out = pd.DataFrame(
+        {
+            "is_comeback": rows["s2_is_comeback"],
+            "is_comeback_home": rows["s2_is_comeback_home"],
+            "is_comeback_away": rows["s2_is_comeback_away"],
+            "ht_decisive": rows["s2_ht_decisive"],
+            "seven": rows["s2_total_goals"] >= 7,
+            "is00": (home == 0) & (away == 0),
+            "is11": (home == 1) & (away == 1),
+            "goals": rows["s2_total_goals"],
+            "goals_1h": rows["s2_goals_1h"],
+            "goals_2h": rows["s2_goals_2h"],
+            "goals_home": home,
+            "goals_away": away,
+            "goals_home_1h": rows["s1_ht_home_goals"],
+            "goals_away_1h": rows["s1_ht_away_goals"],
+        },
+        index=rows.index,
+    ).astype(float)
+    out["ht_margin"] = ht_margin
+    return out

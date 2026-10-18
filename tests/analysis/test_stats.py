@@ -37,6 +37,44 @@ def test_cluster_bootstrap_of_a_constant_is_that_constant() -> None:
     assert stats.cluster_bootstrap_ci(values, clusters) == pytest.approx((0.25, 0.25))
 
 
+def test_cluster_bootstrap_of_a_constant_ratio_is_that_ratio() -> None:
+    bottoms = pd.Series([0.5, 1.5, 2.0, 1.0])
+    clusters = pd.Series(["a", "a", "b", "b"])
+    assert stats.cluster_bootstrap_ratio_ci(bottoms * 3, bottoms, clusters) == pytest.approx(
+        (3.0, 3.0)
+    )
+
+
+@pytest.fixture
+def observed_frame() -> pd.DataFrame:
+    """Four matches in two clusters: observed hits and two expected columns."""
+    return pd.DataFrame(
+        {
+            "cluster": ["a", "a", "b", "b"],
+            "hit": [1.0, 0.0, 1.0, 0.0],
+            "chance": [0.5, 0.5, 0.25, 0.25],
+            "other": [0.4, 0.0, 0.3, 0.2],
+        }
+    )
+
+
+def test_observed_expected_is_the_ratio_of_the_sums(observed_frame: pd.DataFrame) -> None:
+    row = stats.observed_expected(observed_frame, "hit", "chance")
+    assert (row["n"], row["observed"], row["expected"]) == (4.0, 2.0, 1.5)
+    assert row["oe"] == pytest.approx(2 / 1.5)
+    assert row["low"] <= row["oe"] <= row["high"]
+
+
+def test_observed_expected_table_has_one_row_per_comparison(
+    observed_frame: pd.DataFrame,
+) -> None:
+    rows = (("hit", "chance", "one"), ("hit", "other", "two"))
+    assert stats.observed_expected_table(observed_frame, rows)["quantity"].tolist() == [
+        "one",
+        "two",
+    ]
+
+
 def test_equal_units_show_no_heterogeneity() -> None:
     het = stats.heterogeneity(pd.Series([0.5, 0.5, 0.5]), pd.Series([0.01, 0.02, 0.04]))
     assert (het.q, het.df, het.tau2) == (0.0, 2, 0.0)

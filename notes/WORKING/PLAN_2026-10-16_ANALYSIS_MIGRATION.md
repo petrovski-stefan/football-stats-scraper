@@ -4,7 +4,7 @@
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
-**Status: PARKED, written 2026-10-16.** The idea is the user's: drop every run in `notes/runs/`, and do each one again in the new workflow. In that workflow, a runner in `analysis/` calculates and prints, and Claude writes the doc in `notes/ANALYSIS/` (`notes/ANALYSIS/CLAUDE.md`). Shin's method proved the workflow on 2026-10-16 (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`). The mapping and the order below are Claude's proposal. The user decides them when the work starts.
+**Status: in progress since 2026-10-18** (the user: "Next is runs/ deletion and migration"). **Written 2026-10-16.** The idea is the user's: drop every run in `notes/runs/`, and do each one again in the new workflow. In that workflow, a runner in `analysis/` calculates and prints, and Claude writes the doc in `notes/ANALYSIS/` (`notes/ANALYSIS/CLAUDE.md`). Shin's method proved the workflow on 2026-10-16 (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`). The mapping and the order below are Claude's proposal. The user decides them when the work starts.
 
 **Why:** a run in `notes/runs/` is outside git. Its script, its output and its frozen plan can get lost, and no claim can cite it. A doc in `notes/ANALYSIS/` is in git, and its runner can run again.
 
@@ -19,8 +19,8 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | run | what it asked | new docs | note |
 |---|---|---|---|
 | `2026-10-09_corpus_scan` a2 | base rates; comeback and 7+ rates per league; league differences; the same leagues in two seasons | `ALL/RATES.md`, `PER_LEAGUE/RATES.md` | |
-| a3, a7, b3 | a Poisson model fitted to the opening 1X2 and O/U prices: observed against expected comebacks, 7+, 0-0 and 1-1; second-half score effects; the rate by win chance and expected total | `ALL/ODDS_YARDSTICK.md`, `ALL/SCORE_EFFECTS.md`, `PER_LEAGUE/ODDS_YARDSTICK.md` | The model uses one first-half share for all matches: test it (honesty rule 3). |
-| a4 | the return by price band (1X2, O/U, AH); where the comeback excess is | `ALL/PRICES.md` | The excess goes into `ODDS_YARDSTICK.md`. |
+| a3, a7, b3 | the yardstick per league | `PER_LEAGUE/ODDS_YARDSTICK.md` | Done on 2026-10-18: `ALL/ODDS_YARDSTICK.md` (observed against expected, the rate by win chance and expected goals, the test of the one first-half share) and `ALL/SCORE_EFFECTS.md` (second-half score effects, and a7's question: how much of the comeback gap they close). Test the share per league too. |
+| a4 | the return by price band (1X2, O/U, AH) | `ALL/PRICES.md` | Where the comeback excess sits is in `ALL/ODDS_YARDSTICK.md` since 2026-10-18. |
 | a6 | the nine HT/FT cells against the yardstick | `ALL/HTFT.md` | |
 | b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
 | c1 | the comeback rate by season phase and by round | `ALL/SEASON_PHASE.md` | |
@@ -38,14 +38,14 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | step | docs | size |
 |---|---|---|
 | 1 | §1 above | 2–3 h |
-| 2 | `ODDS_YARDSTICK`, then `SCORE_EFFECTS`, `HTFT` and `PER_LEAGUE/ODDS_YARDSTICK`: the others use the yardstick | 7–9 h |
+| 2 | `HTFT` and `PER_LEAGUE/ODDS_YARDSTICK`: they use the yardstick (`ODDS_YARDSTICK` and `SCORE_EFFECTS`, done 2026-10-18) | 3–4 h |
 | 3 | `RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
 | 4 | the new docs of the level design: `PER_TEAM/RATES`, `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 11–15 h |
 | 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
 | 6 | `ROUND_FIELDS`, `ODDS_COVERAGE`, and the new citations in `SCHEDULE_3_MULTI.md` | 2–3 h |
 | 7 | delete `notes/runs/` and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
-Total: about 5½–7 days of Claude's work, plus §1.
+Total: about 4½–6 days of Claude's work, plus §1.
 
 ## 4. Rules for each run
 

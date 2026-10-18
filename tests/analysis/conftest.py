@@ -35,3 +35,28 @@ def toy_matches() -> pd.DataFrame:
     for odds_column, column in zip(shin.ODDS, shin.PROPORTIONAL, strict=True):
         frame[column] = proportional[odds_column]
     return frame
+
+
+@pytest.fixture
+def toy_priced_matches(toy_matches: pd.DataFrame) -> pd.DataFrame:
+    """The toy matches with half-time goals, an opening O/U market and the stage-2 labels.
+
+    Half-time scores 1-0, 0-0, 0-0, 1-0 and 0-1 against full-time 2-0, 0-0, 0-1, 1-2 and
+    1-1: the fourth match is an away comeback.
+    """
+    frame = toy_matches.copy()
+    frame["s1_ht_home_goals"] = [1, 0, 0, 1, 0]
+    frame["s1_ht_away_goals"] = [0, 0, 0, 0, 1]
+    frame["s1_odds_ou_open_line"] = [2.5, 2.25, 2.0, 3.0, 2.5]
+    frame["s1_odds_ou_open_over"] = [1.9, 2.0, 1.8, 2.1, 1.95]
+    frame["s1_odds_ou_open_under"] = [1.9, 1.8, 2.0, 1.75, 1.85]
+    inverse_over = 1.0 / frame["s1_odds_ou_open_over"]
+    frame["s2_implied_over"] = inverse_over / (inverse_over + 1.0 / frame["s1_odds_ou_open_under"])
+    frame["s2_total_goals"] = frame["s1_ft_home_goals"] + frame["s1_ft_away_goals"]
+    frame["s2_goals_1h"] = frame["s1_ht_home_goals"] + frame["s1_ht_away_goals"]
+    frame["s2_goals_2h"] = frame["s2_total_goals"] - frame["s2_goals_1h"]
+    frame["s2_is_comeback_home"] = [False] * 5
+    frame["s2_is_comeback_away"] = [False, False, False, True, False]
+    frame["s2_is_comeback"] = frame["s2_is_comeback_home"] | frame["s2_is_comeback_away"]
+    frame["s2_ht_decisive"] = frame["s1_ht_home_goals"] != frame["s1_ht_away_goals"]
+    return frame

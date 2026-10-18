@@ -36,12 +36,51 @@ def cluster_bootstrap_ci(
     The matches of one league-season share teams and one pricing desk, so they are not
     independent. Resampling league-seasons, not matches, keeps the interval honest.
     """
-    sums = values.groupby(clusters).sum().to_numpy()
-    counts = values.groupby(clusters).count().to_numpy()
-    picks = np.random.default_rng(seed).integers(0, len(sums), size=(n_boot, len(sums)))
-    means = sums[picks].sum(axis=1) / counts[picks].sum(axis=1)
-    low, high = np.quantile(means, [0.025, 0.975])
+    counted = values.notna().astype(float)
+    return cluster_bootstrap_ratio_ci(values, counted, clusters, n_boot=n_boot, seed=seed)
+
+
+def cluster_bootstrap_ratio_ci(
+    numerator: "pd.Series[float]",
+    denominator: "pd.Series[float]",
+    clusters: "pd.Series[Any]",
+    n_boot: int = 2000,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """95% interval for sum(numerator) / sum(denominator), resampling whole clusters.
+
+    The ratio of an observed count to the count that a model expects (O/E) is one such
+    ratio; a mean is another, with a denominator of ones.
+    """
+    tops = numerator.groupby(clusters).sum().to_numpy()
+    bottoms = denominator.groupby(clusters).sum().to_numpy()
+    picks = np.random.default_rng(seed).integers(0, len(tops), size=(n_boot, len(tops)))
+    ratios = tops[picks].sum(axis=1) / bottoms[picks].sum(axis=1)
+    low, high = np.quantile(ratios, [0.025, 0.975])
     return float(low), float(high)
+
+
+def observed_expected(frame: pd.DataFrame, observed: str, expected: str) -> dict[str, float]:
+    """Observed and expected sums, their ratio (O/E), and its interval over `frame.cluster`."""
+    obs, exp = float(frame[observed].sum()), float(frame[expected].sum())
+    low, high = cluster_bootstrap_ratio_ci(frame[observed], frame[expected], frame["cluster"])
+    return {
+        "n": float(len(frame)),
+        "observed": obs,
+        "expected": exp,
+        "oe": obs / exp,
+        "low": low,
+        "high": high,
+    }
+
+
+def observed_expected_table(
+    frame: pd.DataFrame, rows: tuple[tuple[str, str, str], ...]
+) -> pd.DataFrame:
+    """One O/E row per (observed column, expected column, label)."""
+    return pd.DataFrame(
+        [{"quantity": label, **observed_expected(frame, o, e)} for o, e, label in rows]
+    )
 
 
 @dataclass(frozen=True)
