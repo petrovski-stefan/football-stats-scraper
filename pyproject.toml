@@ -13,6 +13,7 @@ dependencies = [
     "scikit-learn==1.6.1",
     "scipy==1.15.1",
     "selenium==4.27.1",
+    "shin==0.2.2",
 ]
 
 [tool.ruff]
@@ -30,8 +31,8 @@ ignore = ["E203"]  # whitespace-before-punctuation; conflicts with the formatter
 
 [tool.ruff.lint.isort]
 # Layered packages, imported absolutely: domain -> scrapers -> features -> modelling,
-# with qa off to the side. See CLAUDE.md "Architecture".
-known-first-party = ["domain", "scrapers", "features", "modelling", "qa"]
+# domain -> features -> analysis, with qa off to the side. See CLAUDE.md "Architecture".
+known-first-party = ["domain", "scrapers", "features", "modelling", "analysis", "qa"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 # Enforce the documented convention: absolute package imports only, never relative.

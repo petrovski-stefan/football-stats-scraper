@@ -364,6 +364,7 @@ dependencies = [
     { name = "scikit-learn" },
     { name = "scipy" },
     { name = "selenium" },
+    { name = "shin" },
 ]
 
 [package.dev-dependencies]
@@ -389,6 +390,7 @@ requires-dist = [
     { name = "scikit-learn", specifier = "==1.6.1" },
     { name = "scipy", specifier = "==1.15.1" },
     { name = "selenium", specifier = "==4.27.1" },
+    { name = "shin", specifier = "==0.2.2" },
 ]
 
 [package.metadata.requires-dev]
@@ -925,6 +927,16 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/44/8c/62c47c91072aa03af1c3b7d7f1c59b987db41c9fec0f158fb03a0da51aa6/selenium-4.27.1.tar.gz", hash = "sha256:5296c425a75ff1b44d0d5199042b36a6d1ef76c04fb775b97b40be739a9caae2", size = 973526, upload-time = "2024-11-26T14:56:47.893Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a6/1e/5f1a5dd2a28528c4b3ec6e076b58e4c035810c805328f9936123283ca14e/selenium-4.27.1-py3-none-any.whl", hash = "sha256:b89b1f62b5cfe8025868556fe82360d6b649d464f75d2655cb966c8f8447ea18", size = 9707007, upload-time = "2024-11-26T14:56:45.191Z" },
+]
+
+[[package]]
+name = "shin"
+version = "0.2.2"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1c/5f/7e5e14a56cc628ab9639ba7a6f63d66bb017259c9d6de08034944ee9a69d/shin-0.2.2.tar.gz", hash = "sha256:689af805af788c82a515b280ff5db59090a178e820c99e27fc2327c9cf71b4ee", size = 12714, upload-time = "2025-10-23T11:26:14.323Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/aa/bf/3e732c4e5c3a3583a12eebb20f082d492895a9d5950289365e6526fa18a7/shin-0.2.2-cp313-cp313-macosx_10_12_x86_64.macosx_11_0_arm64.macosx_10_12_universal2.whl", hash = "sha256:7f7096c1e88d2a9d4087fa61259fc214ef73e6dd1e5c370bd637c0ed3f66644c", size = 406808, upload-time = "2025-10-23T11:25:52.601Z" },
+    { url = "https://files.pythonhosted.org/packages/f9/05/3a829ca2adb45b5c2d74a664fb818f7acb0d6605823b34b2ef490ae48c44/shin-0.2.2-cp313-cp313-win_amd64.whl", hash = "sha256:2eaef166dec425fee8249a638cbf508a43bbce10ec9b7e92e39e118c8864b4b3", size = 102708, upload-time = "2025-10-23T11:25:53.961Z" },
 ]
 
 [[package]]
