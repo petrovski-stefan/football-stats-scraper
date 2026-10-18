@@ -16,7 +16,7 @@ This file holds the questions that need an owner's decision but must not block t
   1. Keep "< 0.05" (current, provisional).
   2. Make it inclusive: kill at |r| ≤ 0.05.
   3. Raise it to a higher value (for example 0.10) that is clearly above the behavioural rule.
-- **Context:** `modelling/CLAUDE.md` §3 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
+- **Context:** `notes/ANALYSIS/CLAUDE.md` §6 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
 
 ### D2 — Is 0.80 too loose as a redundancy bound?
 
@@ -26,7 +26,7 @@ This file holds the questions that need an owner's decision but must not block t
   1. Keep 0.80 (current, provisional).
   2. Lower it to a stated value.
   3. Replace the raw-|r| test with an incremental test: the partial association of the candidate, with the market as a control. The old league study (dropped 2026-10-13) did this.
-- **Context:** `modelling/CLAUDE.md` §3 "Screening bars". Its examples were dropped on 2026-10-13: the old league study's F10 (shot share, "priced") and F11 (venue "already priced"), and their STATE rows.
+- **Context:** `notes/ANALYSIS/CLAUDE.md` §6 "Screening bars". Its examples were dropped on 2026-10-13: the old league study's F10 (shot share, "priced") and F11 (venue "already priced"), and their STATE rows.
 
 ### D3 — The market-orthogonality screen for candidates that are themselves market prices
 
@@ -36,7 +36,7 @@ This file holds the questions that need an owner's decision but must not block t
   1. Keep "not applicable" (current, provisional).
   2. Apply the bar anyway, which kills such a candidate at this screen.
   3. For a market candidate, correlate only against the *other* market columns (for example AH against O/U). This fits the framing of the dropped #10, "adds over O/U".
-- **Context:** `modelling/CLAUDE.md` §3 "Screening bars". #9 and #10 were in `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md` §5 until 2026-10-13.
+- **Context:** `notes/ANALYSIS/CLAUDE.md` §6 "Screening bars". #9 and #10 were in `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md` §5 until 2026-10-13.
 
 ### D4 — What "the market price" means for the screen
 
@@ -46,17 +46,17 @@ This file holds the questions that need an owner's decision but must not block t
   1. Keep max |r| across the pre-kickoff market columns (current, provisional).
   2. Name one column (for example the favourite's `implied_live_*` probability, or the O/U line).
   3. Use one composite market score (for example the multiple correlation R of the candidate on all market columns).
-- **Context:** `modelling/CLAUDE.md` §3 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
+- **Context:** `notes/ANALYSIS/CLAUDE.md` §6 "Screening bars"; `notes/RECORD/BEHAVIOURAL_RESULTS.md` §4, §5.
 
 ### D5 — Give `features.engine --self-check` a post-match leak check (engineering task)
 
 - **Raised:** 2026-09-28, by Claude (a planted-leak test of the stats-reviewer agent)
-- **Question:** Should the engine get a leak check like `modelling.scoreline --leak-check`? That check sets every post-match column to NaN, builds again, and requires identical output.
+- **Question:** Should the engine get a leak check like the one of `modelling.scoreline` (deleted on 2026-10-18, in git at `633ff90`)? That check set every post-match column to NaN, built again, and required identical output.
 - **Evidence:** A planted edit added `df["ft_home_goals"] + df["ft_away_goals"]` to `combined_recent_gf` in `features/engine.py` `build_features`. The as-of-round self-check still **passed** ("1600 comparisons, 0 mismatches"). It compares rolling features against the target round only, but this line reads the outcome columns of the target row itself. Only the stats-reviewer agent caught it (BLOCK, with the line cited). A leak that does not go through the reviewer has no automatic guard. An example is a leak committed without `/check`.
 - **Options:**
   1. Add `--leak-check` to `features.engine`. It sets the columns of its post-match list to NaN (`engine.py`, the "never model features" block), builds again, and requires every feature column to stay the same.
   2. Leave it to the reviewer (current).
-- **Context:** `features/engine.py` `self_check`, `build_features`; `modelling/scoreline.py` `--leak-check`.
+- **Context:** `features/engine.py` `self_check`, `build_features`, `POST_MATCH_COLUMNS`; the old `modelling/scoreline.py` `--leak-check` (git `633ff90`).
 
 ### D6 — Notes cleanup from the 2026-09-28 full ledger audit
 
@@ -73,23 +73,23 @@ This file holds the questions that need an owner's decision but must not block t
   8. *(second audit, #9)* **Stale instruction.** The RESULTS.md header still says "Reproduce with `uv run python -m modelling.experiment --holdout`". A7 says that the transcript must not be regenerated, and A9.1 says that `--holdout` must not be run. Do not edit RESULTS. Add a STATE pointer, or extend the A9 erratum, to record that its reproduce line is void.
 - **Context:** neither audit report is saved. Items 1–5 come from the first audit. Items 6–8 come from the second audit on the same day.
 
-### D7 — Order rounds by stage in `features/` and `modelling/` (engineering task)
+### D7 — Order rounds by stage in `features/` (engineering task)
 
 - **Raised:** 2026-10-01, by Claude (stage-aware schedule scraper)
-- **Question:** How should `features/` and `modelling/` order the rounds of a league-season that has more than one kept stage? This must be decided before such a league-season gets to them.
-- **Evidence:** Since 2026-10-01, `scrapers.schedule` writes every kept stage of a league-season into one CSV. Rounds start again at 1 in each stage, and the `stage` column names the stage. So Apertura round 3 and Clausura round 3 both have `round == 3`. `features/engine.py` `_rolling_form` sorts the matches of each team by (league_name, season, round). `self_check` takes the history as `round < row["round"]`. With two stages, a Clausura match counts as "before" Apertura round 5. That is future data, so it is a leak. `modelling/experiment.py` and `modelling/filter_study.py` group by (league_name, season, round), so two different rounds become one block. Parallel groups (Group 1–5) share round numbers correctly, because they are played at the same time. Sequential stages (Apertura, then Clausura) do not. `features/engine.py` `ROUND_GROUP` and `qa/league.py` `_rounds` already include `stage`.
+- **Question:** How should `features/` order the rounds of a league-season that has more than one kept stage? This must be decided before such a league-season gets to them.
+- **Evidence:** Since 2026-10-01, `scrapers.schedule` writes every kept stage of a league-season into one CSV. Rounds start again at 1 in each stage, and the `stage` column names the stage. So Apertura round 3 and Clausura round 3 both have `round == 3`. `features/engine.py` `_rolling_form` sorts the matches of each team by (league_name, season, round). `self_check` takes the history as `round < row["round"]`. With two stages, a Clausura match counts as "before" Apertura round 5. That is future data, so it is a leak. Parallel groups (Group 1–5) share round numbers correctly, because they are played at the same time. Sequential stages (Apertura, then Clausura) do not. `features/engine.py` `ROUND_GROUP` and `qa/league.py` `_rounds` already include `stage`.
 - **Options:**
   1. Order by kickoff date inside a league-season, and use (stage, round) as the key of the round blocks.
-  2. Let only league-seasons with one kept stage, or only parallel groups, get to `features/` and `modelling/`.
+  2. Let only league-seasons with one kept stage, or only parallel groups, get to `features/`.
 - **Working value:** no league-season with more than one kept stage is enabled for analysis. Today only EPL 2025-26 is enabled, and its page has no stage tabs.
-- **Context:** `scrapers/schedule.py` `_scrape_stage`; `config/leagues.json` `keep`; `features/engine.py`; `modelling/experiment.py`; `modelling/filter_study.py`.
+- **Context:** `scrapers/schedule.py` `_scrape_stage`; `config/leagues.json` `keep`; `features/engine.py`.
 
 ## Closed
 
 ### D8 — The market-orthogonality low bar for the stake fields
 
 - **Raised and decided:** 2026-10-12. Claude raised it. The user's choice: skip the low bar for these fields.
-- **Question:** the low bar (`modelling/CLAUDE.md` §3: kill a candidate below |r| 0.05 with the market) assumes that a useful candidate overlaps the market price. The stake fields S3.11–13 (`notes/FIELDS/SCHEDULE_3_MULTI.md` §B3) carry what the opening odds cannot carry: what a result is worth to each side, and the results after the odds were published.
+- **Question:** the low bar (`notes/ANALYSIS/CLAUDE.md` §6: kill a candidate below |r| 0.05 with the market) assumes that a useful candidate overlaps the market price. The stake fields S3.11–13 (`notes/FIELDS/SCHEDULE_3_MULTI.md` §B3) carry what the opening odds cannot carry: what a result is worth to each side, and the results after the odds were published.
 - **Measured 2026-10-12**, under D4's working value (largest |r| across the opening 1X2 probabilities, the O/U line and the AH line): S3.11 0.091, S3.12 0.124 (`above`) and 0.177 (`below`), S3.13 0.043. The two flags of the planned test: "late and close" (S3.11 ≤ 5 and S3.12 `above` ≤ 3) 0.026; "fell 2+ places since the odds opened" (S3.13 ≥ 2) 0.072. The low bar would kill S3.13 and the first flag.
 - **Choice:** the low bar does not apply to S3.11–13, or to flags built from them. The high bar (redundant above 0.80) still applies, and all of them pass it. D1 (the value of the bar for other candidates) stays open.
-- **Amendment log:** `modelling/CLAUDE.md` §3 asks for a dated entry in `notes/RECORD/PREREGISTRATION.md` §10 when a bar changes. It is not written yet. The survey draft that reserved A11 and A12 was deleted on 2026-10-13, so the next number is A11. Open.
+- **Amendment log:** `notes/ANALYSIS/CLAUDE.md` §6 asks for a dated entry in `notes/RECORD/PREREGISTRATION.md` §10 when a bar changes. It is not written yet. The survey draft that reserved A11 and A12 was deleted on 2026-10-13, so the next number is A11. Open.

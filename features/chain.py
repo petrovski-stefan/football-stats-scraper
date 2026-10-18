@@ -1,17 +1,12 @@
-"""Chained comeback pricer for the F12 re-test (see notes/RECORD/PREREGISTRATION.md).
+"""The imported F11 completion curve, and the gate that validates it.
 
-    P(comeback) = SUM_d  P(trails by d at HT | features)
-                         x  F11_completion(trailer odds, d, venue)
+    P(trailing team wins) = F11_completion(trailer odds, half-time deficit, venue)
 
-The first factor is fitted here; the second is imported wholesale.
-
-Factor 1 is a pair of Poisson regressions on first-half goals, turned into a
-Skellam distribution over half-time margins. Factor 2 is F11's completion model,
-imported wholesale so it costs no degrees of freedom. F11 and its study were dropped
-on 2026-10-13 (notes/LOG/MIGRATIONS.md); this module goes with plan step P5.
-
-Baseline and candidate differ *only* in factor 1's feature set, so any difference
-between them is attributable to the half-time state and nothing else.
+F11's completion model was imported wholesale, so it cost no degrees of freedom, as the
+second factor of the chained comeback pricer for the F12 re-test (see
+notes/RECORD/PREREGISTRATION.md). The pricer's fitted first factor and the experiment that
+ran it were in `modelling/`, deleted on 2026-10-18; F11 and its study were dropped on
+2026-10-13 (notes/LOG/MIGRATIONS.md). This module goes with plan step P5.
 
 Run: `uv run python -m features.chain --replicate-f11` (validation gate for the import).
 """
@@ -21,18 +16,15 @@ from itertools import pairwise
 
 import numpy as np
 import pandas as pd
-from scipy.stats import skellam
 
 from features import engine
-from features.engine import CONTROLS, FAMILIES
-from features.ratepair import RatePair
 
-# --- Factor 2: the imported F11 completion model ------------------------------
+# --- The imported F11 completion model ----------------------------------------
 # Coefficients published in F11 of the old league study (dropped 2026-10-13), fitted on 9,195
 # trailing states and validated walk-forward on 4,526 more. F11 reports slopes but
 # not the constant, so the intercept is recovered by n-weighted least squares
 # against F4's published eight-octile completion table (see recover_intercept()).
-# That uses only published numbers — no data from this corpus enters factor 2.
+# That uses only published numbers — no data from this corpus enters the curve.
 F11_LOG_TRAILER_ODDS = -1.72
 F11_DEFICIT = -1.27
 F11_VENUE = 0.001
@@ -49,8 +41,6 @@ F4_OCTILES: list[tuple[float, int, float]] = [
     (5.00, 1149, 0.048),
     (8.00, 1199, 0.026),
 ]
-
-MAX_DEFICIT = 5
 
 
 def f11_completion(
@@ -78,77 +68,6 @@ def recover_intercept() -> float:
         return float(np.sum(weights * (predicted - observed) ** 2))
 
     return float(grid[int(np.argmin([sse(b) for b in grid]))])
-
-
-# --- Factor 1: Poisson -> Skellam over half-time margins ----------------------
-
-
-def fit_factor1(train: pd.DataFrame, feature_names: list[str], alpha: float = 1.0) -> RatePair:
-    """Fit factor 1: a `RatePair` regressed on the two first-half goal columns."""
-    return RatePair(feature_names, alpha=alpha).fit(
-        train,
-        train["ht_home_goals"].to_numpy(),
-        train["ht_away_goals"].to_numpy(),
-    )
-
-
-def chain_probability(
-    mu_home: np.ndarray,
-    mu_away: np.ndarray,
-    close_odds_home: np.ndarray,
-    close_odds_away: np.ndarray,
-    max_deficit: int = MAX_DEFICIT,
-) -> np.ndarray:
-    """Integrate the completion curve over the half-time margins that haven't happened yet.
-
-    The half-time margin (home - away first-half goals) is Skellam-distributed
-    under independent Poisson scoring. For each deficit d the trailing side is
-    known, so its own closing odds and venue feed the imported F11 curve.
-    """
-    total = np.zeros(len(mu_home))
-    ones = np.ones(len(mu_home))
-    for d in range(1, max_deficit + 1):
-        deficit = ones * d
-        # Home trails by d: margin = -d.
-        p_home_trails = skellam.pmf(-d, mu_home, mu_away)
-        total += p_home_trails * f11_completion(close_odds_home, deficit, ones)
-        # Away trails by d: margin = +d.
-        p_away_trails = skellam.pmf(d, mu_home, mu_away)
-        total += p_away_trails * f11_completion(close_odds_away, deficit, np.zeros(len(mu_home)))
-    return total
-
-
-# --- The registered models ----------------------------------------------------
-
-
-def baseline_feature_set() -> list[str]:
-    """Market price plus the mandatory totals controls — F12's vocabulary."""
-    return list(CONTROLS)
-
-
-def candidate_feature_set() -> list[str]:
-    """Baseline plus every preregistered nowgoal family (A-F)."""
-    return list(CONTROLS) + engine.all_feature_names()
-
-
-def family_feature_set(family: str) -> list[str]:
-    """Baseline plus one family — the per-family dev screen."""
-    return list(CONTROLS) + FAMILIES[family]
-
-
-def fit_predict(
-    train: pd.DataFrame, test: pd.DataFrame, feature_names: list[str], alpha: float = 1.0
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-    """Fit factor 1 on `train`, return (P(comeback), mu_home, mu_away) for `test`."""
-    model = fit_factor1(train, feature_names, alpha=alpha)
-    mu_home, mu_away = model.rates(test)
-    probability = chain_probability(
-        mu_home,
-        mu_away,
-        test["close_odds_home"].to_numpy(dtype=float),
-        test["close_odds_away"].to_numpy(dtype=float),
-    )
-    return probability, mu_home, mu_away
 
 
 # --- Validation gate ----------------------------------------------------------

@@ -41,8 +41,9 @@ BURN_IN_ROUNDS = 5
 CONGESTION_DAYS = 14
 
 # Rolling as-of-round team quantities: (source column in the long frame, output name).
-# The goal *levels* (h1/h2 gf and ga) feed the exclusion filter's scoreline model; the
-# differences and rates feed the F12 re-test's families A and B.
+# The goal *levels* (h1/h2 gf and ga) were built for the exclusion filter's scoreline model,
+# the differences and rates for the F12 re-test's families A and B. Both consumers were in
+# `modelling/`, deleted on 2026-10-18 (notes/LOG/MIGRATIONS.md).
 ROLLING_SPECS: list[tuple[str, str]] = [
     ("ht_trail", "ht_trail_rate"),
     ("h1_gd", "h1_gd_avg"),
@@ -159,7 +160,8 @@ TARGETS = [
 ]
 
 # Post-match columns: labels, oracle inputs and scoring only — never model features.
-# `scoreline.py --leak-check` NaNs exactly these and requires identical predictions.
+# The deleted `modelling/scoreline.py --leak-check` set exactly these to NaN. Nothing reads
+# the list now: it waits for DECISIONS D5, whose option 1 gives this engine the same check.
 POST_MATCH_COLUMNS = [
     "ht_home_goals",
     "ht_away_goals",

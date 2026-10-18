@@ -152,9 +152,9 @@ strict_mode = true
 
 # This project's actual layers, not the generic web-app defaults pyscn ships with
 # (router/service/repository matched almost nothing here). The direction is
-# domain -> scrapers -> features -> modelling, and domain -> features -> analysis, with qa
-# off to the side; see the package table in CLAUDE.md, which this section exists to
-# enforce mechanically.
+# domain -> scrapers -> features, and domain -> features -> analysis, with qa off to the
+# side; see the package table in CLAUDE.md, which this section exists to enforce
+# mechanically.
 
 [[architecture.layers]]
 name = "domain"
@@ -169,10 +169,6 @@ name = "features"
 packages = ["features"]
 
 [[architecture.layers]]
-name = "modelling"
-packages = ["modelling"]
-
-[[architecture.layers]]
 name = "analysis"
 packages = ["analysis"]
 
@@ -184,36 +180,31 @@ packages = ["qa"]
 [[architecture.rules]]
 from = "domain"
 allow = ["domain"]
-deny = ["scrapers", "features", "modelling", "analysis", "qa"]
+deny = ["scrapers", "features", "analysis", "qa"]
 
 [[architecture.rules]]
 from = "scrapers"
 allow = ["scrapers", "domain"]
-deny = ["features", "modelling", "analysis", "qa"]
+deny = ["features", "analysis", "qa"]
 
 # features must not reach into scrapers: a join is not a scrape, and features/enrich.py
 # reindexes with pandas inline rather than importing scrapers.csv_io for this reason.
 [[architecture.rules]]
 from = "features"
 allow = ["features", "domain"]
-deny = ["scrapers", "modelling", "analysis", "qa"]
-
-[[architecture.rules]]
-from = "modelling"
-allow = ["modelling", "features", "scrapers", "domain"]
-deny = ["analysis", "qa"]
+deny = ["scrapers", "analysis", "qa"]
 
 # analysis prints and never writes a file (analysis/CLAUDE.md); it reads the stage files
 # through features and domain only.
 [[architecture.rules]]
 from = "analysis"
 allow = ["analysis", "features", "domain"]
-deny = ["scrapers", "modelling", "qa"]
+deny = ["scrapers", "qa"]
 
 [[architecture.rules]]
 from = "qa"
 allow = ["qa", "domain"]
-deny = ["scrapers", "features", "modelling", "analysis"]
+deny = ["scrapers", "features", "analysis"]
 
 
 # =============================================================================

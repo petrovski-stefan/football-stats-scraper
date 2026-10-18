@@ -10,9 +10,7 @@
 
 ## 1. First: finish the switch (agreed with the user, 2026-10-16)
 
-1. Delete `modelling/` and `tests/modelling/`. Move `modelling/CLAUDE.md` §1, the holdout bullet of §2, §3 (the candidate protocol and "Screening bars") and §4 into `notes/ANALYSIS/CLAUDE.md` §6. Change the files that cite `modelling/`: root `CLAUDE.md`, `README.md`, `.pyscn.toml`, ruff's `known-first-party`, the `check` skill, the `stats-reviewer` agent and `features/ratepair.py`. This also removes the two warnings of the stats review of 2026-10-16: the old run-record rule, and the STATE update in the same commit.
-2. Write the notes workflow docs: `notes/CLAUDE.md` (the rules for every note) and one `CLAUDE.md` in each group folder. The rules that are only in Claude's memory go into them (the user, 2026-10-16).
-3. Fix the facts that step 1 makes out of date: STATE lines 5 and 7; DECISIONS D1–D5, D7 and D8; the IDEAS lines that name `modelling/`, and idea 4 Phase 2; the P5 row of `PLAN_2026-10-05_STAGED_PIPELINE.md`; D3.23 in `notes/FIELDS/DETAIL_3_MULTI.md`.
+1. Write the notes workflow docs: `notes/CLAUDE.md` (the rules for every note) and one `CLAUDE.md` in each group folder. The rules that are only in Claude's memory go into them (the user, 2026-10-16).
 
 ## 2. Each run and its new docs
 
@@ -39,7 +37,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 
 | step | docs | size |
 |---|---|---|
-| 1 | §1 above | ~0.5 day |
+| 1 | §1 above | 2–3 h |
 | 2 | `ODDS_YARDSTICK`, then `SCORE_EFFECTS`, `HTFT` and `PER_LEAGUE/ODDS_YARDSTICK`: the others use the yardstick | 7–9 h |
 | 3 | `RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
 | 4 | the new docs of the level design: `PER_TEAM/RATES`, `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 11–15 h |

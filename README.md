@@ -15,7 +15,7 @@ A web scraper that collects football match data across multiple leagues — incl
 5. Validates data with Pydantic and saves per-league CSV files to `data/archived/raw/`
 6. Enriches each match from its detail page (recent form, H2H, odds movement) into `data/archived/raw/`
 7. Scrapes each match's live page into two global stores — `data/archived/raw/goals.csv` (goal timings) and `data/archived/raw/events.csv` (yellow cards, red cards, substitutions)
-8. Joins them into `data/archived/processed/` for the feature and modelling layers
+8. Joins them into `data/archived/processed/` for the feature layer
 
 ## Tech stack
 
@@ -31,7 +31,7 @@ A web scraper that collects football match data across multiple leagues — incl
 ## Project structure
 
 Five packages, imported absolutely and strictly one-directional:
-`domain` → `scrapers` → `features` → `modelling`, with `qa` off to the side.
+`domain` → `scrapers` → `features` → `analysis`, with `qa` off to the side.
 
 ```
 .
@@ -44,7 +44,7 @@ Five packages, imported absolutely and strictly one-directional:
 ├── domain/               # Pydantic contracts, column order, paths, pure stat kernel
 ├── scrapers/             # Selenium driver, DOM parsers, schedule/detail/live-page scrapes
 ├── features/             # The joins, goal/event aggregates, as-of-round feature matrix
-├── modelling/            # Experiments: scoreline model, feature screens, filter study
+├── analysis/             # Runners that only print, one per doc in notes/ANALYSIS/
 ├── qa/                   # Corpus validator
 └── notes/                # Study records, preregistrations, findings
 ```

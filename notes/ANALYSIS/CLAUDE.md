@@ -125,3 +125,37 @@ A doc that tells how often comebacks or 7+ matches occur gives the card of its l
 6. **Inputs come before kickoff.** A match's own goals, events and in-play odds describe its outcome. They are never an input for that match (`notes/FIELDS/README.md`, the timing rule).
 7. **One match, two teams.** A match is in two team units: its home team and its away team. A test at `PER_TEAM/` counts each match one time. Use a model with an effect for each of the two teams.
 8. **A repeat can come from the yardstick.** Team strength repeats from one season to the next, and so do league margins (`PER_LEAGUE/SHIN.md`, C1). An error of the yardstick by strength or by league repeats with them, and it looks like a trait. So test the calibration of the yardstick (rule 3) before a repeat test.
+
+## 6. Before a proposal, and the candidate protocol
+
+**Moved from `modelling/CLAUDE.md` on 2026-10-18,** when `modelling/` was deleted. Its run-record rule and its section on `scoreline.py` did not move (`notes/LOG/MIGRATIONS.md`).
+
+### Read first
+
+Before you propose a model, a feature, a filter or a rule, read `notes/WORKING/STATE.md`. The measured failures of the project are in the notes that it points to. Most "new" ideas were tested already.
+
+### The holdout
+
+The 2025-26 season cannot be a holdout. Its outcomes informed many analyses (`notes/RECORD/PREREGISTRATION.md` A9). The `--holdout` mode that opened it was deleted on 2026-10-02. The next confirmatory test needs a new holdout, as A9 tells: a confirmatory set that a dated amendment declares before its scrape starts.
+
+### The candidate protocol
+
+1. Judge a rule by its precision in the top N, with a Wilson interval and the lift. Do not judge it by AUC or by the Brier score. A rule can have a large lift in a small top-N set and an AUC near chance.
+2. First, screen each candidate rule against the market price, with no outcomes. A rule that has no relation to the market has no relation to the best known signal.
+3. For a history-block feature, do the reliability screen before steps 1 and 2 (`features/CLAUDE.md` §5).
+4. Test a claim as `notes/RECORD/PREREGISTRATION.md` tells: a closed family list, the Holm correction, one opening of the holdout, and amendments with dates.
+
+### Screening bars (set 2026-09-28, before use)
+
+The bars were set before any new feature was screened against them. Both screens use no outcomes. Apply both bars mechanically, with no judgement. **A change to a bar needs a dated entry in the amendment log of `notes/RECORD/PREREGISTRATION.md`.**
+
+**The market-orthogonality values are provisional.** Both bars, and how to read "the market price", are open in `notes/WORKING/DECISIONS.md` (D1–D4). Apply them as written until those decisions close. The low bar does not apply to the stake fields S3.11–13 (D8, closed).
+
+- **Reliability** (history-block features only): use the Spearman–Brown value at depth 6, not the raw split-half (A9.4). Kill below 0.10. Otherwise pass, and report the value against the reference table in `features/CLAUDE.md` §5.
+- **Market orthogonality:** a bar on the size of the effect, not a significance test. Take |r| between the score of the candidate and the market price before kickoff. Kill below 0.05 (no signal). Kill as redundant above 0.80 (the market already has it). Pass between the two. Report the interval for information only.
+
+### Binding rules
+
+- **Stratify by league. Never test per league.** Pool with Mantel–Haenszel over league-season strata.
+- The retry list for the multi-country scrape is closed (`notes/RECORD/RETRY_CANDIDATES_2026-09-23.md`). Do not add claims to it after the data arrives.
+- Before you propose a new pre-match comeback feature, read `notes/RECORD/RESULTS.md` and `notes/RECORD/FILTER_RESULTS.md`.

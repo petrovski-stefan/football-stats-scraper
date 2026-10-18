@@ -77,7 +77,7 @@ Over the h2h window (at most 4 rows, none older than 2 years). Oriented to this 
 
 | # | field | formula | type | timing | role | status |
 |---|---|---|---|---|---|---|
-| D3.23 | `d3_{section}_last{n}_<field>` | one history row's fields, pivoted wide: section `home` / `away` / `h2h`, n inside the window. Example: `d3_home_last1_is_comeback` = True | as the field | before | input | which sections, slots and fields: set in P4 by what `features/` and `modelling/` read. Only those are written |
+| D3.23 | `d3_{section}_last{n}_<field>` | one history row's fields, pivoted wide: section `home` / `away` / `h2h`, n inside the window. Example: `d3_home_last1_is_comeback` = True | as the field | before | input | which sections, slots and fields: set in P4 by what `features/` and `analysis/` read. Only those are written |
 
 ## E. New, from the old `notes/FIELDS.md`
 

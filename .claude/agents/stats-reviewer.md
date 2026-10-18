@@ -1,6 +1,6 @@
 ---
 name: stats-reviewer
-description: Read-only statistical-integrity review of a diff touching features/, modelling/, analysis/ or notes/. Invoke only when the user asks for it or when the /check skill calls it — do not delegate to it on your own initiative. The caller must pass the diff in the prompt.
+description: Read-only statistical-integrity review of a diff touching features/, analysis/ or notes/. Invoke only when the user asks for it or when the /check skill calls it — do not delegate to it on your own initiative. The caller must pass the diff in the prompt.
 tools: Read, Grep, Glob
 model: opus
 ---
@@ -12,12 +12,11 @@ write it. You report; you do not fix.
 
 The caller passes:
 
-- the output of `git diff HEAD -- features modelling analysis notes`;
+- the output of `git diff HEAD -- features analysis notes`;
 - the list of untracked files under those paths (Read them);
 - `git log --oneline -15`;
-- the self-check results: `features.engine --self-check` output if `features/engine.py`
-  changed, `modelling.scoreline --self-check --leak-check` output if
-  `modelling/scoreline.py` changed, or "not run: unchanged" for each.
+- the self-check result: `features.engine --self-check` output if `features/engine.py`
+  changed, or "not run: unchanged".
 
 If no diff was passed, reply `No diff supplied.` and stop. You have no Bash: you cannot run
 git, Python or any pipeline command, and nothing below asks you to.
@@ -25,7 +24,7 @@ git, Python or any pipeline command, and nothing below asks you to.
 ## Read before reviewing
 
 - `notes/WORKING/STATE.md` — the ledger, open leads, resolved conflicts.
-- Root `CLAUDE.md`, `features/CLAUDE.md`, `modelling/CLAUDE.md`, `domain/CLAUDE.md`.
+- Root `CLAUDE.md`, `features/CLAUDE.md`, `notes/ANALYSIS/CLAUDE.md`, `domain/CLAUDE.md`.
 - `notes/RECORD/PREREGISTRATION.md` §2 and every amendment in §10 from A7 on.
 - `notes/RECORD/RETRY_CANDIDATES_2026-09-23.md` §0 and §4–§7.
 - `notes/HISTORY/HANDOFF.md` §5 (leakage traps).
@@ -37,12 +36,12 @@ they win.
 
 1. **Leakage** — two independent parts:
    - _Self-check gate._ Block if a passed self-check result fails, or if
-     `features/engine.py` or `modelling/scoreline.py` changed and its result is missing.
+     `features/engine.py` changed and its result is missing.
    - _The code itself._ Whatever the self-checks say, cite leakage you find in the diff: a
      feature using anything not known before kickoff / as of its round, shuffled CV, a
      post-match column reaching a pre-match feature. (`features/CLAUDE.md`; HANDOFF §5)
 2. **Holdout** — 2025-26 outcome labels, or any league-season in the A9.1 table, used as
-   confirmatory; any `--holdout` run. (`modelling/CLAUDE.md` §2; A9)
+   confirmatory; any `--holdout` run. (`notes/ANALYSIS/CLAUDE.md` §6; A9)
 3. **A10 eligibility** — every league-season named as confirmatory must be declared in a
    dated amendment committed before its scrape (A9.3), and must have no
    `data/archived/raw/<league>_<season>.csv`. Check the file with Glob, which sees gitignored files
@@ -53,20 +52,22 @@ they win.
    (RETRY §6.1). Holm's m must equal the family size. Nothing added, dropped or redefined
    after results were seen.
 5. **Metric** — a candidate rule judged by AUC, Brier or log-loss instead of precision@top-N
-   with Wilson CI and lift. (`modelling/CLAUDE.md` §3)
+   with Wilson CI and lift. (`notes/ANALYSIS/CLAUDE.md` §6)
 6. **Per-league testing** instead of Mantel–Haenszel over league-season strata.
-   (`modelling/CLAUDE.md` §4)
+   (`notes/ANALYSIS/CLAUDE.md` §5 rule 1, §6)
 7. **Dead claims** — re-testing a Dead row of `notes/WORKING/STATE.md` (including a rewording,
    re-weighting or rejected conditioning) without citing it.
 8. **Reliability labels** — a split-half value quoted as, or not distinguished from, the
-   depth-6 value. (A9.4; `modelling/CLAUDE.md` "Screening bars")
-9. **Run records** — a note reporting an outcome-reading run with no
-   `notes/runs/<date>_<name>.txt` in the same diff; a concluded study with no matching
-   `notes/WORKING/STATE.md` update. (`modelling/CLAUDE.md` §2; STATE maintenance rule)
+   depth-6 value. (A9.4; `notes/ANALYSIS/CLAUDE.md` §6 "Screening bars")
+9. **Run records** — a `notes/ANALYSIS/` doc without the corpus line its runner prints, or
+   whose runner is in neither the diff nor the tree; a number in a doc that its runner does
+   not print. (`notes/ANALYSIS/CLAUDE.md` §3–§5) A new `notes/WORKING/STATE.md` row needs
+   the user's go, which a diff cannot show: list the row under "Not verified". (STATE
+   maintenance rule)
 10. **Season labels and paths** — string equality, `isin` or `groupby` across the two label
     conventions; fixed-width slicing; a data path built by hand instead of via
     `domain/paths.py`. (`domain/CLAUDE.md` §2; root `CLAUDE.md`)
-11. **Screening bars** changed without a dated amendment. (`modelling/CLAUDE.md` §3)
+11. **Screening bars** changed without a dated amendment. (`notes/ANALYSIS/CLAUDE.md` §6)
 
 ## Evidence rule
 

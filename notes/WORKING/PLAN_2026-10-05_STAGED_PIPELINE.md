@@ -95,7 +95,7 @@ Counted on 2026-10-05 from `domain/columns.py` and the EPL 2025-26 files: detail
 |---|---|---|---|
 | P2 | The user's on-page check of the detail and live stage-1 docs, ≤ 20 fields a sitting (progress in `notes/FIELDS/README.md`). Decide which of the remaining page candidates (C5–C7, C9–C22) join stage 1, comebacks only | user + Claude | ~4 sittings |
 | P4 | Detail: stage-1 scraper (match-level + long history), stage-2 and stage-3 builders. Stage 2 of the history file carries a read-only `d2_is_friendly` per history row (the user, 2026-10-10), from `domain/scope.py:is_friendly`; tournament friendlies without "friendly" in their name slip through (`qa/CLAUDE.md` §3) | Claude | ~2.5 days |
-| P5 | The join; re-point `features/`, `modelling/`, `qa/` and the goal/event work lists (`scrapers/goals.py:history_ids` reads the history file) | Claude | ~0.5 day |
+| P5 | The join; re-point `features/`, `qa/`, `analysis/` and the goal/event work lists (`scrapers/goals.py:history_ids` reads the history file) | Claude | ~0.5 day |
 | P6 | Re-scrape in the new format: detail and live, after P4. Then run every gate and self-check | Claude, with the user's go | detail ≈ 36k pages (36,238 matches, 2026-10-13), ~18 h at the one measured rate (`notes/WORKING/IDEAS_2026-10-01.md` idea 4, Phase 1) |
 | P7 | Freeze the stage-1 docs | user | — |
 

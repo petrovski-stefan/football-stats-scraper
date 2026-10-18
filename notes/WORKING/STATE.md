@@ -2,9 +2,9 @@
 
 **Group: Working.** Edit it in place, and keep it current.
 
-**Maintenance rule: whenever a study concludes, update this file in the same commit.** The numbers here are copies from the source note. If they disagree, the source note is correct, and this file has the error. How to act on the ledger (holdout, candidate protocol, binding rules): `modelling/CLAUDE.md`.
+**Maintenance rule: a claim goes into this file only with the user's go** (`notes/ANALYSIS/CLAUDE.md` §3, step 8), in the same commit as its source note. The numbers here are copies from the source note. If they disagree, the source note is correct, and this file has the error. How to act on the ledger (holdout, candidate protocol, binding rules): `notes/ANALYSIS/CLAUDE.md` §6.
 
-Evidence: only the exclusion-filter row has committed raw output (`FILTER_STUDY_RAW.md`). Every other row is **note-only** until its output is committed under `notes/runs/` (rule: `modelling/CLAUDE.md` §2).
+Evidence: only the exclusion-filter row has committed raw output (`FILTER_STUDY_RAW.md`). Every other row is **note-only** until a doc in `notes/ANALYSIS/` backs it: the runner of that doc prints its numbers again (`notes/ANALYSIS/CLAUDE.md`).
 
 Status: **Dead** = tested and failed · **Live-exploratory** = positive, not preregistered · **Live-preregistered** = passed a preregistered bar (none yet) · **Reopened** = once dead, now unresolved · **On-retry-list** = in the closed retry list (`RETRY_CANDIDATES_2026-09-23.md` §4–5; 6 claims left after the 2026-10-13 drop), untested on the new corpus · **Untested**.
 
