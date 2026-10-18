@@ -12,14 +12,14 @@ A runner prints what it measured and **never writes a file**: no CSV, no transcr
 
 ## 3. The tree mirrors `notes/ANALYSIS/`
 
-One runner per doc, at the same path in lowercase. The first level is the source of the fields the runner uses: `schedule/`, `schedule_detail/`, `schedule_live/`, `schedule_detail_live/`, and `detail/`, `live/`, `detail_live/` without the schedule (rules: `notes/ANALYSIS/CLAUDE.md` §2):
+One runner per doc, at the same path in lowercase. The first folder is the source of the fields the runner uses: `schedule/`, `schedule_detail/`, `schedule_live/`, `schedule_detail_live/`, and `detail/`, `live/`, `detail_live/` without the schedule (rules: `notes/ANALYSIS/CLAUDE.md` §2):
 
 | runner                                              | doc                                                       |
 | --------------------------------------------------- | --------------------------------------------------------- |
 | `analysis/schedule/whole_corpus/all/shin.py`        | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`        |
 | `analysis/schedule/whole_corpus/per_league/shin.py` | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/SHIN.md` |
 
-Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or granularity folder (`per_season/`, `per_league_season/`, …) appears with its first runner, beside its notes folder.
+Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or level folder (`per_team/`) appears with its first runner, beside its notes folder.
 
 Shared code sits at the top of the package and has no notes counterpart:
 

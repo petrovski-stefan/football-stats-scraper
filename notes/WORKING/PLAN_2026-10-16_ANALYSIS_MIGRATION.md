@@ -20,11 +20,11 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 
 | run | what it asked | new docs | note |
 |---|---|---|---|
-| `2026-10-09_corpus_scan` a2 | base rates; comeback and 7+ rates per league; league differences; the same leagues in two seasons | `ALL/BASE_RATES.md`, `PER_LEAGUE/RATES.md` | |
+| `2026-10-09_corpus_scan` a2 | base rates; comeback and 7+ rates per league; league differences; the same leagues in two seasons | `ALL/RATES.md`, `PER_LEAGUE/RATES.md` | |
 | a3, a7, b3 | a Poisson model fitted to the opening 1X2 and O/U prices: observed against expected comebacks, 7+, 0-0 and 1-1; second-half score effects; the rate by win chance and expected total | `ALL/ODDS_YARDSTICK.md`, `ALL/SCORE_EFFECTS.md`, `PER_LEAGUE/ODDS_YARDSTICK.md` | The model uses one first-half share for all matches: test it (honesty rule 3). |
 | a4 | the return by price band (1X2, O/U, AH); where the comeback excess is | `ALL/PRICES.md` | The excess goes into `ODDS_YARDSTICK.md`. |
 | a6 | the nine HT/FT cells against the yardstick | `ALL/HTFT.md` | |
-| b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md`, `PER_SEASON/PREMATCH_SCREEN.md` | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
+| b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
 | c1 | the comeback rate by season phase and by round | `ALL/SEASON_PHASE.md` | |
 | d1, d2 | do comebacks collect on identical opening prices | `ALL/ODDS_GROUPS.md` | |
 | a1, a5, a8, `load.py`, `run_all.py` | — | none | a1's counts are the corpus line, and its margins are in `SHIN.md`. a5 lists the QA failures of one day. a8 is a QA check now (`qa/odds.py`). `analysis/corpus.py` does the work of `load.py` and `run_all.py`. |
@@ -33,6 +33,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | `2026-10-13_zone_stakes` | zone lines from team turnover, and the zone-stakes test | `ALL/ZONE_STAKES.md`; the zone lines as `analysis/methods/zones.py` | Copy its `TEST.md` first. No STATE row. |
 | `2026-10-13_round_so_far`, `2026-10-13_round_goals` | a recount and a scramble check of S3.14–20, and how often each value occurs | `ALL/ROUND_FIELDS.md` (how often only) | pytest has the checks now: the `round_so_far` tests and the stage-3 leak test in `tests/features/test_schedule_multi.py`. Then change the citations in `notes/FIELDS/SCHEDULE_3_MULTI.md` §A2. |
 | the weekday check (no folder) | comebacks and 7+ by weekday | `ALL/WEEKDAY.md` (optional) | Its numbers are in `notes/LOG/MIGRATIONS.md` 2026-10-11. |
+| none: the level design of 2026-10-18 | the card of a team, with the repeat test; clusters in one round; which level the differences sit at | `PER_TEAM/RATES.md`, `PER_TEAM/ODDS_YARDSTICK.md`, `ALL/ROUND_CLUSTERS.md`, `ALL/LEVELS.md` | No run asked these. All four use the yardstick. |
 
 ## 3. Order (one doc for each sitting)
 
@@ -40,12 +41,13 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 |---|---|---|
 | 1 | §1 above | ~0.5 day |
 | 2 | `ODDS_YARDSTICK`, then `SCORE_EFFECTS`, `HTFT` and `PER_LEAGUE/ODDS_YARDSTICK`: the others use the yardstick | 7–9 h |
-| 3 | `BASE_RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
-| 4 | the screens and the measured nulls: `PREMATCH_SCREEN` (both), `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
-| 5 | `ROUND_FIELDS`, `ODDS_COVERAGE`, and the new citations in `SCHEDULE_3_MULTI.md` | 2–3 h |
-| 6 | delete `notes/runs/` and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
+| 3 | `RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
+| 4 | the new docs of the level design: `PER_TEAM/RATES`, `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 11–15 h |
+| 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
+| 6 | `ROUND_FIELDS`, `ODDS_COVERAGE`, and the new citations in `SCHEDULE_3_MULTI.md` | 2–3 h |
+| 7 | delete `notes/runs/` and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
-Total: about 4–5 days of Claude's work, plus §1.
+Total: about 5½–7 days of Claude's work, plus §1.
 
 ## 4. Rules for each run
 
