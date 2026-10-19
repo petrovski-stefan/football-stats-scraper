@@ -3,6 +3,7 @@
 import pandas as pd
 import pytest
 
+from analysis import card
 from analysis.schedule.whole_corpus.all import rates as runner
 
 
@@ -34,26 +35,9 @@ def card_frame() -> pd.DataFrame:
     return frame
 
 
-def test_card_frame_reads_the_stage_columns(toy_priced_matches: pd.DataFrame) -> None:
-    frame = runner.card_frame(toy_priced_matches)
-    # Half-times 1-0, 0-0, 0-0, 1-0 and 0-1; full-time totals 2, 0, 1, 3 and 2.
-    assert frame["home_behind"].tolist() == [0.0, 0.0, 0.0, 0.0, 1.0]
-    assert frame["away_behind"].tolist() == [1.0, 0.0, 0.0, 1.0, 0.0]
-    assert frame["ht_deficit"].tolist() == [1.0, 0.0, 0.0, 1.0, 1.0]
-    assert frame["is_comeback_away"].tolist() == [0.0, 0.0, 0.0, 1.0, 0.0]
-    assert frame["goals"].tolist() == [2.0, 0.0, 1.0, 3.0, 2.0]
-    assert frame["cluster"].tolist() == [
-        "1 2024",
-        "1 2025",
-        "2 2024-2025",
-        "2 2025-2026",
-        "2 2025-2026",
-    ]
-
-
-def test_card_has_one_row_per_quantity_as_a_ratio_of_sums(card_frame: pd.DataFrame) -> None:
-    table = runner.card(card_frame).set_index("quantity")
-    assert list(table.index) == [label for _, _, label in runner.CARD]
+def test_card_table_has_one_row_per_quantity_as_a_ratio_of_sums(card_frame: pd.DataFrame) -> None:
+    table = runner.card_table(card_frame).set_index("quantity")
+    assert list(table.index) == [label for _, _, label, _ in card.CARD]
     assert table.loc["comeback", "value"] == pytest.approx(2 / 6)
     assert table.loc["link 1: a team is behind at half-time", "value"] == pytest.approx(4 / 6)
     assert table.loc["link 2: the team behind wins", "value"] == pytest.approx(2 / 4)

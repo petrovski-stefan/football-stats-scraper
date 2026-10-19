@@ -159,7 +159,7 @@ The order is that of the league names, because no O/E test found a difference. T
 - **Shrunk values without a spread.** When a test finds no clear spread, the shrunk values stay near the pooled value. They do not show that one league is different.
 - **The own share comes from the same goals.** The share of a league comes from the goals of its matches, and its comebacks come from the same goals. This can move the comeback test toward "no difference". The test moved from p = 0.343 to p = 0.47.
 - **Why the share does not change C1.** In `../ALL/ODDS_YARDSTICK.md` (C9), a shift of 0.02 in the share for all matches changes the comeback O/E from 1.2427 to 1.2023 or 1.2892. The sd of the share between leagues is 0.0074.
-- **Raw rates are only the baseline.** They show how much of the league differences the prices explain. The rates of each league are the subject of `PER_LEAGUE/RATES.md` (`notes/WORKING/PLAN_2026-10-16_ANALYSIS_MIGRATION.md`, step 3).
+- **Raw rates are only the baseline.** They show how much of the league differences the prices explain. The rates of each league are the subject of `PER_LEAGUE/RATES.md`.
 - **Looks:** 9 tests across the leagues and 1 with the own share; for each, one cohort correlation and one sd at 80%; 4 luck lines, 3 of them in this doc. C5's p = 0.0315 is one of the 10 tests. Read it as a weak sign.
 - **Not profit.** A league with more comebacks than the yardstick does not show value. The value needs the 2/1 and 1/2 prices, and nowgoal does not show them.
 - **Opening prices only.** The closing prices are on the detail page, which the staged pipeline does not read yet.
