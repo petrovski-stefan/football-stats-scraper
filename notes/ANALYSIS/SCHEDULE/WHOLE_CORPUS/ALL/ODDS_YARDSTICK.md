@@ -1,6 +1,6 @@
 # ODDS_YARDSTICK — the odds yardstick on all matches
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -129,9 +129,3 @@ So the share changes by about 0.01 between bands. A change of 0.02 does not remo
 - **Looks:** 11 quantities for all matches; 9 for each of the 2 cohorts; 6 for each of 7 strength bands and 6 expected-goal bands; 6 trailer splits; 41 cells of win chance by expected goals; 4 share checks; 3 share settings; 2 rows with proportional removal. The claims come from this set. The 41 cells are in the runner's output only: no claim reads a cell.
 - **Not profit.** A comeback above the yardstick does not show value. The value needs the 2/1 and 1/2 prices, and nowgoal does not show them.
 - **Opening prices only.** The closing prices are on the detail page, which the staged pipeline does not read yet.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-18 | 144 league-seasons, 36,238 matches | first run |

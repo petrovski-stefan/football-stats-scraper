@@ -1,6 +1,6 @@
 # PREMATCH_SCREEN — pre-match fields beyond the odds, for a team's comeback
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -107,9 +107,3 @@ Sorted by the comeback p. Link 1 is "the team is behind at half-time" on all row
 - **The priors** of the HT/FT record and last-season fields were set by the old run and are not tuned here.
 - **Midweek in Berlin time.** For leagues far from Europe, the local weekday can differ.
 - **Not a holdout.** Both cohorts were seen. The old run asked the same on the corpus of 2026-10-09.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

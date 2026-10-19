@@ -1,6 +1,6 @@
 # RATES — comebacks per team
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -105,9 +105,3 @@ Loses a lead:
 - **Opponents.** A team that is often behind meets strong teams more often when it is behind. A test of one team at a time cannot separate the team from its opponents (rule 7). The yardstick can, because the prices of a match carry both teams.
 - **The test is generous.** The variance takes the matches of a team as independent. If they are not, Q is too large. This makes the "no sign" of C1 stronger, and the weak result of C2 weaker.
 - **Looks:** 12 tests, 12 repeat tests and 12 values at 80%; 2 luck lines and 2 lists of 10 teams. No team was tested on its own.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

@@ -1,6 +1,6 @@
 # HTFT — the nine half-time/full-time results on all matches
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -72,9 +72,3 @@ A candidate rule must beat these rates at the same N to add anything to the pric
 - **The top N are not a rule.** They show how far the prices alone can sort matches. The comeback hit rate is above the yardstick's own chance at every N, as the comeback excess of `ALL/ODDS_YARDSTICK.md` (C2) predicts.
 - **Looks:** 9 results for all matches and for each of the 2 cohorts, and 6 values of N for 2 targets: 39 numbers. The claims come from these.
 - **Not profit.** The HT/FT prices are not in the data. So the doc cannot say if a cell above the yardstick is also above its price.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-18 | 144 league-seasons, 36,238 matches | first run |

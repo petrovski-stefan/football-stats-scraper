@@ -11,7 +11,8 @@ Each note is in one group folder. Under its title, each note has the header line
 | folder | holds | rule |
 |---|---|---|
 | `WORKING/` | the current state and the open work | Edit it in place, and keep it current. |
-| `ANALYSIS/` | the results of methods run on the corpus: one doc for each method and scope | Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it. |
+| `ANALYSIS/` | the results of methods run on the corpus: one doc for each method and scope | Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it. |
+| `ML/` | the results of ML methods run on the corpus (`ml/CLAUDE.md`): one doc for each method and scope | Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it. |
 | `RECORD/` | preregistrations, results and closed lists, as they were written | Do not edit it. Add a dated erratum. Only the user can decide an edit. |
 | `REFERENCE/` | explainers, methods and reference data that other files cite | Change it only to correct or extend it. Keep the headings and numbers, because other files cite them. |
 | `FIELDS/` | one doc for each source and stage, with one row for each field | One row per field. Never change a field code. The stage-1 docs are frozen after plan step P7. |
@@ -28,6 +29,7 @@ When the notes are grouped by market (`WORKING/IDEAS_2026-10-01.md` idea 1), eac
 | a plan that the user agreed, but that is not done | a new file `WORKING/PLAN_<YYYY-MM-DD>_<TOPIC>.md` |
 | a question for the user that must not stop the task | `WORKING/DECISIONS.md` |
 | the result of a method run on the corpus | a doc in `ANALYSIS/`, from a runner of the `analysis/` package |
+| the result of an ML method: a model with settings tuned on the data | a doc in `ML/`, from a runner of the `ml/` package |
 | a test of a claim: its preregistration, then its result | two new notes in `RECORD/` |
 | a change that is done: a rename, a move, a deletion, an item of an IDEAS or PLAN note, a dropped field | `LOG/MIGRATIONS.md` |
 | a concept, a method or reference data that other notes cite | `REFERENCE/` |
@@ -43,7 +45,7 @@ Nothing new goes into `HISTORY/`. A note moves there only with the user's go.
    - Then fix all of them in one session, with no proposal.
    - Record the fixes in `LOG/MIGRATIONS.md`.
    - This applies to facts only. Claims, decisions and wording still need a go.
-3. **After a drop or a rename, look for out-of-date text only in `WORKING/`, `ANALYSIS/`, `REFERENCE/` and `FIELDS/`.** A Record note gets a dated erratum, if necessary. The History notes and the old Log entries stay as they are.
+3. **After a drop or a rename, look for out-of-date text only in `WORKING/`, `ANALYSIS/`, `ML/`, `REFERENCE/` and `FIELDS/`.** A Record note gets a dated erratum, if necessary. The History notes and the old Log entries stay as they are.
 4. **A doc of `ANALYSIS/`** is written after the user's go for that doc. Then Claude reports each claim, and the user can strike one (`ANALYSIS/CLAUDE.md` §3).
 5. **Audit an analysis before you propose an edit from it** (the user, 2026-10-13):
    - each number is in the printed output and in its source note;

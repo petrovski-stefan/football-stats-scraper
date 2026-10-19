@@ -1,6 +1,6 @@
 ---
 name: check
-description: Run the seven quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry, pytest), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, analysis/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
+description: Run the seven quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry, pytest), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, analysis/, ml/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
 allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *) Bash(uv run pyscn *) Bash(uv run deptry *) Bash(uv run pytest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Agent Grep Read
 ---
 
@@ -75,13 +75,13 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
 
 ## 3. Statistical review
 
-1. `git diff HEAD --name-only -- features analysis notes` and
-   `git ls-files --others --exclude-standard -- features analysis notes`.
+1. `git diff HEAD --name-only -- features analysis ml notes` and
+   `git ls-files --others --exclude-standard -- features analysis ml notes`.
    If both are empty: `stats review n/a`, skip the rest of this section.
 2. The self-check, only when its file is in that list (changed or untracked). Capture the
    exit code and the last ~20 lines of output:
    - `features/engine.py` → `uv run python -m features.engine --self-check`
-3. Spawn the `stats-reviewer` agent with: the full `git diff HEAD -- features analysis notes`,
+3. Spawn the `stats-reviewer` agent with: the full `git diff HEAD -- features analysis ml notes`,
    the untracked file list, `git log --oneline -15`, and the self-check's exit code and
    output — or `not run: unchanged` if its file is not in the list.
 4. Relay its report verbatim under "Statistical review". Do not re-judge its findings.

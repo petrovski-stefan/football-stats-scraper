@@ -1,6 +1,6 @@
 # PRICES — the returns of the opening prices, their margins, and the 7+ tail
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -136,9 +136,3 @@ Matches with k goals or more:
 - **C6 matches the totals in-sample.** The matched totals use the goals of the same matches, so they equal the observed mean goals of each band by construction. Only the part of the gap that remains after that is about the shape. The shape agrees with the dispersion of the goals given the yardstick, 0.9730 (`PER_LEAGUE/ODDS_YARDSTICK.md`, Method).
 - **The variance in C6 is a lower limit of the shape effect.** The matches of a band have different expected goals, and that spread adds variance. So the variance of a match's goals around its own expected goals is lower than the table shows.
 - **Opening prices only, Bet365 only.** The closing prices and the other bookmakers are on the detail page, which the staged pipeline does not read yet.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

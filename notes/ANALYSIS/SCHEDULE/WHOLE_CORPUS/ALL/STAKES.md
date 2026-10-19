@@ -1,6 +1,6 @@
 # STAKES — comebacks when the result matters to the team behind
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each. The frozen plan in the Method keeps its own wording.
 
@@ -107,9 +107,3 @@ The expected wins are the yardstick's chance that the team behind wins from that
 - **The flags read the table at kickoff.** S3.12 and S3.13 come from the standings rebuilt from the matches that kicked off at least 2 h 30 min before (`notes/FIELDS/SCHEDULE_3_MULTI.md`). They do not count a match that kicked off less than 2 h 30 min before, even when it ended before this kickoff.
 - **The strata take strength from the 1X2 chances only.** The reading against the odds also uses the O/U market, and gives the same answer (C4).
 - **Looks:** 2 flags × 3 rows of the comparison, 4 readings against the odds, and the bar.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run in this workflow (the frozen test ran on 2026-10-12) |

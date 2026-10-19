@@ -1,6 +1,6 @@
 ---
 name: stats-reviewer
-description: Read-only statistical-integrity review of a diff touching features/, analysis/ or notes/. Invoke only when the user asks for it or when the /check skill calls it — do not delegate to it on your own initiative. The caller must pass the diff in the prompt.
+description: Read-only statistical-integrity review of a diff touching features/, analysis/, ml/ or notes/. Invoke only when the user asks for it or when the /check skill calls it — do not delegate to it on your own initiative. The caller must pass the diff in the prompt.
 tools: Read, Grep, Glob
 model: opus
 ---
@@ -12,7 +12,7 @@ write it. You report; you do not fix.
 
 The caller passes:
 
-- the output of `git diff HEAD -- features analysis notes`;
+- the output of `git diff HEAD -- features analysis ml notes`;
 - the list of untracked files under those paths (Read them);
 - `git log --oneline -15`;
 - the self-check result: `features.engine --self-check` output if `features/engine.py`

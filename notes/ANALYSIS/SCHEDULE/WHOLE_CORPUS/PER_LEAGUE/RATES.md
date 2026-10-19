@@ -1,6 +1,6 @@
 # RATES — comebacks and 7+ matches per league
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -23,7 +23,7 @@ Which leagues have the most comebacks and the most 7+ matches? Do the leagues di
 | C1 | The leagues differ in comeback rate. A league does not change between its seasons by more than noise | Q 114.5, p = 0.00107, sd 0.0077 (14.71% of the rate 0.0522); shrunk 0.0408 to 0.0624. Raw 0.0208 to 0.0947; with no difference, luck alone gives 0.0271 to 0.0806. League-seasons inside their league: Q 74.4 on 71 df, p = 0.368 | 73 leagues | the order hardly repeats: 0.1679 | exploratory |
 | C2 | The leagues differ clearly in how often a team is behind at half-time, and less clearly in how often the team behind wins | link 1: Q 271.8, p = 5.68e-25, sd 0.0368 (6.23% of 0.5909); shrunk 0.5058 to 0.6462. Link 2: Q 100.7, p = 0.0144, sd 0.0105 (11.86% of 0.0883); shrunk 0.0766 to 0.0995 | 73 leagues | link 1 0.4463, link 2 0.1505 | exploratory |
 | C3 | How often the home team, and how often the away team, is behind at half-time differs between leagues. When behind, the home team's win rate shows no clear difference | home behind: Q 184.2, p = 8.81e-12, sd 0.0244. Away behind: Q 144.3, p = 9.22e-07, sd 0.0213. Home team behind wins: Q 89.4, p = 0.0808. Away team behind wins: Q 99.7, p = 0.017 | 73 leagues | 0.4454, 0.2503, 0.1205, 0.0960 | exploratory |
-| C4 | The leagues differ much in 7+ rate. There is no sign that a league changes between its seasons (changed by the second run, see Runs) | Q 292.4, p = 2.45e-28, sd 0.0116 (51.92% of the rate 0.0224); shrunk 0.0072 to 0.0544. Raw 0.0039 to 0.0720; luck alone gives 0.0076 to 0.0417. League-seasons inside their league: Q 82.1 on 71 df, p = 0.174. The first run gave p = 0.0048, from a wrong variance | 73 leagues | yes: 0.5595 | exploratory |
+| C4 | The leagues differ much in 7+ rate. There is no sign that a league changes between its seasons (changed by a second run on 2026-10-19) | Q 292.4, p = 2.45e-28, sd 0.0116 (51.92% of the rate 0.0224); shrunk 0.0072 to 0.0544. Raw 0.0039 to 0.0720; luck alone gives 0.0076 to 0.0417. League-seasons inside their league: Q 82.1 on 71 df, p = 0.174. The first run gave p = 0.0048, from a wrong variance | 73 leagues | yes: 0.5595 | exploratory |
 | C5 | The leagues differ much in goals per match, in each half too, and a league also changes between its seasons | Q 1107.5, p = 3.52e-185, sd 0.2815 goals (10.24% of 2.7476); shrunk 2.2275 to 3.5271. First half: sd 0.1306. Second half: sd 0.1538. League-seasons inside their league: Q 103.9 on 71 df, p = 0.00666 | 73 leagues | yes: 0.8520 (first half 0.7049, second half 0.8098) | exploratory |
 | C6 | In the leagues with an Apertura and a Clausura, the two stages show no clear difference | comeback 0.0440 [0.0356, 0.0538] in the Apertura, 0.0549 [0.0411, 0.0745] in the Clausura. 7+ goals 0.0163 [0.0104, 0.0227] and 0.0200 [0.0107, 0.0307]. Goals per match 2.5661 [2.4109, 2.7228] and 2.5807 [2.3611, 2.7990] | 5 leagues: 1,226 and 1,202 matches | not measured | exploratory |
 
@@ -149,10 +149,3 @@ The leagues in the order of their shrunk comeback rate, highest first (`notes/AN
 - **Link 1 follows the goals.** More goals in the first half give more half-times with a team behind. So C2's link 1 and C5 are partly one difference, seen two ways.
 - **Small stages.** The stage slice has 5 leagues, and 1,226 and 1,202 matches. Its intervals are wide, so only a large difference between the stages would show.
 - **Looks:** 13 tests across the leagues, 3 season tests and 6 stage values; 13 cohort correlations and 13 values at 80%; 2 luck lines. No league was tested on its own.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |
-| 2026-10-19 | 144 league-seasons, 36,238 matches | second run, the same day: the season test takes each league's own value for the variance of its league-seasons. The first run took the value of all leagues together. That was wrong for leagues far from it, most of all for 7+ goals, whose rates differ much between leagues. C4's season part went from p = 0.0048 to p = 0.174, and it no longer holds. C1 (p 0.324 to 0.368) and C5 (p 0.00335 to 0.00666) changed a little. No other number changed |

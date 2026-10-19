@@ -1,6 +1,6 @@
 # SHIN — Shin's method on all matches
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -58,9 +58,3 @@ Each of the three outcomes of a match is one row. "Observed" is the share of the
 - **Band intervals are too narrow.** They treat the three outcomes of a match, and the matches of a league-season, as independent. C2 and C3 use the clustered interval.
 - **Looks:** z, 2 scores and the margin, each for all matches and for 2 cohorts, and 9 price bands. Nothing was selected from a larger set of looks.
 - **Opening prices only.** The closing prices are on the detail page, which the staged pipeline does not read yet.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-16 | 144 league-seasons, 36,238 matches | first run |

@@ -1,6 +1,6 @@
 # ODDS_GROUPS — comebacks and 7+ matches on the same opening prices
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -93,9 +93,3 @@ The pooled O/E is 1.2427 and 1.2391 for comebacks, 0.8145 and 0.8175 for 7+ goal
 - **C2 is in the smallest groups.** A group of 2 to 4 matches with 2 comebacks has a tail p from 0.002 to 0.043. 4 of its 15 groups hold Australian state leagues, which share price sets. Most of the others pair two matches from different countries. The run does not tell if a shared price set means a shared kind of match.
 - **Shared data:** the null and the groups both come from the opening prices. The group values of the two cohorts come from different matches.
 - **Power:** the test across the groups finds an sd of about 0.17–0.19 in O/E for comebacks and 0.18–0.21 for 7+ goals. A smaller spread between price groups can exist.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

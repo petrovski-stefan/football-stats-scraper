@@ -2,7 +2,9 @@
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
-The rule of this group: Claude writes a doc from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+The rule of this group: Claude writes a doc from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
+
+A doc runs again only when the corpus changes (a league is added or removed) or its method changes (the user, 2026-10-19). The corpus line in its header tells which corpus its numbers come from.
 
 ## 1. What goes here
 
@@ -110,10 +112,9 @@ A doc that tells how often comebacks or 7+ matches occur gives the card of its l
 - **Question:** one or two lines.
 - **Claims:** a table with the columns id (C1, C2, …), claim, number with its interval, n, both seasons, and status.
   - An id never changes.
-  - If a claim stops being true, its row stays, with the run that changed it.
+  - If a claim stops being true, its row stays, with the date and the reason.
   - The status is `exploratory`, or `tested` with a link to the Record note.
 - **Method**, then **Caveats**: the number of looks, data that two sides share, and the assumptions of the yardstick.
-- **Runs:** a table with the date, the corpus and the change.
 
 ## 5. Honesty rules
 

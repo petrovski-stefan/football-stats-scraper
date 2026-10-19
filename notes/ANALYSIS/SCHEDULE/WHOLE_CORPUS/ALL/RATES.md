@@ -1,6 +1,6 @@
 # RATES — comebacks and 7+ matches on all matches
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -91,9 +91,3 @@ The card also gives the count against the count that the odds expect. `ALL/ODDS_
 - **The corpus was chosen.** Its 73 leagues stayed because their odds coverage was complete (`PER_LEAGUE/ODDS_COVERAGE.md`, Caveats). The rates describe these leagues, not football in general.
 - **The awarded match** is in the rates, as a 3-0 with 0-0 at half-time: 1 match of 36,238 (`PER_LEAGUE/ODDS_COVERAGE.md`, C2).
 - **Looks:** 13 values for all matches and for each of the 2 cohorts; 3 deficit bands; 11 goal totals.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

@@ -1,6 +1,6 @@
 # LEVELS — at which level the differences between matches sit
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -120,9 +120,3 @@ A league has one season in each cohort, so the cohorts have no league-season lev
 - **C6 repeats `PER_TEAM/ODDS_YARDSTICK.md` C6** at the team-season, with shuffles in place of draws of outcomes. This doc does not explain it either.
 - **Looks:** 40 tests on all matches, 32 in the cohorts, and 11 odds shares. 52 of the tests are against the odds. Below p = 0.05 against the odds: the round on all matches (C5, 2 tests), the round in 2024 (2 tests), and link 1 at the league in 2025. At p = 0.05, 52 tests give about 2.6 by chance. The 2024 round tests share their data with C5.
 - **Not profit.** A level with more comebacks than the yardstick does not show value. The value needs the HT/FT prices, and nowgoal does not show them.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

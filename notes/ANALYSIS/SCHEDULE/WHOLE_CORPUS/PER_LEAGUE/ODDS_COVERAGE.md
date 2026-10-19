@@ -1,6 +1,6 @@
 # ODDS_COVERAGE — the opening odds of each league
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -69,9 +69,3 @@ The other 72 leagues have all three markets on each match. The runner prints eac
 - **The checks are in `qa.validate`.** It fails a league-season with a market that is only partly there (`qa/odds.py:check_whole_markets`), and one below 99% on all three markets (`qa/odds.py:check_coverage`). This doc describes the coverage. It does not replace the checks.
 - **Not in this doc:** the margins and the lines of the markets. The 1X2 margin is in `../ALL/SHIN.md`. The O/U and AH margins and lines are in `../ALL/PRICES.md`.
 - **Looks:** the coverage of 73 leagues, 144 league-seasons and 2 cohorts; 1 gap; 4 rows of 3-0 and 0-3 results.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

@@ -1,6 +1,6 @@
 # ROUND_FIELDS — how often each value of the round so far occurs
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -74,9 +74,3 @@ Lines with fewer than 500 matches get no row of their own.
 - **The counts are not independent.** A round's matches see the same finished round-mates, so the rows of one round share their values.
 - **What the fields mean, and their checks,** are in `notes/FIELDS/SCHEDULE_3_MULTI.md` §A2. The logic is tested by pytest on toy data (`tests/features/test_schedule_multi.py`, with the stage-3 leak test), and `qa.validate` checks the rules between the counts (`qa/stages.py:check_round_fields`).
 - **Looks:** 5 counts and 3 averages for all matches and for each of 2 cohorts; 8 rows of goals against the line; 1 comparison with the yardstick.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

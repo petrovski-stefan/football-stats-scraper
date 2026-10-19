@@ -1,6 +1,6 @@
 # SEASON_PHASE — comebacks and 7+ matches by the phase of the season
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -117,9 +117,3 @@ The league-season readings give p = 0.199 (comebacks), 0.131 (7+ goals) and 0.54
 - **The yardstick's assumptions** (`ALL/ODDS_YARDSTICK.md`): one first-half share for all matches, and goals that are Poisson and independent. Over all matches, the odds expect slightly more goals than happen: O/E 0.9888 (its C1). C5 reads the first rounds against the middle, so this level does not make C5.
 - **The round number mixes leagues.** Round 30 is near the end of a league of 30 rounds and in the middle of a league of 46. So the phase (C1–C5) is the better slice. Round numbers above 33 have fewer than 600 matches, from a few leagues.
 - **Clusters in one round** are a different question: `ALL/ROUND_CLUSTERS.md`.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

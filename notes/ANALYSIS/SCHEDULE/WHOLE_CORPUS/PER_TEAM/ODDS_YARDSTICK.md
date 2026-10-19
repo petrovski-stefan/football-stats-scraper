@@ -1,6 +1,6 @@
 # ODDS_YARDSTICK — the odds yardstick per team
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -135,9 +135,3 @@ Loses a lead:
 - **The goals and strength (C5).** The pattern is small, a few percent, and it agrees with `../ALL/PRICES.md` (C4: large handicaps are too large) and with `../ALL/ODDS_YARDSTICK.md` (Caveats: the prices spread the expected goals a little too wide). The goal O/E of the teams do not repeat (C4), so the pattern does not make a team trait.
 - **Not profit.** A team with a high comeback O/E does not show value. The value needs the HT/FT prices, and nowgoal does not show them.
 - **Looks:** 12 tests, 12 repeat tests and 12 values at 80%; 42 calibration cells; 8 null checks; 2 luck lines and 2 lists of 10 teams. No team was tested on its own.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

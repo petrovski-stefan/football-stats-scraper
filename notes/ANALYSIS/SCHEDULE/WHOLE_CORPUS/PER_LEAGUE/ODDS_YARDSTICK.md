@@ -1,6 +1,6 @@
 # ODDS_YARDSTICK — the odds yardstick per league
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -163,9 +163,3 @@ The order is that of the league names, because no O/E test found a difference. T
 - **Looks:** 9 tests across the leagues and 1 with the own share; for each, one cohort correlation and one sd at 80%; 4 luck lines, 3 of them in this doc. C5's p = 0.0315 is one of the 10 tests. Read it as a weak sign.
 - **Not profit.** A league with more comebacks than the yardstick does not show value. The value needs the 2/1 and 1/2 prices, and nowgoal does not show them.
 - **Opening prices only.** The closing prices are on the detail page, which the staged pipeline does not read yet.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |

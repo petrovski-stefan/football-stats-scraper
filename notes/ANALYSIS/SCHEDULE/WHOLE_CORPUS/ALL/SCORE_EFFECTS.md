@@ -1,6 +1,6 @@
 # SCORE_EFFECTS — second-half score effects on all matches
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -107,9 +107,3 @@ Each side's second-half rate is multiplied by the O/E of its half-time state (th
 - **No minutes.** The schedule has the half-time and full-time scores only. When the second-half goals come is a question for the live page (`notes/WORKING/IDEAS_2026-10-01.md` idea 2b, step 8).
 - **Looks:** 7 states for all matches; 7 for each of the 2 cohorts; 14 for the favourite and the underdog; 16 for the 8 half-time scores; 5 groups of first-half goals; 4 sets of rates. The claims come from these 60 numbers.
 - **Not profit.** A faster side behind does not show value without the in-play prices, and the project is pre-match only.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-18 | 144 league-seasons, 36,238 matches | first run |

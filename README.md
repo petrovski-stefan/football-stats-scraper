@@ -30,8 +30,8 @@ A web scraper that collects football match data across multiple leagues — incl
 
 ## Project structure
 
-Five packages, imported absolutely and strictly one-directional:
-`domain` → `scrapers` → `features` → `analysis`, with `qa` off to the side.
+Six packages, imported absolutely and strictly one-directional:
+`domain` → `scrapers` → `features` → `analysis` → `ml`, with `qa` off to the side.
 
 ```
 .
@@ -45,6 +45,7 @@ Five packages, imported absolutely and strictly one-directional:
 ├── scrapers/             # Selenium driver, DOM parsers, schedule/detail/live-page scrapes
 ├── features/             # The joins, goal/event aggregates, as-of-round feature matrix
 ├── analysis/             # Runners that only print, one per doc in notes/ANALYSIS/
+├── ml/                   # ML runners that only print, one per doc in notes/ML/
 ├── qa/                   # Corpus validator
 └── notes/                # Study records, preregistrations, findings
 ```

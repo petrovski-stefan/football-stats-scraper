@@ -1,6 +1,6 @@
 # SHIN — Shin's method per league
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -115,9 +115,3 @@ The league names are those of the stage files.
 | vic_premier_league | 364 | 0.05743 | 0.05742 | 0.00325 | 0.00074 |
 | victorian_state_league_division_1 | 364 | 0.05750 | 0.05750 | -0.00080 | 0.00056 |
 | welsh_premier_league | 264 | 0.05178 | 0.05176 | -0.00332 | 0.00055 |
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-16 | 144 league-seasons, 36,238 matches | first run |

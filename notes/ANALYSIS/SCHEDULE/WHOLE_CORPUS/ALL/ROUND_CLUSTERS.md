@@ -1,6 +1,6 @@
 # ROUND_CLUSTERS — comebacks and 7+ matches in one round
 
-**Group: Analysis.** Claude writes it from a run. A new run updates its numbers and adds a line to its run log. Each claim is untested until a Record note tests it.
+**Group: Analysis.** Claude writes it from a run. A new run replaces its numbers. Each claim is untested until a Record note tests it.
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
@@ -125,9 +125,3 @@ The expected counts come from each match's chance: the odds yardstick's chance, 
 - **"Found" uses a normal model.** For rare events in rounds of about 8 matches, the true power is lower.
 - **Looks:** 15 tests on all matches, 5 near the date, 40 in the cohorts: 60 tests. Below p = 0.05: 7+ and goals around all matches (C5, the league-seasons); against the odds, 7+ and goals on all matches, near the date, and in 2024; raw, 7+ and goals in 2024. These share data. 2025 has none.
 - **Not profit.** A round with more comebacks than the yardstick does not show value. The value needs the HT/FT prices, and nowgoal does not show them.
-
-## Runs
-
-| date | corpus | change |
-|---|---|---|
-| 2026-10-19 | 144 league-seasons, 36,238 matches | first run |
