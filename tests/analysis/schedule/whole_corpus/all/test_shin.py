@@ -20,6 +20,6 @@ def test_price_table_counts_every_outcome_once(toy_matches: pd.DataFrame) -> Non
     frame = shin.scored(toy_matches)
     table = runner.price_table(frame)
     assert table["outcomes"].sum() == 3 * len(frame)
-    assert len(table) <= len(runner.PRICE_EDGES) - 1
+    assert len(table) <= len(shin.PRICE_EDGES) - 1
     # Exactly one of the three outcomes of each match happens.
     assert round((table["observed"] * table["outcomes"]).sum()) == len(frame)

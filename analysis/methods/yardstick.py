@@ -29,6 +29,8 @@ MAX_DEFICIT = 11  # half-time deficits summed over for a comeback
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
 MAX_MARGIN = 12  # goal margins summed over in each half for the HT/FT cells
 HTFT = tuple(f"{ht}/{ft}" for ht in "1X2" for ft in "1X2")
+# Bands of a match's expected goals (the sum of its two rates), for tables by goal level.
+TOTAL_EDGES = (0.0, 2.2, 2.5, 2.8, 3.1, 3.4, 10.0)
 
 
 @dataclass(frozen=True)

@@ -7,14 +7,10 @@ and per season cohort; and observed against implied rates by price band.
 Run: `uv run python -m analysis.schedule.whole_corpus.all.shin`
 """
 
-import numpy as np
 import pandas as pd
 
 from analysis import corpus, stats
 from analysis.methods import shin
-
-# Decimal-odds bands of the calibration table, from favourites to long shots.
-PRICE_EDGES = (1.0, 1.3, 1.6, 2.0, 2.6, 3.5, 5.5, 8.0, 13.0, np.inf)
 
 
 def summary(frame: pd.DataFrame) -> dict[str, float]:
@@ -41,29 +37,10 @@ def summary(frame: pd.DataFrame) -> dict[str, float]:
     return out
 
 
-def outcome_rows(frame: pd.DataFrame) -> pd.DataFrame:
-    """Three rows per match, one per outcome: its price, both probabilities, and if it won."""
-    codes = (corpus.HOME, corpus.DRAW, corpus.AWAY)
-    sides = [
-        pd.DataFrame(
-            {
-                "price": frame[odds].to_numpy(),
-                "prop": frame[prop].to_numpy(),
-                "shin": frame[shin_p].to_numpy(),
-                "hit": (frame["outcome"] == code).to_numpy(),
-            }
-        )
-        for code, odds, prop, shin_p in zip(
-            codes, shin.ODDS, shin.PROPORTIONAL, shin.PROBS, strict=True
-        )
-    ]
-    return pd.concat(sides, ignore_index=True)
-
-
 def price_table(frame: pd.DataFrame) -> pd.DataFrame:
     """Per price band: outcomes, the observed rate with its Wilson CI, and each method's mean."""
-    rows = outcome_rows(frame)
-    rows["band"] = pd.cut(rows["price"], PRICE_EDGES)
+    rows = shin.outcome_rows(frame)
+    rows["band"] = pd.cut(rows["price"], shin.PRICE_EDGES)
     table = []
     for band, group in rows.groupby("band", observed=True):
         hits, n = int(group["hit"].sum()), len(group)

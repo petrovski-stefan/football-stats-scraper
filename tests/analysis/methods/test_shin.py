@@ -38,3 +38,13 @@ def test_scored_drops_unpriced_matches_and_defines_the_gain(toy_matches: pd.Data
     assert np.allclose(frame["brier_gain"], frame["brier_prop"] - frame["brier_shin"])
     assert frame["cluster"].tolist() == ["1 2024", "1 2025", "2 2024-2025", "2 2025-2026"]
     assert shin.sum_error(frame) < 1e-9
+
+
+def test_outcome_rows_give_each_match_three_sides_and_one_hit(toy_matches: pd.DataFrame) -> None:
+    frame = shin.scored(toy_matches)
+    rows = shin.outcome_rows(frame)
+    assert len(rows) == 3 * len(frame)
+    assert rows["side"].tolist() == ["home"] * 4 + ["draw"] * 4 + ["away"] * 4
+    assert int(rows["hit"].sum()) == len(frame)
+    assert rows["price"].tolist()[:4] == frame[shin.ODDS[0]].tolist()
+    assert rows["cluster"].tolist()[:4] == frame["cluster"].tolist()

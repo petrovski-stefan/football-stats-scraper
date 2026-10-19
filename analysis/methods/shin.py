@@ -18,6 +18,8 @@ ODDS = ["s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away
 PROPORTIONAL = ["s2_mkt_p_home", "s2_mkt_p_draw", "s2_mkt_p_away"]
 PROBS = ["shin_p_home", "shin_p_draw", "shin_p_away"]
 KEYS = ["match_id", "s1_league_id", "s1_league_name", "s1_season", "season_cohort"]
+# Decimal-odds bands of an outcome's price, from favourites to long shots.
+PRICE_EDGES = (1.0, 1.3, 1.6, 2.0, 2.6, 3.5, 5.5, 8.0, 13.0, np.inf)
 
 
 def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float, float]:
@@ -56,6 +58,28 @@ def scored(matches: pd.DataFrame) -> pd.DataFrame:
     frame["brier_gain"] = frame["brier_prop"] - frame["brier_shin"]
     frame["cluster"] = priced["s1_league_id"].astype(str) + " " + priced["s1_season"]
     return frame
+
+
+def outcome_rows(frame: pd.DataFrame) -> pd.DataFrame:
+    """Three rows per match of `scored`, one per outcome: its side, its price, both
+    probabilities, if it happened, and the league-season."""
+    codes = (corpus.HOME, corpus.DRAW, corpus.AWAY)
+    sides = [
+        pd.DataFrame(
+            {
+                "side": side,
+                "price": frame[odds].to_numpy(),
+                "prop": frame[prop].to_numpy(),
+                "shin": frame[shin_p].to_numpy(),
+                "hit": (frame["outcome"] == code).to_numpy(),
+                "cluster": frame["cluster"].to_numpy(),
+            }
+        )
+        for side, code, odds, prop, shin_p in zip(
+            ("home", "draw", "away"), codes, ODDS, PROPORTIONAL, PROBS, strict=True
+        )
+    ]
+    return pd.concat(sides, ignore_index=True)
 
 
 def sum_error(frame: pd.DataFrame) -> float:

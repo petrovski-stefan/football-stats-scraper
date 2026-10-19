@@ -44,9 +44,8 @@ BANDED = (
     ("goals_1h", "goals", "first-half share (observed / all goals)"),
 )
 SHARE_SHIFT = 0.02
-# The favourite's Shin win chance, and the model's expected goals per match.
+# The favourite's Shin win chance. The bands of expected goals are `yardstick.TOTAL_EDGES`.
 FAV_EDGES = (0.0, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 1.0)
-TOTAL_EDGES = (0.0, 2.2, 2.5, 2.8, 3.1, 3.4, 10.0)
 
 
 def banded(
@@ -107,7 +106,7 @@ def side_goals(frame: pd.DataFrame) -> pd.DataFrame:
 
 def pivot(frame: pd.DataFrame) -> pd.DataFrame:
     """Comebacks by the favourite's win chance and the expected goals, both banded."""
-    keys = [pd.cut(frame["fav_p"], FAV_EDGES), pd.cut(frame["m_goals"], TOTAL_EDGES)]
+    keys = [pd.cut(frame["fav_p"], FAV_EDGES), pd.cut(frame["m_goals"], yardstick.TOTAL_EDGES)]
     grouped = frame.groupby(keys, observed=True)
     table = pd.DataFrame(
         {
@@ -161,7 +160,9 @@ def main() -> None:
         )
 
     report.show("By the favourite's win chance (Shin)", banded(frame, "fav_p", FAV_EDGES, BANDED))
-    report.show("By expected goals per match", banded(frame, "m_goals", TOTAL_EDGES, BANDED))
+    report.show(
+        "By expected goals per match", banded(frame, "m_goals", yardstick.TOTAL_EDGES, BANDED)
+    )
     report.show("Where the comeback excess sits (decisive half-times only)", excess_table(frame))
     report.show("Comebacks by win chance and expected goals", pivot(frame))
 
