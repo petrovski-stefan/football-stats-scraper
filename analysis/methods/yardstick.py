@@ -27,6 +27,8 @@ RATES = np.arange(RATE_STEP, 6.0 + 1e-9, RATE_STEP)
 MAX_GOALS = 25  # per team, for the grid's win probabilities; the mass beyond is negligible
 MAX_DEFICIT = 11  # half-time deficits summed over for a comeback
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
+MAX_MARGIN = 12  # goal margins summed over in each half for the HT/FT cells
+HTFT = tuple(f"{ht}/{ft}" for ht in "1X2" for ft in "1X2")
 
 
 @dataclass(frozen=True)
@@ -142,6 +144,30 @@ def completion_given_ht(
     return np.asarray(
         np.where(ht_margin < 0, home_behind, np.where(ht_margin > 0, away_behind, 0.0))
     )
+
+
+def result_code(margin: np.ndarray) -> np.ndarray:
+    """The 1X2 code of a goal margin (home minus away): 1 home ahead, X level, 2 away ahead."""
+    return np.asarray(np.where(margin > 0, "1", np.where(margin < 0, "2", "X")))
+
+
+def htft_cells(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.DataFrame:
+    """The model's chance of each of the nine HT/FT results per match, column `m_<ht>/<ft>`.
+
+    The half-time margin and the second-half margin are independent Skellam counts; the
+    full-time margin is their sum. `m_2/1` is the home comeback and `m_1/2` the away one.
+    """
+    h1, a1 = share * lam_home, share * lam_away
+    h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
+    margins = np.arange(-MAX_MARGIN, MAX_MARGIN + 1)
+    second = [sps.skellam.pmf(k, h2, a2) for k in margins]
+    cells = {name: np.zeros(len(lam_home)) for name in HTFT}
+    for k1 in margins:
+        first = sps.skellam.pmf(k1, h1, a1)
+        ht = str(result_code(np.array(k1)))
+        for k2, chance in zip(margins, second, strict=True):
+            cells[f"{ht}/{result_code(np.array(k1 + k2))!s}"] += first * chance
+    return pd.DataFrame({f"m_{name}": chance for name, chance in cells.items()})
 
 
 def first_half_share(matches: pd.DataFrame) -> float:

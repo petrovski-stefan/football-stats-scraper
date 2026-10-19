@@ -94,6 +94,29 @@ def test_completions_over_every_half_time_score_add_up_to_the_comeback_chance() 
     assert (weights * completion).sum() == pytest.approx(model["m_cb"][0])
 
 
+def test_result_code_of_a_margin() -> None:
+    assert yardstick.result_code(np.array([2, 0, -1])).tolist() == ["1", "X", "2"]
+
+
+def test_the_nine_htft_chances_add_up_to_one() -> None:
+    cells = yardstick.htft_cells(np.array([1.6, 0.9]), np.array([1.0, 1.7]), 0.45)
+    assert list(cells.columns) == [f"m_{cell}" for cell in yardstick.HTFT]
+    assert cells.sum(axis=1).to_numpy() == pytest.approx([1.0, 1.0], abs=1e-6)
+
+
+def test_the_comeback_cells_are_the_comeback_chances() -> None:
+    home, away = np.array([1.6, 0.9]), np.array([1.0, 1.7])
+    cells = yardstick.htft_cells(home, away, 0.45)
+    model = yardstick.implied(home, away, 0.45)
+    assert cells["m_2/1"].to_numpy() == pytest.approx(model["m_cb_home"].to_numpy(), abs=1e-7)
+    assert cells["m_1/2"].to_numpy() == pytest.approx(model["m_cb_away"].to_numpy(), abs=1e-7)
+
+
+def test_one_share_gives_both_leads_the_same_chance_to_end_level() -> None:
+    cells = yardstick.htft_cells(np.array([1.9]), np.array([0.8]), 0.45)
+    assert cells["m_1/X"][0] == pytest.approx(cells["m_2/X"][0])
+
+
 def test_priced_keeps_the_matches_with_both_markets(toy_priced_matches: pd.DataFrame) -> None:
     assert yardstick.priced(toy_priced_matches)["match_id"].tolist() == ["m1", "m2", "m3", "m4"]
 
