@@ -4,7 +4,7 @@
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
-**Status: in progress since 2026-10-18** (the user: "Next is runs/ deletion and migration"). **Written 2026-10-16.** The idea is the user's: drop every run in `notes/runs/`, and do each one again in the new workflow. In that workflow, a runner in `analysis/` calculates and prints, and Claude writes the doc in `notes/ANALYSIS/` (`notes/ANALYSIS/CLAUDE.md`). Shin's method proved the workflow on 2026-10-16 (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`). The mapping and the order below are Claude's proposal. The user decides them when the work starts.
+**Status: in progress since 2026-10-18** (the user: "Next is runs/ deletion and migration"). **Written 2026-10-16.** The idea is the user's: drop every run in `notes/runs/`, and do each one again in the new workflow. In that workflow, a runner in `analysis/` calculates and prints, and Claude writes the doc in `notes/ANALYSIS/` (`notes/ANALYSIS/CLAUDE.md`). Shin's method proved the workflow on 2026-10-16 (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`). The mapping and the order below are Claude's proposal. The user decides them when the work starts. **`notes/runs/` is gone since 2026-10-19:** every run has a doc or a reason in `notes/LOG/MIGRATIONS.md`. Open: §1, step 4, and the optional `WEEKDAY`.
 
 **Why:** a run in `notes/runs/` is outside git. Its script, its output and its frozen plan can get lost, and no claim can cite it. A doc in `notes/ANALYSIS/` is in git, and its runner can run again.
 
@@ -18,8 +18,6 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 
 | run | what it asked | new docs | note |
 |---|---|---|---|
-| `2026-10-09_corpus_scan` b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
-| `load.py`, `run_all.py` | — | none | `analysis/corpus.py` does their work. They go with the last script of the folder. |
 | the weekday check (no folder) | comebacks and 7+ by weekday | `ALL/WEEKDAY.md` (optional) | Its numbers are in `notes/LOG/MIGRATIONS.md` 2026-10-11. |
 | none: the level design of 2026-10-18 | clusters in one round; which level the differences sit at | `ALL/ROUND_CLUSTERS.md`, `ALL/LEVELS.md` | No run asked these. Both use the yardstick. |
 
@@ -31,9 +29,9 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 3 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 4 | the new docs of the level design: `ROUND_CLUSTERS`, `LEVELS` | 5–7 h |
-| 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `WEEKDAY` (`SEASON_PHASE`, `ODDS_GROUPS` and `STAKES` done 2026-10-19; `ZONE_STAKES` skipped by the user) | 4–6 h |
+| 5 | `WEEKDAY` (optional; the rest done 2026-10-19, `ZONE_STAKES` skipped by the user) | 1–2 h |
 | 6 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
-| 7 | delete what is left of `notes/runs/`, and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
+| 7 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 
 Total: about 2½–3½ days of Claude's work, plus §1.
 
@@ -46,9 +44,11 @@ Total: about 2½–3½ days of Claude's work, plus §1.
 
 ## 5. Done when
 
-- `notes/runs/` and its `.gitignore` line are gone. Only Log entries, Record notes and History notes still cite `notes/runs/`.
-- `uv run mypy .` shows 0 errors. On 2026-10-19 its 16 errors are all in the two scripts left in `notes/runs/` (b1, b2).
-- pyscn shows 0 layer violations: met on 2026-10-19.
+Each is met since 2026-10-19:
+
+- `notes/runs/` and its `.gitignore` line are gone. Only Log entries, Record notes and History notes still cite `notes/runs/` (and this plan).
+- `uv run mypy .` shows 0 errors.
+- pyscn shows 0 layer violations.
 - The seven gates pass.
 
 ## 6. Later: docs that need the detail or the live page

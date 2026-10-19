@@ -13,6 +13,7 @@ dependencies = [
     "scipy==1.15.1",
     "selenium==4.27.1",
     "shin==0.2.2",
+    "statsmodels==0.15.0",
 ]
 
 [tool.ruff]
