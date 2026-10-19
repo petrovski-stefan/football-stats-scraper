@@ -7,9 +7,11 @@ heterogeneity test across the units, shrunk unit values, the luck line and the a
 the two season cohorts, as `notes/ANALYSIS/CLAUDE.md` §5, rule 1 asks.
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
-from scipy.stats import chi2
+from scipy.stats import chi2, spearmanr
 
 from analysis import stats
 
@@ -47,19 +49,30 @@ def dispersion(frame: pd.DataFrame, unit: str, observed: str, expected: str, kin
 
 
 def unit_values(
-    frame: pd.DataFrame, unit: str, observed: str, expected: str, kind: str, phi: float = 1.0
+    frame: pd.DataFrame,
+    unit: str,
+    observed: str,
+    expected: str,
+    kind: str,
+    phi: float = 1.0,
+    within: str | None = None,
 ) -> pd.DataFrame:
     """Per unit: the two sums, their ratio (`value`), and its variance if all were equal.
 
     The variance is that of the value under one pooled value for every unit, sum(observed)
-    / sum(expected) over all matches, times the dispersion `phi`.
+    / sum(expected) over all matches, times the dispersion `phi`. With `within` (such as the
+    league of a team), each match takes the pooled value of its `within` group instead.
     """
-    pooled = float(frame[observed].sum() / frame[expected].sum())
+    if within is None:
+        null: float | pd.Series[float] = float(frame[observed].sum() / frame[expected].sum())
+    else:
+        sums = frame.groupby(within)[[observed, expected]].transform("sum")
+        null = sums[observed] / sums[expected]
     parts = pd.DataFrame(
         {
             "observed": frame[observed],
             "expected": frame[expected],
-            "variance": phi * match_variance(kind, pooled, frame[expected]),
+            "variance": phi * match_variance(kind, null, frame[expected]),
         }
     )
     values = parts.groupby(frame[unit]).sum()
@@ -80,22 +93,55 @@ def tested(
 
 
 def luck_line(
-    expected: "pd.Series[float]", pooled: float, draws: int = LUCK_DRAWS, seed: int = 0
+    expected: "pd.Series[float]",
+    pooled: "float | np.ndarray",
+    draws: int = LUCK_DRAWS,
+    seed: int = 0,
 ) -> tuple[float, float]:
-    """The lowest and highest unit value if every unit had `pooled`: medians of Poisson draws."""
+    """The lowest and highest unit value if every unit had `pooled` (one value, or one per
+    unit, such as the value of its league): medians of Poisson draws."""
     means = pooled * expected.to_numpy(dtype=float)
     counts = np.random.default_rng(seed).poisson(means, size=(draws, len(means)))
     ratios = counts / expected.to_numpy(dtype=float)
     return float(np.median(ratios.min(axis=1))), float(np.median(ratios.max(axis=1)))
 
 
+def cohort_values(
+    frame: pd.DataFrame, unit: str, observed: str, expected: str, against: str | None = None
+) -> pd.DataFrame:
+    """The unit values of each season cohort, one column per cohort, for the units in both.
+
+    With `against` (such as the league of a team), each value is taken relative to the value
+    of its `against` group in the same cohort.
+    """
+    sums = frame.groupby([unit, "season_cohort"])[[observed, expected]].sum()
+    values = sums[observed] / sums[expected]
+    if against is not None:
+        group_sums = frame.groupby([against, "season_cohort"])[[observed, expected]].sum()
+        group_values = group_sums[observed] / group_sums[expected]
+        owner = frame.groupby(unit)[against].first()
+        units, cohorts = values.index.get_level_values(0), values.index.get_level_values(1)
+        keys = list(zip(owner.loc[units], cohorts, strict=True))
+        values = values - group_values.loc[keys].to_numpy()
+    return values.unstack().dropna()
+
+
 def cohort_agreement(
     frame: pd.DataFrame, unit: str, observed: str, expected: str
 ) -> tuple[float, int]:
     """Spearman correlation of the unit values between the two season cohorts, and its n."""
-    sums = frame.groupby([unit, "season_cohort"])[[observed, expected]].sum()
-    values = (sums[observed] / sums[expected]).unstack().dropna()
+    values = cohort_values(frame, unit, observed, expected)
     return float(values.iloc[:, 0].corr(values.iloc[:, 1], method="spearman")), len(values)
+
+
+def repeat_test(
+    frame: pd.DataFrame, unit: str, observed: str, expected: str, against: str
+) -> tuple[float, int, float]:
+    """The repeat test: does a unit's value in one season cohort predict its value in the
+    other, both relative to its `against` group? Spearman's r, its n, and the p of r = 0."""
+    values = cohort_values(frame, unit, observed, expected, against)
+    result = spearmanr(values.iloc[:, 0], values.iloc[:, 1])
+    return float(result.statistic), len(values), float(result.pvalue)
 
 
 def summary_row(
@@ -135,20 +181,48 @@ def summary_row(
     return row, values
 
 
+@dataclass(frozen=True)
+class Within:
+    """One test of the parts of each unit around the unit's own value, pooled over the units."""
+
+    values: pd.DataFrame  # per part: the sums, value, variance, owner, owner_mean, shrunk
+    q: float
+    df: int
+    p: float
+    tau2: float  # the variance of the parts inside a unit, pooled over the units
+
+
+def within_tested(
+    frame: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
+) -> Within:
+    """Do the parts of a unit (its seasons, or its teams) differ by more than noise?
+
+    Each unit's Cochran's Q of its parts around their precision-weighted mean, summed over
+    the units, on the summed degrees of freedom. A part's variance uses the value of its own
+    unit. tau^2 comes from the summed Q (DerSimonian-Laird), and each part is shrunk toward
+    the mean of its unit.
+    """
+    phi = dispersion(frame, part, observed, expected, kind)
+    values = unit_values(frame, part, observed, expected, kind, phi, within=unit)
+    values["owner"] = frame.groupby(part)[unit].first()
+    weights = 1.0 / values["variance"]
+    by_owner = values["owner"]
+    weight_sums = weights.groupby(by_owner).transform("sum")
+    values["owner_mean"] = (weights * values["value"]).groupby(by_owner).transform("sum") / (
+        weight_sums
+    )
+    q = float((weights * (values["value"] - values["owner_mean"]) ** 2).sum())
+    df = len(values) - by_owner.nunique()
+    scale = float(weights.sum() - (weights**2 / weight_sums).sum())
+    tau2 = max(0.0, (q - df) / scale) if scale > 0 else 0.0
+    keep = tau2 / (tau2 + values["variance"])
+    values["shrunk"] = values["owner_mean"] + keep * (values["value"] - values["owner_mean"])
+    return Within(values=values, q=q, df=df, p=float(chi2.sf(q, df)), tau2=tau2)
+
+
 def within_test(
     frame: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
 ) -> tuple[float, int, float]:
-    """Do the parts of a unit (its seasons) differ by more than noise? One test for all units.
-
-    Each unit's Cochran's Q of its parts around their own mean, summed over the units with
-    two parts or more, on the summed degrees of freedom. Returns Q, its df and p.
-    """
-    phi = dispersion(frame, part, observed, expected, kind)
-    values = unit_values(frame, part, observed, expected, kind, phi)
-    owner = frame.groupby(part)[unit].first()
-    q, df = 0.0, 0
-    for _, group in values.groupby(owner):
-        if len(group) > 1:
-            het = stats.heterogeneity(group["value"], group["variance"])
-            q, df = q + het.q, df + het.df
-    return q, df, float(chi2.sf(q, df))
+    """`within_tested`, as Q, its df and p only."""
+    result = within_tested(frame, unit, part, observed, expected, kind)
+    return result.q, result.df, result.p

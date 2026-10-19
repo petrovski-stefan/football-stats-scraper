@@ -99,6 +99,15 @@ def test_detectable_tau_matches_the_closed_form_for_equal_variances() -> None:
     )
 
 
+def test_detectable_tau_with_one_group_is_the_plain_one() -> None:
+    variances = pd.Series([0.01, 0.02, 0.04, 0.03] * 5)
+    plain = stats.detectable_tau(variances)
+    grouped = stats.detectable_tau(variances, groups=pd.Series(["x"] * 20))
+    assert grouped == pytest.approx(plain)
+    two_groups = stats.detectable_tau(variances, groups=pd.Series(["x", "y"] * 10))
+    assert two_groups > 0
+
+
 def test_detectable_tau_grows_with_the_noise() -> None:
     quiet = stats.detectable_tau(pd.Series([0.01] * 20))
     noisy = stats.detectable_tau(pd.Series([0.04] * 20))

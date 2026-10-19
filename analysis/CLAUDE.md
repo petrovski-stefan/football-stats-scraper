@@ -26,6 +26,7 @@ One runner per doc, at the same path in lowercase. The first folder is the sourc
 | `analysis/schedule/whole_corpus/all/rates.py`                 | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/RATES.md`                 |
 | `analysis/schedule/whole_corpus/per_league/rates.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/RATES.md`          |
 | `analysis/schedule/whole_corpus/all/prices.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/PRICES.md`                |
+| `analysis/schedule/whole_corpus/per_team/rates.py`            | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_TEAM/RATES.md`            |
 
 Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or level folder (`per_team/`) appears with its first runner, beside its notes folder.
 
@@ -35,7 +36,7 @@ Shared code sits at the top of the package and has no notes counterpart:
 - `stats.py` — scores, intervals, observed against expected (O/E), shrinkage, and the heterogeneity test with the spread it can find;
 - `report.py` — the table printer that every runner uses;
 - `card.py` — the card of the `ALL/` and `PER_LEAGUE/` levels (`notes/ANALYSIS/CLAUDE.md` §2): its quantities, and the outcomes of each match that they read;
-- `units.py` — one quantity per unit (a league, later a team): its value and variance, one heterogeneity test across the units, the shrunk values, the luck line, the agreement of the two season cohorts, and the test of a unit's seasons;
+- `units.py` — one quantity per unit (a league or a team): its value and variance, one heterogeneity test across the units, the shrunk values, the luck line, the agreement of the two season cohorts, the test of the parts of a unit (its seasons, or its teams) with shrinkage toward it, and the repeat test;
 - `methods/` — per-match methods that several runners use: `methods/shin.py`, and `methods/yardstick.py`, the odds yardstick that later docs read their claims against.
 
 ## 4. Tests

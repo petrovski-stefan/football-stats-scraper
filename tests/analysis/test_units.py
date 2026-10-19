@@ -104,6 +104,41 @@ def seasons() -> pd.DataFrame:
     )
 
 
+def test_within_tested_uses_each_units_value_and_shrinks_toward_it(seasons: pd.DataFrame) -> None:
+    result = units.within_tested(seasons, UNIT, "part", "goals", "one", "count")
+    values = result.values
+    phi = units.dispersion(seasons, "part", "goals", "one", "count")
+    # Unit 1 has the value 2 and unit 2 the value 3.25; each part has 2 matches.
+    assert values.loc["1a", "variance"] == pytest.approx(phi * 2.0 / 2)
+    assert values.loc["2a", "variance"] == pytest.approx(phi * 3.25 / 2)
+    assert values.loc["1a", "owner_mean"] == pytest.approx(2.0)
+    assert values["shrunk"].loc[["1a", "1b"]].tolist() == pytest.approx([2.0, 2.0])
+    for part in ("2a", "2b"):
+        raw, mean = float(values.at[part, "value"]), float(values.at[part, "owner_mean"])
+        shrunk = float(values.at[part, "shrunk"])
+        assert min(raw, mean) - 1e-12 <= shrunk <= max(raw, mean) + 1e-12
+    assert result.tau2 >= 0.0
+
+
+def test_cohort_values_against_a_group_and_the_repeat_test() -> None:
+    frame = pd.DataFrame(
+        {
+            UNIT: [1, 1, 2, 2, 3, 3] * 2,
+            "league": ["x"] * 12,
+            "season_cohort": [2024] * 6 + [2025] * 6,
+            "hit": [1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0],
+            "one": 1.0,
+        }
+    )
+    values = units.cohort_values(frame, UNIT, "hit", "one", against="league")
+    # The league has 1/2 in each cohort; units 1, 2 and 3 have 1, 1/2 and 0.
+    assert values[2024].tolist() == pytest.approx([0.5, 0.0, -0.5])
+    r, n, p = units.repeat_test(frame, UNIT, "hit", "one", "league")
+    assert r == pytest.approx(1.0)
+    assert n == 3
+    assert 0.0 <= p <= 1.0
+
+
 def test_within_test_sums_the_parts_of_each_unit(seasons: pd.DataFrame) -> None:
     q, df, p = units.within_test(seasons, UNIT, "part", "goals", "one", "count")
     assert df == 2  # two units with two parts each

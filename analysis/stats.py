@@ -106,23 +106,32 @@ def heterogeneity(means: "pd.Series[float]", variances: "pd.Series[float]") -> H
 
 
 def detectable_tau(
-    variances: "pd.Series[float]", power: float = 0.8, draws: int = 2000, seed: int = 0
+    variances: "pd.Series[float]",
+    power: float = 0.8,
+    draws: int = 2000,
+    seed: int = 0,
+    groups: "pd.Series[Any] | None" = None,
 ) -> float:
     """The between-unit sd that `heterogeneity` finds at p < 0.05 with the given power.
 
     Simulated under the normal random-effects model: each unit's value is normal around one
     mean, with its own variance plus tau^2. The same draws serve every tau, and a bisection
-    finds the tau at which the share of draws with p < 0.05 reaches `power`.
+    finds the tau at which the share of draws with p < 0.05 reaches `power`. With `groups`
+    (such as the league of each team), Q sums each group's units around the group's own
+    mean, as in `analysis/units.py:within_tested`.
     """
     v = variances.to_numpy(dtype=float)
     weights = 1.0 / v
+    codes = np.zeros(len(v), dtype=int) if groups is None else pd.factorize(groups)[0]
+    member = np.zeros((len(v), codes.max() + 1))
+    member[np.arange(len(v)), codes] = 1.0
     z = np.random.default_rng(seed).standard_normal((draws, len(v)))
-    critical = chi2.isf(0.05, len(v) - 1)
+    critical = chi2.isf(0.05, len(v) - member.shape[1])
 
     def found(tau: float) -> float:
         values = z * np.sqrt(v + tau**2)
-        pooled = (values * weights).sum(axis=1) / weights.sum()
-        q = (weights * (values - pooled[:, None]) ** 2).sum(axis=1)
+        means = ((values * weights) @ member) / (weights @ member)
+        q = (weights * (values - means[:, codes]) ** 2).sum(axis=1)
         return float((q > critical).mean())
 
     low, high = 0.0, 10 * float(np.sqrt(v.max()))
