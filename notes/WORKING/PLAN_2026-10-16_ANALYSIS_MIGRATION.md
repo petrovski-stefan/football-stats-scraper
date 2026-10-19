@@ -19,7 +19,6 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | run | what it asked | new docs | note |
 |---|---|---|---|
 | `2026-10-09_corpus_scan` b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
-| c1 | the comeback rate by season phase and by round | `ALL/SEASON_PHASE.md` | |
 | d1, d2 | do comebacks collect on identical opening prices | `ALL/ODDS_GROUPS.md` | |
 | `load.py`, `run_all.py` | — | none | `analysis/corpus.py` does their work. They go with the last script of the folder. |
 | `2026-10-12_stakes` | the stakes test: flags F1 and F2 | `ALL/STAKES.md` | Copy the frozen plan of its `TEST.md` into the doc first. No STATE row (the user, 2026-10-13). |
@@ -36,7 +35,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 3 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 4 | the new docs of the level design: `ROUND_CLUSTERS`, `LEVELS` | 5–7 h |
-| 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
+| 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` (`SEASON_PHASE` done 2026-10-19) | 10–14 h |
 | 6 | `ROUND_FIELDS`, and the new citations in `SCHEDULE_3_MULTI.md` | 1½–2½ h |
 | 7 | delete what is left of `notes/runs/`, and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
