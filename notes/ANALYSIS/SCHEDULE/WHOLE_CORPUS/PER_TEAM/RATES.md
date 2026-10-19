@@ -101,7 +101,7 @@ Loses a lead:
 
 - **Few events.** A team has a median of 1 comeback and 1 lost lead in all its seasons. So the test finds only large differences between teams: at 80%, an sd of about a quarter of the rate (C1, C2).
 - **The raw rates follow team strength.** Under the goal model, the stronger team is behind less often, and wins more often when it is behind (`notes/REFERENCE/MARKET_COMEBACKS.md`, "Favourite and underdog"). So C3 is strength, and strength repeats. The two links move the comeback rate in opposite directions. That can explain why C1 finds no difference while C3 does.
-- **No trait.** A difference or a repeat in raw rates does not show a comeback trait of a team. Strength makes both (`notes/ANALYSIS/CLAUDE.md` §5, rule 8). `PER_TEAM/ODDS_YARDSTICK.md` (`notes/WORKING/PLAN_2026-10-16_ANALYSIS_MIGRATION.md`, step 4) takes strength out with the odds.
+- **No trait.** A difference or a repeat in raw rates does not show a comeback trait of a team. Strength makes both (`notes/ANALYSIS/CLAUDE.md` §5, rule 8). `PER_TEAM/ODDS_YARDSTICK.md` takes strength out with the odds.
 - **Opponents.** A team that is often behind meets strong teams more often when it is behind. A test of one team at a time cannot separate the team from its opponents (rule 7). The yardstick can, because the prices of a match carry both teams.
 - **The test is generous.** The variance takes the matches of a team as independent. If they are not, Q is too large. This makes the "no sign" of C1 stronger, and the weak result of C2 weaker.
 - **Looks:** 12 tests, 12 repeat tests and 12 values at 80%; 2 luck lines and 2 lists of 10 teams. No team was tested on its own.

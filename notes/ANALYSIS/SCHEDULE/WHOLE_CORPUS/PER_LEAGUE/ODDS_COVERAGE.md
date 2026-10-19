@@ -67,7 +67,7 @@ The other 72 leagues have all three markets on each match. The runner prints eac
 - **An award can keep its odds.** If a match is awarded after Bet365 opens its prices, it keeps them. The league removed last on 2026-10-10 had one such forfeit (`notes/LOG/MIGRATIONS.md`, 2026-10-10). The schedule cannot find such a match, because its score is not special (C3).
 - **The awarded match stays in the corpus.** Each analysis that needs the odds leaves it out (`analysis/methods/yardstick.py:priced`). An analysis of outcomes alone counts it as a 3-0 that nobody played: 1 match of 36,238.
 - **The checks are in `qa.validate`.** It fails a league-season with a market that is only partly there (`qa/odds.py:check_whole_markets`), and one below 99% on all three markets (`qa/odds.py:check_coverage`). This doc describes the coverage. It does not replace the checks.
-- **Not in this doc:** the margins and the lines of the markets. The 1X2 margin is in `../ALL/SHIN.md`. The O/U and AH margins and lines go to `ALL/PRICES.md` (`notes/WORKING/PLAN_2026-10-16_ANALYSIS_MIGRATION.md`).
+- **Not in this doc:** the margins and the lines of the markets. The 1X2 margin is in `../ALL/SHIN.md`. The O/U and AH margins and lines are in `../ALL/PRICES.md`.
 - **Looks:** the coverage of 73 leagues, 144 league-seasons and 2 cohorts; 1 gap; 4 rows of 3-0 and 0-3 results.
 
 ## Runs
