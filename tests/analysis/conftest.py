@@ -98,3 +98,34 @@ def round_robin() -> pd.DataFrame:
                 }
             )
     return pd.DataFrame(rows)
+
+
+@pytest.fixture
+def toy_rounds() -> pd.DataFrame:
+    """Two leagues in two cohorts, 10 rounds of 8 random matches in each league-season, in
+    the columns of the yardstick's frame that `card.ODDS_CARD` reads, with the keys of the
+    levels: all, league, league-season (`cluster`) and round."""
+    rng = np.random.default_rng(0)
+    size = 4 * 80
+    ht_decisive = rng.random(size) < 0.6
+    out = pd.DataFrame(
+        {
+            "is_comeback": (rng.random(size) < 0.1) & ht_decisive,
+            "ht_decisive": ht_decisive,
+            "seven": rng.random(size) < 0.05,
+            "goals": rng.poisson(2.7, size),
+            "m_cb": 0.05,
+            "m_ht_decisive": 0.6,
+            "m_completion": 0.08 * ht_decisive,
+            "m_seven": 0.04,
+            "m_goals": rng.uniform(2.0, 3.4, size),
+            "one": 1.0,
+        }
+    ).astype(float)
+    out["all"] = "all"
+    out["league"] = np.repeat([1, 2, 1, 2], 80)
+    out["cluster"] = np.repeat(["1 2024", "2 2024", "1 2025", "2 2025"], 80)
+    out["season_cohort"] = np.repeat([2024, 2024, 2025, 2025], 80)
+    rounds = np.tile(np.repeat(np.arange(1, 11), 8), 4)
+    out["round"] = out["cluster"] + " " + pd.Series(rounds).astype(str)
+    return out

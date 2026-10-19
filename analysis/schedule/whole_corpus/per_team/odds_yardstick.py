@@ -60,29 +60,6 @@ CALIBRATED = (
 TOP = 20
 
 
-def team_yardstick_rows(matches: pd.DataFrame, frame: pd.DataFrame) -> pd.DataFrame:
-    """The team rows of the priced matches (`card.team_rows`), with the yardstick's chances
-    for each team; `frame` is `yardstick.frame` of the same matches."""
-    extra = {
-        "m_comes_back": (frame["m_cb_home"], frame["m_cb_away"]),
-        "m_loses_lead": (frame["m_cb_away"], frame["m_cb_home"]),
-        "m_behind": (frame["m_home_behind"], frame["m_away_behind"]),
-        "m_ahead": (frame["m_away_behind"], frame["m_home_behind"]),
-        "m_completion": (frame["m_completion"], frame["m_completion"]),
-        "m_goals_for": (frame["lam_home"], frame["lam_away"]),
-        "m_goals_against": (frame["lam_away"], frame["lam_home"]),
-        "win_chance": (frame["shin_p_home"], frame["shin_p_away"]),
-    }
-    rows = card.team_rows(matches.loc[frame.index], extra)
-    # The yardstick's completion is the chance of the team behind, from the half-time score.
-    rows["m_wins_from_behind"] = rows["behind"] * rows["m_completion"]
-    rows["m_loses_from_ahead"] = rows["ahead"] * rows["m_completion"]
-    for role in ("comes_back", "loses_lead"):
-        for venue in ("home", "away"):
-            rows[f"m_{role}_{venue}"] = rows[f"m_{role}"] * rows[venue]
-    return rows
-
-
 def calibration(rows: pd.DataFrame) -> pd.DataFrame:
     """O/E of the calibrated quantities by the team's own win chance, with the interval over
     league-seasons."""
@@ -129,7 +106,7 @@ def main() -> None:
     print(corpus.corpus_line(matches))
     share = yardstick.first_half_share(yardstick.priced(matches))
     frame = yardstick.frame(matches, yardstick.build_grid(), share=share)
-    rows = team_yardstick_rows(matches, frame)
+    rows = card.team_yardstick_rows(matches, frame)
     print(f"Priced: {len(frame):,} matches; first-half share {share:.4f}")
     print(card.team_line(rows))
     report.show("Calibration by the team's own win chance (O/E)", calibration(rows))

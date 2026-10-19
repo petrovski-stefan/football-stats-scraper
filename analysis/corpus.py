@@ -43,6 +43,19 @@ def corpus_line(corpus: pd.DataFrame, day: date | None = None) -> str:
     return f"Corpus {when}: {league_seasons} league-seasons, {len(corpus):,} matches"
 
 
+def round_key(matches: pd.DataFrame) -> "pd.Series[str]":
+    """One key per round: the league, the season, the stage and the round of each match."""
+    return (
+        matches["s1_league_id"].astype(str)
+        + " "
+        + matches["s1_season"]
+        + " "
+        + matches["s1_stage"].fillna("")
+        + " "
+        + matches["s1_round"].astype(str)
+    )
+
+
 def outcome_1x2(matches: pd.DataFrame) -> np.ndarray:
     """`HOME`, `DRAW` or `AWAY` per match, from the full-time goals."""
     diff = matches["s1_ft_home_goals"].to_numpy() - matches["s1_ft_away_goals"].to_numpy()

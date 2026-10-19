@@ -3,7 +3,9 @@
 Each row of `CARD` (the `ALL/` and `PER_LEAGUE/` levels) is sum(numerator) / sum(denominator):
 against `one` a rate or a mean per match, against a half-time state a completion. The kind is
 the variance model of a unit's value (`analysis/units.py`): the 0/1 outcomes are events, the
-goals are counts. The `PER_TEAM/` level reads `team_rows`: two rows per match, one per team.
+goals are counts. `ODDS_CARD` names the yardstick's column for its main rows. The `PER_TEAM/`
+level reads `team_rows`: two rows per match, one per team, with the yardstick's chances for
+each team in `team_yardstick_rows`.
 """
 
 from typing import Any
@@ -25,6 +27,17 @@ CARD = (
     ("goals_1h", "one", "goals in the first half", "count"),
     ("goals_2h", "one", "goals in the second half", "count"),
     ("goals", "one", "goals per match", "count"),
+)
+
+# The main rows of the card with the column of the odds yardstick (`analysis/methods/
+# yardstick.py`) that each is read against, on the yardstick's frame:
+# (observed column, denominator column, yardstick column, label, kind).
+ODDS_CARD = (
+    ("is_comeback", "one", "m_cb", "comeback", "event"),
+    ("ht_decisive", "one", "m_ht_decisive", "link 1: a team is behind at half-time", "event"),
+    ("is_comeback", "ht_decisive", "m_completion", "link 2: the team behind wins", "event"),
+    ("seven", "one", "m_seven", "7+ goals", "event"),
+    ("goals", "one", "m_goals", "goals per match", "count"),
 )
 
 
@@ -103,6 +116,30 @@ def team_rows(
             frame[f"{role}_{venue}"] = frame[role] * frame[venue]
     frame[TEAM_UNIT] = frame["team"].astype(str) + " " + frame[TEAM_LEAGUE].astype(str)
     return frame
+
+
+def team_yardstick_rows(matches: pd.DataFrame, frame: pd.DataFrame) -> pd.DataFrame:
+    """The team rows of the priced matches (`team_rows`), with the chances of the odds
+    yardstick for each team; `frame` is `analysis/methods/yardstick.py:frame` of the same
+    matches."""
+    extra = {
+        "m_comes_back": (frame["m_cb_home"], frame["m_cb_away"]),
+        "m_loses_lead": (frame["m_cb_away"], frame["m_cb_home"]),
+        "m_behind": (frame["m_home_behind"], frame["m_away_behind"]),
+        "m_ahead": (frame["m_away_behind"], frame["m_home_behind"]),
+        "m_completion": (frame["m_completion"], frame["m_completion"]),
+        "m_goals_for": (frame["lam_home"], frame["lam_away"]),
+        "m_goals_against": (frame["lam_away"], frame["lam_home"]),
+        "win_chance": (frame["shin_p_home"], frame["shin_p_away"]),
+    }
+    rows = team_rows(matches.loc[frame.index], extra)
+    # The yardstick's completion is the chance of the team behind, from the half-time score.
+    rows["m_wins_from_behind"] = rows["behind"] * rows["m_completion"]
+    rows["m_loses_from_ahead"] = rows["ahead"] * rows["m_completion"]
+    for role in ("comes_back", "loses_lead"):
+        for venue in ("home", "away"):
+            rows[f"m_{role}_{venue}"] = rows[f"m_{role}"] * rows[venue]
+    return rows
 
 
 def team_line(rows: pd.DataFrame) -> str:

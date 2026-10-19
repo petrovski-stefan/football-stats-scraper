@@ -116,7 +116,7 @@ The league-season readings give p = 0.199 (comebacks), 0.131 (7+ goals) and 0.54
 - **The test treats the matches as independent.** The matches of one league-season are not (`notes/ANALYSIS/CLAUDE.md` §5, rule 5). But each league-season is in every phase, so its level adds to each phase about equally. The league-season reading takes it out.
 - **The yardstick's assumptions** (`ALL/ODDS_YARDSTICK.md`): one first-half share for all matches, and goals that are Poisson and independent. Over all matches, the odds expect slightly more goals than happen: O/E 0.9888 (its C1). C5 reads the first rounds against the middle, so this level does not make C5.
 - **The round number mixes leagues.** Round 30 is near the end of a league of 30 rounds and in the middle of a league of 46. So the phase (C1–C5) is the better slice. Round numbers above 33 have fewer than 600 matches, from a few leagues.
-- **Clusters in one round** are a different question: `ALL/ROUND_CLUSTERS.md` (`notes/WORKING/PLAN_2026-10-16_ANALYSIS_MIGRATION.md`, step 4).
+- **Clusters in one round** are a different question: `ALL/ROUND_CLUSTERS.md`.
 
 ## Runs
 

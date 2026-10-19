@@ -51,3 +51,19 @@ def test_corpus_line_counts_league_seasons_and_matches() -> None:
 def test_outcome_1x2_codes() -> None:
     frame = pd.DataFrame({"s1_ft_home_goals": [2, 1, 0], "s1_ft_away_goals": [1, 1, 3]})
     assert corpus.outcome_1x2(frame).tolist() == [corpus.HOME, corpus.DRAW, corpus.AWAY]
+
+
+def test_round_key_names_the_league_season_stage_and_round() -> None:
+    frame = pd.DataFrame(
+        {
+            "s1_league_id": [7, 7, 7],
+            "s1_season": ["2025", "2025", "2025"],
+            "s1_stage": ["Apertura", "Clausura", None],
+            "s1_round": [3, 3, 3],
+        }
+    )
+    assert corpus.round_key(frame).tolist() == [
+        "7 2025 Apertura 3",
+        "7 2025 Clausura 3",
+        "7 2025  3",
+    ]

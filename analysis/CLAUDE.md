@@ -33,16 +33,18 @@ One runner per doc, at the same path in lowercase. The first folder is the sourc
 | `analysis/schedule/whole_corpus/all/stakes.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/STAKES.md`                |
 | `analysis/schedule/whole_corpus/all/round_fields.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ROUND_FIELDS.md`          |
 | `analysis/schedule/whole_corpus/all/prematch_screen.py`       | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/PREMATCH_SCREEN.md`       |
+| `analysis/schedule/whole_corpus/all/round_clusters.py`        | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ROUND_CLUSTERS.md`        |
+| `analysis/schedule/whole_corpus/all/levels.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/LEVELS.md`                |
 
 Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or level folder (`per_team/`) appears with its first runner, beside its notes folder.
 
 Shared code sits at the top of the package and has no notes counterpart:
 
-- `corpus.py` — loads every stage-3 schedule file, adds the season cohort and the 1X2 outcome, gives the corpus line, and names the columns of the AH market. The schedule is the only staged source today; loaders for the detail and live stage-3 files join it when plan steps P4–P6 create them;
+- `corpus.py` — loads every stage-3 schedule file, adds the season cohort and the 1X2 outcome, gives the corpus line and the key of each round, and names the columns of the AH market. The schedule is the only staged source today; loaders for the detail and live stage-3 files join it when plan steps P4–P6 create them;
 - `stats.py` — scores, intervals, observed against expected (O/E), shrinkage, the heterogeneity test with the spread it can find, and the Mantel–Haenszel odds ratio over strata with the Holm correction;
 - `report.py` — the table printer that every runner uses;
-- `card.py` — the card of the `ALL/` and `PER_LEAGUE/` levels (`notes/ANALYSIS/CLAUDE.md` §2): its quantities, and the outcomes of each match that they read;
-- `units.py` — one quantity per unit (a league or a team): its value and variance, one heterogeneity test across the units, the shrunk values, the luck line, the agreement of the two season cohorts, the test of the parts of a unit (its seasons, or its teams) with shrinkage toward it, and the repeat test;
+- `card.py` — the card of each level (`notes/ANALYSIS/CLAUDE.md` §2): its quantities, with the yardstick column of the main ones, and the outcomes of each match that they read; the team rows of `PER_TEAM/`, with the yardstick's chances for each team;
+- `units.py` — one quantity per unit (a league or a team): its value and variance, one heterogeneity test across the units, the shrunk values, the luck line, the agreement of the two season cohorts, the test of the parts of a unit (its seasons, its teams or its rounds) with shrinkage toward it, the repeat test, and that test as one row with its p from shuffles of the parts inside their units;
 - `methods/` — per-match methods that several runners use: `methods/shin.py`, and `methods/yardstick.py`, the odds yardstick that later docs read their claims against.
 
 ## 4. Tests

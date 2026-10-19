@@ -1,5 +1,6 @@
 """`analysis/units.py`: unit values, their variance, the tests across units, and their parts."""
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -170,3 +171,66 @@ def test_null_q_has_the_mean_of_its_df(round_robin: pd.DataFrame) -> None:
     assert sd > 0
     with pytest.raises(ValueError, match="no null draws"):
         units.null_q(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, ("goals_1h", "goals", "x", "share"))
+
+
+def test_within_tested_leaves_out_the_parts_that_tell_nothing() -> None:
+    # Unit 1: part 1c expects nothing. Unit 2 has no events, so its parts tell nothing.
+    frame = pd.DataFrame(
+        {
+            UNIT: [1, 1, 1, 1, 1, 2, 2],
+            "part": ["1a", "1a", "1b", "1b", "1c", "2a", "2b"],
+            "won": [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            "behind": [1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0],
+        }
+    )
+    result = units.within_tested(frame, UNIT, "part", "won", "behind", "event")
+    assert result.values.index.tolist() == ["1a", "1b"]
+    assert result.df == 1
+    assert np.isfinite(result.q)
+
+
+def test_shuffled_parts_stay_inside_their_unit_and_keep_their_size() -> None:
+    unit = pd.Series([1, 2, 1, 2, 1, 2, 1])
+    part = pd.Series(["a", "x", "a", "y", "b", "y", "c"])
+    moved = units.shuffled_parts(unit, part, np.random.default_rng(0))
+    for key in (1, 2):
+        inside = (unit == key).to_numpy()
+        assert sorted(moved[inside]) == sorted(part[inside])
+    assert not (moved == part.to_numpy()).all()
+
+
+def test_permuted_qs_fall_below_the_q_of_parts_that_really_differ() -> None:
+    frame = pd.DataFrame(
+        {
+            UNIT: [1] * 40,
+            "part": ["low"] * 20 + ["high"] * 20,
+            "goals": [0.0, 1.0] * 10 + [5.0, 6.0] * 10,
+            "one": 1.0,
+        }
+    )
+    quantity = ("goals", "one", "goals", "count")
+    qs = units.permuted_qs(frame, UNIT, "part", quantity, draws=30)
+    assert qs.shape == (30,)
+    real = units.within_tested(frame, UNIT, "part", "goals", "one", "count").q
+    assert (qs < real).all()
+
+
+def test_variance_share_scales_tau2_by_the_expected_values() -> None:
+    frame = pd.DataFrame({"goals": [0.0, 2.0, 4.0, 9.0], "expected": [1.0, 1.0, 2.0, 0.0]})
+    # The rows that count are the first three: variance of 0, 2, 4 is 4; mean of e^2 is 2.
+    assert units.variance_share(frame, "goals", "expected", 0.5) == pytest.approx(0.5 * 2 / 4)
+
+
+def test_level_row_tests_the_parts_against_their_shuffles(round_robin: pd.DataFrame) -> None:
+    rows = card.team_rows(round_robin)
+    quantity = ("goals_for", "one", "goals scored", "count")
+    row = units.level_row(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=20)
+    assert row["parts"] == 8.0
+    assert row["df"] == 6.0  # 8 teams in 2 leagues
+    assert 1 / 21 <= float(row["p"]) <= 1.0
+    assert isinstance(row["p chi2"], str)
+    assert float(row["found share"]) > 0
+    if float(row["Q"]) > float(row["shuffled mean"]):
+        assert float(row["tau/pooled"]) > 0
+    else:
+        assert float(row["tau/pooled"]) == 0

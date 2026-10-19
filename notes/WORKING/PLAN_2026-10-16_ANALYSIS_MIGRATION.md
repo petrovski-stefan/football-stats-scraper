@@ -4,7 +4,7 @@
 
 **Written in ASD-STE100 Simplified Technical English.** Short sentences, one idea each.
 
-**Status: in progress since 2026-10-18** (the user: "Next is runs/ deletion and migration"). **Written 2026-10-16.** The idea is the user's: drop every run in `notes/runs/`, and do each one again in the new workflow. In that workflow, a runner in `analysis/` calculates and prints, and Claude writes the doc in `notes/ANALYSIS/` (`notes/ANALYSIS/CLAUDE.md`). Shin's method proved the workflow on 2026-10-16 (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`). The mapping and the order below are Claude's proposal. The user decides them when the work starts. **`notes/runs/` is gone since 2026-10-19:** every run has a doc or a reason in `notes/LOG/MIGRATIONS.md`. Open: §1, step 4, and the optional `WEEKDAY`.
+**Status: in progress since 2026-10-18** (the user: "Next is runs/ deletion and migration"). **Written 2026-10-16.** The idea is the user's: drop every run in `notes/runs/`, and do each one again in the new workflow. In that workflow, a runner in `analysis/` calculates and prints, and Claude writes the doc in `notes/ANALYSIS/` (`notes/ANALYSIS/CLAUDE.md`). Shin's method proved the workflow on 2026-10-16 (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`). The mapping and the order below are Claude's proposal. The user decides them when the work starts. **`notes/runs/` is gone since 2026-10-19:** every run has a doc or a reason in `notes/LOG/MIGRATIONS.md`. Open: §1 and the optional `WEEKDAY`.
 
 **Why:** a run in `notes/runs/` is outside git. Its script, its output and its frozen plan can get lost, and no claim can cite it. A doc in `notes/ANALYSIS/` is in git, and its runner can run again.
 
@@ -19,7 +19,6 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | run | what it asked | new docs | note |
 |---|---|---|---|
 | the weekday check (no folder) | comebacks and 7+ by weekday | `ALL/WEEKDAY.md` (optional) | Its numbers are in `notes/LOG/MIGRATIONS.md` 2026-10-11. |
-| none: the level design of 2026-10-18 | clusters in one round; which level the differences sit at | `ALL/ROUND_CLUSTERS.md`, `ALL/LEVELS.md` | No run asked these. Both use the yardstick. |
 
 ## 3. Order (one doc for each sitting)
 
@@ -28,7 +27,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | 1 | §1 above | 2–3 h |
 | 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 3 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
-| 4 | the new docs of the level design: `ROUND_CLUSTERS`, `LEVELS` | 5–7 h |
+| 4 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 5 | `WEEKDAY` (optional; the rest done 2026-10-19, `ZONE_STAKES` skipped by the user) | 1–2 h |
 | 6 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 7 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
@@ -39,7 +38,7 @@ Total: about 2½–3½ days of Claude's work, plus §1.
 
 - Measure every number again on the corpus of the day. Copy nothing from an old output or from memory.
 - A run that tested a frozen plan (the stakes and zone-stakes tests) keeps its plan: the doc's Method gets a copy before the folder goes. The new run is exploratory. It is not a second test.
-- When each question of a run script has a doc, or a line in §2 that tells why not, delete the script and its outputs at once. Delete the folder with its last script (the user, 2026-10-19). A partly done script loses the part that is done. Back up first, because git cannot restore them: a dated zip in `Desktop/football-stats-scraper_backups/`, next to the repo.
+- When each question of a run script has a doc, or a line in §2 that tells why not, delete the script and its outputs at once. Delete the folder with its last script (the user, 2026-10-19). A partly done script loses the part that is done. Back up first, because git cannot restore them: a dated zip inside the project. Nothing goes outside the project (the user, 2026-10-19). The zips of 2026-10-19 are in `Desktop/football-stats-scraper_backups/`, from before that rule.
 - A claim goes into STATE only with the user's go.
 
 ## 5. Done when

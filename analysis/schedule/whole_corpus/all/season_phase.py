@@ -14,18 +14,11 @@ Run: `uv run python -m analysis.schedule.whole_corpus.all.season_phase`
 import numpy as np
 import pandas as pd
 
-from analysis import corpus, report, stats, units
+from analysis import card, corpus, report, stats, units
 from analysis.methods import yardstick
 
-# (observed column, denominator column, yardstick column, label, kind): as `card.CARD`, with
-# the column of the odds yardstick that each quantity is read against.
-QUANTITIES = (
-    ("is_comeback", "one", "m_cb", "comeback", "event"),
-    ("ht_decisive", "one", "m_ht_decisive", "link 1: a team is behind at half-time", "event"),
-    ("is_comeback", "ht_decisive", "m_completion", "link 2: the team behind wins", "event"),
-    ("seven", "one", "m_seven", "7+ goals", "event"),
-    ("goals", "one", "m_goals", "goals per match", "count"),
-)
+# (observed column, denominator column, yardstick column, label, kind)
+QUANTITIES = card.ODDS_CARD
 # The quantities of the round-number section: the luck line there needs counts or rare events.
 ROUND_QUANTITIES = ("comeback", "7+ goals", "goals per match")
 THIRDS = 3
