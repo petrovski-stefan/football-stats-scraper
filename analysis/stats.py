@@ -105,6 +105,33 @@ def heterogeneity(means: "pd.Series[float]", variances: "pd.Series[float]") -> H
     return Heterogeneity(q=q, df=df, p=float(chi2.sf(q, df)), tau2=tau2, pooled=pooled)
 
 
+def detectable_tau(
+    variances: "pd.Series[float]", power: float = 0.8, draws: int = 2000, seed: int = 0
+) -> float:
+    """The between-unit sd that `heterogeneity` finds at p < 0.05 with the given power.
+
+    Simulated under the normal random-effects model: each unit's value is normal around one
+    mean, with its own variance plus tau^2. The same draws serve every tau, and a bisection
+    finds the tau at which the share of draws with p < 0.05 reaches `power`.
+    """
+    v = variances.to_numpy(dtype=float)
+    weights = 1.0 / v
+    z = np.random.default_rng(seed).standard_normal((draws, len(v)))
+    critical = chi2.isf(0.05, len(v) - 1)
+
+    def found(tau: float) -> float:
+        values = z * np.sqrt(v + tau**2)
+        pooled = (values * weights).sum(axis=1) / weights.sum()
+        q = (weights * (values - pooled[:, None]) ** 2).sum(axis=1)
+        return float((q > critical).mean())
+
+    low, high = 0.0, 10 * float(np.sqrt(v.max()))
+    for _ in range(40):
+        middle = (low + high) / 2
+        low, high = (middle, high) if found(middle) < power else (low, middle)
+    return high
+
+
 def shrink(
     means: "pd.Series[float]", variances: "pd.Series[float]", het: Heterogeneity
 ) -> "pd.Series[float]":

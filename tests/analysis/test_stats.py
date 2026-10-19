@@ -5,6 +5,7 @@ import math
 import numpy as np
 import pandas as pd
 import pytest
+from scipy.stats import chi2
 
 from analysis import stats
 
@@ -86,6 +87,22 @@ def test_spread_units_show_heterogeneity() -> None:
     het = stats.heterogeneity(pd.Series([0.0, 1.0, 2.0]), pd.Series([0.01, 0.01, 0.01]))
     assert het.p < 1e-6
     assert het.tau2 > 0
+
+
+def test_detectable_tau_matches_the_closed_form_for_equal_variances() -> None:
+    # With one variance v for every unit, Q / (1 + tau^2 / v) is chi-square on k - 1 df.
+    v, units = 0.04, 30
+    df = units - 1
+    closed = math.sqrt(v * (chi2.isf(0.05, df) / chi2.isf(0.8, df) - 1))
+    assert stats.detectable_tau(pd.Series([v] * units), draws=4000) == pytest.approx(
+        closed, rel=0.05
+    )
+
+
+def test_detectable_tau_grows_with_the_noise() -> None:
+    quiet = stats.detectable_tau(pd.Series([0.01] * 20))
+    noisy = stats.detectable_tau(pd.Series([0.04] * 20))
+    assert noisy > quiet
 
 
 def test_shrink_without_spread_gives_the_pooled_mean() -> None:

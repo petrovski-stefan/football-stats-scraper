@@ -19,7 +19,6 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | run | what it asked | new docs | note |
 |---|---|---|---|
 | `2026-10-09_corpus_scan` a2 | base rates; comeback and 7+ rates per league; league differences; the same leagues in two seasons | `ALL/RATES.md`, `PER_LEAGUE/RATES.md` | |
-| a3, a7, b3 | the yardstick per league | `PER_LEAGUE/ODDS_YARDSTICK.md` | Done on 2026-10-18: `ALL/ODDS_YARDSTICK.md` (observed against expected, the rate by win chance and expected goals, the test of the one first-half share) and `ALL/SCORE_EFFECTS.md` (second-half score effects, and a7's question: how much of the comeback gap they close). Test the share per league too. |
 | a4 | the return by price band (1X2, O/U, AH) | `ALL/PRICES.md` | Where the comeback excess sits is in `ALL/ODDS_YARDSTICK.md` since 2026-10-18. |
 | b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
 | c1 | the comeback rate by season phase and by round | `ALL/SEASON_PHASE.md` | |
@@ -37,14 +36,14 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | step | docs | size |
 |---|---|---|
 | 1 | §1 above | 2–3 h |
-| 2 | `PER_LEAGUE/ODDS_YARDSTICK`: it uses the yardstick (`ODDS_YARDSTICK`, `SCORE_EFFECTS` and `HTFT` were done on 2026-10-18) | 2–3 h |
+| 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 3 | `RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
 | 4 | the new docs of the level design: `PER_TEAM/RATES`, `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 11–15 h |
 | 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
 | 6 | `ROUND_FIELDS`, `ODDS_COVERAGE`, and the new citations in `SCHEDULE_3_MULTI.md` | 2–3 h |
 | 7 | delete `notes/runs/` and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
-Total: about 4–5½ days of Claude's work, plus §1.
+Total: about 3½–5 days of Claude's work, plus §1.
 
 ## 4. Rules for each run
 

@@ -217,3 +217,10 @@ If code or a note cites a module, path or column that doesn't exist, it predates
   - Tests: `tests/analysis/schedule/whole_corpus/all/test_score_effects.py` and `tests/analysis/test_report.py`. The O/E tests moved from the runner's tests to `tests/analysis/test_stats.py`.
 - **`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/HTFT.md`,** the third doc of the runs migration. The runner is `analysis/schedule/whole_corpus/all/htft.py`. It answers a6 of `notes/runs/2026-10-09_corpus_scan/` (the nine HT/FT results and the top N of the yardstick), so the a6 row left the plan. a6's table by market supremacy did not move: `ALL/ODDS_YARDSTICK.md` has the same question by the favourite's win chance.
   - `analysis/methods/yardstick.py` got `htft_cells` (the nine chances per match) and `result_code`. Tests: four more in `tests/analysis/methods/test_yardstick.py`, and `tests/analysis/schedule/whole_corpus/all/test_htft.py`.
+
+## 2026-10-19
+
+- **`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/ODDS_YARDSTICK.md`,** the fourth doc of the runs migration (step 2 of `PLAN_2026-10-16_ANALYSIS_MIGRATION.md` §3). The runner is `analysis/schedule/whole_corpus/per_league/odds_yardstick.py`. It answers the last part of a3, a7 and b3 of `notes/runs/2026-10-09_corpus_scan/`: the yardstick per league, and the first-half share per league. So their row left the plan.
+  - `analysis/stats.py` got `detectable_tau`: the between-unit sd that the heterogeneity test finds with a given power. `yardstick.implied` and `yardstick.completion_given_ht` now also take one first-half share for each match.
+  - Tests: `tests/analysis/schedule/whole_corpus/per_league/test_odds_yardstick.py`, two more in `tests/analysis/test_stats.py`, and one more in `tests/analysis/methods/test_yardstick.py`.
+  - `ALL/ODDS_YARDSTICK.md` no longer points to the plan for the test per league.

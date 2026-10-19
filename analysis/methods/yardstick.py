@@ -92,11 +92,14 @@ def fit_rates(
     return lam_home, lam_away, error
 
 
-def implied(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.DataFrame:
+def implied(
+    lam_home: np.ndarray, lam_away: np.ndarray, share: "float | np.ndarray"
+) -> pd.DataFrame:
     """The model's chances per match, from the two rates and the first-half share.
 
     `m_cb_home` sums, over each half-time deficit d of the home team, P(behind by d at HT)
-    times P(win the second half by more than d); `m_cb_away` mirrors it.
+    times P(win the second half by more than d); `m_cb_away` mirrors it. The share is one
+    number for every match, or one per match.
     """
     h1, a1 = share * lam_home, share * lam_away
     h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
@@ -125,7 +128,7 @@ def implied(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.Data
 def completion_given_ht(
     lam_home: np.ndarray,
     lam_away: np.ndarray,
-    share: float,
+    share: "float | np.ndarray",
     ht_margin: np.ndarray,
     home_factor: "float | np.ndarray" = 1.0,
     away_factor: "float | np.ndarray" = 1.0,
@@ -134,7 +137,7 @@ def completion_given_ht(
 
     `ht_margin` is home minus away goals at half-time. A level half-time gives 0: no team
     is behind, so no comeback can happen. `home_factor` and `away_factor` scale each side's
-    second-half rate; 1 is the basic model.
+    second-half rate; 1 is the basic model. The share is one number, or one per match.
     """
     h2 = (1 - share) * lam_home * home_factor
     a2 = (1 - share) * lam_away * away_factor

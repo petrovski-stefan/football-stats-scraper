@@ -94,6 +94,18 @@ def test_completions_over_every_half_time_score_add_up_to_the_comeback_chance() 
     assert (weights * completion).sum() == pytest.approx(model["m_cb"][0])
 
 
+def test_a_share_per_match_gives_each_match_the_chances_of_its_own_share() -> None:
+    home, away, shares = np.array([1.4, 1.4]), np.array([1.1, 1.1]), np.array([0.40, 0.50])
+    model = yardstick.implied(home, away, shares)
+    completion = yardstick.completion_given_ht(home, away, shares, np.array([-1, -1]))
+    for i, share in enumerate(shares):
+        one_home, one_away = home[i : i + 1], away[i : i + 1]
+        alone = yardstick.implied(one_home, one_away, float(share))
+        assert model.iloc[i].to_numpy() == pytest.approx(alone.iloc[0].to_numpy())
+        single = yardstick.completion_given_ht(one_home, one_away, float(share), np.array([-1]))
+        assert completion[i] == pytest.approx(single[0])
+
+
 def test_result_code_of_a_margin() -> None:
     assert yardstick.result_code(np.array([2, 0, -1])).tolist() == ["1", "X", "2"]
 

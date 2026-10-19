@@ -122,7 +122,7 @@ So the share changes by about 0.01 between bands. A change of 0.02 does not remo
 
 - **The share comes from the same goals.** The first-half share is one parameter, taken from the outcomes of these matches. It also helps link 1: the model's first-half goals equal the observed ones, up to the goal ratio of C1. So link 1 near 1 is a weak check. For the same reason, this doc gives no O/E for each half: it would equal C1 by construction.
 - **Calibration of the yardstick (rule 3).** The goal O/E goes from 1.0231 at up to 2.2 expected goals to 0.9702 above 3.4. So the prices spread the expected goals a little too wide. Link 1 goes from 0.9713 for the most balanced matches to 1.0240 for the strongest favourites. Both changes are small next to C2.
-- **By league:** this doc does not test the yardstick per league. `PER_LEAGUE/ODDS_YARDSTICK.md` does that (`notes/WORKING/PLAN_2026-10-16_ANALYSIS_MIGRATION.md`, step 2).
+- **By league:** this doc does not test the yardstick per league. `PER_LEAGUE/ODDS_YARDSTICK.md` does that.
 - **No score effects in the model.** The basic goal model keeps each rate constant in a half, whatever the score. C3 and C4 show that the second half turns more results around than that model expects. They do not show why. `ALL/SCORE_EFFECTS.md` measures the second-half rates after each half-time score.
 - **The tail.** The O/U price fixes the chance of goals above the line, not the chance of 7 or more. C7 says that the model's tail is too heavy for these matches.
 - **Low scores.** C8 is the known low-score dependency that independent goals miss (`notes/REFERENCE/STATS_PRIMER.md`, Dixon–Coles, "The low-score dependency (tau)").
