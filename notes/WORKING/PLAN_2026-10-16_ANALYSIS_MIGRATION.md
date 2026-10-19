@@ -19,12 +19,11 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | run | what it asked | new docs | note |
 |---|---|---|---|
 | `2026-10-09_corpus_scan` a2 | base rates; comeback and 7+ rates per league; league differences; the same leagues in two seasons | `ALL/RATES.md`, `PER_LEAGUE/RATES.md` | |
-| a4 | the return by price band (1X2, O/U, AH) | `ALL/PRICES.md` | Where the comeback excess sits is in `ALL/ODDS_YARDSTICK.md` since 2026-10-18. |
+| a4 | the return by price band (1X2, O/U, AH); the 7+ tail: does the deficit of 7+ matches come from the totals or from the shape of the goal counts? | `ALL/PRICES.md` | The doc also takes section 16 of `2026-10-10_odds_coverage`: the O/U and AH margins, and the lines. That run is deleted; its script is in the backup (§4). The 1X2 margin is in `ALL/SHIN.md`. |
 | b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
 | c1 | the comeback rate by season phase and by round | `ALL/SEASON_PHASE.md` | |
 | d1, d2 | do comebacks collect on identical opening prices | `ALL/ODDS_GROUPS.md` | |
-| a1, a5, a8, `load.py`, `run_all.py` | — | none | a1's counts are the corpus line, and its margins are in `SHIN.md`. a5 lists the QA failures of one day. a8 is a QA check now (`qa/odds.py`). `analysis/corpus.py` does the work of `load.py` and `run_all.py`. |
-| `2026-10-10_odds_coverage` | the odds coverage per league, and the cause of each gap | `PER_LEAGUE/ODDS_COVERAGE.md` (short) | Six of its sections are QA checks since 2026-10-11. Today one match has no odds. |
+| `load.py`, `run_all.py` | — | none | `analysis/corpus.py` does their work. They go with the last script of the folder. |
 | `2026-10-12_stakes` | the stakes test: flags F1 and F2 | `ALL/STAKES.md` | Copy the frozen plan of its `TEST.md` into the doc first. No STATE row (the user, 2026-10-13). |
 | `2026-10-13_zone_stakes` | zone lines from team turnover, and the zone-stakes test | `ALL/ZONE_STAKES.md`; the zone lines as `analysis/methods/zones.py` | Copy its `TEST.md` first. No STATE row. |
 | `2026-10-13_round_so_far`, `2026-10-13_round_goals` | a recount and a scramble check of S3.14–20, and how often each value occurs | `ALL/ROUND_FIELDS.md` (how often only) | pytest has the checks now: the `round_so_far` tests and the stage-3 leak test in `tests/features/test_schedule_multi.py`. Then change the citations in `notes/FIELDS/SCHEDULE_3_MULTI.md` §A2. |
@@ -40,8 +39,8 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | 3 | `RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
 | 4 | the new docs of the level design: `PER_TEAM/RATES`, `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 11–15 h |
 | 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
-| 6 | `ROUND_FIELDS`, `ODDS_COVERAGE`, and the new citations in `SCHEDULE_3_MULTI.md` | 2–3 h |
-| 7 | delete `notes/runs/` and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
+| 6 | `ROUND_FIELDS`, and the new citations in `SCHEDULE_3_MULTI.md` | 1½–2½ h |
+| 7 | delete what is left of `notes/runs/`, and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
 Total: about 3½–5 days of Claude's work, plus §1.
 
@@ -49,14 +48,14 @@ Total: about 3½–5 days of Claude's work, plus §1.
 
 - Measure every number again on the corpus of the day. Copy nothing from an old output or from memory.
 - A run that tested a frozen plan (the stakes and zone-stakes tests) keeps its plan: the doc's Method gets a copy before the folder goes. The new run is exploratory. It is not a second test.
-- Delete a run folder only when each of its questions has a doc, or a line in §2 that tells why not. Back the folder up first: git cannot restore it.
+- When each question of a run script has a doc, or a line in §2 that tells why not, delete the script and its outputs at once. Delete the folder with its last script (the user, 2026-10-19). A partly done script loses the part that is done. Back up first, because git cannot restore them: a dated zip in `Desktop/football-stats-scraper_backups/`, next to the repo.
 - A claim goes into STATE only with the user's go.
 
 ## 5. Done when
 
 - `notes/runs/` and its `.gitignore` line are gone. Only Log entries, Record notes and History notes still cite `notes/runs/`.
-- `uv run mypy .` shows 0 errors. Today its 45 errors are all in `notes/runs/` scripts.
-- pyscn shows 0 layer violations. Today its 20 are all in `notes/runs/` scripts.
+- `uv run mypy .` shows 0 errors. Today its 35 errors are all in `notes/runs/` scripts.
+- pyscn shows 0 layer violations. Today its 16 are all in `notes/runs/` scripts.
 - The seven gates pass.
 
 ## 6. Later: docs that need the detail or the live page
