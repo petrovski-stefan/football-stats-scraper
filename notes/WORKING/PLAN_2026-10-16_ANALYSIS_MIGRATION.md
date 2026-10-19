@@ -18,7 +18,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 
 | run | what it asked | new docs | note |
 |---|---|---|---|
-| `2026-10-09_corpus_scan` a2 | base rates; comeback and 7+ rates per league; league differences; the same leagues in two seasons | `ALL/RATES.md`, `PER_LEAGUE/RATES.md` | |
+| `2026-10-09_corpus_scan` a2 | comeback and 7+ rates per league; league differences; the same leagues in two seasons | `PER_LEAGUE/RATES.md` | |
 | a4 | the return by price band (1X2, O/U, AH); the 7+ tail: does the deficit of 7+ matches come from the totals or from the shape of the goal counts? | `ALL/PRICES.md` | The doc also takes section 16 of `2026-10-10_odds_coverage`: the O/U and AH margins, and the lines. That run is deleted; its script is in the backup (§4). The 1X2 margin is in `ALL/SHIN.md`. |
 | b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
 | c1 | the comeback rate by season phase and by round | `ALL/SEASON_PHASE.md` | |
@@ -36,7 +36,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 |---|---|---|
 | 1 | §1 above | 2–3 h |
 | 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
-| 3 | `RATES`, `PER_LEAGUE/RATES`, `PRICES` | 4–5 h |
+| 3 | `PER_LEAGUE/RATES`, `PRICES` | 3–4 h |
 | 4 | the new docs of the level design: `PER_TEAM/RATES`, `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 11–15 h |
 | 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
 | 6 | `ROUND_FIELDS`, and the new citations in `SCHEDULE_3_MULTI.md` | 1½–2½ h |
