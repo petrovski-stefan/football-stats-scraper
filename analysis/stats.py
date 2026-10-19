@@ -1,11 +1,15 @@
-"""Scores, intervals, shrinkage and a heterogeneity test, shared by the runners."""
+"""Scores, intervals, shrinkage, a heterogeneity test, and the Mantel-Haenszel odds ratio with
+the Holm correction, shared by the runners."""
 
+from collections.abc import Sequence
 from dataclasses import dataclass
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from scipy.stats import binomtest, chi2
+from scipy.stats import binomtest, chi2, norm
+
+Z95 = float(norm.ppf(0.975))
 
 
 def log_loss_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
@@ -152,3 +156,85 @@ def shrink(
     """
     keep = het.tau2 / (het.tau2 + variances)
     return het.pooled + keep * (means - het.pooled)
+
+
+@dataclass(frozen=True)
+class MantelHaenszel:
+    """The odds of an event with a flag against without it, pooled over strata."""
+
+    flagged: int
+    flagged_events: int
+    rest: int
+    rest_events: int
+    odds_ratio: float
+    low: float  # 95% interval, Robins-Breslow-Greenland
+    high: float
+    p: float  # Cochran-Mantel-Haenszel chi-square, 1 df, no continuity correction
+    strata: int  # strata with both a flagged and an unflagged row and both outcomes
+
+
+def mantel_haenszel(
+    flag: "pd.Series[bool]", event: "pd.Series[bool]", stratum: "pd.Series[Any]"
+) -> MantelHaenszel:
+    """The Mantel-Haenszel odds ratio of `event` for `flag` over the strata, its 95% interval
+    and the CMH test. The Binding rules of `notes/ANALYSIS/CLAUDE.md` §6 ask for it: pool
+    over league-season strata, never test per league. A stratum of one row tells nothing and
+    is left out."""
+    flagged, hit = flag.to_numpy(dtype=bool), event.to_numpy(dtype=bool)
+    cells = (
+        pd.DataFrame(
+            {"a": flagged & hit, "b": flagged & ~hit, "c": ~flagged & hit, "d": ~flagged & ~hit}
+        )
+        .groupby(stratum.to_numpy())[["a", "b", "c", "d"]]
+        .sum()
+        .astype(float)
+    )
+    cells = cells[cells.sum(axis=1) >= 2]
+    a, b, c, d = (cells[column].to_numpy() for column in ("a", "b", "c", "d"))
+    n = a + b + c + d
+    odds_ratio, low, high = _rgb(a, b, c, d, n)
+    expected = (a + b) * (a + c) / n
+    variance = (a + b) * (c + d) * (a + c) * (b + d) / (n**2 * (n - 1))
+    total = float(variance.sum())
+    statistic = float((a.sum() - expected.sum()) ** 2 / total) if total > 0 else 0.0
+    return MantelHaenszel(
+        flagged=int(flagged.sum()),
+        flagged_events=int((flagged & hit).sum()),
+        rest=int((~flagged).sum()),
+        rest_events=int((~flagged & hit).sum()),
+        odds_ratio=odds_ratio,
+        low=low,
+        high=high,
+        p=float(chi2.sf(statistic, 1)),
+        strata=int((variance > 0).sum()),
+    )
+
+
+def _rgb(
+    a: np.ndarray, b: np.ndarray, c: np.ndarray, d: np.ndarray, n: np.ndarray
+) -> tuple[float, float, float]:
+    """The Mantel-Haenszel odds ratio and its Robins-Breslow-Greenland 95% interval; not a
+    number where a sum in it is 0."""
+    r, s = a * d / n, b * c / n
+    together, apart = (a + d) / n, (b + c) / n
+    rs, ss = float(r.sum()), float(s.sum())
+    if rs <= 0 or ss <= 0:
+        return (rs / ss if ss > 0 else float("nan")), float("nan"), float("nan")
+    variance = (
+        float((together * r).sum()) / (2 * rs**2)
+        + float((together * s + apart * r).sum()) / (2 * rs * ss)
+        + float((apart * s).sum()) / (2 * ss**2)
+    )
+    log_or, half = float(np.log(rs / ss)), Z95 * float(np.sqrt(variance))
+    return rs / ss, float(np.exp(log_or - half)), float(np.exp(log_or + half))
+
+
+def holm(p_values: Sequence[float]) -> list[float]:
+    """Holm-adjusted p-values, in the order given."""
+    order = sorted(range(len(p_values)), key=lambda i: p_values[i])
+    adjusted = [0.0] * len(p_values)
+    running = 0.0
+    for rank, i in enumerate(order):
+        running = max(running, min(1.0, (len(p_values) - rank) * p_values[i]))
+        adjusted[i] = running
+    return adjusted
