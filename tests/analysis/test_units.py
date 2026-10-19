@@ -3,7 +3,7 @@
 import pandas as pd
 import pytest
 
-from analysis import units
+from analysis import card, units
 
 UNIT = "unit"
 
@@ -147,3 +147,26 @@ def test_within_test_sums_the_parts_of_each_unit(seasons: pd.DataFrame) -> None:
     assert alone[0] == pytest.approx(0.0)
     assert alone[1] == 1
     assert 0.0 <= p <= 1.0
+
+
+def test_within_row_tests_the_teams_around_their_league(round_robin: pd.DataFrame) -> None:
+    rows = card.team_rows(round_robin)
+    quantity = ("goals_for", "one", "goals scored", "count")
+    row, result = units.within_row(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity)
+    assert row["df"] == 8.0 - 2.0  # 8 teams in 2 leagues
+    assert row["repeat n"] == 8.0
+    assert isinstance(row["p"], str)
+    against = result.values["shrunk"] - result.values["owner_mean"]
+    assert float(row["shrunk - league min"]) == pytest.approx(against.min())
+    luck = units.within_luck_row("goals scored", result)
+    assert float(luck["luck min"]) <= float(luck["luck max"])
+
+
+def test_null_q_has_the_mean_of_its_df(round_robin: pd.DataFrame) -> None:
+    rows = card.team_rows(round_robin)
+    quantity = ("goals_for", "one", "goals scored", "count")
+    mean, sd = units.null_q(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200)
+    assert mean == pytest.approx(6.0, abs=1.0)  # 8 teams in 2 leagues
+    assert sd > 0
+    with pytest.raises(ValueError, match="no null draws"):
+        units.null_q(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, ("goals_1h", "goals", "x", "share"))

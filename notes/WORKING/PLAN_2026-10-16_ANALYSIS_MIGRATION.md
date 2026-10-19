@@ -26,7 +26,7 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | `2026-10-13_zone_stakes` | zone lines from team turnover, and the zone-stakes test | `ALL/ZONE_STAKES.md`; the zone lines as `analysis/methods/zones.py` | Copy its `TEST.md` first. No STATE row. |
 | `2026-10-13_round_so_far`, `2026-10-13_round_goals` | a recount and a scramble check of S3.14–20, and how often each value occurs | `ALL/ROUND_FIELDS.md` (how often only) | pytest has the checks now: the `round_so_far` tests and the stage-3 leak test in `tests/features/test_schedule_multi.py`. Then change the citations in `notes/FIELDS/SCHEDULE_3_MULTI.md` §A2. |
 | the weekday check (no folder) | comebacks and 7+ by weekday | `ALL/WEEKDAY.md` (optional) | Its numbers are in `notes/LOG/MIGRATIONS.md` 2026-10-11. |
-| none: the level design of 2026-10-18 | a team against the odds, with the repeat test; clusters in one round; which level the differences sit at | `PER_TEAM/ODDS_YARDSTICK.md`, `ALL/ROUND_CLUSTERS.md`, `ALL/LEVELS.md` | No run asked these. All three use the yardstick. |
+| none: the level design of 2026-10-18 | clusters in one round; which level the differences sit at | `ALL/ROUND_CLUSTERS.md`, `ALL/LEVELS.md` | No run asked these. Both use the yardstick. |
 
 ## 3. Order (one doc for each sitting)
 
@@ -35,12 +35,12 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | 1 | §1 above | 2–3 h |
 | 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 3 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
-| 4 | the new docs of the level design: `PER_TEAM/ODDS_YARDSTICK`, `ROUND_CLUSTERS`, `LEVELS` | 8–11 h |
+| 4 | the new docs of the level design: `ROUND_CLUSTERS`, `LEVELS` | 5–7 h |
 | 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `SEASON_PHASE`, `ODDS_GROUPS`, `STAKES`, `ZONE_STAKES`, `WEEKDAY` | 12–16 h |
 | 6 | `ROUND_FIELDS`, and the new citations in `SCHEDULE_3_MULTI.md` | 1½–2½ h |
 | 7 | delete what is left of `notes/runs/`, and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
-Total: about 3–4 days of Claude's work, plus §1.
+Total: about 2½–3½ days of Claude's work, plus §1.
 
 ## 4. Rules for each run
 

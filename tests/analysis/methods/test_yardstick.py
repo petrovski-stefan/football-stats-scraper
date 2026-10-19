@@ -60,6 +60,15 @@ def test_a_comeback_needs_a_decisive_half_time() -> None:
     assert np.all(model["m_ht_decisive"] < 1.0)
 
 
+def test_each_side_behind_at_half_time_adds_up_to_link_one() -> None:
+    model = yardstick.implied(np.array([1.8, 0.7]), np.array([0.9, 1.6]), 0.45)
+    both = model["m_home_behind"] + model["m_away_behind"]
+    assert both.to_numpy() == pytest.approx(model["m_ht_decisive"].to_numpy())
+    # The stronger side is behind less often.
+    assert model["m_home_behind"][0] < model["m_away_behind"][0]
+    assert model["m_home_behind"][1] > model["m_away_behind"][1]
+
+
 def test_almost_no_first_half_goals_leave_almost_no_comebacks() -> None:
     model = yardstick.implied(np.array([1.5]), np.array([1.2]), 1e-6)
     assert model["m_cb"][0] < 1e-5

@@ -117,6 +117,8 @@ def implied(
             "m_cb_away": cb_away,
             "m_cb": cb_home + cb_away,
             "m_ht_decisive": 1.0 - sps.skellam.pmf(0, h1, a1),
+            "m_home_behind": sps.skellam.cdf(-1, h1, a1),
+            "m_away_behind": sps.skellam.sf(0, h1, a1),
             "m_seven": sps.poisson.sf(6, total),
             "m_00": np.exp(-total),
             "m_11": lam_home * lam_away * np.exp(-total),

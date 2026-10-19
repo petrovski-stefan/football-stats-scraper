@@ -226,3 +226,86 @@ def within_test(
     """`within_tested`, as Q, its df and p only."""
     result = within_tested(frame, unit, part, observed, expected, kind)
     return result.q, result.df, result.p
+
+
+def within_row(
+    frame: pd.DataFrame, unit: str, part: str, quantity: tuple[str, str, str, str]
+) -> tuple[dict[str, float | str], Within]:
+    """One quantity's test of the parts around their unit (`within_tested`) as a row of a
+    summary, and its result: the spread that the test finds at 80%, the median share that a
+    part keeps after shrinkage, and the repeat test of the parts against their unit.
+
+    `quantity` is (observed column, expected column, label, kind).
+    """
+    observed, expected, label, kind = quantity
+    result = within_tested(frame, unit, part, observed, expected, kind)
+    r, n, p = repeat_test(frame, part, observed, expected, unit)
+    values = result.values
+    pooled = float(values["observed"].sum() / values["expected"].sum())
+    against = values["shrunk"] - values["owner_mean"]
+    keep = result.tau2 / (result.tau2 + values["variance"])
+    found = stats.detectable_tau(values["variance"], groups=values["owner"])
+    row: dict[str, float | str] = {
+        "quantity": label,
+        "pooled": pooled,
+        "Q": result.q,
+        "df": float(result.df),
+        "p": f"{result.p:.3g}",
+        "tau": result.tau2**0.5,
+        "tau/pooled": result.tau2**0.5 / pooled,
+        "found 80%": found,
+        "found/pooled": found / pooled,
+        "keep median": float(keep.median()),
+        "shrunk - league min": float(against.min()),
+        "shrunk - league max": float(against.max()),
+        "repeat r": r,
+        "repeat n": float(n),
+        "repeat p": f"{p:.3g}",
+    }
+    return row, result
+
+
+def within_luck_row(label: str, result: Within) -> dict[str, float | str]:
+    """How far the raw part values reach, and how far they would reach by luck alone if every
+    part had the value of its unit."""
+    values = result.values
+    low, high = luck_line(values["expected"], values["owner_mean"].to_numpy())
+    return {
+        "quantity": label,
+        "events, median": float(values["observed"].median()),
+        "raw min": float(values["value"].min()),
+        "raw max": float(values["value"].max()),
+        "luck min": low,
+        "luck max": high,
+    }
+
+
+def null_q(
+    frame: pd.DataFrame,
+    unit: str,
+    part: str,
+    quantity: tuple[str, str, str, str],
+    draws: int = 100,
+    seed: int = 0,
+) -> tuple[float, float]:
+    """The mean and sd of Q of `within_tested` when the outcomes come from the test's own null.
+
+    Each match gets the value of its unit: a 0/1 outcome with the chance unit value x
+    expected, or a Poisson count with that mean. If the method is right, the mean is near
+    the df. A real Q far from this mean is a property of the data, not of the method.
+    """
+    observed, expected, _, kind = quantity
+    if kind not in ("event", "count"):
+        raise ValueError(f"no null draws for kind {kind!r}")
+    sums = frame.groupby(unit)[[observed, expected]].transform("sum")
+    means = (sums[observed] / sums[expected] * frame[expected]).to_numpy(dtype=float)
+    rng = np.random.default_rng(seed)
+    qs = []
+    for _ in range(draws):
+        if kind == "event":
+            drawn = (rng.random(len(means)) < np.clip(means, 0.0, 1.0)).astype(float)
+        else:
+            drawn = rng.poisson(means).astype(float)
+        drawn_frame = frame.assign(drawn=drawn)
+        qs.append(within_tested(drawn_frame, unit, part, "drawn", expected, kind).q)
+    return float(np.mean(qs)), float(np.std(qs))

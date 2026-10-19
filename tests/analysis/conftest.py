@@ -1,7 +1,9 @@
 """Toy matches shared by the analysis tests."""
 
 import math
+from itertools import permutations, product
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -30,6 +32,11 @@ def toy_matches() -> pd.DataFrame:
     ]
     frame = pd.DataFrame(rows, columns=columns)
     frame.insert(0, "match_id", [f"m{i}" for i in range(1, len(frame) + 1)])
+    # League 1: teams 11 and 12. League 2: teams 21, 22 and 23.
+    frame["s1_home_team_id"] = [11, 12, 21, 22, 21]
+    frame["s1_away_team_id"] = [12, 11, 22, 21, 23]
+    frame["s1_home_team_name"] = frame["s1_home_team_id"].map(lambda team: f"t{team}")
+    frame["s1_away_team_name"] = frame["s1_away_team_id"].map(lambda team: f"t{team}")
     inverse = 1.0 / frame[shin.ODDS]
     proportional = inverse.div(inverse.sum(axis=1), axis=0)
     for odds_column, column in zip(shin.ODDS, shin.PROPORTIONAL, strict=True):
@@ -42,7 +49,7 @@ def toy_priced_matches(toy_matches: pd.DataFrame) -> pd.DataFrame:
     """The toy matches with half-time goals, an opening O/U market and the stage-2 labels.
 
     Half-time scores 1-0, 0-0, 0-0, 1-0 and 0-1 against full-time 2-0, 0-0, 0-1, 1-2 and
-    1-1: the fourth match is an away comeback.
+    1-1: the fourth match is an away comeback, by team 21 against team 22.
     """
     frame = toy_matches.copy()
     frame["s1_ht_home_goals"] = [1, 0, 0, 1, 0]
@@ -60,3 +67,34 @@ def toy_priced_matches(toy_matches: pd.DataFrame) -> pd.DataFrame:
     frame["s2_is_comeback"] = frame["s2_is_comeback_home"] | frame["s2_is_comeback_away"]
     frame["s2_ht_decisive"] = frame["s1_ht_home_goals"] != frame["s1_ht_away_goals"]
     return frame
+
+
+@pytest.fixture
+def round_robin() -> pd.DataFrame:
+    """Two leagues of four teams; every pair meets home and away in each of two cohorts.
+
+    Random half-time and full-time scores, the same on each run.
+    """
+    rng = np.random.default_rng(0)
+    rows = []
+    for league, cohort in product((1, 2), (2024, 2025)):
+        for home, away in permutations([10 * league + t for t in range(4)], 2):
+            ht = rng.integers(0, 3, size=2)
+            ft = ht + rng.integers(0, 3, size=2)
+            rows.append(
+                {
+                    "s1_home_team_id": home,
+                    "s1_away_team_id": away,
+                    "s1_home_team_name": f"t{home}",
+                    "s1_away_team_name": f"t{away}",
+                    "s1_league_id": league,
+                    "s1_league_name": f"league {league}",
+                    "s1_season": str(cohort),
+                    "season_cohort": cohort,
+                    "s1_ht_home_goals": ht[0],
+                    "s1_ht_away_goals": ht[1],
+                    "s1_ft_home_goals": ft[0],
+                    "s1_ft_away_goals": ft[1],
+                }
+            )
+    return pd.DataFrame(rows)
