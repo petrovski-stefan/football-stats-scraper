@@ -31,6 +31,7 @@ One runner per doc, at the same path in lowercase. The first folder is the sourc
 | `analysis/schedule/whole_corpus/all/season_phase.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SEASON_PHASE.md`          |
 | `analysis/schedule/whole_corpus/all/odds_groups.py`           | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ODDS_GROUPS.md`           |
 | `analysis/schedule/whole_corpus/all/stakes.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/STAKES.md`                |
+| `analysis/schedule/whole_corpus/all/round_fields.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ROUND_FIELDS.md`          |
 
 Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or level folder (`per_team/`) appears with its first runner, beside its notes folder.
 

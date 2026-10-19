@@ -20,8 +20,6 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 |---|---|---|---|
 | `2026-10-09_corpus_scan` b1, b2 | 29 stage-3 fields beyond the odds, one at a time; the same out of sample, one season against the other | `ALL/PREMATCH_SCREEN.md` (b2 is its per-season slice) | b2 also used boosted trees. That is machine learning, so it waits for the later prediction package (`analysis/CLAUDE.md` §1). Only logistic regression moves. |
 | `load.py`, `run_all.py` | — | none | `analysis/corpus.py` does their work. They go with the last script of the folder. |
-| `2026-10-13_zone_stakes` | zone lines from team turnover, and the zone-stakes test | `ALL/ZONE_STAKES.md`; the zone lines as `analysis/methods/zones.py` | Copy its `TEST.md` first. No STATE row. |
-| `2026-10-13_round_so_far`, `2026-10-13_round_goals` | a recount and a scramble check of S3.14–20, and how often each value occurs | `ALL/ROUND_FIELDS.md` (how often only) | pytest has the checks now: the `round_so_far` tests and the stage-3 leak test in `tests/features/test_schedule_multi.py`. `qa.validate` has the rules between the counts since 2026-10-19 (`qa/stages.py:check_round_fields`), and the scripts lost them. Then change the citations in `notes/FIELDS/SCHEDULE_3_MULTI.md` §A2. |
 | the weekday check (no folder) | comebacks and 7+ by weekday | `ALL/WEEKDAY.md` (optional) | Its numbers are in `notes/LOG/MIGRATIONS.md` 2026-10-11. |
 | none: the level design of 2026-10-18 | clusters in one round; which level the differences sit at | `ALL/ROUND_CLUSTERS.md`, `ALL/LEVELS.md` | No run asked these. Both use the yardstick. |
 
@@ -33,8 +31,8 @@ All docs go into `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/`, because every run read
 | 2 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 3 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 4 | the new docs of the level design: `ROUND_CLUSTERS`, `LEVELS` | 5–7 h |
-| 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `ZONE_STAKES`, `WEEKDAY` (`SEASON_PHASE`, `ODDS_GROUPS` and `STAKES` done 2026-10-19) | 6–9 h |
-| 6 | `ROUND_FIELDS`, and the new citations in `SCHEDULE_3_MULTI.md` | 1½–2½ h |
+| 5 | the screens and the measured nulls: `PREMATCH_SCREEN`, `WEEKDAY` (`SEASON_PHASE`, `ODDS_GROUPS` and `STAKES` done 2026-10-19; `ZONE_STAKES` skipped by the user) | 4–6 h |
+| 6 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
 | 7 | delete what is left of `notes/runs/`, and its line in `.gitignore`; a MIGRATIONS entry | ~0.5 h |
 
 Total: about 2½–3½ days of Claude's work, plus §1.
@@ -49,8 +47,8 @@ Total: about 2½–3½ days of Claude's work, plus §1.
 ## 5. Done when
 
 - `notes/runs/` and its `.gitignore` line are gone. Only Log entries, Record notes and History notes still cite `notes/runs/`.
-- `uv run mypy .` shows 0 errors. Today its 29 errors are all in `notes/runs/` scripts.
-- pyscn shows 0 layer violations. Today its 15 are all in `notes/runs/` scripts.
+- `uv run mypy .` shows 0 errors. On 2026-10-19 its 16 errors are all in the two scripts left in `notes/runs/` (b1, b2).
+- pyscn shows 0 layer violations: met on 2026-10-19.
 - The seven gates pass.
 
 ## 6. Later: docs that need the detail or the live page
