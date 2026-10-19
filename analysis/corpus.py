@@ -15,6 +15,9 @@ from features.stage_io import read_stage_csv
 
 LEAGUE_SEASON = ["s1_league_id", "s1_season"]
 
+# The opening Asian handicap market: the line (S1.22), the home price and the away price.
+AH = ["s1_odds_ah_open_line", "s1_odds_ah_open_home", "s1_odds_ah_open_away"]
+
 # Outcome codes of the 1X2 market: the column order of every three-way probability array.
 HOME, DRAW, AWAY = 0, 1, 2
 

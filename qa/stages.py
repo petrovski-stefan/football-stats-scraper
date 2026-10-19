@@ -5,8 +5,8 @@ Each stage file is the stage before it plus its own columns, rebuilt from stage 
 `features/schedule_row.py` and `features/schedule_multi.py`. A stage file that holds other
 matches than stage 1, or a value an earlier stage no longer holds, was built before the
 earlier file last changed (a re-scrape) and must be rebuilt. Stage 2's odds fields are also
-held to the stage-1 cells they come from. Nothing here recomputes a field: the builders'
-tests do that.
+held to the stage-1 cells they come from, and stage 3's round-so-far counts to the rules
+between them. Nothing here recomputes a field: the builders' tests do that.
 """
 
 import os
@@ -43,6 +43,17 @@ _MARKET_FIELDS: dict[str, tuple[str, tuple[str, ...]]] = {
     "AH": ("s2_has_ah_odds", ("s2_implied_ah_home",)),
 }
 _PROBABILITIES = ["s2_mkt_p_home", "s2_mkt_p_draw", "s2_mkt_p_away"]
+# The round so far (S3.14-20, `notes/FIELDS/SCHEDULE_3_MULTI.md`) and the size of the round.
+_ROUND = [
+    "s3_matches_in_round",
+    "s3_round_pre_finished",
+    "s3_round_pre_comebacks",
+    "s3_round_pre_seven_plus",
+    "s3_round_pre_rare_events",
+    "s3_round_pre_btts",
+    "s3_round_pre_avg_goals",
+    "s3_round_pre_avg_ou_line",
+]
 
 
 def declared_columns(stage: int) -> list[str]:
@@ -60,6 +71,8 @@ def validate(
         check_carried(r, before, frame, _ADDED[n], f"stage {n}")
     if stage == 2:
         check_odds_fields(r, frame)
+    if stage == 3:
+        check_round_fields(r, frame)
 
 
 def check_carried(
@@ -124,6 +137,29 @@ def check_odds_fields(r: Report, frame: pd.DataFrame) -> None:
         total = frame[_PROBABILITIES].sum(axis=1, min_count=len(_PROBABILITIES))
         off = int(((total - 1).abs() > TOLERANCE).sum())
         r.check(off == 0, f"{off} rows whose 1X2 probabilities do not sum to 1")
+
+
+def check_round_fields(r: Report, frame: pd.DataFrame) -> None:
+    """The round-so-far counts agree with each other in every row, whatever the results: a
+    rare event is a comeback or a 7+ match, counted once when it is both; a match never
+    counts itself, so fewer round-mates finished than the round holds; both teams score in
+    every comeback; and the two averages read the same matches, so they are empty together."""
+    if not set(_ROUND) <= set(frame.columns):
+        return
+    (size, finished, comebacks, seven, rare, btts, goals, line) = (frame[c] for c in _ROUND)
+    broken = {
+        "s3_round_pre_rare_events is above comebacks + seven_plus": rare > comebacks + seven,
+        "s3_round_pre_rare_events is below the larger of comebacks and seven_plus": (
+            rare < np.maximum(comebacks, seven)
+        ),
+        "s3_round_pre_finished is not below s3_matches_in_round": finished >= size,
+        "s3_round_pre_btts is above s3_round_pre_finished": btts > finished,
+        "s3_round_pre_comebacks is above s3_round_pre_btts": comebacks > btts,
+        "only one of the two round averages is empty": goals.isna() != line.isna(),
+    }
+    for rule, rows in broken.items():
+        count = int(rows.sum())
+        r.check(count == 0, f"{count} rows where {rule}")
 
 
 def check_no_orphans(

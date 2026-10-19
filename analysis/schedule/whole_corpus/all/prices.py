@@ -19,7 +19,6 @@ from analysis import corpus, report, stats
 from analysis.methods import shin, yardstick
 
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
-AH = ["s1_odds_ah_open_line", "s1_odds_ah_open_home", "s1_odds_ah_open_away"]
 MIN_LINE_MATCHES = 200  # an O/U line with fewer matches gets no row of its own
 # The AH line is positive when the home team gives the handicap (S1.22).
 # (label, lowest line, highest line); a line is a multiple of 0.25.
@@ -95,11 +94,11 @@ def x12_table(bets: pd.DataFrame, by: str) -> pd.DataFrame:
 def two_way_bets(matches: pd.DataFrame) -> pd.DataFrame:
     """Per match with both Asian markets: the profit of each side of the O/U and of the AH,
     and the cost of each market's margin, 1 / (1 + margin) - 1."""
-    rows = matches.dropna(subset=[*OU, *AH])
+    rows = matches.dropna(subset=[*OU, *corpus.AH])
     total = rows["s2_total_goals"].to_numpy(dtype=float)
     lead = (rows["s1_ft_home_goals"] - rows["s1_ft_away_goals"]).to_numpy(dtype=float)
     ou_line, over, under = (rows[c].to_numpy(dtype=float) for c in OU)
-    ah_line, home, away = (rows[c].to_numpy(dtype=float) for c in AH)
+    ah_line, home, away = (rows[c].to_numpy(dtype=float) for c in corpus.AH)
     return pd.DataFrame(
         {
             "ou_line": ou_line,
@@ -109,7 +108,7 @@ def two_way_bets(matches: pd.DataFrame) -> pd.DataFrame:
             "ah_line": ah_line,
             "home": settle(lead, ah_line, home),
             "away": settle(-lead, -ah_line, away),
-            "ah_cost": 1.0 / (1.0 + margin(rows[AH[1]], rows[AH[2]])) - 1.0,
+            "ah_cost": 1.0 / (1.0 + margin(rows[corpus.AH[1]], rows[corpus.AH[2]])) - 1.0,
             "cluster": rows["s1_league_id"].astype(str) + " " + rows["s1_season"],
             "season_cohort": rows["season_cohort"],
         },
@@ -158,7 +157,7 @@ def ah_groups(bets: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
 
 def margin_table(matches: pd.DataFrame) -> pd.DataFrame:
     """Quantiles and the mean of each market's margin, over the matches that have it."""
-    markets = {"1X2": shin.ODDS, "O/U": OU[1:], "AH": AH[1:]}
+    markets = {"1X2": shin.ODDS, "O/U": OU[1:], "AH": corpus.AH[1:]}
     table = []
     for name, columns in markets.items():
         rows = matches.dropna(subset=columns)
@@ -269,11 +268,11 @@ def main() -> None:
         show_returns(group, f"season cohort {cohort}")
 
     report.show("Margins: quantiles and mean", margin_table(matches))
-    priced = matches.dropna(subset=[*OU, *AH])
+    priced = matches.dropna(subset=[*OU, *corpus.AH])
     report.show("Opening O/U lines", line_shares(priced[OU[0]]))
     print(
         f"\nquarter lines: O/U {quarter_share(priced[OU[0]]):.4f}, "
-        f"AH {quarter_share(priced[AH[0]]):.4f}"
+        f"AH {quarter_share(priced[corpus.AH[0]]):.4f}"
     )
 
     share = yardstick.first_half_share(yardstick.priced(matches))

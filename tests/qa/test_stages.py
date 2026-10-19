@@ -1,6 +1,8 @@
 """`qa/stages.py`: the derived stage files against the stages before them."""
 
+import numpy as np
 import pandas as pd
+import pytest
 
 from domain import paths
 from domain.columns import SCHEDULE_MULTI_COLUMNS, SCHEDULE_RAW_COLUMNS, SCHEDULE_ROW_COLUMNS
@@ -11,6 +13,7 @@ from qa.stages import (
     check_carried,
     check_no_orphans,
     check_odds_fields,
+    check_round_fields,
     declared_columns,
     validate,
 )
@@ -168,3 +171,65 @@ def test_only_stage_two_gets_the_odds_field_check() -> None:
         r = Report("test")
         validate(r, row, stage, {})
         assert any("s2_has_odds disagrees" in issue for issue in r.issues) is checked
+
+
+def _round_row(**overrides: object) -> dict[str, object]:
+    """One stage-3 row of a 10-match round after 3 finished round-mates: a 4-3 comeback
+    (both a comeback and 7+), a 1-1 and a 2-0."""
+    row: dict[str, object] = {
+        "s3_matches_in_round": 10,
+        "s3_round_pre_finished": 3,
+        "s3_round_pre_comebacks": 1,
+        "s3_round_pre_seven_plus": 1,
+        "s3_round_pre_rare_events": 1,
+        "s3_round_pre_btts": 2,
+        "s3_round_pre_avg_goals": 3.67,
+        "s3_round_pre_avg_ou_line": 2.75,
+    }
+    row.update(overrides)
+    return row
+
+
+def _round_issues(*rows: dict[str, object]) -> list[str]:
+    r = Report("test")
+    check_round_fields(r, pd.DataFrame(list(rows)))
+    return r.issues
+
+
+def test_round_fields_that_agree_pass() -> None:
+    nothing_yet = _round_row(
+        s3_round_pre_finished=0,
+        s3_round_pre_comebacks=0,
+        s3_round_pre_seven_plus=0,
+        s3_round_pre_rare_events=0,
+        s3_round_pre_btts=0,
+        s3_round_pre_avg_goals=np.nan,
+        s3_round_pre_avg_ou_line=np.nan,
+    )
+    assert _round_issues(_round_row(), nothing_yet) == []
+
+
+@pytest.mark.parametrize(
+    ("overrides", "rule"),
+    [
+        ({"s3_round_pre_rare_events": 3}, "rare_events is above"),
+        ({"s3_round_pre_rare_events": 0}, "rare_events is below"),
+        ({"s3_matches_in_round": 3}, "finished is not below"),
+        ({"s3_round_pre_btts": 4}, "btts is above"),
+        ({"s3_round_pre_btts": 0}, "comebacks is above"),
+        ({"s3_round_pre_avg_ou_line": np.nan}, "only one of the two round averages"),
+    ],
+)
+def test_each_broken_round_rule_fails(overrides: dict[str, object], rule: str) -> None:
+    issues = _round_issues(_round_row(), _round_row(**overrides))
+    assert len(issues) == 1
+    assert issues[0].startswith("1 rows where ")
+    assert rule in issues[0]
+
+
+def test_only_stage_three_gets_the_round_field_check() -> None:
+    row = pd.DataFrame([_round_row(match_id="1", s3_round_pre_btts=4)])
+    for stage, checked in ((2, False), (3, True)):
+        r = Report("test")
+        validate(r, row, stage, {})
+        assert any("btts is above" in issue for issue in r.issues) is checked
