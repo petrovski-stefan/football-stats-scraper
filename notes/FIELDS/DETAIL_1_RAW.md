@@ -115,7 +115,7 @@ dated at or after this match's kickoff is an error.
 The history date `2026-10-02 18:45:00` belongs to a 20:45 CEST kickoff, which confirms that the
 page gives D1.22 in UTC.
 
-**An awarded match on this page** (the user, 2026-10-10, on the h2h page of 2609242, a listed forfeit, against a
+**An awarded match on this page** (the user, 2026-10-10, on the h2h page of 2609242, an awarded match, against a
 played match): the status still reads "Finished", but the In-Play odds rows are missing or incomplete. A match
 never played has no in-play market, so this is the page's one sign of an award found so far. The schedule
 page's status does not tell them apart.

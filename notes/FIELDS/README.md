@@ -14,7 +14,7 @@ are in that plan, §1–3; they are not repeated here.
 |---|---|---|---|
 | `SCHEDULE_1_RAW.md` | league page → match file + standings file | where is it on the page? | the user, on the page |
 | `SCHEDULE_2_ROW.md` | fields from one match row | what formula on this row? | Claude; the user skims |
-| `SCHEDULE_3_MULTI.md` | fields from other rows: round position, pre-kickoff table, survey flags | which rows, all before kickoff? | Claude + stats-reviewer |
+| `SCHEDULE_3_MULTI.md` | fields from other rows: round position, the round so far, pre-kickoff table, HT/FT record, stakes, the out-of-round flag | which rows, all before kickoff? | Claude + stats-reviewer |
 | `DETAIL_1_RAW.md` | h2h page → match file + history file | where is it on the page? | the user, on the page |
 | `DETAIL_2_ROW.md` | fields from one detail row or one history row | what formula on this row? | Claude; the user skims |
 | `DETAIL_3_MULTI.md` | the history windows, form and h2h averages | which rows, all before kickoff? | Claude + stats-reviewer |
@@ -29,8 +29,9 @@ live aggregates) by `match_id`.
 
 - **Field ids:** source letter + stage + row. `S1.07` = schedule, stage 1, row 7. `D` = detail,
   `L` = live page. One row per field; a field is defined once.
-- **Names** carry the doc's code (rule 2 below). Today's name in the files is the name without
-  its code, unless the status says `today ...`.
+- **Names** carry the doc's code (rule 2 below). The schedule files use these names since 2026-10-06. In the
+  old detail and live files, today's name is the name without its code, unless the status says
+  `today ...`.
 - **Example:** the value on the reference match below.
 - **Timing — the user's rule (2026-10-05):** in every row, only the match's own score is after
   kickoff. That means the HT and FT goals and every field computed from them. Everything else in
@@ -52,7 +53,7 @@ live aggregates) by `match_id`.
    UTC+2 in summer. The offset is written in the value, so the time is exact across the clock
    change: `2026-01-31 18:30+01:00`, `2025-08-15 21:00+02:00`. The league page gives UTC+8 (China
    time) and the h2h page gives UTC; the scraper converts both. **The league page's dates were
-   stored as UTC+8 in every file so far**: see `SCHEDULE_1_RAW.md` S1.07.
+   stored as UTC+8 in every file before 2026-10-06**: see `SCHEDULE_1_RAW.md` S1.07.
 2. **Decided by the user, 2026-10-06:**
    - typed values only: no score strings beside the goal columns;
    - odds as `odds_<market>_<snapshot>_<selection>`, snapshot `open` (the page's "Initial") or

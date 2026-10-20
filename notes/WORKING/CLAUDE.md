@@ -12,6 +12,7 @@ The rule of this group: edit a note in place, and keep it current. The rules for
 | `IDEAS_2026-10-01.md` | the roadmap: the open ideas of the user, their size and their order | before you start or propose one of its ideas |
 | `PLAN_2026-10-05_STAGED_PIPELINE.md` | the staged pipeline: its rules, its decisions and its open steps | before any work on a data format, a data path or a refactor |
 | `DECISIONS.md` | open questions for the user, each with a working value until the user decides | when a task touches one of its questions |
+| `PLAN_2026-10-19_ML_TEST.md` | the ML test: do the pre-match fields hold comeback information beyond the odds? Its decisions and open steps | before you write or run an ML doc, or start idea 24 |
 
 - These notes hold only open work and current facts. Done work is in `notes/LOG/MIGRATIONS.md`.
 - The numbers in `STATE.md` are copies. If a number does not agree with its source note, the source note is correct.

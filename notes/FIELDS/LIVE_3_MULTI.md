@@ -17,10 +17,10 @@ rows, so it needs other rows and other files. **As today, not redesigned yet (pl
 
 | # | fields | source | timing | role | status |
 |---|---|---|---|---|---|
-| L3.01 | goal timing per section (`home`, `away`, `h2h`), `l3_{section}_` + `goal_minute_avg`, `conceded_minute_avg`, `late_goal_rate`, `late_conceded_rate`, `conceded_pre_ht_rate`, `goals_seen` | `features/goals.py` | before | input | keep ? (survey claims #11, #12 use `conceded_pre_ht_rate` and `late_goal_rate`) |
+| L3.01 | goal timing per section (`home`, `away`, `h2h`), `l3_{section}_` + `goal_minute_avg`, `conceded_minute_avg`, `late_goal_rate`, `late_conceded_rate`, `conceded_pre_ht_rate`, `goals_seen` | `features/goals.py` | before | input | keep ? (retry claims #11, #12 use `conceded_pre_ht_rate` and `late_goal_rate`) |
 | L3.02 | goals per 15-minute bucket per section, `l3_{section}_` + `gf_00_15` … `gf_76_90` and `ga_00_15` … `ga_76_90` | `features/goals.py` | before | input | keep ? |
 | L3.03 | `l3_{section}_last{n}_goal_timeline` — one history match's goals as text, from the subject's side: `15GA;18GF;23GF;85GA`. The lossless record; every window is re-derivable from it | `features/goals.py` | before | input | keep ? |
-| L3.04 | cards and substitutions per section, `l3_{section}_` + `yellows_for_avg`, `yellows_against_avg`, `yellows_while_leading_avg`, `reds_for_rate`, `reds_against_rate`, `subs_for_avg`, `first_sub_minute_avg`, `late_sub_rate`, `events_seen` | `features/events.py` (state-conditioned against the goal store) | before | input | keep ? (survey claim #15 uses `yellows_while_leading_avg`) |
+| L3.04 | cards and substitutions per section, `l3_{section}_` + `yellows_for_avg`, `yellows_against_avg`, `yellows_while_leading_avg`, `reds_for_rate`, `reds_against_rate`, `subs_for_avg`, `first_sub_minute_avg`, `late_sub_rate`, `events_seen` | `features/events.py` (state-conditioned against the goal store) | before | input | keep ? (retry claim #15 uses `yellows_while_leading_avg`) |
 | L3.05 | `l3_{section}_last{n}_yellow_timeline`, `_red_timeline`, `_sub_timeline` | `features/events.py` | before | input | keep ? |
 
 The three-stage redesign of these (one doc per stage, one row per field) comes after schedule and

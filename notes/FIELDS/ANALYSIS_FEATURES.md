@@ -21,7 +21,7 @@ redesign waits for the stage files to exist (plan P5).
 | G2_h2h_goals | h2h_avg_total_goals, h2h_over25_rate, h2h_ht_goals_avg, h2h_ht_nondraw_rate | dead |
 | G3_odds | mkt_sup, mkt_tot, mkt_p_draw, odds_drift_home, odds_drift_away | dead |
 | market line | ou_line, implied_over, ah_line, abs_ah_line, implied_ah_home | its claim was dropped 2026-10-13; the code goes with plan step P5 |
-| controls | mkt_sup, mkt_tot, combined_recent_gf, h2h_avg_total_goals | used in every model |
+| controls | mkt_sup, mkt_tot, combined_recent_gf, h2h_avg_total_goals | used in every model of the old `modelling/` (deleted 2026-10-18) |
 
 Several of these move into the stage files as plain fields: `mkt_sup`, `mkt_tot`, `mkt_p_*`
 (S2.17–21), the days since the last match (D3.24). `guess_minus_market` needs the crowd vote

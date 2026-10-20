@@ -101,11 +101,12 @@ if it kicked off at least 2 h 30 min before this one, so it has surely finished.
   54 DEV seasons (2026-10-07): the page uses head-to-head in Spain, Portugal, Italy and Poland and
   most wins in Belgium; the user accepted the difference, since every count stays exact.
 - Points: earned on the pitch. Points deductions are not applied (option A, the user, 2026-10-07;
-  the 16 known ones are in `notes/REFERENCE/POINTS_DEDUCTIONS.md`). Option C, later, applies each one from
+  the 18 known ones are in `notes/REFERENCE/POINTS_DEDUCTIONS.md`). Option C, later, applies each one from
   its date.
 - One table per stage, as the page shows them. A league whose points carry from one stage into the
   next (Scotland's split, Belgium's halved points) needs the earlier stage added: settled per
-  league when one is configured. EPL and the Africa leagues have one stage.
+  league when one is configured. No kept stage carries points today: 68 of the 73 leagues keep
+  one stage, and the other 5 keep stages with their own tables (the final-table check).
 - No leak by design: measured 0 in all 7 stored files. The one assumption: a match finishes within
   2 h 30 min of its listed kickoff (a normal match takes about 1 h 55 min).
 - Matches of the same round can see each other's results when one finished before the other's
@@ -205,4 +206,4 @@ holds.
 ## D. Open points — Claude's, no user decision needed
 
 - A league with stages whose points carry over: settled per league when one is configured (§B).
-- Examples marked `?` are filled in P3, from the rebuilt files.
+- S3.07's example (`?`) waits for its definition (§C). P3 filled the other examples from the rebuilt files.

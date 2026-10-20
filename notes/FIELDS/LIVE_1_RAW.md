@@ -9,7 +9,7 @@ marked below. Their redesign comes after schedule and detail.
 - Page: <https://live.nowgoal50.com/match/live-2789361> for the reference match.
 - Files: today `data/archived/raw/goals.csv`, `events.csv`, `goals_done.csv`, `events_done.csv`. They are
   global stores keyed by match id, because history matches come from many competitions.
-- **Names stay as they are** until the redesign: rule 6's codes are not applied here yet.
+- **Names stay as they are** until the redesign: rule 2's codes are not applied here yet.
 - **Exception** = a field computed from other rows or another file; kept here for now, as plan Q4
   decided.
 

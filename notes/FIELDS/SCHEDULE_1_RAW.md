@@ -7,8 +7,8 @@ only parsed. The user checks each row on the page (✓).
 
 - Page: the league page, <https://football.nowgoal50.com/league/2025-2026/36> for the reference
   match (round 24).
-- Files: `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` (today
-  `data/archived/raw/<league>_<season>.csv`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`
+- Files: `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` (before 2026-10-06:
+  `<league>_<season>.csv`, now in `data/archived/raw/`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`
   (new, a check only). `<country>` is the config's country, `<league>` the league's name in the
   page's title (2026-10-08: the title alone can leave the country out). A name that already starts
   with the exact country keeps it once: `brazil_serie_a`, but `england_english_premier_league`.
@@ -23,7 +23,7 @@ only parsed. The user checks each row on the page (✓).
 | S1.04 | `s1_stage` | name of the stage tab; empty when the page has no tabs | text | `div#schedule div.stage span[stage]` (active tab) | (empty) | before | key, input | ✓ | keep |
 | S1.05 | `s1_round` | round number inside the stage | int | `div#schedule div.round span[round]` (clicked round) | 24 | before | key, input | ✓ | keep |
 | S1.06 | `match_id` | nowgoal's match id; the join key of every file | text | row `div.schedulis`, attribute `matchid` | 2789361 | before | key | ✓ | keep |
-| S1.07 | `s1_date` | kickoff date and time, Berlin time with its offset. **The page gives UTC+8 (China time), and every file so far stored it unconverted**: the match was played on Saturday 31 Jan at 17:30 UK time | text | row `span.date`, attribute `data-t` | 2026-01-31 18:30+01:00 (stored today: 2026-02-01 01:30) | before | key, input, check | ✓ | fix: convert `data-t` from UTC+8 to Berlin time |
+| S1.07 | `s1_date` | kickoff date and time, Berlin time with its offset. **The page gives UTC+8 (China time). The files before 2026-10-06 stored it unconverted**: the match was played on Saturday 31 Jan at 17:30 UK time | text | row `span.date`, attribute `data-t` | 2026-01-31 18:30+01:00 (stored before 2026-10-06: 2026-02-01 01:30) | before | key, input, check | ✓ | fixed 2026-10-06: `data-t` is converted from UTC+8 to Berlin time |
 | S1.08 | `s1_home_team_id` | nowgoal's id of the home team | int | row `span.home span[onclick]` → `toTeam('<id>')` | 24 | before | key, input | ✓ | keep |
 | S1.09 | `s1_away_team_id` | nowgoal's id of the away team | int | row `span.away span[onclick]` | 62 | before | key, input | ✓ | keep |
 | S1.10 | `s1_home_team_name` | home team name as shown, with accented letters replaced | text | row `span.home` | Chelsea | before | key | ✓ | keep |
@@ -32,15 +32,15 @@ only parsed. The user checks each row on the page (✓).
 | S1.13 | `s1_ht_away_goals` | away goals at half-time | int | row `span.ht`, second number | 2 | after | label, check | ✓ | keep |
 | S1.14 | `s1_ft_home_goals` | home goals at full time | int | row attribute `score` ("3 - 2"), else `span.score`; first number | 3 | after | label, check | ✓ | keep |
 | S1.15 | `s1_ft_away_goals` | away goals at full time | int | same, second number | 2 | after | label, check | ✓ | keep |
-| S1.16 | `s1_odds_1x2_open_home` | opening 1X2 price, home win, decimal | float | row `span.odds > span` [1st], odds header set to 1X2 | 1.40 | before | input | ✓ | keep for now (today `home_win_initial_odds`). **Equals D1.03 in 99.7% of EPL rows**: the user reviews duplicates later |
-| S1.17 | `s1_odds_1x2_open_draw` | opening 1X2 price, draw | float | row `span.odds > span` [2nd], header 1X2 | 4.75 | before | input | ✓ | keep for now (today `draw_initial_odds`); duplicate of D1.04 |
-| S1.18 | `s1_odds_1x2_open_away` | opening 1X2 price, away win | float | row `span.odds > span` [3rd], header 1X2 | 7.00 | before | input | ✓ | keep for now (today `away_win_initial_odds`); duplicate of D1.05 |
-| S1.19 | `s1_odds_ou_open_line` | opening goal line, Asian. A quarter line "3/3.5" is a split bet, half the stake on 3 and half on 3.5, stored as their average 3.25 (`scrapers/parsers.py:parse_line`). Lossless: a .25 or .75 line always splits into the two nearest lines | float | row `span.odds > span` [2nd], header OU | 3.25 | before | input | ✓ | rename (today `ou_line`) |
-| S1.20 | `s1_odds_ou_open_over` | opening over price, decimal, as the row shows it (the code converts nothing) | float | row `span.odds > span` [1st], header OU | 1.98 | before | input | ✓ | rename (today `over_odds`) |
-| S1.21 | `s1_odds_ou_open_under` | opening under price, decimal | float | row `span.odds > span` [3rd], header OU | 1.88 | before | input | ✓ | rename (today `under_odds`) |
-| S1.22 | `s1_odds_ah_open_line` | opening Asian handicap line. A quarter line "1/1.5" is stored as 1.25, the same way as S1.19. nowgoal's sign: positive = the home team gives the handicap (verified 10/10 against the 1X2 favourite); a bookmaker writes the same bet as Chelsea −1.25 | float | row `span.odds > span` [2nd], header AH | 1.25 | before | input | ✓ | rename (today `ah_line`) |
-| S1.23 | `s1_odds_ah_open_home` | opening AH price, home, decimal | float | row `span.odds > span` [1st], header AH | 1.83 | before | input | ✓ | rename (today `ah_home_odds`) |
-| S1.24 | `s1_odds_ah_open_away` | opening AH price, away, decimal | float | row `span.odds > span` [3rd], header AH | 2.03 | before | input | ✓ | rename (today `ah_away_odds`) |
+| S1.16 | `s1_odds_1x2_open_home` | opening 1X2 price, home win, decimal | float | row `span.odds > span` [1st], odds header set to 1X2 | 1.40 | before | input | ✓ | keep for now (was `home_win_initial_odds` before 2026-10-06). **Equals D1.03 in 99.7% of EPL rows**: the user reviews duplicates later |
+| S1.17 | `s1_odds_1x2_open_draw` | opening 1X2 price, draw | float | row `span.odds > span` [2nd], header 1X2 | 4.75 | before | input | ✓ | keep for now (was `draw_initial_odds` before 2026-10-06); duplicate of D1.04 |
+| S1.18 | `s1_odds_1x2_open_away` | opening 1X2 price, away win | float | row `span.odds > span` [3rd], header 1X2 | 7.00 | before | input | ✓ | keep for now (was `away_win_initial_odds` before 2026-10-06); duplicate of D1.05 |
+| S1.19 | `s1_odds_ou_open_line` | opening goal line, Asian. A quarter line "3/3.5" is a split bet, half the stake on 3 and half on 3.5, stored as their average 3.25 (`scrapers/parsers.py:parse_line`). Lossless: a .25 or .75 line always splits into the two nearest lines | float | row `span.odds > span` [2nd], header OU | 3.25 | before | input | ✓ | renamed 2026-10-06 (was `ou_line`) |
+| S1.20 | `s1_odds_ou_open_over` | opening over price, decimal, as the row shows it (the code converts nothing) | float | row `span.odds > span` [1st], header OU | 1.98 | before | input | ✓ | renamed 2026-10-06 (was `over_odds`) |
+| S1.21 | `s1_odds_ou_open_under` | opening under price, decimal | float | row `span.odds > span` [3rd], header OU | 1.88 | before | input | ✓ | renamed 2026-10-06 (was `under_odds`) |
+| S1.22 | `s1_odds_ah_open_line` | opening Asian handicap line. A quarter line "1/1.5" is stored as 1.25, the same way as S1.19. nowgoal's sign: positive = the home team gives the handicap (verified 10/10 against the 1X2 favourite); a bookmaker writes the same bet as Chelsea −1.25 | float | row `span.odds > span` [2nd], header AH | 1.25 | before | input | ✓ | renamed 2026-10-06 (was `ah_line`) |
+| S1.23 | `s1_odds_ah_open_home` | opening AH price, home, decimal | float | row `span.odds > span` [1st], header AH | 1.83 | before | input | ✓ | renamed 2026-10-06 (was `ah_home_odds`) |
+| S1.24 | `s1_odds_ah_open_away` | opening AH price, away, decimal | float | row `span.odds > span` [3rd], header AH | 2.03 | before | input | ✓ | renamed 2026-10-06 (was `ah_away_odds`) |
 
 **Checked by the user on 2026-10-06 (sitting 1):** S1.12–18, S1.20–21, S1.23–24, all values as stored. The over price shows 1.98 on the row, so the old note "the page shows Hong Kong odds" was wrong. S1.19 and S1.22 were ticked after the quarter-line meaning was explained (same day).
 
