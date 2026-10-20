@@ -23,7 +23,7 @@ A team's O/E is the count of its events divided by the count that the yardstick 
 | C1 | After the prices, there is no sign that a team comes back more or less often than its league | Q 1117.2, p = 0.999, sd 0: the shrunk O/E of each team is the value of its league. At home p = 0.975, away p = 0.858. At 80%, the test finds an sd of 26.24% of the pooled O/E 1.2427. The raw team O/E reach 7.7358; luck alone reaches 8.5964 | 1,337 teams | no repeat: r = −0.0731, p = 0.0292, one of 12 repeat tests | exploratory |
 | C2 | After the prices, there is no sign that a team loses a lead more or less often than its league | Q 1261.6, p = 0.514, sd 0. At home p = 0.947, away p = 0.417. At 80%: 26.14% of 1.2427. The raw team O/E reach 8.2612; luck alone reaches 8.0251 | 1,337 teams | no repeat: r = 0.0491, p = 0.143 | exploratory |
 | C3 | After the prices, the two links show no clear difference between teams. The raw differences of `RATES.md` (C3) are in the prices | behind at half-time: p = 0.225, sd 0.0350. Ahead: p = 0.221, sd 0.0353. Behind, then wins: p = 0.982, sd 0. Ahead, then loses: p = 0.576, sd 0 | 1,337 teams | behind −0.0126, ahead −0.0034; behind, then wins −0.0696 (p 0.038); ahead, then loses 0.0607 (p 0.0701) | exploratory |
-| C4 | The yardstick fits the goals that each team scores and concedes | scored: Q 1338.9, p = 0.0702, sd 0.0271 (2.74% of 0.9888); at 80%, 3.63%. Conceded: Q 1279.8, p = 0.372, sd 0.0125 | 1,337 teams | no repeat: scored 0.0036 (p 0.914), conceded 0.0186 (p 0.579) | exploratory |
+| C4 | The yardstick fits the goals that each team scores and concedes | against 200 shuffles of the team-matches in their league: scored Q 1338.9 against a shuffled mean of 1289.2 (sd 52.0), p = 0.169, sd 0.0223 of the pooled 0.9888; at 80%, 3.63%. Conceded: Q 1279.8 against 1290.2 (sd 51.7), p = 0.572, sd 0. Changed on 2026-10-19: the chi-square test gave p = 0.0702 and 0.372, which are too small for a count (Method) | 1,337 teams | no repeat: scored 0.0036 (p 0.914), conceded 0.0186 (p 0.579) | exploratory |
 | C5 | The comeback excess is about the same at each strength of the team. For goals, the prices spread the strength of the teams a little too wide | comes back: O/E 1.1918 to 1.3241 in the 7 bands of the team's own win chance. Loses a lead: 1.1401 to 1.3119. Goals scored at a win chance up to 0.2: 1.0344 [1.0142, 1.0553]. Goals conceded at 0.2 to 0.3: 0.9773 [0.9657, 0.9888]; above 0.7: 1.0457 [0.9931, 1.0981] | 72,474 team-matches | not measured | exploratory |
 | C6 | The comeback counts of the teams vary less than independent matches would make them | comes back: Q 1117.2. With outcomes drawn from the test's own null: 1263.4 (sd 50.3), so 2.91 sd lower. Behind, then wins: 2.32 sd lower. Loses a lead: 0.05 sd lower | 1,337 teams | not measured | exploratory |
 
@@ -59,6 +59,17 @@ The comeback roles have no trend with strength. For goals, the weak teams score 
 | ahead, then loses | 1.2371 | 1253.7 | 0.576 | 0.0000 | 0.0000 | 0.2490 | 0.0000 | 0.0000 | 0.0000 | 0.0607 | 0.0701 |
 | goals scored | 0.9888 | 1338.9 | 0.0702 | 0.0271 | 0.0274 | 0.0363 | 0.0568 | −0.0172 | 0.0217 | 0.0036 | 0.914 |
 | goals conceded | 0.9888 | 1279.8 | 0.372 | 0.0125 | 0.0126 | 0.0361 | 0.0123 | −0.0040 | 0.0059 | 0.0186 | 0.579 |
+
+For the two goal rows, read the p and the sd of the shuffles (the next section): for a count, the chi-square p is too small here (Method). The "keep" and "shrunk − league" cells of these two rows come from the chi-square sd too, so they are too wide. Against the shuffles, the sd of goals conceded is 0: each team's shrunk value is its league's value.
+
+## The goal tests against shuffles
+
+200 times, each team-match takes the team of a random team-match of its league (`analysis/units.py:level_row`). Each team keeps its number of team-matches. The sd comes from the excess of Q over the shuffled mean.
+
+| quantity | Q | df | chi-square p | shuffled mean | shuffled sd | p | sd / pooled | at 80% / pooled |
+|---|---|---|---|---|---|---|---|---|
+| goals scored | 1338.9 | 1,264 | 0.0702 | 1289.2 | 52.0 | 0.169 | 0.0223 | 0.0363 |
+| goals conceded | 1279.8 | 1,264 | 0.372 | 1290.2 | 51.7 | 0.572 | 0 | 0.0361 |
 
 ## Q against the test's own null
 
@@ -125,6 +136,7 @@ Loses a lead:
 - **The team rows, the test, shrinkage, at 80%, the luck line and the repeat:** as in `RATES.md` of this folder (`analysis/card.py:team_rows`, `analysis/units.py:within_row`), with the O/E in place of the raw rate.
 - **Calibration by strength:** the team-matches banded by the team's own Shin win chance, cut at 0.2, 0.3, 0.4, 0.5, 0.6 and 0.7. Each O/E has a cluster bootstrap interval over the league-seasons (`analysis/stats.py:observed_expected`).
 - **The null check** (`analysis/units.py:null_q`): in each of 100 draws, each team-match gets an event with the chance league O/E × the yardstick's chance. Q of each draw, then the mean and the sd.
+- **The goal tests against shuffles** (`analysis/units.py:level_row`, added 2026-10-19). The dispersion of a count is measured around each team, which has about 54 team-matches. That makes it about 1/54 too low, so the chi-square Q of a count is too large: the shuffled means are 1289.2 and 1290.2, against 1,264 df. The shuffles have the same bias, so their p is correct. For a 0/1 outcome, the null check above shows means near the df, so the chi-square p stays.
 
 ## Caveats
 
@@ -134,4 +146,4 @@ Loses a lead:
 - **The negative repeats are one fact, three times.** Comes back, comes back at home, and behind, then wins all have r from −0.0696 to −0.0755, with p from 0.0242 to 0.038. They count the same comebacks. With 12 repeat tests, none of these p is small.
 - **The goals and strength (C5).** The pattern is small, a few percent, and it agrees with `../ALL/PRICES.md` (C4: large handicaps are too large) and with `../ALL/ODDS_YARDSTICK.md` (Caveats: the prices spread the expected goals a little too wide). The goal O/E of the teams do not repeat (C4), so the pattern does not make a team trait.
 - **Not profit.** A team with a high comeback O/E does not show value. The value needs the HT/FT prices, and nowgoal does not show them.
-- **Looks:** 12 tests, 12 repeat tests and 12 values at 80%; 42 calibration cells; 8 null checks; 2 luck lines and 2 lists of 10 teams. No team was tested on its own.
+- **Looks:** 12 tests, 12 repeat tests and 12 values at 80%; 42 calibration cells; 8 null checks; 2 shuffle tests of the goals (they replace the chi-square p of the same 2 tests); 2 luck lines and 2 lists of 10 teams. No team was tested on its own.

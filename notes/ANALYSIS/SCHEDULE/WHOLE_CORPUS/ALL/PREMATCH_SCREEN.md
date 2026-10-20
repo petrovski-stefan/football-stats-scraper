@@ -68,7 +68,7 @@ Sorted by the comeback p. Link 1 is "the team is behind at half-time" on all row
 | fit on → scored on | model | log loss | AUC | top 100 | top 250 | top 500 | top 1,000 |
 |---|---|---|---|---|---|---|---|
 | 2024 → 2025 (813 comebacks) | chance | 0.1221 | 0.5000 | 2.6 | 6.6 | 13.2 | 26.4 |
-| | yardstick | 0.1209 | 0.6019 | 7 | 12 | 20 | 45 |
+| | yardstick | 0.1209 | 0.6018 | 7 | 12 | 20 | 45 |
 | | baseline | 0.1203 | 0.6020 | 6 | 11 | 18 | 42 |
 | | baseline + all fields | 0.1206 | 0.5963 | 6 | 10 | 23 | 46 |
 | 2025 → 2024 (785 comebacks) | chance | 0.1227 | 0.5000 | 2.7 | 6.6 | 13.3 | 26.6 |
@@ -93,7 +93,7 @@ Sorted by the comeback p. Link 1 is "the team is behind at half-time" on all row
   - calendar: `cal_midweek` a kickoff from Tuesday to Thursday, Berlin time; `cal_last_ko` the last kickoff of a round with more than one kickoff time;
   - round so far: `rnd_cb_share` S3.15 over S3.14 (empty before a round-mate finished); `rnd_goal_excess` S3.19 − S3.20;
   - last season (2025 cohort only): `prev_T_cb_rate` T's comeback rate in the 2024 cohort, shrunk with 40 pseudo-matches at that cohort's rate; `prev_O_blown` O's lost leads over its leads in 2024, shrunk as above; `prev_league_oe` the league's comebacks against the yardstick in 2024.
-- **Out of sample.** Fit on one cohort, score the other, in both directions. The joint model is the baseline plus every field except last season's (one cohort only) and `tb_gd_diff` (the sum of the four half fields, so the fit has no unique solution), unpenalised. An empty value takes the training median; each field is scaled with the training rows. The scores: the mean log loss, the AUC (as the Mann–Whitney statistic), and the comebacks among the 100, 250, 500 and 1,000 rows with the highest chance (`notes/ANALYSIS/CLAUDE.md` §6, the candidate protocol).
+- **Out of sample.** Fit on one cohort, score the other, in both directions. The joint model is the baseline plus every field except last season's (one cohort only) and `tb_gd_diff` (the sum of the four half fields, so the fit has no unique solution), unpenalised. An empty value takes the training median; each field is scaled with the training rows. In each split, the yardstick's chances (in the baseline and in the yardstick row) use the first-half share of the training cohort only: 0.4482 (2024) and 0.4460 (2025). So no goal of the test cohort reaches the baseline or a field. The screen of each field alone fits on all rows, so it keeps the share of all matches (0.4471, `ALL/ODDS_YARDSTICK.md` C9). The scores: the mean log loss, the AUC (as the Mann–Whitney statistic), and the comebacks among the 100, 250, 500 and 1,000 rows with the highest chance (`notes/ANALYSIS/CLAUDE.md` §6, the candidate protocol).
 - **Changed from the old run** (`b1_screen.py` and `b2_oos.py`, 2026-10-09): Shin win chances in place of proportional ones; the yardstick of `analysis/methods/yardstick.py`; `ss_progress` from S3.11; `cal_midweek` from the kickoff in Berlin time (the stage-2 weekday field was dropped on 2026-10-11); intervals clustered by league-season in place of a likelihood-ratio test; the new family "round so far". The boosted trees of `b2_oos.py` are machine learning, so they are not here (`analysis/CLAUDE.md` §1).
 - **Season cohorts:** 2024 holds the seasons 2024 and 2024-2025. 2025 holds 2025 and 2025-2026.
 

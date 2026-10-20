@@ -454,10 +454,23 @@ def score_table(y: np.ndarray, scores: dict[str, np.ndarray]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def split_rows(
+    matches: pd.DataFrame, grid: yardstick.Grid, train_cohort: int
+) -> tuple[pd.DataFrame, float]:
+    """The eligible team rows of one out-of-sample split, and the first-half share that the
+    yardstick's chances use: the training cohort's only, so no goal of the test cohort reaches
+    the baseline or a field."""
+    train = matches[matches["season_cohort"] == train_cohort]
+    share = yardstick.first_half_share(yardstick.priced(train))
+    rows = eligible(screen_rows(matches, yardstick.frame(matches, grid, share=share)))
+    return rows, share
+
+
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
-    model = yardstick.frame(matches, yardstick.build_grid())
+    grid = yardstick.build_grid()
+    model = yardstick.frame(matches, grid)
     rows = screen_rows(matches, model)
     used = eligible(rows)
     print(
@@ -467,7 +480,10 @@ def main() -> None:
     report.show("Each field alone, beyond the odds", screen(used))
     cohorts = sorted(used["season_cohort"].unique())
     for first, second in ((cohorts[0], cohorts[1]), (cohorts[1], cohorts[0])):
-        train, test = used[used["season_cohort"] == first], used[used["season_cohort"] == second]
+        split, share = split_rows(matches, grid, first)
+        train = split[split["season_cohort"] == first]
+        test = split[split["season_cohort"] == second]
+        print(f"\nthe yardstick's first-half share, from the {first} cohort: {share:.4f}")
         y = test["comes_back"].to_numpy(dtype=float)
         title = (
             f"Fit on {first} ({len(train):,} rows, {int(train['comes_back'].sum())} comebacks), "

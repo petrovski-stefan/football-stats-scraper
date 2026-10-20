@@ -6,8 +6,10 @@ prices, which carry the strength of both teams (`notes/ANALYSIS/CLAUDE.md` §5, 
 the calibration of the yardstick by the team's own win chance: a repeat can come from a
 yardstick that is wrong by strength (rule 8). Then, for each quantity of the team card as
 observed against expected (O/E), one test of the teams around their league, the shrunk
-values, the spread that the test can find, and the repeat test. Then the luck line and the
-teams most above their league. No team is tested on its own.
+values, the spread that the test can find, and the repeat test. The two goal tests also run
+against shuffles of the team-matches inside their league (`units.level_row`): for a count, the
+dispersion measured around each team makes the chi-square p too small. Then the luck line and
+the teams most above their league. No team is tested on its own.
 
 Run: `uv run python -m analysis.schedule.whole_corpus.per_team.odds_yardstick`
 """
@@ -36,6 +38,7 @@ QUANTITIES = (
     ("goals_against", "m_goals_against", "goals conceded", "count"),
 )
 RANKED = ("comes back", "loses a lead")
+GOALS = ("goals scored", "goals conceded")  # the counts, tested against shuffles too
 # The role quantities whose Q is also checked against the test's own null.
 ROLES = (
     "comes back",
@@ -78,6 +81,18 @@ def calibration(rows: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(table)
 
 
+def shuffle_table(rows: pd.DataFrame) -> pd.DataFrame:
+    """The goal tests of the teams around their league against shuffles of the team-matches
+    inside their league (`units.level_row`)."""
+    return pd.DataFrame(
+        [
+            units.level_row(rows, LEAGUE, UNIT, quantity)
+            for quantity in QUANTITIES
+            if quantity[2] in GOALS
+        ]
+    )
+
+
 def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataFrame:
     """For each role quantity: its real Q, and Q when the outcomes come from the test's own
     null (`units.null_q`), in sds of the null draws."""
@@ -116,6 +131,10 @@ def main() -> None:
         summary.append(row)
     report.show("One test of the teams around their league, for each O/E", pd.DataFrame(summary))
     report.show("Q against the test's own null (100 draws)", null_table(rows, results))
+    report.show(
+        f"The goal tests against {units.NULL_DRAWS} shuffles of the team-matches in their league",
+        shuffle_table(rows),
+    )
     report.show(
         "The luck line of the two roles",
         pd.DataFrame([units.within_luck_row(label, results[label]) for label in RANKED]),

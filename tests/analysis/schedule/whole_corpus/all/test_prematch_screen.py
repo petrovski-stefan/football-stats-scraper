@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 from scipy import stats as sps
 
-from analysis.methods import shin
+from analysis.methods import shin, yardstick
 from analysis.schedule.whole_corpus.all import prematch_screen as runner
 
 
@@ -289,3 +289,23 @@ def test_score_table_gives_chance_hits_for_a_flat_score(monkeypatch: pytest.Monk
         y, {"flat": np.full(4, 0.5), "sharp": np.array([0.1, 0.2, 0.8, 0.9])}
     )
     assert table["top 2"].tolist() == [1.0, 2]
+
+
+def test_split_rows_take_the_share_of_the_training_cohort(
+    monkeypatch: pytest.MonkeyPatch, toy_priced_matches: pd.DataFrame
+) -> None:
+    seen: dict[str, float | None] = {}
+
+    def frame(matches: pd.DataFrame, grid: object, share: float | None = None) -> pd.DataFrame:
+        seen["share"] = share
+        return matches
+
+    monkeypatch.setattr(yardstick, "frame", frame)
+    monkeypatch.setattr(runner, "screen_rows", lambda matches, model: model)
+    monkeypatch.setattr(runner, "eligible", lambda rows: rows)
+    rows, share = runner.split_rows(toy_priced_matches, None, 2024)  # type: ignore[arg-type]
+    train = toy_priced_matches[toy_priced_matches["season_cohort"] == 2024]
+    expected = yardstick.first_half_share(yardstick.priced(train))
+    assert share == pytest.approx(expected)
+    assert seen["share"] == pytest.approx(expected)
+    assert len(rows) == len(toy_priced_matches)

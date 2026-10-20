@@ -28,3 +28,9 @@ def test_calibration_has_the_calibrated_quantities_by_win_chance(team_rows: pd.D
     table = runner.calibration(team_rows)
     assert set(table["quantity"]) == set(runner.CALIBRATED)
     assert table.groupby("win chance")["n"].first().sum() == len(team_rows)
+
+
+def test_shuffle_table_tests_the_two_goal_counts(team_rows: pd.DataFrame) -> None:
+    table = runner.shuffle_table(team_rows)
+    assert table["quantity"].tolist() == list(runner.GOALS)
+    assert {"Q", "df", "p", "shuffled mean", "tau/pooled"} <= set(table.columns)

@@ -99,6 +99,7 @@ Loses a lead:
 
 ## Caveats
 
+- **The goal tests use the chi-square p.** For a count, that p is a little too small, and the sd a little too large, because the dispersion is measured around each team (`ODDS_YARDSTICK.md` of this folder, the goal tests against shuffles). With Q of 6454.4 and 4670.8 on 1,264 df, C4 does not change.
 - **Few events.** A team has a median of 1 comeback and 1 lost lead in all its seasons. So the test finds only large differences between teams: at 80%, an sd of about a quarter of the rate (C1, C2).
 - **The raw rates follow team strength.** Under the goal model, the stronger team is behind less often, and wins more often when it is behind (`notes/REFERENCE/MARKET_COMEBACKS.md`, "Favourite and underdog"). So C3 is strength, and strength repeats. The two links move the comeback rate in opposite directions. That can explain why C1 finds no difference while C3 does.
 - **No trait.** A difference or a repeat in raw rates does not show a comeback trait of a team. Strength makes both (`notes/ANALYSIS/CLAUDE.md` §5, rule 8). `PER_TEAM/ODDS_YARDSTICK.md` takes strength out with the odds.
