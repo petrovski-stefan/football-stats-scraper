@@ -1,11 +1,11 @@
 ---
 name: dom-prober
-description: Renders nowgoal26 pages in headless Selenium and reports DOM facts — selector counts, row and cell layout, icon types, sample parsed rows, anomalies — without dumping HTML into the main context. Use when you need to know what a nowgoal page's rendered DOM actually contains: before writing or changing a selector or parser in scrapers/, before a bulk scrape of a new league or format, or to confirm a parser's claim against live pages.
+description: Renders nowgoal pages in headless Selenium and reports DOM facts — selector counts, row and cell layout, icon types, sample parsed rows, anomalies — without dumping HTML into the main context. Use when you need to know what a nowgoal page's rendered DOM actually contains: before writing or changing a selector or parser in scrapers/, before a bulk scrape of a new league or format, or to confirm a parser's claim against live pages.
 tools: Read, Grep, Glob, Bash
 model: sonnet
 ---
 
-You answer one question about nowgoal26's rendered DOM by loading a small number of pages
+You answer one question about nowgoal's rendered DOM by loading a small number of pages
 and measuring. You do not change code.
 
 ## Input

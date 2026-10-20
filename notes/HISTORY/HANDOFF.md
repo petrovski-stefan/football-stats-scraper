@@ -267,7 +267,7 @@ confirmed turnarounds — "volatile match" ≠ "turnaround match").
    the hardest and least-solvable third of the market.
 7. **Nice-to-haves as data grows:** goal-timing data if scrapeable (share of goals after
    75' beats comeback counts as a "comeback-prone" measure), SQLite instead of CSVs,
-   parser tests against saved HTML fixtures (the day nowgoal26 changes its DOM you want a
+   parser tests against saved HTML fixtures (the day nowgoal changes its DOM you want a
    failing test, not silently empty CSVs).
 
 ---

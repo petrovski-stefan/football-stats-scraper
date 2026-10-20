@@ -36,7 +36,7 @@ The user expects most of the leagues in sections 1 and 2 to be removed after scr
 
 | League | 2026-2027 | 2025-2026 | 2024-2025 |
 |---|---|---|---|
-| Turkey Super Lig (TUR D1) | [link](https://football.nowgoal26.com/league/2026-2027/30) | [link](https://football.nowgoal26.com/league/2025-2026/30) | [link](https://football.nowgoal26.com/league/2024-2025/30) |
+| Turkey Super Lig (TUR D1) | [link](https://football.nowgoal50.com/league/2026-2027/30) | [link](https://football.nowgoal50.com/league/2025-2026/30) | [link](https://football.nowgoal50.com/league/2024-2025/30) |
 
 ### China — Super League, Jia League, Yi League
 
@@ -48,9 +48,9 @@ The user expects most of the leagues in sections 1 and 2 to be removed after scr
 
 | League | 2026 | 2025 | 2024 |
 |---|---|---|---|
-| Chinese Super League (CHA CSL) | [link](https://football.nowgoal26.com/league/2026/60) | [link](https://football.nowgoal26.com/league/2025/60) | [link](https://football.nowgoal26.com/league/2024/60) |
-| Chinese FA Jia League (CHA D1) | [link](https://football.nowgoal26.com/league/2026/61) | [link](https://football.nowgoal26.com/league/2025/61) | [link](https://football.nowgoal26.com/league/2024/61) |
-| Chinese FA Yi League (CHA D2) | [link](https://football.nowgoal26.com/league/2026/686) | [link](https://football.nowgoal26.com/league/2025/686) | [link](https://football.nowgoal26.com/league/2024/686) |
+| Chinese Super League (CHA CSL) | [link](https://football.nowgoal50.com/league/2026/60) | [link](https://football.nowgoal50.com/league/2025/60) | [link](https://football.nowgoal50.com/league/2024/60) |
+| Chinese FA Jia League (CHA D1) | [link](https://football.nowgoal50.com/league/2026/61) | [link](https://football.nowgoal50.com/league/2025/61) | [link](https://football.nowgoal50.com/league/2024/61) |
+| Chinese FA Yi League (CHA D2) | [link](https://football.nowgoal50.com/league/2026/686) | [link](https://football.nowgoal50.com/league/2025/686) | [link](https://football.nowgoal50.com/league/2024/686) |
 
 ---
 
@@ -70,10 +70,10 @@ No known incident falls inside the data window. The user decided to examine **ev
 
 | League | newest | middle | oldest |
 |---|---|---|---|
-| NSW Premier League (AUS NSW) | [2026](https://football.nowgoal26.com/league/2026/616) | [2025](https://football.nowgoal26.com/league/2025/616) | [2024](https://football.nowgoal26.com/league/2024/616) |
-| VIC Premier League (AUS VPL) | [2026](https://football.nowgoal26.com/league/2026/436) | [2025](https://football.nowgoal26.com/league/2025/436) | [2024](https://football.nowgoal26.com/league/2024/436) |
-| Victorian State League Division 1 (Aus VD1) | [2026](https://football.nowgoal26.com/league/2026/1073) | [2025](https://football.nowgoal26.com/league/2025/1073) | [2024](https://football.nowgoal26.com/league/2024/1073) |
-| National Premier Leagues Western Australia (WAUS D1) | [2026](https://football.nowgoal26.com/league/2026/481) | [2025](https://football.nowgoal26.com/league/2025/481) | [2024](https://football.nowgoal26.com/league/2024/481) |
+| NSW Premier League (AUS NSW) | [2026](https://football.nowgoal50.com/league/2026/616) | [2025](https://football.nowgoal50.com/league/2025/616) | [2024](https://football.nowgoal50.com/league/2024/616) |
+| VIC Premier League (AUS VPL) | [2026](https://football.nowgoal50.com/league/2026/436) | [2025](https://football.nowgoal50.com/league/2025/436) | [2024](https://football.nowgoal50.com/league/2024/436) |
+| Victorian State League Division 1 (Aus VD1) | [2026](https://football.nowgoal50.com/league/2026/1073) | [2025](https://football.nowgoal50.com/league/2025/1073) | [2024](https://football.nowgoal50.com/league/2024/1073) |
+| National Premier Leagues Western Australia (WAUS D1) | [2026](https://football.nowgoal50.com/league/2026/481) | [2025](https://football.nowgoal50.com/league/2025/481) | [2024](https://football.nowgoal50.com/league/2024/481) |
 
 ---
 

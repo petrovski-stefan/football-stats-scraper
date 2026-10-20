@@ -69,22 +69,37 @@ def get_driver() -> webdriver.Chrome:
     return driver
 
 
+def robots_refusal(url: str) -> str | None:
+    """Why `ROBOTS_DISALLOW` refuses `url`: its host has no recorded rules, or a rule of that
+    host disallows its path. None when the URL is allowed."""
+    parts = urlparse(url)
+    rules = ROBOTS_DISALLOW.get(parts.netloc)
+    if rules is None:
+        return f"no robots.txt rules recorded for {parts.netloc!r}"
+    blocked = next((rule for rule in rules if parts.path.startswith(rule)), None)
+    if blocked is not None:
+        return f"robots.txt disallows {blocked!r} on {parts.netloc}"
+    return None
+
+
 def open_page(driver: webdriver.Chrome, url: str) -> None:
     """Navigate to `url`. The only place the scrapers call `driver.get`.
 
     Refuses, before any request is made, a URL on a host with no recorded robots.txt rules and
-    a path that host's robots.txt disallows (`ROBOTS_DISALLOW`). Resources the page loads by
-    itself while rendering are not checked: the rule covers the pages the scraper chooses to
-    open (decided 2026-10-02).
+    a path that host's robots.txt disallows (`ROBOTS_DISALLOW`). After the load, it checks the
+    URL the browser landed on in the same way: nowgoal moves to new domains and answers the
+    old one with a redirect (scrapers/CLAUDE.md), so a page that lands on an unchecked host
+    is refused before anything parses it. Resources the page loads by itself while rendering
+    are not checked: the rule covers the pages the scraper chooses to open (decided 2026-10-02).
     """
-    parts = urlparse(url)
-    rules = ROBOTS_DISALLOW.get(parts.netloc)
-    if rules is None:
-        raise ValueError(f"Refusing {url}: no robots.txt rules recorded for {parts.netloc!r}")
-    blocked = next((rule for rule in rules if parts.path.startswith(rule)), None)
-    if blocked is not None:
-        raise ValueError(f"Refusing {url}: robots.txt disallows {blocked!r} on {parts.netloc}")
+    refusal = robots_refusal(url)
+    if refusal is not None:
+        raise ValueError(f"Refusing {url}: {refusal}")
     driver.get(url)
+    landed = driver.current_url
+    refusal = robots_refusal(landed)
+    if refusal is not None:
+        raise ValueError(f"Refusing {url}: it redirected to {landed}, and {refusal}")
 
 
 def find_element_by_css(

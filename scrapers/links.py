@@ -7,8 +7,8 @@ from pydantic import BaseModel, model_validator
 from domain.paths import LEAGUES_FILE
 from domain.schedule import season_start_year
 
-# https://football.nowgoal26.com/league/2025-2026/36 -> season "2025-2026", id 36
-# https://football.nowgoal26.com/league/2025/71      -> season "2025",      id 71
+# https://<LEAGUE_HOST>/league/2025-2026/36 -> season "2025-2026", id 36
+# https://<LEAGUE_HOST>/league/2025/71      -> season "2025",      id 71
 #
 # Two season conventions, both kept verbatim. European leagues run across two calendar
 # years and nowgoal labels them "2025-2026"; calendar-year leagues (Scandinavia, Brazil,
@@ -132,7 +132,7 @@ def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) ->
 
 
 def parse_league_url(url: str) -> tuple[str, int]:
-    """Extract (season, league_id) from a nowgoal26 league URL."""
+    """Extract (season, league_id) from a nowgoal league URL, on any host."""
     match = _LEAGUE_URL_RE.search(url)
     if match is None:
         raise ValueError(f"Cannot parse season/league id from URL: {url!r}")

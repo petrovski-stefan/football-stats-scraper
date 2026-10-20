@@ -1,4 +1,4 @@
-"""Scraper-internal constants: nowgoal26 DOM selectors, page URLs, robots.txt rules, and
+"""Scraper-internal constants: nowgoal DOM selectors, page URLs, robots.txt rules, and
 the team-name transliteration table.
 
 The CSV output schema that used to live here alongside these now sits in
@@ -8,13 +8,21 @@ nothing outside `scrapers/` has any business knowing a CSS selector.
 
 from datetime import timedelta, timezone
 
+# nowgoal often moves to a new domain or subdomain, and the old host answers 301 to the new
+# one; the paths, the ids and the page structure stay the same (scrapers/CLAUDE.md). So the
+# hosts live here only: a move changes these three lines and the URLs of config/leagues.json.
+SITE = "nowgoal50.com"  # since 2026-10-20; before: nowgoal26.com
+LEAGUE_HOST = f"football.{SITE}"  # the league pages
+MATCH_HOST = f"live.{SITE}"  # the h2h and live pages of a match; before 2026-10-20: live11.
+
 # The robots.txt `Disallow` rules of every host the scraper may open, copied from the files
-# the user read in a browser on 2026-10-02 (the reason for the rule: scrapers/CLAUDE.md). Each
-# rule is a case-sensitive path prefix, as in robots.txt. `scrapers.driver.open_page` refuses a
-# URL on any host missing here, and any path that starts with one of its host's rules.
+# the user read in a browser on 2026-10-02, and confirmed unchanged on the new hosts by the
+# user on 2026-10-20 (the reason for the rule: scrapers/CLAUDE.md). Each rule is a
+# case-sensitive path prefix, as in robots.txt. `scrapers.driver.open_page` refuses a URL on
+# any host missing here, and any path that starts with one of its host's rules.
 ROBOTS_DISALLOW: dict[str, tuple[str, ...]] = {
-    "football.nowgoal26.com": ("/Scripts/", "/en/"),
-    "live11.nowgoal26.com": (
+    LEAGUE_HOST: ("/Scripts/", "/en/"),
+    MATCH_HOST: (
         "/bin/",
         "/ajax/",
         "/Ajax/",
@@ -30,7 +38,7 @@ ROBOTS_DISALLOW: dict[str, tuple[str, ...]] = {
 }
 
 
-# --- nowgoal26 league page selectors -----------------------------------------
+# --- nowgoal league page selectors -------------------------------------------
 # Schedule section
 # Stage tabs ("League", "Group A", "Apertura"...). Absent on single-table pages. Every
 # round-bearing stage's round spans sit in the DOM at once, tagged `stage=<id>`, with the
@@ -82,9 +90,9 @@ STANDING_ROWS = "div#standingPlates ul#standingList li.standlis"
 STANDING_TITLE_ROW = "div#standingPlates ul#standingList li.title"
 
 
-# --- Detail page (live11.nowgoal26.com/match/h2h-<id>) ------------------------
+# --- Detail page (MATCH_HOST/match/h2h-<id>) ----------------------------------
 # Detail page uses the same match id as the schedule row's @matchid.
-DETAIL_URL = "https://live11.nowgoal26.com/match/h2h-{match_id}"
+DETAIL_URL = f"https://{MATCH_HOST}/match/h2h-{{match_id}}"
 # Head-to-head widget tables: v1 = home team's recent, v2 = away team's recent, v3 = H2H.
 DETAIL_HOME_RECENT_ROWS = "tr[id^='tr1_']"
 DETAIL_AWAY_RECENT_ROWS = "tr[id^='tr2_']"
@@ -109,9 +117,9 @@ HIST_HT_SCORE = "span[class^='hscore']"  # e.g. "(1-2)"
 DETAIL_ODDS_TABLE_CANDIDATES = "table.team-table-other"
 DETAIL_ODDS_1X2_CELLS = "td[data-e='1']"  # 3 per row: home / draw / away
 PREFERRED_BOOKMAKER = "Bet365"
-# --- Live page (live11.nowgoal26.com/match/live-<id>) -------------------------
+# --- Live page (MATCH_HOST/match/live-<id>) -----------------------------------
 # Goal timings live here, NOT on the h2h detail page. Same match id.
-LIVE_URL = "https://live11.nowgoal26.com/match/live-{match_id}"
+LIVE_URL = f"https://{MATCH_HOST}/match/live-{{match_id}}"
 # Events are table rows; the minute sits in a `b.score` cell as "33'", "45+3'", "90+8'".
 LIVE_EVENT_MINUTE = "b.score"
 LIVE_EVENT_ROW = "tr"

@@ -1,8 +1,10 @@
-# scrapers/ — Selenium scraping of nowgoal26
+# scrapers/ — Selenium scraping of nowgoal
 
 Only this package may write to `data/finished/1_raw/` (and, until plan steps P4–P5, the archived old stores in `data/archived/raw/`). All DOM selectors live in `scrapers/constants.py`.
 
 **Every navigation goes through `driver.open_page(driver, url)`; never call `driver.get` anywhere else.** `open_page` refuses, before any request, a URL on a host missing from `constants.ROBOTS_DISALLOW` and any path that host's robots.txt disallows. The page's own background loads (its scripts, its `/Ajax/` calls) are not checked: the rule covers the pages we choose to open. The user decided this on 2026-10-02 after a measurement: with those paths blocked as well, the h2h page never rendered and the live page showed 0 goals and 0 events. **Every driver comes from `driver.get_driver()`**, which gives it one `fake-useragent` string (Chrome, desktop) for its whole life. To open a new host, add its robots.txt rules to `ROBOTS_DISALLOW` first.
+
+**nowgoal often moves to a new domain or subdomain; the structure stays the same** (the user, 2026-10-20). The old host answers `301` to the same path on the new one, and the paths, the match and league ids and the page layout do not change. Seen so far: `live10` → `live11.nowgoal26.com` (2026-10-02), then `football.nowgoal26.com` → `football.nowgoal50.com` and `live11.nowgoal26.com` → `live.nowgoal50.com` (2026-10-20). So the hosts live in one place, `constants.SITE`, `LEAGUE_HOST` and `MATCH_HOST`. To follow a move: change those, swap the host in the URLs of `config/leagues.json`, and have the user confirm the robots.txt of the new hosts. `open_page` refuses a page that lands, after a redirect, on a host with no recorded rules, so an unfollowed move stops the scrape instead of scraping an unchecked host. Prose says "nowgoal"; only those constants, the config and links in the notes carry a domain.
 
 ## 1. Scrape flow (league schedule, first stage)
 
@@ -12,7 +14,7 @@ Only this package may write to `data/finished/1_raw/` (and, until plan steps P4�
 
 **The standings are not scraped per round any more** (the user, 2026-10-06): the page's `Round N` table counts by round number, so it can hold results played after a match. Stage 3 rebuilds the table at each kickoff (`features/schedule_multi.py`); the page's final table is only the check.
 
-## 2. DOM facts (nowgoal26)
+## 2. DOM facts (nowgoal)
 
 - Only one round renders at a time (`div.round span[round=N]`); the live round has class `current on`.
 - **Stage tabs** (`div.stage span[stage=<id>]`, e.g. League / Group A / Apertura) appear only on multi-stage or single-"League" pages. A single-table page has an empty `div.stage`, and its round spans have no `stage` attribute. The tab on screen has class `on`. Clicking another tab shows that stage's current round.
@@ -47,7 +49,7 @@ Only this package may write to `data/finished/1_raw/` (and, until plan steps P4�
 
 ## 6. Detail enrichment (second stage)
 
-`scrapers/detail.py` scrapes each finished match's detail page (`https://live11.nowgoal26.com/match/h2h-<match_id>` — same id as the schedule row) into **one wide feature row** per match.
+`scrapers/detail.py` scrapes each finished match's detail page (`https://<MATCH_HOST>/match/h2h-<match_id>`, today `live.nowgoal50.com` — same id as the schedule row) into **one wide feature row** per match.
 
 - `scrape_match_detail(driver, match_id)` is **mode-agnostic** (a future prediction mode can feed upcoming ids).
 - `enrich_finished(limit)` reads ids from `data/archived/raw/*.csv` and is **resumable** — it skips ids already in `data/archived/raw/<league>_detail.csv` and appends incrementally.
@@ -66,7 +68,7 @@ Aggregate/odds fields are validated by `domain/match_detail.py:MatchDetail`; the
 
 ## 7. Live-page events: goals, cards, substitutions (fourth stage)
 
-`scrapers/goals.py` scrapes each match's **live** page (`https://live11.nowgoal26.com/match/live-<match_id>`) — a _different_ page from the h2h detail page, same match id. One render fills two stores: `data/archived/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/archived/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
+`scrapers/goals.py` scrapes each match's **live** page (`https://<MATCH_HOST>/match/live-<match_id>`) — a _different_ page from the h2h detail page, same match id. One render fills two stores: `data/archived/raw/goals.csv` (`domain/goal.py`, one row per goal) and `data/archived/raw/events.csv` (`domain/event.py`, yellow/red cards and substitutions).
 
 ### Goals are identified by the running score, never by the icon
 

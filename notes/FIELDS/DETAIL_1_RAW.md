@@ -5,7 +5,7 @@
 **Answers: where is each value on the page?** Every field here is read from the match's h2h
 page and only parsed. The user checks each row on the page (✓).
 
-- Page: <https://live11.nowgoal26.com/match/h2h-2789361> for the reference match.
+- Page: <https://live.nowgoal50.com/match/h2h-2789361> for the reference match.
 - Files: `data/finished/1_raw/<country>_<league>_<season>_detail.csv` (one row per match) and
   `data/finished/1_raw/<country>_<league>_<season>_history.csv` (new: one row per history row, plan Q3).
 

@@ -1,4 +1,4 @@
-"""Parse goal events from a match's live page (`live11.nowgoal26.com/match/live-<id>`).
+"""Parse goal events from a match's live page (`/match/live-<id>` on `constants.MATCH_HOST`).
 
 **Goals are identified by the running score, not by the icon.** Measured on live pages
 2026-09-22: a penalty carries a different icon from an open-play goal (`7.png`,

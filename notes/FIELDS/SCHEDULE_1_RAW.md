@@ -5,7 +5,7 @@
 **Answers: where is each value on the page?** Every field here is read from the league page and
 only parsed. The user checks each row on the page (✓).
 
-- Page: the league page, <https://football.nowgoal26.com/league/2025-2026/36> for the reference
+- Page: the league page, <https://football.nowgoal50.com/league/2025-2026/36> for the reference
   match (round 24).
 - Files: `data/finished/1_raw/<country>_<league>_<season>_schedule.csv` (today
   `data/archived/raw/<league>_<season>.csv`) and `data/finished/1_raw/<country>_<league>_<season>_final_table.csv`

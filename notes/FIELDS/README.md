@@ -87,9 +87,9 @@ live aggregates) by `match_id`.
 2789361, Chelsea v West Ham, English Premier League 2025-26, round 24: 0-2 at HT, 3-2 at FT, a
 red card, quarter lines (AH 1.25, O/U 3.25).
 
-- League page: <https://football.nowgoal26.com/league/2025-2026/36> (round 24)
-- Detail page: <https://live11.nowgoal26.com/match/h2h-2789361>
-- Live page: <https://live11.nowgoal26.com/match/live-2789361>
+- League page: <https://football.nowgoal50.com/league/2025-2026/36> (round 24). nowgoal often moves to a new domain; the paths stay the same (`scrapers/CLAUDE.md`).
+- Detail page: <https://live.nowgoal50.com/match/h2h-2789361>
+- Live page: <https://live.nowgoal50.com/match/live-2789361>
 
 ## Across all pages
 

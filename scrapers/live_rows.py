@@ -1,8 +1,8 @@
 """Reading the live page's event table, shared by the goal and event parsers.
 
-Both parsers walk the same `<tr>` elements on `live11.nowgoal26.com/match/live-<id>`, so
-the row-finding, minute-parsing and side-detection live here once rather than being
-written twice and drifting apart.
+Both parsers walk the same `<tr>` elements on the live page (`/match/live-<id>` on
+`constants.MATCH_HOST`), so the row-finding, minute-parsing and side-detection live here once
+rather than being written twice and drifting apart.
 
 **The row is five cells, and the minute sits in the middle.** Measured on live pages
 2026-09-23:
