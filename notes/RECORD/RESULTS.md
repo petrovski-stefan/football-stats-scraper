@@ -124,7 +124,7 @@ Stated plainly, per PREREGISTRATION §8:
 2. **The remaining refuge for the comeback hypothesis is unchanged**: the ~30 unsurveyed
    European countries, judged by F1's preregistered bar (≥8% over ≥600 matches, persistence,
    mechanism). Nothing here speaks to that, and nothing here makes it more likely.
-3. **The over-6.5 market (F9/F13) is still the pre-match product this project actually
+3. **The 7+ market (F9/F13) is still the pre-match product this project actually
    supports** — and the pipeline still does not collect the O/U line that F13's model runs
    on. That remains the highest value-per-hour change available.
 4. **Corpus expansion is not indicated for this question.** The binding constraint is not

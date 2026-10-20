@@ -108,7 +108,7 @@ comeback.
 4. **A validated instrument now exists.** `modelling/scoreline.py` is a calibrated generative model
    of the full scoreline distribution (implied P(comeback) 4.9% vs 5.5% observed,
    P(total ≤ 2) 44.6% vs 44.3%, P(FT draw) 24.2% vs 25.9%), gated by a mass check, a
-   structural check and a leak check. It is reusable for **over 6.5** — F9/F13's live
+   structural check and a leak check. It is reusable for **7+** — F9/F13's live
    market — where the target is a direct functional of the same goal distribution rather
    than a rare reversal downstream of it. That is the natural next use.
 

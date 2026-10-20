@@ -54,7 +54,7 @@ Status: **Dead** = tested and failed · **Live-exploratory** = positive, not pre
 
 1. *(Dropped 2026-10-13 with the claims it compared.)*
 2. **Corpus expansion.** RESULTS §7.4 says it is "not indicated". PLAN_2026-07-25 and RETRY plan a multi-country scrape.
-3. **Role of over-6.5.** RESULTS §7.3 calls it the product. PLAN_2026-07-25 §0 calls it "an input feature, not a target".
+3. **Role of 7+.** RESULTS §7.3 calls it the product. PLAN_2026-07-25 §0 calls it "an input feature, not a target".
 4. *(Resolved 2026-10-11: see "Resolved conflicts", oracle and totals figures.)*
 5. *(Dropped 2026-10-13 with the claims it compared.)*
 6. **ALGOBETTING vs measurements.**

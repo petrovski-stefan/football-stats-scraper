@@ -17,7 +17,7 @@ starting at Phase 0. Companions: `notes/PREREGISTRATION.md`, `notes/RESULTS.md`,
 > research-grade result held to a professional bar. Corpus: 20–30 handpicked leagues ×
 > last 3 seasons.**
 
-Over-6.5 is an **input feature, not a target**. Open items the user has not yet settled:
+7+ is an **input feature, not a target**. Open items the user has not yet settled:
 whether the HANDOFF §7 LLM matchup-card engine is still the deliverable (§4 of the goal
 questions), and the stopping rule for the whole thesis (§5) — though the bar in Phase 2
 below supplies one for this hypothesis.

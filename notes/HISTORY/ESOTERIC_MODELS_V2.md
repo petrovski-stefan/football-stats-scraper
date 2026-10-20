@@ -19,7 +19,7 @@ it does not, the correction is stated. Numbering continues from `notes/ESOTERIC_
 ## 0. Four corrections that apply to the whole proposal
 
 1. **The judge.** The proposal judges every model by global proper scores (log loss, Brier,
-   calibration). That is right when the product is a *calibrated price*, for example over-6.5
+   calibration). That is right when the product is a *calibrated price*, for example 7+
    probabilities. It is the wrong judge when the product is a *candidate shortlist*. A rule
    hitting 20% on 35 matches (3.6× the base rate) scores AUC 0.527
    (`notes/BEHAVIOURAL_RESULTS.md` §1), so global scores cannot see it. Candidate questions use

@@ -38,11 +38,11 @@ The team that is behind at half-time (HT) wins the match at full-time (FT).
 - **Not a comeback:** HT 1-0, FT 1-1. The team that was behind must win. A draw is not enough.
 - **Why it matters:** It is the main target of the project.
 
-#### Over 6.5
+#### 7+
 
 The match has 7 or more goals in total.
 
-- **Example:** FT 4-3 is over 6.5. FT 4-2 is not.
+- **Example:** FT 4-3 is 7+. FT 4-2 is not.
 - **Why it matters:** It is the second target of the project.
 
 #### Pre-match only

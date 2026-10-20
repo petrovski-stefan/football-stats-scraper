@@ -67,7 +67,7 @@ RESCHEDULED_AFTER_DAYS = 5
 # kickoff (Claude's choice, 2026-10-13, asked by the user).
 ROUND_LOOK_BACK = timedelta(days=RESCHEDULED_AFTER_DAYS)
 
-# The over 6.5 market: a match with at least this many goals.
+# The 7+ market: a match with at least this many goals.
 SEVEN_PLUS_GOALS = 7
 
 # The opening odds (Bet365's "Initial") are published about this long before kickoff (the

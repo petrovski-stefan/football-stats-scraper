@@ -19,7 +19,7 @@ A data pipeline + LLM evaluation loop targeting one hard betting market (no real
 this is data science):
 
 > **HT/FT turnaround ("comeback"):** the team trailing at half-time wins at full-time.
-> Secondary market: 7+ total goals (over 6.5).
+> Secondary market: 7+ total goals (7 or more).
 
 The architecture is deliberately **not** a local ML model:
 
@@ -220,7 +220,7 @@ These are the ways this specific pipeline can lie to you:
    the benchmarks gets removed, however clever it feels.** This loop is a spreadsheet,
    not ML, and it is the only thing separating this project from astrology.
 6. **The real benchmark is the market's price.** 1X2 odds are collected, but comebacks
-   are priced as HT/FT (and 7+ as O/U 6.5) with brutal margins. If those odds are
+   are priced as HT/FT (and 7+ on the O/U market) with brutal margins. If those odds are
    scrapeable from the DOM (never call site APIs — see CLAUDE.md), collect them; without
    the price you can prove "model says 8%, history says 6%" but never an edge.
 

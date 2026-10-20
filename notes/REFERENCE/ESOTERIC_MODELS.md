@@ -16,7 +16,7 @@ The tools are in the order of their expected use to this project.
 
 **What it is.** The simple method to remove a bookmaker's margin is proportional normalisation: divide each `1/odds` by `Σ(1/odds)`. Shin (1993) made a model of a bookmaker who must protect the book against *insider traders*. He showed that the margin is not spread evenly. The bookmaker puts more of it on **long odds**, because informed money causes the largest losses there. His method calculates the insider fraction `z`. Then it calculates the true probabilities from the quoted odds.
 
-**Why it matters here.** This project's markets (the HT/FT comeback, over 6.5) have long odds. On long odds, proportional normalisation has its largest error. So the engine can seem to have an edge over a proportionally normalised implied probability. That "edge" can be only vig in the wrong place.
+**Why it matters here.** This project's markets (the HT/FT comeback, 7+) have long odds. On long odds, proportional normalisation has its largest error. So the engine can seem to have an edge over a proportionally normalised implied probability. That "edge" can be only vig in the wrong place.
 
 **Concrete use.** Use a Shin adjustment in place of `stats.implied_prob` and proportional normalisation. Do this everywhere that the engine's output is compared with market prices (HANDOFF §7.6). The algebra fits on one page. The solution is iterative. Use the `shin` package from PyPI, not code of our own (the user, 2026-10-14).
 

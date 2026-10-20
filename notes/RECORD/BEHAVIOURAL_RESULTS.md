@@ -73,7 +73,7 @@ H2H meetings**, counting these signals:
 | led at HT, then drew or lost | 3.6 |
 | scored only in the second half | 1.8 |
 | scored only in the first half | 2.3 |
-| over 6.5 goals | 5.1 |
+| 7+ goals | 5.1 |
 
 Weights are `-log2(per-game rate)` — rarer signals count for more — applied to raw counts.
 A match's score is `max(home profile, away profile)`.

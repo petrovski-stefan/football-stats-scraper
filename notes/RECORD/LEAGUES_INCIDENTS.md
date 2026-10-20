@@ -17,7 +17,7 @@
    - odds coverage;
    - postponement rate (the out-of-round flag, from round and date);
    - unusual odds movement between the opening and the pre-kickoff 1X2 prices.
-3. The decision **never** uses comeback or over-6.5 rates. A league dropped because its outcomes look strange is chosen by its results, and that makes the whole analysis unfair.
+3. The decision **never** uses comeback or 7+ rates. A league dropped because its outcomes look strange is chosen by its results, and that makes the whole analysis unfair.
 4. Record every removal together with the check that triggered it.
 
 The user expects most of the leagues in sections 1 and 2 to be removed after scraping.
