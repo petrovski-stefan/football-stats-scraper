@@ -34,7 +34,7 @@ Do the pre-match fields hold information about a team's comeback beyond the odds
 | step | what | size |
 |---|---|---|
 | 1–4 | (done 2026-10-19; `notes/LOG/MIGRATIONS.md`) | — |
-| 5 | after the detail scrape (IDEAS idea 2a): again, with the detail fields. A model A from the closing odds needs the closing O/U market too: candidate C5, decided later (the user) | 0.5 day |
+| 5 | after the detail scrape (IDEAS idea 2a): again, with the detail fields. A model A from the closing odds needs the closing O/U market too: candidate C5, added by the user on 2026-10-21 (Bet365 AH and O/U Live) | 0.5 day |
 | 6 | after the live scrape (IDEAS idea 2b): again, with the live fields | 0.5 day |
 | 7 | only if B gains: idea 24 on the fields that carry the gain | 10–12 days |
 
