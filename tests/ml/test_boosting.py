@@ -26,7 +26,7 @@ def signal() -> pd.DataFrame:
 def test_group_folds_put_each_group_in_one_test_fold() -> None:
     groups = pd.Series(["a", "a", "b", "c", "c", "d", "e"])
 
-    folds = boosting.group_folds(groups, k=2)
+    folds = boosting.group_folds(groups, fold_count=2)
 
     assert len(folds) == 2
     tested = np.concatenate([test for _, test in folds])

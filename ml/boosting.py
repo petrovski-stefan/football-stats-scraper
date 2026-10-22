@@ -46,13 +46,15 @@ class Tuned:
     table: pd.DataFrame
 
 
-def group_folds(groups: "pd.Series[Any]", k: int = FOLDS) -> list[tuple[np.ndarray, np.ndarray]]:
-    """k folds of whole groups (league-seasons). The groups go to the folds in turn, in the
-    order of their names, so each group is in the test part of exactly one fold."""
+def group_folds(
+    groups: "pd.Series[Any]", fold_count: int = FOLDS
+) -> list[tuple[np.ndarray, np.ndarray]]:
+    """`fold_count` folds of whole groups (league-seasons). The groups go to the folds in turn,
+    in the order of their names, so each group is in the test part of exactly one fold."""
     codes, names = pd.factorize(groups, sort=True)
-    fold = (np.arange(len(names)) % k)[codes]
+    fold = (np.arange(len(names)) % fold_count)[codes]
     positions = np.arange(len(groups))
-    return [(positions[fold != i], positions[fold == i]) for i in range(k)]
+    return [(positions[fold != i], positions[fold == i]) for i in range(fold_count)]
 
 
 def dataset(rows: pd.DataFrame, fields: list[str], target: str) -> lgb.Dataset:

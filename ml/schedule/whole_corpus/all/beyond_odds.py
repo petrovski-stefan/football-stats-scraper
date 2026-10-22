@@ -84,11 +84,11 @@ def run_split(
     """Tune, fit and score both models on one split, and print its tables."""
     train = side_rows[side_rows["season_cohort"] == train_cohort]
     test = side_rows[side_rows["season_cohort"] == test_cohort]
-    y = test[rows.TARGET].to_numpy(dtype=float)
+    comes_back = test[rows.TARGET].to_numpy(dtype=float)
     title = f"fit on {train_cohort}, scored on {test_cohort}"
     print(
         f"\n#### {title}: {len(train):,} training rows ({train[rows.TARGET].sum():.0f} "
-        f"comebacks), {len(test):,} test rows ({y.sum():.0f})"
+        f"comebacks), {len(test):,} test rows ({comes_back.sum():.0f})"
     )
 
     chances = {"yardstick": yardstick_chance(train, test)}
@@ -105,15 +105,17 @@ def run_split(
     base_rate = np.full(len(test), train[rows.TARGET].mean())
     report.show(
         f"{title}: log loss",
-        score.loss_table(y, {"base rate": base_rate, **chances}, test["cluster"], "A"),
+        score.loss_table(comes_back, {"base rate": base_rate, **chances}, test["cluster"], "A"),
     )
     report.show(
         f"{title}: comebacks in the top N",
-        score.top_n_table(y, chances, test["cluster"], TOP_N, "A"),
+        score.top_n_table(comes_back, chances, test["cluster"], TOP_N, "A"),
     )
 
     for name in ("A", "B"):
-        report.show(f"{title}: calibration of {name}", score.calibration_table(y, chances[name]))
+        report.show(
+            f"{title}: calibration of {name}", score.calibration_table(comes_back, chances[name])
+        )
 
     model_fields = models(fields_b)
     for name in ("B", NO_LEAGUE):

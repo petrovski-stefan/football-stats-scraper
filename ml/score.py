@@ -12,10 +12,10 @@ DRAWS = 2000
 EPSILON = 1e-12
 
 
-def top_mask(score: np.ndarray, n: int) -> np.ndarray:
-    """The n rows with the highest score. Equal scores keep the order of the rows."""
+def top_mask(score: np.ndarray, top_n: int) -> np.ndarray:
+    """The `top_n` rows with the highest score. Equal scores keep the order of the rows."""
     mask = np.zeros(len(score), dtype=bool)
-    mask[np.argsort(-score, kind="stable")[:n]] = True
+    mask[np.argsort(-score, kind="stable")[:top_n]] = True
     return mask
 
 
@@ -39,7 +39,7 @@ def interval(values: np.ndarray) -> tuple[float, float]:
 
 
 def top_n_table(
-    y: np.ndarray,
+    outcomes: np.ndarray,
     scores: dict[str, np.ndarray],
     clusters: "pd.Series[Any]",
     ns: tuple[int, ...],
@@ -51,43 +51,43 @@ def top_n_table(
     resample keeps the rows that the full set put in the top N."""
     names = list(scores)
     table = []
-    for n in ns:
-        masks = [top_mask(scores[name], n) for name in names]
-        columns = [column for mask in masks for column in (y * mask, mask.astype(float))]
+    for top_n in ns:
+        masks = [top_mask(scores[name], top_n) for name in names]
+        columns = [column for mask in masks for column in (outcomes * mask, mask.astype(float))]
         sums = resampled_sums(np.column_stack(columns), clusters, draws)
         with np.errstate(divide="ignore", invalid="ignore"):
             shares = sums[:, 0::2] / sums[:, 1::2]
 
         at = names.index(reference)
         for i, name in enumerate(names):
-            hits = float((y * masks[i]).sum())
-            difference = hits / n - float((y * masks[at]).sum()) / n
+            hits = float((outcomes * masks[i]).sum())
+            difference = hits / top_n - float((outcomes * masks[at]).sum()) / top_n
             table.append(
                 {
-                    "N": n,
+                    "N": top_n,
                     "ranking": name,
                     "comebacks": hits,
-                    "share": hits / n,
+                    "share": hits / top_n,
                     "low": interval(shares[:, i])[0],
                     "high": interval(shares[:, i])[1],
                     f"- {reference}": difference,
                     "diff low": interval(shares[:, i] - shares[:, at])[0],
                     "diff high": interval(shares[:, i] - shares[:, at])[1],
-                    "chance": n * float(np.mean(y)),
+                    "chance": top_n * float(np.mean(outcomes)),
                 }
             )
 
     return pd.DataFrame(table)
 
 
-def log_loss_rows(y: np.ndarray, p: np.ndarray) -> np.ndarray:
+def log_loss_rows(outcomes: np.ndarray, chances: np.ndarray) -> np.ndarray:
     """The log loss of each row's chance, with the chance kept inside (1e-12, 1 - 1e-12)."""
-    clipped = np.clip(p, EPSILON, 1.0 - EPSILON)
-    return np.asarray(-(y * np.log(clipped) + (1.0 - y) * np.log(1.0 - clipped)))
+    clipped = np.clip(chances, EPSILON, 1.0 - EPSILON)
+    return np.asarray(-(outcomes * np.log(clipped) + (1.0 - outcomes) * np.log(1.0 - clipped)))
 
 
 def loss_table(
-    y: np.ndarray,
+    outcomes: np.ndarray,
     chances: dict[str, np.ndarray],
     clusters: "pd.Series[Any]",
     reference: str,
@@ -96,8 +96,8 @@ def loss_table(
     """For each model: its mean log loss, its observed over expected count (O/E), and its
     log loss minus that of the `reference` model, with the interval of the difference."""
     names = list(chances)
-    losses = np.column_stack([log_loss_rows(y, chances[name]) for name in names])
-    sums = resampled_sums(np.column_stack([losses, np.ones(len(y))]), clusters, draws)
+    losses = np.column_stack([log_loss_rows(outcomes, chances[name]) for name in names])
+    sums = resampled_sums(np.column_stack([losses, np.ones(len(outcomes))]), clusters, draws)
     means = sums[:, :-1] / sums[:, -1:]
 
     at = names.index(reference)
@@ -108,7 +108,7 @@ def loss_table(
             {
                 "model": name,
                 "log loss": float(losses[:, i].mean()),
-                "O/E": float(y.sum() / chances[name].sum()),
+                "O/E": float(outcomes.sum() / chances[name].sum()),
                 f"- {reference}": float(losses[:, i].mean() - losses[:, at].mean()),
                 "low": low,
                 "high": high,
@@ -118,11 +118,11 @@ def loss_table(
     return pd.DataFrame(table)
 
 
-def calibration_table(y: np.ndarray, p: np.ndarray, bins: int = 10) -> pd.DataFrame:
+def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10) -> pd.DataFrame:
     """The rows in `bins` groups of equal size by their chance: the mean chance, the observed
     rate and their ratio (O/E) in each."""
-    group = pd.qcut(pd.Series(p).rank(method="first"), bins, labels=False)
-    frame = pd.DataFrame({"group": group, "y": y, "p": p})
+    group = pd.qcut(pd.Series(chances).rank(method="first"), bins, labels=False)
+    frame = pd.DataFrame({"group": group, "y": outcomes, "p": chances})
     table = frame.groupby("group").agg(rows=("y", "size"), chance=("p", "mean"), rate=("y", "mean"))
 
     table["O/E"] = table["rate"] / table["chance"]
