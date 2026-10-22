@@ -65,6 +65,7 @@ def causes(matches: pd.DataFrame) -> "pd.Series[str]":
     """
     level, final = half_time(matches)
     last = matches.groupby(STAGE_KEYS)["s1_round"].transform("max")
+
     conditions = [
         matches["no_odds"] & three_nil(matches) & (level | final),
         matches["s2_has_odds"].astype(bool),
@@ -73,6 +74,7 @@ def causes(matches: pd.DataFrame) -> "pd.Series[str]":
         last - matches["s1_round"] <= EDGE_ROUNDS,
     ]
     choices = ["awarded pattern", "1X2 only", "rescheduled", "stage start", "stage end"]
+
     return pd.Series(np.select(conditions, choices, "isolated"), index=matches.index)
 
 
@@ -94,6 +96,7 @@ def gaps(matches: pd.DataFrame) -> pd.DataFrame:
         *MARKETS.values(),
         "cause",
     ]
+
     return out[columns].sort_values(["s1_league_name", "s1_season", "s1_date"])
 
 
@@ -101,12 +104,14 @@ def award_shapes(matches: pd.DataFrame) -> pd.DataFrame:
     """The matches that end 3-0 or 0-3, by their half-time score, and how many lack odds."""
     level, final = half_time(matches)
     ends = three_nil(matches)
+
     shapes = {
         "0-0": ends & level,
         "the full-time score": ends & final,
         "other": ends & ~level & ~final,
         "any": ends,
     }
+
     return pd.DataFrame(
         [
             {
@@ -127,6 +132,7 @@ def main() -> None:
         f"all three markets: {int(matches['all_three'].sum()):,} of {len(matches):,}; "
         f"no odds: {int(matches['no_odds'].sum()):,}"
     )
+
     report.show("Markets of each match", patterns(matches))
     report.show(
         "By market",
@@ -137,12 +143,14 @@ def main() -> None:
             ]
         ),
     )
+
     leagues = coverage(matches, ["s1_league_name"])
     seasons = coverage(matches, ["s1_league_name", "s1_season"])
     print(
         f"\nleagues at 100%: {int((leagues['share'] == 1).sum())} of {len(leagues)}; "
         f"league-seasons at 100%: {int((seasons['share'] == 1).sum())} of {len(seasons)}"
     )
+
     report.show("Season cohorts", coverage(matches, ["season_cohort"]))
     report.show("Leagues below 100%", leagues[leagues["share"] < 1])
     report.show("League-seasons below 100%", seasons[seasons["share"] < 1])

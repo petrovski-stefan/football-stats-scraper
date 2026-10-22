@@ -41,12 +41,15 @@ TOP = 20
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     rows = card.team_rows(matches)
     print(card.team_line(rows))
+
     summary, results = [], {}
     for quantity in QUANTITIES:
         row, results[quantity[2]] = units.within_row(rows, LEAGUE, UNIT, quantity)
         summary.append(row)
+
     report.show(
         "One test of the teams around their league, for each quantity", pd.DataFrame(summary)
     )
@@ -54,6 +57,7 @@ def main() -> None:
         "The luck line of the two roles",
         pd.DataFrame([units.within_luck_row(label, results[label]) for label in RANKED]),
     )
+
     for label in RANKED:
         report.show(
             f"Teams most above their league: {label}",

@@ -46,14 +46,18 @@ class Grid:
 def build_grid(rates: np.ndarray = RATES) -> Grid:
     """The rate pairs and their win chances under independent Poisson goals."""
     home, away = (axis.ravel() for axis in np.meshgrid(rates, rates, indexing="ij"))
+
     goals = np.arange(MAX_GOALS)
     pmf_home = sps.poisson.pmf(goals[None, :], home[:, None])
     pmf_away = sps.poisson.pmf(goals[None, :], away[:, None])
+
     # P(the other side scores fewer than k goals), for each k: the cdf one goal behind.
     fewer_away = np.cumsum(pmf_away, axis=1) - pmf_away
     fewer_home = np.cumsum(pmf_home, axis=1) - pmf_home
+
     p_home = (pmf_home * fewer_away).sum(axis=1)
     p_away = (pmf_away * fewer_home).sum(axis=1)
+
     return Grid(home, away, p_home, p_away)
 
 
@@ -64,6 +68,7 @@ def fair_over(total: np.ndarray, line: float) -> np.ndarray:
     integer line returns the stake when the total equals it, so the push drops out.
     """
     parts = (line - 0.25, line + 0.25) if round(line * 4) % 2 == 1 else (line,)
+
     win = np.zeros(np.shape(total))
     loss = np.zeros(np.shape(total))
     for part in parts:
@@ -71,6 +76,7 @@ def fair_over(total: np.ndarray, line: float) -> np.ndarray:
         is_integer = abs(part - round(part)) < 1e-9
         win += sps.poisson.sf(floor, total)
         loss += sps.poisson.cdf(floor - 1 if is_integer else floor, total)
+
     return np.asarray(win / (win + loss))
 
 
@@ -88,9 +94,11 @@ def fit_rates(
         rows = np.flatnonzero(lines == line)
         tree = cKDTree(np.column_stack([grid.p_home, grid.p_away, fair_over(total, float(line))]))
         distance, nearest = tree.query(np.column_stack([p_home[rows], p_away[rows], over[rows]]))
+
         lam_home[rows] = grid.home[nearest]
         lam_away[rows] = grid.away[nearest]
         error[rows] = distance
+
     return lam_home, lam_away, error
 
 
@@ -105,11 +113,13 @@ def implied(
     """
     h1, a1 = share * lam_home, share * lam_away
     h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
+
     cb_home = np.zeros(len(lam_home))
     cb_away = np.zeros(len(lam_home))
     for deficit in range(1, MAX_DEFICIT + 1):
         cb_home += sps.skellam.pmf(-deficit, h1, a1) * sps.skellam.sf(deficit, h2, a2)
         cb_away += sps.skellam.pmf(deficit, h1, a1) * sps.skellam.cdf(-deficit - 1, h2, a2)
+
     total = lam_home + lam_away
     return pd.DataFrame(
         {
@@ -145,9 +155,11 @@ def completion_given_ht(
     """
     h2 = (1 - share) * lam_home * home_factor
     a2 = (1 - share) * lam_away * away_factor
+
     deficit = np.abs(ht_margin)
     home_behind = sps.skellam.sf(deficit, h2, a2)
     away_behind = sps.skellam.cdf(-deficit - 1, h2, a2)
+
     return np.asarray(
         np.where(ht_margin < 0, home_behind, np.where(ht_margin > 0, away_behind, 0.0))
     )
@@ -166,14 +178,17 @@ def htft_cells(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.D
     """
     h1, a1 = share * lam_home, share * lam_away
     h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
+
     margins = np.arange(-MAX_MARGIN, MAX_MARGIN + 1)
     second = [sps.skellam.pmf(k, h2, a2) for k in margins]
+
     cells = {name: np.zeros(len(lam_home)) for name in HTFT}
     for k1 in margins:
         first = sps.skellam.pmf(k1, h1, a1)
         ht = str(result_code(np.array(k1)))
         for k2, chance in zip(margins, second, strict=True):
             cells[f"{ht}/{result_code(np.array(k1 + k2))!s}"] += first * chance
+
     return pd.DataFrame({f"m_{name}": chance for name, chance in cells.items()})
 
 
@@ -205,6 +220,7 @@ def frame(
         probs = rows[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
     else:
         probs = shin.shin_frame(rows)[shin.PROBS]
+
     lines = rows["s1_odds_ou_open_line"].to_numpy(dtype=float)
     lam_home, lam_away, error = fit_rates(
         grid,
@@ -213,19 +229,25 @@ def frame(
         rows["s2_implied_over"].to_numpy(dtype=float),
         lines,
     )
+
     share = first_half_share(rows) if share is None else share
+
     out = rows[shin.KEYS].copy()
     out[shin.PROBS] = probs.to_numpy()
     out["line"] = lines
     out["lam_home"], out["lam_away"], out["fit_error"] = lam_home, lam_away, error
+
     model = implied(lam_home, lam_away, share)
     out[model.columns] = model.to_numpy()
+
     ht_margin = (rows["s1_ht_home_goals"] - rows["s1_ht_away_goals"]).to_numpy()
     out["m_completion"] = completion_given_ht(lam_home, lam_away, share, ht_margin)
+
     out = out.join(_outcomes(rows, ht_margin))
     out["fav_p"] = out[["shin_p_home", "shin_p_away"]].max(axis=1)
     out["fav_is_home"] = out["shin_p_home"] >= out["shin_p_away"]
     out["cluster"] = rows["s1_league_id"].astype(str) + " " + rows["s1_season"]
+
     return out
 
 
@@ -251,5 +273,6 @@ def _outcomes(rows: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
         },
         index=rows.index,
     ).astype(float)
+
     out["ht_margin"] = ht_margin
     return out

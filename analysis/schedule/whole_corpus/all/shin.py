@@ -25,6 +25,7 @@ def summary(frame: pd.DataFrame) -> dict[str, float]:
         "margin_median": float(frame["margin"].median()),
         "z_margin_spearman": float(z.corr(frame["margin"], method="spearman")),
     }
+
     for score in ("ll", "brier"):
         low, high = stats.cluster_bootstrap_ci(frame[f"{score}_gain"], frame["cluster"])
         out |= {
@@ -34,6 +35,7 @@ def summary(frame: pd.DataFrame) -> dict[str, float]:
             f"{score}_gain_low": low,
             f"{score}_gain_high": high,
         }
+
     return out
 
 
@@ -41,10 +43,12 @@ def price_table(frame: pd.DataFrame) -> pd.DataFrame:
     """Per price band: outcomes, the observed rate with its Wilson CI, and each method's mean."""
     rows = shin.outcome_rows(frame)
     rows["band"] = pd.cut(rows["price"], shin.PRICE_EDGES)
+
     table = []
     for band, group in rows.groupby("band", observed=True):
         hits, n = int(group["hit"].sum()), len(group)
         low, high = stats.wilson_ci(hits, n)
+
         table.append(
             {
                 "band": str(band),
@@ -56,6 +60,7 @@ def price_table(frame: pd.DataFrame) -> pd.DataFrame:
                 "shin": float(group["shin"].mean()),
             }
         )
+
     return pd.DataFrame(table)
 
 
@@ -70,6 +75,7 @@ def show(title: str, values: dict[str, float]) -> None:
         f"margin: median {values['margin_median']:.5f}; "
         f"Spearman(z, margin) {values['z_margin_spearman']:.3f}"
     )
+
     for score, label in (("ll", "log loss"), ("brier", "Brier")):
         print(
             f"{label}: proportional {values[f'{score}_prop']:.6f}, "
@@ -81,12 +87,15 @@ def show(title: str, values: dict[str, float]) -> None:
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     frame = shin.scored(matches)
     print(f"Priced: {len(frame):,} of {len(matches):,} matches have all three opening 1X2 prices")
     print(f"Largest |sum of Shin probabilities - 1|: {shin.sum_error(frame):.1e}")
+
     show("All matches", summary(frame))
     for cohort, group in frame.groupby("season_cohort"):
         show(f"Season cohort {cohort}", summary(group))
+
     print("\n== Observed vs implied rate by price band (every outcome of every match)")
     print(price_table(frame).to_string(index=False, float_format=lambda v: f"{v:.4f}"))
 

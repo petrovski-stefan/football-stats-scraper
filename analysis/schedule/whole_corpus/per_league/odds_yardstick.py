@@ -59,6 +59,7 @@ def with_own_share(frame: pd.DataFrame) -> pd.DataFrame:
     """The frame with the chances that use the share made again from each league's own share."""
     sums = frame.groupby(LEAGUE)[["goals_1h", "goals"]].sum()
     share = frame[LEAGUE].map(sums["goals_1h"] / sums["goals"]).to_numpy(dtype=float)
+
     lam_home, lam_away = frame["lam_home"].to_numpy(), frame["lam_away"].to_numpy()
     out = frame.copy()
     model = yardstick.implied(lam_home, lam_away, share)
@@ -66,6 +67,7 @@ def with_own_share(frame: pd.DataFrame) -> pd.DataFrame:
     out["m_completion"] = yardstick.completion_given_ht(
         lam_home, lam_away, share, frame["ht_margin"].to_numpy()
     )
+
     return out
 
 
@@ -85,25 +87,30 @@ def league_table(
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     share = yardstick.first_half_share(yardstick.priced(matches))
     frame = yardstick.frame(matches, yardstick.build_grid(), share=share).assign(one=1.0)
     print(
         f"Priced: {len(frame):,} matches in {frame[LEAGUE].nunique()} leagues; "
         f"first-half share {share:.4f}"
     )
+
     rows, values = [], {}
     for quantity in QUANTITIES:
         row, values[quantity[2]] = units.summary_row(
             frame, LEAGUE, quantity, luck=quantity[2] in LUCK
         )
         rows.append(row)
+
     print(f"Each test: Cochran's Q on {len(values['goals O/E']) - 1} df")
     report.show("One test across the leagues for each quantity", pd.DataFrame(rows))
+
     comeback = next(q for q in QUANTITIES if q[2] == "comeback O/E")
     report.show(
         "Comeback O/E with each league's own first-half share",
         pd.DataFrame([units.summary_row(with_own_share(frame), LEAGUE, comeback, luck=True)[0]]),
     )
+
     report.show(
         "Leagues: goals, comebacks, 7+ goals and the share",
         league_table(frame, values, MAIN_COLUMNS),

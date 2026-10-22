@@ -40,6 +40,7 @@ def count_table(matches: pd.DataFrame) -> pd.DataFrame:
         row.update({f"share {n}+": float((values >= n).mean()) for n in LEVELS})
         row.update({"mean": float(values.mean()), "max": int(values.max())})
         rows.append(row)
+
     return pd.DataFrame(rows)
 
 
@@ -51,6 +52,7 @@ def average_table(matches: pd.DataFrame) -> pd.DataFrame:
         "S3.20 average O/U line": matches[LINE],
         "S3.19 - S3.20": matches[GOALS] - matches[LINE],
     }
+
     rows = []
     for label, values in columns.items():
         present = values.dropna()
@@ -65,6 +67,7 @@ def average_table(matches: pd.DataFrame) -> pd.DataFrame:
                 "p75": float(present.quantile(0.75)),
             }
         )
+
     return pd.DataFrame(rows)
 
 
@@ -80,11 +83,13 @@ def goals_over_line(matches: pd.DataFrame) -> pd.DataFrame:
     excess = lined["s2_total_goals"] - lined[OPENING_LINE]
     by_line = excess.groupby(lined[OPENING_LINE]).agg(["size", "mean"])
     common = by_line[by_line["size"] >= MIN_LINE_MATCHES]
+
     rows = [{"line": "all", "matches": len(lined), "goals minus line": float(excess.mean())}]
     rows += [
         {"line": f"{line:g}", "matches": int(row["size"]), "goals minus line": float(row["mean"])}
         for line, row in common.iterrows()
     ]
+
     return pd.DataFrame(rows)
 
 
@@ -101,14 +106,17 @@ def line_against_model(model: pd.DataFrame) -> dict[str, float]:
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     report.show("The counts, all matches", count_table(matches))
     report.show("The averages, all matches", average_table(matches))
     for cohort, group in matches.groupby("season_cohort"):
         size = f"season cohort {cohort} ({len(group):,} matches)"
         report.show(f"The counts, {size}", count_table(group))
         report.show(f"The averages, {size}", average_table(group))
+
     print(f"\nrows with a finished round-mate but empty averages: {finished_without_line(matches)}")
     report.show("Goals minus the opening O/U line", goals_over_line(matches))
+
     model = yardstick.frame(matches, yardstick.build_grid())
     report.show(
         "The opening O/U line against the yardstick's expected goals",

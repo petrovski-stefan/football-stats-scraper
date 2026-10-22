@@ -53,6 +53,7 @@ def season_tests(frame: pd.DataFrame) -> pd.DataFrame:
 def stage_table(frame: pd.DataFrame) -> pd.DataFrame:
     """The sliced quantities in the two stages of the leagues that keep both."""
     stage = frame["stage"].map(STAGES)
+
     rows = []
     for name, group in frame.groupby(stage):
         for label in SLICED:
@@ -68,6 +69,7 @@ def stage_table(frame: pd.DataFrame) -> pd.DataFrame:
                     "high": ratio["high"],
                 }
             )
+
     return pd.DataFrame(rows)
 
 
@@ -83,20 +85,24 @@ def league_table(frame: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.Dat
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     frame = card.card_frame(matches)
     frame[LEAGUE] = matches[LEAGUE]
     frame["league"] = matches["s1_league_name"]
     frame["stage"] = matches["s1_stage"]
     print(f"{frame[LEAGUE].nunique()} leagues; each test: Cochran's Q across them")
+
     rows, values = [], {}
     for row_of_card in card.CARD:
         label = row_of_card[2]
         row, values[label] = units.summary_row(frame, LEAGUE, row_of_card, luck=label in MARKETS)
         rows.append(row)
+
     report.show("One test across the leagues for each quantity of the card", pd.DataFrame(rows))
     report.show(
         "League-seasons inside their league (one test for all leagues)", season_tests(frame)
     )
+
     stages = frame[frame["stage"].isin(STAGES)]
     print(f"\nleagues that keep two stages: {stages[LEAGUE].nunique()}")
     report.show("Their two stages", stage_table(stages))

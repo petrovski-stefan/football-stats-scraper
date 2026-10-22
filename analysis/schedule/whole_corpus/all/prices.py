@@ -46,6 +46,7 @@ def settle(metric: np.ndarray, line: np.ndarray, price: np.ndarray) -> np.ndarra
         win = metric > part + 1e-9
         push = np.abs(metric - part) < 1e-9
         profit += 0.5 * np.where(win, price - 1.0, np.where(push, 0.0, -1.0))
+
     return profit
 
 
@@ -64,11 +65,13 @@ def x12_bets(matches: pd.DataFrame) -> pd.DataFrame:
     """One flat bet on each 1X2 outcome of each priced match, with its profit and the profit
     that the proportional and the Shin probabilities expect."""
     rows = shin.outcome_rows(shin.scored(matches))
+
     rows["profit"] = np.where(rows["hit"], rows["price"] - 1.0, -1.0)
     rows["profit_prop"] = rows["prop"] * rows["price"] - 1.0
     rows["profit_shin"] = rows["shin"] * rows["price"] - 1.0
     rows["band"] = pd.cut(rows["price"], shin.PRICE_EDGES)
     rows["side"] = pd.Categorical(rows["side"], ["home", "draw", "away"], ordered=True)
+
     return rows
 
 
@@ -88,6 +91,7 @@ def x12_table(bets: pd.DataFrame, by: str) -> pd.DataFrame:
                 "Shin expects": float(group["profit_shin"].mean()),
             }
         )
+
     return pd.DataFrame(table)
 
 
@@ -95,10 +99,13 @@ def two_way_bets(matches: pd.DataFrame) -> pd.DataFrame:
     """Per match with both Asian markets: the profit of each side of the O/U and of the AH,
     and the cost of each market's margin, 1 / (1 + margin) - 1."""
     rows = matches.dropna(subset=[*OU, *corpus.AH])
+
     total = rows["s2_total_goals"].to_numpy(dtype=float)
     lead = (rows["s1_ft_home_goals"] - rows["s1_ft_away_goals"]).to_numpy(dtype=float)
+
     ou_line, over, under = (rows[c].to_numpy(dtype=float) for c in OU)
     ah_line, home, away = (rows[c].to_numpy(dtype=float) for c in corpus.AH)
+
     return pd.DataFrame(
         {
             "ou_line": ou_line,
@@ -126,6 +133,7 @@ def side_table(
         part = bets[mask]
         if part.empty:
             continue
+
         row: dict[str, float | str] = {"group": name, "matches": float(len(part))}
         for side in sides:
             values = roi(part, side)
@@ -134,8 +142,10 @@ def side_table(
                 f"{side} low": values["low"],
                 f"{side} high": values["high"],
             }
+
         row["margin cost"] = float(part[cost].mean())
         table.append(row)
+
     return pd.DataFrame(table)
 
 
@@ -158,11 +168,13 @@ def ah_groups(bets: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
 def margin_table(matches: pd.DataFrame) -> pd.DataFrame:
     """Quantiles and the mean of each market's margin, over the matches that have it."""
     markets = {"1X2": shin.ODDS, "O/U": OU[1:], "AH": corpus.AH[1:]}
+
     table = []
     for name, columns in markets.items():
         rows = matches.dropna(subset=columns)
         values = margin(*(rows[c] for c in columns))
         quantiles = values.quantile(list(MARGIN_QUANTILES))
+
         table.append(
             {
                 "market": name,
@@ -170,6 +182,7 @@ def margin_table(matches: pd.DataFrame) -> pd.DataFrame:
                 "mean": float(values.mean()),
             }
         )
+
     return pd.DataFrame(table)
 
 
@@ -206,6 +219,7 @@ def tail_bands(frame: pd.DataFrame) -> pd.DataFrame:
             "variance / mean": grouped["goals"].var() / grouped["goals"].mean(),
         }
     )
+
     table["observed / model"] = table["observed mean"] / table["model mean"]
     return table.reset_index().rename(columns={"m_goals": "expected goals"})
 
@@ -238,9 +252,11 @@ def tail_oe(frame: pd.DataFrame) -> pd.DataFrame:
             ("seven", "m_seven_calibrated", "Poisson, calibrated totals"),
         ),
     )
+
     market, matched = table["expected"]
     observed = float(table["observed"].iloc[0])
     table["gap closed"] = [0.0, (market - matched) / (market - observed)]
+
     return table
 
 
@@ -249,6 +265,7 @@ def show_returns(matches: pd.DataFrame, title: str) -> None:
     bets = x12_bets(matches)
     report.show(f"1X2 by price band, {title}", x12_table(bets, "band"))
     report.show(f"1X2 by side, {title}", x12_table(bets, "side"))
+
     two_way = two_way_bets(matches)
     report.show(
         f"O/U by opening line, {title}",
@@ -263,11 +280,13 @@ def show_returns(matches: pd.DataFrame, title: str) -> None:
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     show_returns(matches, "all matches")
     for cohort, group in matches.groupby("season_cohort"):
         show_returns(group, f"season cohort {cohort}")
 
     report.show("Margins: quantiles and mean", margin_table(matches))
+
     priced = matches.dropna(subset=[*OU, *corpus.AH])
     report.show("Opening O/U lines", line_shares(priced[OU[0]]))
     print(
@@ -277,9 +296,11 @@ def main() -> None:
 
     share = yardstick.first_half_share(yardstick.priced(matches))
     frame = yardstick.frame(matches, yardstick.build_grid(), share=share)
+
     report.show("The 7+ tail: goals by band of expected goals", tail_bands(frame))
     report.show("The 7+ tail: k goals or more", tail_counts(frame))
     report.show("7+ goals against the market's and the calibrated totals", tail_oe(frame))
+
     for cohort, group in frame.groupby("season_cohort"):
         report.show(f"The same, season cohort {cohort} (its own calibration)", tail_oe(group))
 

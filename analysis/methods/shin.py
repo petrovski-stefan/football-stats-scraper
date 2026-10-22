@@ -49,14 +49,17 @@ def scored(matches: pd.DataFrame) -> pd.DataFrame:
     frame = pd.concat([priced[KEYS + ODDS + PROPORTIONAL], shin_frame(priced)], axis=1)
     frame["margin"] = (1.0 / priced[ODDS]).sum(axis=1) - 1.0
     frame["outcome"] = corpus.outcome_1x2(priced)
+
     result = frame["outcome"].to_numpy()
     for name, columns in (("prop", PROPORTIONAL), ("shin", PROBS)):
         probs = frame[columns].to_numpy()
         frame[f"ll_{name}"] = stats.log_loss_1x2(probs, result)
         frame[f"brier_{name}"] = stats.brier_1x2(probs, result)
+
     frame["ll_gain"] = frame["ll_prop"] - frame["ll_shin"]
     frame["brier_gain"] = frame["brier_prop"] - frame["brier_shin"]
     frame["cluster"] = priced["s1_league_id"].astype(str) + " " + priced["s1_season"]
+
     return frame
 
 
@@ -79,6 +82,7 @@ def outcome_rows(frame: pd.DataFrame) -> pd.DataFrame:
             ("home", "draw", "away"), codes, ODDS, PROPORTIONAL, PROBS, strict=True
         )
     ]
+
     return pd.concat(sides, ignore_index=True)
 
 

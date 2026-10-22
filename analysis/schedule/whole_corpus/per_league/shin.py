@@ -23,6 +23,7 @@ def league_table(
     grouped = frame.groupby("s1_league_id")
     sizes = grouped.size()
     table = pd.DataFrame({"league": grouped["s1_league_name"].first(), "matches": sizes})
+
     tests: dict[str, stats.Heterogeneity] = {}
     for name, column in QUANTITIES.items():
         means = grouped[column].mean()
@@ -30,6 +31,7 @@ def league_table(
         tests[name] = stats.heterogeneity(means, variances)
         table[name] = means
         table[f"{name}_shrunk"] = stats.shrink(means, variances, tests[name])
+
     return table.sort_values("league"), tests
 
 
@@ -42,12 +44,15 @@ def cohort_stability(frame: pd.DataFrame, column: str) -> tuple[float, int]:
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     frame = shin.scored(matches)
     table, tests = league_table(frame)
     print(f"Priced: {len(frame):,} matches in {len(table)} leagues")
+
     for name, column in QUANTITIES.items():
         het, shrunk = tests[name], table[f"{name}_shrunk"]
         r, n = cohort_stability(frame, column)
+
         print(f"\n== {name} ({column})")
         print(
             f"pooled {het.pooled:.6f}; Cochran's Q {het.q:.1f} on {het.df} df, "
@@ -58,6 +63,7 @@ def main() -> None:
             f"max {shrunk.max():.6f}"
         )
         print(f"league means, season cohort 1 vs 2: Spearman {r:.3f} over {n} leagues")
+
     print("\n== Leagues (sorted by name)")
     print(table.to_string(index=False, float_format=lambda v: f"{v:.5f}"))
 

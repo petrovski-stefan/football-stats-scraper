@@ -33,6 +33,7 @@ def card_table(frame: pd.DataFrame) -> pd.DataFrame:
                 "high": ratio["high"],
             }
         )
+
     return pd.DataFrame(rows)
 
 
@@ -44,6 +45,7 @@ def by_deficit(frame: pd.DataFrame) -> pd.DataFrame:
         part = frame[frame["ht_deficit"].between(smallest, largest)]
         if part.empty:
             continue
+
         ratio = stats.observed_expected(part, "is_comeback", "one")
         rows.append(
             {
@@ -56,6 +58,7 @@ def by_deficit(frame: pd.DataFrame) -> pd.DataFrame:
                 "high": ratio["high"],
             }
         )
+
     return pd.DataFrame(rows)
 
 
@@ -71,7 +74,9 @@ def goal_totals(frame: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     frame = card.card_frame(matches)
+
     report.show("The card, all matches", card_table(frame))
     for cohort, group in frame.groupby("season_cohort"):
         report.show(f"The card, season cohort {cohort} ({len(group):,} matches)", card_table(group))

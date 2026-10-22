@@ -56,6 +56,7 @@ def tests(
                 continue
             row = units.level_row(frame, unit, ROUND, (observed, expected, label, kind), draws)
             rows.append({"reading": reading, **row})
+
     return pd.DataFrame(rows)
 
 
@@ -66,6 +67,7 @@ def largest_rounds(
     from its league-season, over its variance (`units.within_tested`)."""
     observed, _, model, _, kind = quantity
     values = units.within_tested(frame, LEAGUE_SEASON, ROUND, observed, model, kind).values
+
     rounds = frame.groupby(ROUND)
     table = pd.DataFrame(
         {
@@ -78,6 +80,7 @@ def largest_rounds(
             "part of Q": (values["value"] - values["owner_mean"]) ** 2 / values["variance"],
         }
     ).dropna(subset=["part of Q"])
+
     return table.sort_values("part of Q", ascending=False).head(top).reset_index()
 
 
@@ -105,9 +108,11 @@ def count_table(
         distribution = np.array([1.0])
         for chance in group.to_numpy(dtype=float):
             distribution = np.convolve(distribution, [1.0 - chance, chance])
+
         head = distribution[:MOST]
         expected[: len(head)] += head
         expected[MOST] += distribution[MOST:].sum()
+
     counts = events.groupby(rounds).sum().clip(upper=MOST).astype(int).to_numpy()
     return pd.DataFrame(
         {
@@ -121,6 +126,7 @@ def count_table(
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     frame = yardstick.frame(matches, yardstick.build_grid())
     frame["one"] = 1.0
     frame[EVERYTHING] = EVERYTHING
@@ -128,41 +134,49 @@ def main() -> None:
     frame["league"] = matches["s1_league_name"]
     frame["round_number"] = matches["s1_round"]
     frame["season_cohort"] = matches["season_cohort"]
+
     kickoff = pd.to_datetime(matches.loc[frame.index, "s1_date"], utc=True)
     frame["days"] = days_from_round(kickoff, frame[ROUND])
+
     sizes = frame.groupby(ROUND).size()
     print(
         f"priced matches (both opening markets): {len(frame):,}; rounds: {len(sizes):,}; "
         f"matches per round: median {sizes.median():.0f}, {sizes.min()} to {sizes.max()}"
     )
+
     far = frame["days"] > NEAR_DAYS
     print(
         f"matches more than {NEAR_DAYS:.0f} days from the median kickoff of their round: "
         f"{far.sum():,} ({far.mean():.4f}), in {frame.loc[far, ROUND].nunique():,} rounds"
     )
+
     print(f"each p: {units.NULL_DRAWS} shuffles of the parts inside their units")
     report.show("One test of the rounds for each quantity and reading", tests(frame))
     report.show(
         f"Against the odds: only the matches within {NEAR_DAYS:.0f} days of their round",
         tests(frame[~far], only=(ODDS_READING,)),
     )
+
     for cohort, group in frame.groupby("season_cohort"):
         report.show(
             f"Around the league-season: season cohort {cohort} ({len(group):,} matches)",
             tests(group, only=(RAW_READING, ODDS_READING)),
         )
+
         later = group[group["round_number"] > FIRST_ROUNDS]
         report.show(
             f"Around the league-season: season cohort {cohort}, rounds {FIRST_ROUNDS + 1} and "
             f"later ({len(later):,} matches)",
             tests(later, only=(RAW_READING, ODDS_READING)),
         )
+
     for quantity in card.ODDS_CARD:
         if quantity[3] in LARGEST:
             report.show(
                 f"The rounds with the largest part of Q against the odds: {quantity[3]}",
                 largest_rounds(frame, quantity),
             )
+
     for observed, _, model, label, _ in card.ODDS_CARD:
         if label in COUNTED:
             chances = league_season_chance(frame, observed, model)

@@ -65,10 +65,12 @@ def level_tests(
     """One test for each level, quantity and reading; `rows` maps "match" and "team" to the
     frames that the levels read."""
     quantities = {"match": card.ODDS_CARD, "team": TEAM_QUANTITIES}
+
     table = []
     for level, unit, part, kind_of_rows in LEVELS:
         if level not in levels:
             continue
+
         frame = rows[kind_of_rows]
         for observed, denominator, model, label, kind in quantities[kind_of_rows]:
             for reading in readings:
@@ -76,6 +78,7 @@ def level_tests(
                 quantity = (observed, expected, label, kind)
                 row = units.level_row(frame, unit, part, quantity, draws)
                 table.append({"level": level, "reading": reading, **row})
+
     return pd.DataFrame(table)
 
 
@@ -96,31 +99,38 @@ def odds_shares(rows: dict[str, pd.DataFrame]) -> pd.DataFrame:
                     "odds share": odds_share(frame, observed, denominator, model),
                 }
             )
+
     return pd.DataFrame(table)
 
 
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     frame = yardstick.frame(matches, yardstick.build_grid())
     frame["one"] = 1.0
     frame[EVERYTHING] = EVERYTHING
     frame[LEAGUE] = matches["s1_league_id"]
     frame[ROUND] = corpus.round_key(matches)
     frame["season_cohort"] = matches["season_cohort"]
+
     teams = card.team_yardstick_rows(matches, frame)
     teams[TEAM_SEASON] = teams[LEAGUE_SEASON] + " " + teams["team"].astype(str)
     rows = {"match": frame, "team": teams}
+
     print(
         f"priced matches (both opening markets): {len(frame):,}; leagues "
         f"{frame[LEAGUE].nunique()}; league-seasons {frame[LEAGUE_SEASON].nunique()}; rounds "
         f"{frame[ROUND].nunique():,}; team-seasons {teams[TEAM_SEASON].nunique():,} "
         f"({len(teams):,} team-matches)"
     )
+
     print(f"each p: {units.NULL_DRAWS} shuffles of the parts inside their units")
     report.show("The share of a match's variance that the odds carry", odds_shares(rows))
+
     every = tuple(level for level, *_ in LEVELS)
     report.show("One test of each level around the level above it", level_tests(rows, every))
+
     for cohort in sorted(frame["season_cohort"].unique()):
         in_cohort = {name: part[part["season_cohort"] == cohort] for name, part in rows.items()}
         report.show(

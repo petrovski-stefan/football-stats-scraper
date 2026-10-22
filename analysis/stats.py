@@ -68,6 +68,7 @@ def observed_expected(frame: pd.DataFrame, observed: str, expected: str) -> dict
     """Observed and expected sums, their ratio (O/E), and its interval over `frame.cluster`."""
     obs, exp = float(frame[observed].sum()), float(frame[expected].sum())
     low, high = cluster_bootstrap_ratio_ci(frame[observed], frame[expected], frame["cluster"])
+
     return {
         "n": float(len(frame)),
         "observed": obs,
@@ -103,9 +104,11 @@ def heterogeneity(means: "pd.Series[float]", variances: "pd.Series[float]") -> H
     weights = 1.0 / variances
     pooled = float((weights * means).sum() / weights.sum())
     q = float((weights * (means - pooled) ** 2).sum())
+
     df = len(means) - 1
     scale = float(weights.sum() - (weights**2).sum() / weights.sum())
     tau2 = max(0.0, (q - df) / scale) if scale > 0 else 0.0
+
     return Heterogeneity(q=q, df=df, p=float(chi2.sf(q, df)), tau2=tau2, pooled=pooled)
 
 
@@ -129,6 +132,7 @@ def detectable_tau(
     codes = np.zeros(len(v), dtype=int) if groups is None else pd.factorize(groups)[0]
     member = np.zeros((len(v), codes.max() + 1))
     member[np.arange(len(v)), codes] = 1.0
+
     z = np.random.default_rng(seed).standard_normal((draws, len(v)))
     critical = chi2.isf(0.05, len(v) - member.shape[1])
 
@@ -142,6 +146,7 @@ def detectable_tau(
     for _ in range(40):
         middle = (low + high) / 2
         low, high = (middle, high) if found(middle) < power else (low, middle)
+
     return high
 
 
@@ -189,14 +194,18 @@ def mantel_haenszel(
         .sum()
         .astype(float)
     )
+
     cells = cells[cells.sum(axis=1) >= 2]
     a, b, c, d = (cells[column].to_numpy() for column in ("a", "b", "c", "d"))
+
     n = a + b + c + d
     odds_ratio, low, high = _rgb(a, b, c, d, n)
+
     expected = (a + b) * (a + c) / n
     variance = (a + b) * (c + d) * (a + c) * (b + d) / (n**2 * (n - 1))
     total = float(variance.sum())
     statistic = float((a.sum() - expected.sum()) ** 2 / total) if total > 0 else 0.0
+
     return MantelHaenszel(
         flagged=int(flagged.sum()),
         flagged_events=int((flagged & hit).sum()),
@@ -218,13 +227,16 @@ def _rgb(
     r, s = a * d / n, b * c / n
     together, apart = (a + d) / n, (b + c) / n
     rs, ss = float(r.sum()), float(s.sum())
+
     if rs <= 0 or ss <= 0:
         return (rs / ss if ss > 0 else float("nan")), float("nan"), float("nan")
+
     variance = (
         float((together * r).sum()) / (2 * rs**2)
         + float((together * s + apart * r).sum()) / (2 * rs * ss)
         + float((apart * s).sum()) / (2 * ss**2)
     )
+
     log_or, half = float(np.log(rs / ss)), Z95 * float(np.sqrt(variance))
     return rs / ss, float(np.exp(log_or - half)), float(np.exp(log_or + half))
 
@@ -237,4 +249,5 @@ def holm(p_values: Sequence[float]) -> list[float]:
     for rank, i in enumerate(order):
         running = max(running, min(1.0, (len(p_values) - rank) * p_values[i]))
         adjusted[i] = running
+
     return adjusted

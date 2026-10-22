@@ -44,6 +44,7 @@ def trailing_states(matches: pd.DataFrame, cuts: np.ndarray) -> pd.DataFrame:
     for side, other in SIDES:
         rows = matches[matches[f"s1_ht_{side}_goals"] < matches[f"s1_ht_{other}_goals"]]
         deficit = rows[f"s1_ht_{other}_goals"] - rows[f"s1_ht_{side}_goals"]
+
         parts.append(
             pd.DataFrame(
                 {
@@ -59,6 +60,7 @@ def trailing_states(matches: pd.DataFrame, cuts: np.ndarray) -> pd.DataFrame:
                 index=rows.index,
             )
         )
+
     states = pd.concat(parts).sort_index().dropna(subset=["p_win"])
     fifth = np.searchsorted(cuts, states["p_win"].to_numpy(float), side="right")
     states["stratum"] = states["cluster"] + "|" + fifth.astype(str) + "|" + states["deficit"]
@@ -87,6 +89,7 @@ FLAGS: tuple[tuple[str, Callable[[pd.DataFrame], pd.DataFrame]], ...] = (
 def mh_row(label: str, states: pd.DataFrame) -> dict[str, object]:
     """The Mantel-Haenszel comparison of one set of flagged states, as a row."""
     result = stats.mantel_haenszel(states["flag"], states["win"], states["stratum"])
+
     return {
         "states": label,
         "flagged": result.flagged,
@@ -113,10 +116,12 @@ def the_bar(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """The bar of the frozen plan, read on this run: the pooled CMH p after Holm over the
     flags below `ALPHA`, and the odds ratio on the same side of 1 in both cohorts."""
     pooled = [float(table["CMH p"].iloc[-1]) for table in tables.values()]
+
     rows = []
     for (name, table), adjusted in zip(tables.items(), stats.holm(pooled), strict=True):
         first, second = (float(value) for value in table["MH OR"].iloc[:2])
         same_side = (first > 1) == (second > 1)
+
         rows.append(
             {
                 "flag": name,
@@ -127,6 +132,7 @@ def the_bar(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
                 "met": adjusted < ALPHA and same_side,
             }
         )
+
     return pd.DataFrame(rows)
 
 
@@ -136,32 +142,39 @@ def against_odds(states: pd.DataFrame, chance: "pd.Series[float]") -> pd.DataFra
     league-seasons. The states without a yardstick chance are left out."""
     frame = states.assign(expected=chance).dropna(subset=["expected"])
     frame = frame.assign(win=frame["win"].astype(float))
+
     rows = []
     for flagged, label in ((True, "flagged"), (False, "rest")):
         ratio = stats.observed_expected(frame[frame["flag"] == flagged], "win", "expected")
         rows.append({"states": label, **ratio})
+
     return pd.DataFrame(rows)
 
 
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     cuts = fifth_cuts(matches)
     states = trailing_states(matches, cuts)
+
     trailing = int((matches["s1_ht_home_goals"] != matches["s1_ht_away_goals"]).sum())
     print(f"fifth cut points (opening win chance): {np.round(cuts, 4).tolist()}")
     print(
         f"trailing states: {len(states):,} of {trailing:,} decisive half-times; "
         f"wins {int(states['win'].sum()):,} ({states['win'].mean():.4f})"
     )
+
     model = yardstick.frame(matches, yardstick.build_grid())
     tables = {}
     for name, flag in FLAGS:
         flagged = flag(states)
         print(f"\n{name}: {len(flagged):,} states ({len(states) - len(flagged):,} left out)")
+
         tables[name] = mh_table(flagged)
         report.show(f"{name}: Mantel-Haenszel", tables[name])
         report.show(f"{name}: against the odds", against_odds(flagged, model["m_completion"]))
+
     report.show("The bar of the frozen plan, on this run", the_bar(tables))
 
 

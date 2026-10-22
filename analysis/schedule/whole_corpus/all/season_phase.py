@@ -36,13 +36,16 @@ def phases(matches: pd.DataFrame) -> pd.DataFrame:
     """
     keys = [matches["s1_league_id"], matches["s1_season"], matches["s1_stage"].fillna("")]
     rounds = matches["s1_round"].groupby(keys).transform("max")
+
     kickoff = pd.to_datetime(matches["s1_date"], utc=True)
     order = kickoff.groupby(keys).rank(method="first", pct=True)
+
     edge = np.select(
         [matches["s1_round"] <= EDGE_ROUNDS, matches["s1_round"] > rounds - EDGE_ROUNDS],
         [EDGES[0], EDGES[2]],
         EDGES[1],
     )
+
     return pd.DataFrame(
         {
             "round": matches["s1_round"],
@@ -87,6 +90,7 @@ def phase_values(
     """Per phase: the matches, the count, and the value of each reading (an O/E but for the
     raw one); the raw and odds values with their intervals over league-seasons."""
     observed = quantity[0]
+
     rows = []
     for key, part in frame.groupby(phase):
         row: dict[str, object] = {
@@ -94,12 +98,15 @@ def phase_values(
             "matches": len(part),
             "count": part[observed].sum(),
         }
+
         for reading, expected in readings(quantity):
             ratio = stats.observed_expected(part, observed, expected)
             row[reading] = ratio["oe"]
             if reading != "league-season":
                 row[f"{reading} low"], row[f"{reading} high"] = ratio["low"], ratio["high"]
+
         rows.append(row)
+
     return pd.DataFrame(rows)
 
 
@@ -113,6 +120,7 @@ def phase_tests(frame: pd.DataFrame, phase: str) -> pd.DataFrame:
             phi = units.dispersion(frame, phase, observed, expected, kind)
             values = units.unit_values(frame, phase, observed, expected, kind, phi)
             het = stats.heterogeneity(values["value"], values["variance"])
+
             rows.append(
                 {
                     "quantity": label,
@@ -123,6 +131,7 @@ def phase_tests(frame: pd.DataFrame, phase: str) -> pd.DataFrame:
                     "p": f"{het.p:.3g}",
                 }
             )
+
     return pd.DataFrame(rows)
 
 
@@ -140,11 +149,13 @@ def round_summary(common: pd.DataFrame) -> pd.DataFrame:
         observed, _, _, label, kind = quantity
         if label not in ROUND_QUANTITIES:
             continue
+
         for reading, expected in readings(quantity):
             row, _ = units.summary_row(
                 common, "round", (observed, expected, f"{label}, {reading}", kind), luck=True
             )
             rows.append(row)
+
     return pd.DataFrame(rows)
 
 
@@ -159,19 +170,23 @@ def show_phase(frame: pd.DataFrame, phase: str, title: str, labels: tuple[str, .
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     model = yardstick.frame(matches, yardstick.build_grid())
     model["one"] = 1.0
     frame = with_league_season(model.join(phases(matches)))
     frame["season_cohort"] = matches["season_cohort"]
+
     print(f"priced matches (both opening markets): {len(frame):,}")
     every = tuple(quantity[3] for quantity in QUANTITIES)
     show_phase(frame, "third", "Thirds by round", every)
     show_phase(frame, "third_kickoff", "Thirds by kickoff order", ROUND_QUANTITIES)
     show_phase(frame, "edge", "First and last rounds", ROUND_QUANTITIES)
+
     for cohort, group in frame.groupby("season_cohort"):
         size = f"season cohort {cohort} ({len(group):,} matches)"
         show_phase(group, "third", f"Thirds by round, {size}", ROUND_QUANTITIES)
         show_phase(group, "edge", f"First and last rounds, {size}", ROUND_QUANTITIES)
+
     common = common_rounds(frame)
     rounds = sorted(common["round"].unique())
     print(

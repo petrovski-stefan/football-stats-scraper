@@ -31,6 +31,7 @@ def load() -> pd.DataFrame:
     frames = [read_stage_csv(path) for path in paths.schedule_csvs(3)]
     if not frames:
         raise FileNotFoundError(f"no stage-3 schedule files in {paths.stage_dir(3)}")
+
     corpus = pd.concat(frames, ignore_index=True)
     corpus["season_cohort"] = corpus["s1_season"].map(season_start_year)
     return corpus

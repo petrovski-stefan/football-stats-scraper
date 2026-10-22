@@ -102,6 +102,7 @@ def odds_columns(model: pd.DataFrame, side: str) -> pd.DataFrame:
         },
         index=model.index,
     )
+
     out["m_compl"] = out["m_cb"] / out["m_trail"]
     return out
 
@@ -113,6 +114,7 @@ def market(matches: pd.DataFrame, model: pd.DataFrame, side: str) -> pd.DataFram
     own = odds_columns(model, side)
     ah_home = matches["s2_implied_ah_home"]
     fit_draw = sps.skellam.pmf(0, model["lam_home"], model["lam_away"])
+
     return pd.DataFrame(
         {
             "mk_margin": (1.0 / matches[shin.ODDS]).sum(axis=1),
@@ -136,6 +138,7 @@ def table(matches: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 
     goals_t = 2 * per_game(side, "goals_for", played_t) - per_game(side, "goal_diff", played_t)
     goals_o = 2 * per_game(other, "goals_for", played_o) - per_game(other, "goal_diff", played_o)
+
     return pd.DataFrame(
         {
             "played_T": played_t,
@@ -159,15 +162,18 @@ def halves(matches: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
         ft_gd, ht_gd = (stat(matches, who, h, "total", "goal_diff") for h in ("ft", "ht"))
         out[f"hp_{tag}_1h_gd"] = ht_gd / played
         out[f"hp_{tag}_2h_gd"] = (ft_gd - ht_gd) / played
+
         # A side's venue in this match is its side: the home team plays at home.
         venue_played = stat(matches, who, "ft", who, "played").replace(0, np.nan)
         venue_2h = stat(matches, who, "ft", who, "goal_diff") - stat(
             matches, who, "ht", who, "goal_diff"
         )
         out[f"hp_{tag}_2h_gd_venue"] = venue_2h / venue_played
+
     goals_for = stat(matches, side, "ft", "total", "goals_for")
     ht_for = stat(matches, side, "ht", "total", "goals_for")
     out["hp_T_2h_share_for"] = (goals_for - ht_for) / goals_for.replace(0, np.nan)
+
     against = stat(matches, other, "ft", "total", "goals_for") - stat(
         matches, other, "ft", "total", "goal_diff"
     )
@@ -175,6 +181,7 @@ def halves(matches: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
         matches, other, "ht", "total", "goal_diff"
     )
     out["hp_O_2h_share_against"] = (against - ht_against) / against.replace(0, np.nan)
+
     return out
 
 
@@ -183,10 +190,12 @@ def record(matches: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     its shrunk completion, and how often the opponent led at half-time and did not win."""
     played_t = stat(matches, side, "ft", "total", "played")
     played_o = stat(matches, other, "ft", "total", "played")
+
     behind = sum(htft(matches, side, "l", ft) for ft in "wdl")
     came_back = htft(matches, side, "l", "w")
     led = sum(htft(matches, other, "w", ft) for ft in "wdl")
     lost, drew = htft(matches, other, "w", "l"), htft(matches, other, "w", "d")
+
     return pd.DataFrame(
         {
             "rec_T_trail_rate": behind / played_t,
@@ -205,14 +214,17 @@ def season(matches: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     left), and a dead rubber: late in the stage with both teams in mid-table."""
     played = stat(matches, side, "ft", "total", "played")
     progress = played / (played + matches[f"s3_{side}_pre_matches_left"].astype(float))
+
     keys = [matches["s1_league_id"], matches["s1_season"], matches["s1_stage"].fillna("")]
     teams = matches["s1_home_team_id"].groupby(keys).transform("nunique").astype(float)
+
     low, high = MID_TABLE
     mid = [
         stat(matches, who, "ft", "total", "rank").div(teams).between(low, high)
         for who in (side, other)
     ]
     dead = (progress >= LATE_SEASON) & mid[0] & mid[1]
+
     return pd.DataFrame(
         {"ss_progress": progress, "ss_dead_rubber": dead.astype(float)}, index=matches.index
     )
@@ -228,8 +240,10 @@ def calendar(matches: pd.DataFrame) -> pd.DataFrame:
         matches["s1_stage"].fillna(""),
         matches["s1_round"],
     ]
+
     latest = kickoff.groupby(keys).transform("max")
     earliest = kickoff.groupby(keys).transform("min")
+
     return pd.DataFrame(
         {
             "cal_midweek": kickoff.dt.weekday.isin(MIDWEEK).astype(float),
@@ -266,8 +280,10 @@ def side_fields(matches: pd.DataFrame, model: pd.DataFrame, side: str) -> pd.Dat
         calendar(matches),
         round_so_far(matches),
     ]
+
     out = pd.concat(parts, axis=1)
     out["opponent"] = matches[f"s1_{other}_team_id"]
+
     return out.replace([np.inf, -np.inf], np.nan)
 
 
@@ -285,20 +301,26 @@ def last_season(rows: pd.DataFrame) -> pd.DataFrame:
     league's comebacks against the yardstick in the earlier cohort."""
     out = rows.copy()
     cohorts = sorted(rows["season_cohort"].unique())
+
     for name in LAST_SEASON:
         out[name] = np.nan
+
     if len(cohorts) < 2:
         return out
+
     before, later = rows[rows["season_cohort"] == cohorts[0]], rows["season_cohort"] == cohorts[1]
     base = before["comes_back"].mean()
     team = before.groupby("team")[["comes_back", "loses_lead", "ahead", "one"]].sum()
     cb_rate = (team["comes_back"] + TEAM_PRIOR_WEIGHT * base) / (team["one"] + TEAM_PRIOR_WEIGHT)
     blown = (team["loses_lead"] + PRIOR_WEIGHT * COMPLETION_PRIOR) / (team["ahead"] + PRIOR_WEIGHT)
+
     league = before.groupby(card.TEAM_LEAGUE)[["comes_back", "m_cb"]].sum()
     league_oe = league["comes_back"] / league["m_cb"]
+
     out.loc[later, "prev_T_cb_rate"] = rows.loc[later, "team"].map(cb_rate)
     out.loc[later, "prev_O_blown"] = rows.loc[later, "opponent"].map(blown)
     out.loc[later, "prev_league_oe"] = rows.loc[later, card.TEAM_LEAGUE].map(league_oe)
+
     return out
 
 
@@ -346,10 +368,12 @@ def field_test(rows: pd.DataFrame, field: str, target: str) -> dict[str, float]:
     part = rows[rows[field].notna()]
     if behind_only:
         part = part[part["behind"] == 1.0]
+
     design = np.column_stack([baseline(part, key), standardised(part[field], field in BINARY)])
     y = part[outcome].to_numpy(dtype=float)
     result = fit_logit(y, design, part["cluster"])
     beta, se = float(result.params[-1]), float(result.bse[-1])
+
     return {
         "n": float(len(part)),
         "events": float(y.sum()),
@@ -373,18 +397,23 @@ def screen(rows: pd.DataFrame) -> pd.DataFrame:
     for field, family in FAMILIES.items():
         pooled = field_test(rows, field, "comeback")
         row: dict[str, object] = {"field": field, "family": family, **pooled}
+
         for cohort in cohorts:
             part = rows[rows["season_cohort"] == cohort]
             single = field_test(part, field, "comeback") if part[field].notna().any() else None
             row[f"OR {cohort}"] = single["OR"] if single else np.nan
             row[f"p {cohort}"] = single["p"] if single else np.nan
+
         for target in ("link 1", "link 2"):
             link = field_test(rows, field, target)
             row[f"{target} OR"], row[f"{target} p"] = link["OR"], link["p"]
+
         out.append(row)
+
     table = pd.DataFrame(out)
     holm = stats.holm(table["p"].tolist())
     table.insert(list(table.columns).index("p") + 1, "Holm", holm)
+
     return table.sort_values("p").reset_index(drop=True)
 
 
@@ -408,6 +437,7 @@ def out_of_sample(train: pd.DataFrame, test: pd.DataFrame) -> dict[str, np.ndarr
     fields = joint_fields()
     base = sm.Logit(y, baseline(train, "m_cb")).fit(disp=0)
     joint = sm.Logit(y, joint_design(train, train, fields)).fit(disp=0, maxiter=200)
+
     return {
         "constant": np.full(len(test), y.mean()),
         "yardstick": test["m_cb"].to_numpy(dtype=float),
@@ -446,11 +476,14 @@ def score_table(y: np.ndarray, scores: dict[str, np.ndarray]) -> pd.DataFrame:
             "log loss": log_loss(y, score),
             "AUC": auc(y, score),
         }
+
         flat = bool(np.ptp(score) == 0)
         row.update(
             {f"top {n}": n * float(y.mean()) if flat else top_hits(y, score, n) for n in TOP_N}
         )
+
         rows.append(row)
+
     return pd.DataFrame(rows)
 
 
@@ -469,26 +502,33 @@ def split_rows(
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     grid = yardstick.build_grid()
     model = yardstick.frame(matches, grid)
+
     rows = screen_rows(matches, model)
     used = eligible(rows)
     print(
         f"team rows: {len(rows):,}; both teams with {MIN_PLAYED}+ matches played: {len(used):,}; "
         f"comebacks there: {int(used['comes_back'].sum()):,}"
     )
+
     report.show("Each field alone, beyond the odds", screen(used))
+
     cohorts = sorted(used["season_cohort"].unique())
     for first, second in ((cohorts[0], cohorts[1]), (cohorts[1], cohorts[0])):
         split, share = split_rows(matches, grid, first)
         train = split[split["season_cohort"] == first]
         test = split[split["season_cohort"] == second]
+
         print(f"\nthe yardstick's first-half share, from the {first} cohort: {share:.4f}")
+
         y = test["comes_back"].to_numpy(dtype=float)
         title = (
             f"Fit on {first} ({len(train):,} rows, {int(train['comes_back'].sum())} comebacks), "
             f"scored on {second} ({len(test):,} rows, {int(y.sum())} comebacks)"
         )
+
         report.show(title, score_table(y, out_of_sample(train, test)))
 
 

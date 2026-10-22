@@ -42,6 +42,7 @@ def team_halves(frame: pd.DataFrame, share: float) -> pd.DataFrame:
         ("away", -1, ~frame["fav_is_home"]),
     ):
         margin = sign * frame["ht_margin"].to_numpy()
+
         sides.append(
             pd.DataFrame(
                 {
@@ -55,6 +56,7 @@ def team_halves(frame: pd.DataFrame, share: float) -> pd.DataFrame:
                 }
             )
         )
+
     return pd.concat(sides, ignore_index=True)
 
 
@@ -86,17 +88,21 @@ def by_ht_score(frame: pd.DataFrame, share: float) -> pd.DataFrame:
         e_home_2h=(1 - share) * frame["lam_home"],
         e_away_2h=(1 - share) * frame["lam_away"],
     )
+
     table = []
     for home, away in COMMON_SCORES:
         group = sides[(sides["goals_home_1h"] == home) & (sides["goals_away_1h"] == away)]
         if group.empty:
             continue
+
         row: dict[str, object] = {"score": f"{home}-{away}", "matches": len(group)}
         for side in ("home", "away"):
             result = stats.observed_expected(group, f"{side}_2h", f"e_{side}_2h")
             row |= {f"{side} O/E": result["oe"], f"{side} low": result["low"]}
             row |= {f"{side} high": result["high"]}
+
         table.append(row)
+
     return pd.DataFrame(table)
 
 
@@ -118,9 +124,11 @@ def scaled_completions(frame: pd.DataFrame, share: float, factors: dict[str, flo
     margin = frame["ht_margin"].to_numpy()
     home = np.array([factors.get(state, 1.0) for state in state_of(margin)])
     away = np.array([factors.get(state, 1.0) for state in state_of(-margin)])
+
     completion = yardstick.completion_given_ht(
         frame["lam_home"].to_numpy(), frame["lam_away"].to_numpy(), share, margin, home, away
     )
+
     return float(completion.sum())
 
 
@@ -128,8 +136,10 @@ def gap_table(frame: pd.DataFrame, share: float, measured: dict[str, float]) -> 
     """Expected completions under four sets of factors, against the observed comebacks."""
     trailing = {state: f for state, f in measured.items() if state.startswith("behind")}
     leading = {state: f for state, f in measured.items() if state.startswith("ahead")}
+
     observed = float(frame["is_comeback"].sum())
     basic = scaled_completions(frame, share, {})
+
     rows = []
     for name, factors in (
         ("basic model", {}),
@@ -138,6 +148,7 @@ def gap_table(frame: pd.DataFrame, share: float, measured: dict[str, float]) -> 
         ("both scaled", trailing | leading),
     ):
         expected = scaled_completions(frame, share, factors)
+
         rows.append(
             {
                 "factors": name,
@@ -147,14 +158,17 @@ def gap_table(frame: pd.DataFrame, share: float, measured: dict[str, float]) -> 
                 "gap explained": (expected - basic) / (observed - basic),
             }
         )
+
     return pd.DataFrame(rows)
 
 
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     share = yardstick.first_half_share(yardstick.priced(matches))
     frame = yardstick.frame(matches, yardstick.build_grid(), share=share)
+
     teams = team_halves(frame, share)
     print(
         f"Priced: {len(frame):,} matches; {len(teams):,} team-halves; first-half share {share:.4f}"

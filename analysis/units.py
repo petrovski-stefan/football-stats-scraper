@@ -73,6 +73,7 @@ def unit_values(
     else:
         sums = frame.groupby(within)[[observed, expected]].transform("sum")
         null = sums[observed] / sums[expected]
+
     parts = pd.DataFrame(
         {
             "observed": frame[observed],
@@ -80,9 +81,11 @@ def unit_values(
             "variance": phi * match_variance(kind, null, frame[expected]),
         }
     )
+
     values = parts.groupby(frame[unit]).sum()
     values["value"] = values["observed"] / values["expected"]
     values["variance"] = values["variance"] / values["expected"] ** 2
+
     return values
 
 
@@ -121,6 +124,7 @@ def cohort_values(
     """
     sums = frame.groupby([unit, "season_cohort"])[[observed, expected]].sum()
     values = sums[observed] / sums[expected]
+
     if against is not None:
         group_sums = frame.groupby([against, "season_cohort"])[[observed, expected]].sum()
         group_values = group_sums[observed] / group_sums[expected]
@@ -128,6 +132,7 @@ def cohort_values(
         units, cohorts = values.index.get_level_values(0), values.index.get_level_values(1)
         keys = list(zip(owner.loc[units], cohorts, strict=True))
         values = values - group_values.loc[keys].to_numpy()
+
     return values.unstack().dropna()
 
 
@@ -159,10 +164,12 @@ def summary_row(
     """
     observed, expected, label, kind = quantity
     values, het, phi = tested(frame, unit, observed, expected, kind)
+
     pooled = float(values["observed"].sum() / values["expected"].sum())
     low, high = luck_line(values["expected"], pooled) if luck else (np.nan, np.nan)
     r, n = cohort_agreement(frame, unit, observed, expected)
     tau, found = het.tau2**0.5, stats.detectable_tau(values["variance"])
+
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
@@ -183,6 +190,7 @@ def summary_row(
         "cohorts r": r,
         "cohorts n": float(n),
     }
+
     return row, values
 
 
@@ -211,21 +219,26 @@ def within_tested(
     phi = dispersion(frame, part, observed, expected, kind)
     values = unit_values(frame, part, observed, expected, kind, phi, within=unit)
     values["owner"] = frame.groupby(part)[unit].first()
+
     # A part that expects nothing, or of a unit with no events, tells nothing: it leaves the
     # test, with its degree of freedom.
     values = values[(values["expected"] > 0) & (values["variance"] > 0)].copy()
+
     weights = 1.0 / values["variance"]
     by_owner = values["owner"]
     weight_sums = weights.groupby(by_owner).transform("sum")
     values["owner_mean"] = (weights * values["value"]).groupby(by_owner).transform("sum") / (
         weight_sums
     )
+
     q = float((weights * (values["value"] - values["owner_mean"]) ** 2).sum())
     df = len(values) - by_owner.nunique()
     scale = float(weights.sum() - (weights**2 / weight_sums).sum())
     tau2 = max(0.0, (q - df) / scale) if scale > 0 else 0.0
+
     keep = tau2 / (tau2 + values["variance"])
     values["shrunk"] = values["owner_mean"] + keep * (values["value"] - values["owner_mean"])
+
     return Within(values=values, q=q, df=df, p=float(chi2.sf(q, df)), tau2=tau2, scale=scale)
 
 
@@ -249,11 +262,13 @@ def within_row(
     observed, expected, label, kind = quantity
     result = within_tested(frame, unit, part, observed, expected, kind)
     r, n, p = repeat_test(frame, part, observed, expected, unit)
+
     values = result.values
     pooled = float(values["observed"].sum() / values["expected"].sum())
     against = values["shrunk"] - values["owner_mean"]
     keep = result.tau2 / (result.tau2 + values["variance"])
     found = stats.detectable_tau(values["variance"], groups=values["owner"])
+
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
@@ -271,6 +286,7 @@ def within_row(
         "repeat n": float(n),
         "repeat p": f"{p:.3g}",
     }
+
     return row, result
 
 
@@ -279,6 +295,7 @@ def within_luck_row(label: str, result: Within) -> dict[str, float | str]:
     part had the value of its unit."""
     values = result.values
     low, high = luck_line(values["expected"], values["owner_mean"].to_numpy())
+
     return {
         "quantity": label,
         "events, median": float(values["observed"].median()),
@@ -306,8 +323,10 @@ def null_q(
     observed, expected, _, kind = quantity
     if kind not in ("event", "count"):
         raise ValueError(f"no null draws for kind {kind!r}")
+
     sums = frame.groupby(unit)[[observed, expected]].transform("sum")
     means = (sums[observed] / sums[expected] * frame[expected]).to_numpy(dtype=float)
+
     rng = np.random.default_rng(seed)
     qs = []
     for _ in range(draws):
@@ -315,8 +334,10 @@ def null_q(
             drawn = (rng.random(len(means)) < np.clip(means, 0.0, 1.0)).astype(float)
         else:
             drawn = rng.poisson(means).astype(float)
+
         drawn_frame = frame.assign(drawn=drawn)
         qs.append(within_tested(drawn_frame, unit, part, "drawn", expected, kind).q)
+
     return float(np.mean(qs)), float(np.std(qs))
 
 
@@ -337,11 +358,13 @@ def permuted_qs(
     the method (such as a dispersion measured around small parts) is in both.
     """
     observed, expected, _, kind = quantity
+
     rng = np.random.default_rng(seed)
     qs = []
     for _ in range(draws):
         moved = frame.assign(**{part: shuffled_parts(frame[unit], frame[part], rng)})
         qs.append(within_tested(moved, unit, part, observed, expected, kind).q)
+
     return np.asarray(qs)
 
 
@@ -352,10 +375,13 @@ def shuffled_parts(
     part of a random match of its unit, and each part keeps its count of matches."""
     codes = pd.factorize(unit)[0]
     labels = part.to_numpy()
+
     by_unit = np.argsort(codes, kind="stable")
     shuffled = np.lexsort((rng.random(len(codes)), codes))
+
     moved = np.empty_like(labels)
     moved[by_unit] = labels[shuffled]
+
     return moved
 
 
@@ -392,10 +418,12 @@ def level_row(
     result = within_tested(frame, unit, part, observed, expected, kind)
     values = result.values
     pooled = float(values["observed"].sum() / values["expected"].sum())
+
     qs = permuted_qs(frame, unit, part, quantity, draws)
     null_mean = float(qs.mean())
     tau2 = max(0.0, (result.q - null_mean) / result.scale) if result.scale > 0 else 0.0
     found = stats.detectable_tau(values["variance"], groups=values["owner"])
+
     return {
         "quantity": label,
         "parts": float(len(values)),

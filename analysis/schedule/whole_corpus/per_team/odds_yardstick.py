@@ -67,6 +67,7 @@ def calibration(rows: pd.DataFrame) -> pd.DataFrame:
     """O/E of the calibrated quantities by the team's own win chance, with the interval over
     league-seasons."""
     bands = pd.cut(rows["win_chance"], WIN_EDGES)
+
     table = []
     for band, group in rows.groupby(bands, observed=True):
         for observed, expected, label, _ in QUANTITIES:
@@ -78,6 +79,7 @@ def calibration(rows: pd.DataFrame) -> pd.DataFrame:
                         **stats.observed_expected(group, observed, expected),
                     }
                 )
+
     return pd.DataFrame(table)
 
 
@@ -101,6 +103,7 @@ def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataF
         label = quantity[2]
         if label not in ROLES:
             continue
+
         mean, sd = units.null_q(rows, LEAGUE, UNIT, quantity)
         real = results[label].q
         table.append(
@@ -113,22 +116,27 @@ def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataF
                 "real - null, in sd": (real - mean) / sd,
             }
         )
+
     return pd.DataFrame(table)
 
 
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     share = yardstick.first_half_share(yardstick.priced(matches))
     frame = yardstick.frame(matches, yardstick.build_grid(), share=share)
     rows = card.team_yardstick_rows(matches, frame)
     print(f"Priced: {len(frame):,} matches; first-half share {share:.4f}")
     print(card.team_line(rows))
+
     report.show("Calibration by the team's own win chance (O/E)", calibration(rows))
+
     summary, results = [], {}
     for quantity in QUANTITIES:
         row, results[quantity[2]] = units.within_row(rows, LEAGUE, UNIT, quantity)
         summary.append(row)
+
     report.show("One test of the teams around their league, for each O/E", pd.DataFrame(summary))
     report.show("Q against the test's own null (100 draws)", null_table(rows, results))
     report.show(
@@ -139,6 +147,7 @@ def main() -> None:
         "The luck line of the two roles",
         pd.DataFrame([units.within_luck_row(label, results[label]) for label in RANKED]),
     )
+
     for label in RANKED:
         report.show(
             f"Teams most above their league: {label}",

@@ -70,6 +70,7 @@ def trailer_splits(frame: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     home_behind, away_behind = margin < 0, margin > 0
     fav_behind = (home_behind & frame["fav_is_home"]) | (away_behind & ~frame["fav_is_home"])
     decisive = home_behind | away_behind
+
     return {
         "favourite behind": decisive & fav_behind,
         "underdog behind": decisive & ~fav_behind,
@@ -92,6 +93,7 @@ def excess_table(frame: pd.DataFrame) -> pd.DataFrame:
 def side_goals(frame: pd.DataFrame) -> pd.DataFrame:
     """The favourite's and the underdog's goals, in each half and in all."""
     home = frame["fav_is_home"]
+
     return pd.DataFrame(
         {
             "fav_1h": np.where(home, frame["goals_home_1h"], frame["goals_away_1h"]),
@@ -108,6 +110,7 @@ def pivot(frame: pd.DataFrame) -> pd.DataFrame:
     """Comebacks by the favourite's win chance and the expected goals, both banded."""
     keys = [pd.cut(frame["fav_p"], FAV_EDGES), pd.cut(frame["m_goals"], yardstick.TOTAL_EDGES)]
     grouped = frame.groupby(keys, observed=True)
+
     table = pd.DataFrame(
         {
             "n": grouped.size(),
@@ -115,6 +118,7 @@ def pivot(frame: pd.DataFrame) -> pd.DataFrame:
             "expected": grouped["m_cb"].sum(),
         }
     )
+
     table["oe"] = table["observed"] / table["expected"]
     return table.reset_index().rename(columns={"fav_p": "win chance", "m_goals": "expected goals"})
 
@@ -122,15 +126,18 @@ def pivot(frame: pd.DataFrame) -> pd.DataFrame:
 def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
+
     grid = yardstick.build_grid()
     share = yardstick.first_half_share(yardstick.priced(matches))
     frame = yardstick.frame(matches, grid, share=share)
     print(f"Priced: {len(frame):,} of {len(matches):,} matches have both opening markets")
+
     error = frame["fit_error"].quantile([0.5, 0.9, 0.99, 1.0])
     print(
         "fit error (probability distance): "
         + ", ".join(f"q{q:g} {v:.4f}" for q, v in error.items())
     )
+
     poor = frame[frame["fit_error"] > POOR_FIT].sort_values("fit_error", ascending=False)
     print(f"fit error above {POOR_FIT}: {len(poor)} matches")
     print(
@@ -138,6 +145,7 @@ def main() -> None:
         .head(5)
         .to_string(index=False)
     )
+
     print(f"first-half share of goals: {share:.4f}")
     print(
         f"observed mean goals per match: {frame['goals'].mean():.4f} (first half "
@@ -185,11 +193,13 @@ def main() -> None:
             ]
         ),
     )
+
     rows = []
     for shift in (-SHARE_SHIFT, 0.0, SHARE_SHIFT):
         model = yardstick.implied(
             frame["lam_home"].to_numpy(), frame["lam_away"].to_numpy(), share + shift
         )
+
         expected = float(model["m_cb"].sum())
         rows.append(
             {
@@ -198,6 +208,7 @@ def main() -> None:
                 "oe": frame["is_comeback"].sum() / expected,
             }
         )
+
     report.show("Comebacks under other first-half shares", pd.DataFrame(rows))
 
     flat = yardstick.frame(matches, grid, share=share, proportional=True)
