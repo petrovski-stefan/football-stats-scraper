@@ -47,10 +47,11 @@ class LeagueConfig(BaseModel):
         if unknown:
             raise ValueError(f"{self.name}: keep {sorted(unknown)} is not in stages")
 
-        for s in self.seasons:
-            if parse_league_url(s.url) != (s.season, self.league_id):
+        for season_config in self.seasons:
+            if parse_league_url(season_config.url) != (season_config.season, self.league_id):
                 raise ValueError(
-                    f"{self.name}: {s.url} is not season {s.season} of id {self.league_id}"
+                    f"{self.name}: {season_config.url} is not season "
+                    f"{season_config.season} of id {self.league_id}"
                 )
 
         return self
@@ -89,8 +90,8 @@ def load_leagues(path: str = LEAGUES_FILE) -> list[LeagueConfig]:
     Failing the run beats skipping a bad entry: a typo in `keep` would otherwise scrape
     the wrong stage, or none, without anyone noticing.
     """
-    with open(path, encoding="utf-8") as f:
-        return [LeagueConfig.model_validate(entry) for entry in json.load(f)]
+    with open(path, encoding="utf-8") as leagues_file:
+        return [LeagueConfig.model_validate(entry) for entry in json.load(leagues_file)]
 
 
 def get_league_seasons(
@@ -110,8 +111,8 @@ def get_league_seasons(
 
     return [
         LeagueSeason(
-            s.url,
-            s.season,
+            season_config.url,
+            season_config.season,
             league.league_id,
             tuple(league.keep),
             league.code,
@@ -119,8 +120,8 @@ def get_league_seasons(
             league.country,
         )
         for league in leagues
-        for s in league.seasons
-        if _chosen(chosen, league, s)
+        for season_config in league.seasons
+        if _chosen(chosen, league, season_config)
     ]
 
 

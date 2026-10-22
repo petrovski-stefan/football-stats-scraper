@@ -100,7 +100,7 @@ def corpus_ids() -> dict[str, int | None]:
     """Match ids from the base league CSVs, mapped to their league id."""
     found: dict[str, int | None] = {}
     for path in paths.base_league_csvs():
-        frame = pd.read_csv(path, usecols=lambda c: c in {"match_id", "league_id"})
+        frame = pd.read_csv(path, usecols=lambda column: column in {"match_id", "league_id"})
         for row in frame.itertuples(index=False):
             found.setdefault(str(row.match_id), _as_int(getattr(row, "league_id", None)))
 
@@ -114,12 +114,12 @@ def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
     contribute nothing, and the caller reports the shortfall rather than failing.
     """
     wanted = {
-        f"{section}_last{n}_{field}"
+        f"{section}_last{slot}_{field}"
         for section in sections
-        for n in range(1, depth + 1)
+        for slot in range(1, depth + 1)
         for field in ("match_id", "league_id", "league", "date")
     }
-    prefixes = [f"{section}_last{n}_" for section in sections for n in range(1, depth + 1)]
+    prefixes = [f"{section}_last{slot}_" for section in sections for slot in range(1, depth + 1)]
 
     found: dict[str, int | None] = {}
     for base in paths.base_league_csvs():
@@ -127,7 +127,7 @@ def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
         if not os.path.exists(detail):
             continue
 
-        frame = pd.read_csv(detail, usecols=lambda c: c in wanted, low_memory=False)
+        frame = pd.read_csv(detail, usecols=lambda column: column in wanted, low_memory=False)
         for prefix in prefixes:
             _collect_block_ids(frame, prefix, found)
 

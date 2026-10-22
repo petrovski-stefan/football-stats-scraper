@@ -117,9 +117,9 @@ def subject_team_id(records: list[dict[str, Any]]) -> int | None:
         return None
 
     counter: Counter[int] = Counter()
-    for r in records:
-        counter[r["home_id"]] += 1
-        counter[r["away_id"]] += 1
+    for record in records:
+        counter[record["home_id"]] += 1
+        counter[record["away_id"]] += 1
 
     return counter.most_common(1)[0][0]
 
@@ -129,17 +129,17 @@ def aggregate_form(
 ) -> dict[str, Any]:
     """Aggregate a subject team's mini-records (most-recent-first) into features."""
     recs = records[:window] if window else records
-    n = len(recs)
-    if n == 0 or subject_id is None:
+    played = len(recs)
+    if played == 0 or subject_id is None:
         return _empty_form()
 
     tally: Counter[str] = Counter()
     form_chars: list[str] = []
     gf = ga = over25 = btts = pts = 0
-    for r in recs:
-        subject_home = r["home_id"] == subject_id
-        sgf = r["ft_home"] if subject_home else r["ft_away"]
-        sga = r["ft_away"] if subject_home else r["ft_home"]
+    for record in recs:
+        subject_home = record["home_id"] == subject_id
+        sgf = record["ft_home"] if subject_home else record["ft_away"]
+        sga = record["ft_away"] if subject_home else record["ft_home"]
 
         gf += sgf
         ga += sga
@@ -148,21 +148,21 @@ def aggregate_form(
         tally[outcome] += 1
         form_chars.append(outcome)
 
-        if stats.is_over(r["ft_home"] + r["ft_away"]):
+        if stats.is_over(record["ft_home"] + record["ft_away"]):
             over25 += 1
-        if stats.is_btts(r["ft_home"], r["ft_away"]):
+        if stats.is_btts(record["ft_home"], record["ft_away"]):
             btts += 1
 
     return {
-        "played": n,
+        "played": played,
         "wins": tally["W"],
         "draws": tally["D"],
         "losses": tally["L"],
-        "ppg": round(pts / n, 3),
-        "gf_avg": round(gf / n, 3),
-        "ga_avg": round(ga / n, 3),
-        "over25_rate": round(over25 / n, 3),
-        "btts_rate": round(btts / n, 3),
+        "ppg": round(pts / played, 3),
+        "gf_avg": round(gf / played, 3),
+        "ga_avg": round(ga / played, 3),
+        "over25_rate": round(over25 / played, 3),
+        "btts_rate": round(btts / played, 3),
         "form": "".join(form_chars[:6]),
     }
 
@@ -200,8 +200,8 @@ def aggregate_recent(
 def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict[str, Any]:
     """Head-to-head aggregate features, oriented to the current home team."""
     subject = subject_id if subject_id is not None else subject_team_id(records)
-    n = len(records)
-    if n == 0 or subject is None:
+    played = len(records)
+    if played == 0 or subject is None:
         return {
             "h2h_played": 0,
             "h2h_home_team_wins": None,
@@ -213,10 +213,10 @@ def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict
         }
 
     home_wins = draws = away_wins = over25 = btts = total = 0
-    for r in records:
-        subject_home = r["home_id"] == subject
-        sgf = r["ft_home"] if subject_home else r["ft_away"]
-        sga = r["ft_away"] if subject_home else r["ft_home"]
+    for record in records:
+        subject_home = record["home_id"] == subject
+        sgf = record["ft_home"] if subject_home else record["ft_away"]
+        sga = record["ft_away"] if subject_home else record["ft_home"]
 
         if sgf > sga:
             home_wins += 1
@@ -225,18 +225,18 @@ def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict
         else:
             away_wins += 1
 
-        total += r["ft_home"] + r["ft_away"]
-        over25 += stats.is_over(r["ft_home"] + r["ft_away"])
-        btts += stats.is_btts(r["ft_home"], r["ft_away"])
+        total += record["ft_home"] + record["ft_away"]
+        over25 += stats.is_over(record["ft_home"] + record["ft_away"])
+        btts += stats.is_btts(record["ft_home"], record["ft_away"])
 
     return {
-        "h2h_played": n,
+        "h2h_played": played,
         "h2h_home_team_wins": home_wins,
         "h2h_draws": draws,
         "h2h_away_team_wins": away_wins,
-        "h2h_over25_rate": round(over25 / n, 3),
-        "h2h_btts_rate": round(btts / n, 3),
-        "h2h_avg_total_goals": round(total / n, 3),
+        "h2h_over25_rate": round(over25 / played, 3),
+        "h2h_btts_rate": round(btts / played, 3),
+        "h2h_avg_total_goals": round(total / played, 3),
     }
 
 
@@ -442,14 +442,14 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
         ("away_next_fixture_days", DETAIL_FIXTURE_AWAY),
     ):
         for table in soup.select(selector):
-            m = _DAYS_RE.search(table.get_text())
-            if m:
-                out[key] = int(m.group(1))
+            found = _DAYS_RE.search(table.get_text())
+            if found:
+                out[key] = int(found.group(1))
                 break
 
     return out
 
 
 def _team_id(tag: Tag) -> int | None:
-    m = _TEAM_ID_RE.search(attr(tag, "onclick") or "")
-    return int(m.group(1)) if m else None
+    found = _TEAM_ID_RE.search(attr(tag, "onclick") or "")
+    return int(found.group(1)) if found else None

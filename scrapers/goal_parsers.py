@@ -88,10 +88,10 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     Liverpool 1-1 Brentford (match 2789503) was stored as 1-0 for exactly this reason.
     """
     unique: dict[tuple[int, int], dict[str, Any]] = {}
-    for event in sorted(events, key=lambda e: (e["minute"], e["stoppage"])):
+    for event in sorted(events, key=lambda goal: (goal["minute"], goal["stoppage"])):
         unique.setdefault((event["home_score_after"], event["away_score_after"]), event)
 
-    return sorted(unique.values(), key=lambda e: (e["minute"], e["stoppage"]))
+    return sorted(unique.values(), key=lambda goal: (goal["minute"], goal["stoppage"]))
 
 
 def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:

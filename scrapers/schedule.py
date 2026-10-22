@@ -297,9 +297,9 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
     """
     cells = {market: tuple(row.get(f) for f in fields) for market, fields in _MARKETS.items()}
     repeats = frozenset(
-        (a, b)
-        for a, b in combinations(_MARKETS, 2)
-        if cells[a] == cells[b] and any(v is not None for v in cells[a])
+        (market_a, market_b)
+        for market_a, market_b in combinations(_MARKETS, 2)
+        if cells[market_a] == cells[market_b] and any(v is not None for v in cells[market_a])
     )
 
     missing = _MISSING_BY_REPEATS.get(repeats, [])

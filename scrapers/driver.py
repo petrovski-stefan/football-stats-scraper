@@ -120,7 +120,7 @@ def wait_for_schedule_rows(driver: webdriver.Chrome, timeout: int = DEFAULT_TIME
         EC.presence_of_element_located((By.CSS_SELECTOR, SCHEDULE_ROWS))
     )
     WebDriverWait(driver, timeout).until(
-        lambda d: len(d.find_elements(By.CSS_SELECTOR, ROUND_SPANS)) > 0
+        lambda browser: len(browser.find_elements(By.CSS_SELECTOR, ROUND_SPANS)) > 0
     )
 
 
@@ -143,7 +143,7 @@ def get_detail_page(
     )
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
-            lambda d: len(d.find_elements(By.CSS_SELECTOR, DETAIL_HOME_RECENT_ROWS)) > 0
+            lambda browser: len(browser.find_elements(By.CSS_SELECTOR, DETAIL_HOME_RECENT_ROWS)) > 0
         )
     time.sleep(0.5)
 
@@ -162,9 +162,9 @@ def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAUL
     open_page(driver, LIVE_URL.format(match_id=match_id))
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
-            lambda d: any(
-                _MINUTE_RE.match(e.text.strip())
-                for e in d.find_elements(By.CSS_SELECTOR, LIVE_EVENT_MINUTE)
+            lambda browser: any(
+                _MINUTE_RE.match(minute_cell.text.strip())
+                for minute_cell in browser.find_elements(By.CSS_SELECTOR, LIVE_EVENT_MINUTE)
             )
         )
 
@@ -190,8 +190,8 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
     two look the same here, so the caller decides.
     """
 
-    def some_row_has_odds(d: webdriver.Chrome) -> bool:
-        for row in d.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS):
+    def some_row_has_odds(browser: webdriver.Chrome) -> bool:
+        for row in browser.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS):
             cells = row.find_elements(By.CSS_SELECTOR, ROW_ODDS_CELLS)
             if cells and _is_number(cells[0].text):
                 return True
@@ -226,7 +226,7 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
     driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
     switched = True
     try:
-        WebDriverWait(driver, timeout).until(lambda d: _odds_label(d) == label)
+        WebDriverWait(driver, timeout).until(lambda browser: _odds_label(browser) == label)
     except TimeoutException:
         switched = False
 
@@ -235,7 +235,9 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
     # Wait for the cells themselves to change. The middle cell is a draw price under
     # 1X2 and a line under AH/OU, so consecutive types never share it in practice.
     with contextlib.suppress(TimeoutException):
-        WebDriverWait(driver, timeout).until(lambda d: _first_row_odds(d) not in (before, []))
+        WebDriverWait(driver, timeout).until(
+            lambda browser: _first_row_odds(browser) not in (before, [])
+        )
     time.sleep(0.3)
     return switched
 
@@ -265,7 +267,7 @@ def sync_standings_to_stage(
     return _select_standings(
         driver,
         (By.CSS_SELECTOR, SUB_STANDING_ITEM.format(stage=stage_id)),
-        lambda d: _standing_sub(d) == stage_id,
+        lambda browser: _standing_sub(browser) == stage_id,
         timeout,
     )
 
@@ -302,7 +304,7 @@ def show_total_standings(driver: webdriver.Chrome, timeout: int = DEFAULT_TIMEOU
     return _select_standings(
         driver,
         (By.XPATH, STANDING_TOTAL_ITEM),
-        lambda d: _standing_label(d) == STANDING_TOTAL_LABEL,
+        lambda browser: _standing_label(browser) == STANDING_TOTAL_LABEL,
         timeout,
     )
 
@@ -325,13 +327,16 @@ def _click_schedule_tab(
     driver.execute_script(_CLICK_JS, span)  # type: ignore[no-untyped-call]
 
     WebDriverWait(driver, timeout).until(
-        lambda d: _has_class(d.find_element(By.CSS_SELECTOR, selector), active_class)
+        lambda browser: _has_class(browser.find_element(By.CSS_SELECTOR, selector), active_class)
     )
 
     # Wait for the row list to actually swap (unless the button was already active).
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
-            lambda d: _first_row_match_id(d) != prev_first_id or _first_row_match_id(d) is None
+            lambda browser: (
+                _first_row_match_id(browser) != prev_first_id
+                or _first_row_match_id(browser) is None
+            )
         )
 
     wait_for_schedule_rows(driver, timeout)
