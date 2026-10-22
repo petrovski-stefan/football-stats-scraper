@@ -60,22 +60,7 @@ The user's VS Code formats on save (Ruff for `.py`, pointed at the project's ruf
 
 ### Readability
 
-The user's rules, 2026-10-22. They apply to all new and changed Python code, `tests/` included.
-
-- Write for the human reader: explicit code over compact code; never trade readability for fewer lines.
-- Give new and changed code descriptive names; one-letter names only for `i`, `_` and a one-line comprehension.
-- Before you finish, read every changed file as a whole for readability, not only for correctness.
-
-Blank lines are part of code quality. Split a function into its logical phases, with one blank line between phases.
-
-- Typical phases: scrapers open → wait → parse → validate → write; features load → derive → write; runners load → compute → print; tests arrange → act → assert.
-- Keep closely related lines together (several fields read from one row, counters set together).
-- Put a blank line after a guard block (`if not ids: return`) and before the work it guards.
-- Put a blank line before and after a loop, `with` or `if` block that is a phase of its own.
-- A comment that introduces a phase gets a blank line above it.
-- One blank line, never two, and never directly after `def`, `if` or `for` (ruff format removes those).
-- Not after every statement: a blank line marks the end of a phase.
-- Before you finish a function, look at it as a whole and add the missing breaks.
+`CODING_STYLE.md` holds the readability rules (the user, 2026-10-22): names, function shape, blank lines, comments, errors and tests. **Read it before you write or change Python code**, `tests/` included.
 
 ## Required runtime setup
 
