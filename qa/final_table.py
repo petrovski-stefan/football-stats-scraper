@@ -53,12 +53,14 @@ def _check_team(r: Report, label: str, table: Standings, points: dict[int, int],
     team = int(page.team_id)
     ours = table.line("total", team)
     rebuilt = {name: getattr(ours, name) for name in _COUNTS} | {"points": points[team]}
+
     differ = {
         name: (int(getattr(page, f"s1_{name}")), rebuilt[name])
         for name in _COUNTS
         if int(getattr(page, f"s1_{name}")) != rebuilt[name]
     }
     r.check(not differ, f"{label}{page.s1_team_name}: (page, rebuilt) {differ}")
+
     # Teams level on points share a block of positions; the page may order them either way.
     first = 1 + sum(other > points[team] for other in points.values())
     last = first + list(points.values()).count(points[team]) - 1
@@ -73,6 +75,7 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
     if final_table.empty:
         r.check(False, "no final table: the rebuilt standings are unchecked")
         return
+
     first_row = final_table.iloc[0]
     league, season = int(first_row["league_id"]), str(first_row["season"])
     for stage, page in final_table.groupby("stage", sort=False):
@@ -81,12 +84,15 @@ def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
         if matches.empty:
             r.check(False, f"{label}a final table but no stored matches")
             continue
+
         table = _rebuild(matches)
         ranks = table.ranks("total")
         on_page = {int(team) for team in page["team_id"]}
         extra, missing = sorted(on_page - set(ranks)), sorted(set(ranks) - on_page)
+
         r.check(not extra, f"{label}teams on the page with no stored match: {extra}")
         r.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
+
         deducted = deductions.on_page(league, season, str(stage))
         points = {team: table.line("total", team).points + deducted.get(team, 0) for team in ranks}
         for row in page[page["team_id"].astype(int).isin(ranks)].itertuples(index=False):

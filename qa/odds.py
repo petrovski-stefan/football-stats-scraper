@@ -82,8 +82,10 @@ def check_1x2(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     sub = _present(df, c.home, c.draw, c.away)
     if sub.empty:
         return
+
     impossible = sub[(sub[c.home] <= 1) | (sub[c.draw] <= 1) | (sub[c.away] <= 1)]
     r.check(impossible.empty, f"{len(impossible)} rows with a 1X2 price <= 1")
+
     overround = 1 / sub[c.home] + 1 / sub[c.draw] + 1 / sub[c.away]
     out_of_band = sub[(overround < OVERROUND_MIN) | (overround > OVERROUND_MAX)]
     r.check(
@@ -104,12 +106,15 @@ def check_asian(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
         ("OU", c.ou_line, c.over, c.under),
         ("AH", c.ah_line, c.ah_home, c.ah_away),
     )
+
     for kind, line, price_a, price_b in markets:
         sub = _present(df, line, price_a, price_b)
         if sub.empty:
             continue
+
         bad_price = sub[(sub[price_a] <= 1) | (sub[price_b] <= 1)]
         r.check(bad_price.empty, f"{len(bad_price)} {kind} rows with a price <= 1")
+
         overround = 1 / sub[price_a] + 1 / sub[price_b]
         wide = sub[(overround < OVERROUND_MIN) | (overround > TWO_WAY_OVERROUND_MAX)]
         r.check(
@@ -117,6 +122,7 @@ def check_asian(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
             f"{len(wide)} {kind} rows with a two-way overround outside "
             f"{OVERROUND_MIN:.2f}-{TWO_WAY_OVERROUND_MAX:.2f}",
         )
+
         off_grid = sub[((sub[line] / QUARTER).round() - sub[line] / QUARTER).abs() > 1e-9]
         r.check(
             off_grid.empty,
@@ -132,11 +138,13 @@ def _line_limits(df: pd.DataFrame, c: OddsColumns) -> tuple["pd.Series[float]", 
         favourite = prices.min(axis=1, skipna=False).fillna(NO_PRICE_BAND)
     else:
         favourite = pd.Series(NO_PRICE_BAND, index=df.index)
+
     ah_max = pd.Series(LINE_LIMITS[0][1], index=df.index)
     ou_max = pd.Series(LINE_LIMITS[0][2], index=df.index)
     for start, ah_limit, ou_limit in LINE_LIMITS[1:]:
         ah_max = ah_max.mask(favourite >= start, ah_limit)
         ou_max = ou_max.mask(favourite >= start, ou_limit)
+
     return ah_max, ou_max
 
 
@@ -148,6 +156,7 @@ def check_line_size(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     real mismatches, where a 1.01-1.04 favourite carries a 4.25-6 handicap and a total up to 7.
     """
     ah_max, ou_max = _line_limits(df, c)
+
     ou = _present(df, c.ou_line, c.over, c.under)
     if not ou.empty:
         off = ou[(ou[c.ou_line] < OU_LINE_MIN) | (ou[c.ou_line] > ou_max[ou.index])]
@@ -155,6 +164,7 @@ def check_line_size(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
             off.empty,
             f"{len(off)} OU rows with a line below {OU_LINE_MIN} or above its favourite's limit",
         )
+
     ah = _present(df, c.ah_line, c.ah_home, c.ah_away)
     if not ah.empty:
         big = ah[ah[c.ah_line].abs() > ah_max[ah.index]]
@@ -166,9 +176,11 @@ def check_ah_sign(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     sub = _present(df, c.ah_line, c.home, c.away)
     if sub.empty:
         return
+
     sub = sub[sub[c.ah_line] != 0]
     if sub.empty:
         return
+
     home_fav = sub[c.home] < sub[c.away]
     disagree = sub[(sub[c.ah_line] > 0) != home_fav]
     share = len(disagree) / len(sub)
@@ -190,6 +202,7 @@ def check_goal_line_above_handicap(r: Report, df: pd.DataFrame, c: OddsColumns) 
     sub = _present(df, c.ou_line, c.ah_line)
     if sub.empty:
         return
+
     flat = sub[sub[c.ou_line] <= sub[c.ah_line].abs()]
     r.check(flat.empty, f"{len(flat)} rows whose OU line is not above the AH line's size")
 
@@ -203,6 +216,7 @@ def check_whole_markets(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     for kind, cells in c.markets().items():
         if not set(cells) <= set(df.columns):
             continue
+
         filled = df[list(cells)].notna().sum(axis=1)
         part = int(((filled > 0) & (filled < len(cells))).sum())
         r.check(part == 0, f"{part} {kind} rows with only part of the market filled")
@@ -216,6 +230,7 @@ def check_coverage(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     """
     if df.empty or not set(c.cells()) <= set(df.columns):
         return
+
     full = len(_present(df, *c.cells()))
     share = full / len(df)
     r.check(

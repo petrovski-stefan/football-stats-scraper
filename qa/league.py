@@ -66,6 +66,7 @@ def _check_round_row_counts(r: Report, df: pd.DataFrame) -> None:
     """
     if "matches_in_round" not in df.columns:
         return
+
     overfull = {
         _round_label(key): (len(g), int(g["matches_in_round"].iloc[0]))
         for key, g in _rounds(df)
@@ -127,6 +128,7 @@ def _check_index_range(r: Report, label: str, idx: "pd.Series[Any]", total: int)
     """Check 2: indices are unique and lie in 1..matches_in_round."""
     if idx.duplicated().any():
         r.check(False, f"{label}: duplicate match_index_in_round")
+
     out_of_range = idx[(idx < 1) | (idx > total)]
     if len(out_of_range):
         r.check(False, f"{label}: {len(out_of_range)} index outside 1..{total}")
@@ -200,6 +202,7 @@ def _check_standings_positions(r: Report, df: pd.DataFrame) -> None:
     num_teams = len(set(df["home_team_id"]) | set(df["away_team_id"]))
     positions = df[["home_team_position", "away_team_position"]].dropna()
     out_of_range = positions[(positions < 1).any(axis=1) | (positions > num_teams).any(axis=1)]
+
     r.check(
         out_of_range.empty,
         f"{len(out_of_range)} rows with a standings position outside 1..{num_teams}",

@@ -75,6 +75,7 @@ def _check_history_depth_ordering(r: Report, df: pd.DataFrame) -> None:
             (column, float(df[column].notna().mean()))
             for column in _section_columns(df, section, "ft_score")
         ]
+
         for (shallow, shallow_rate), (deep, deep_rate) in pairwise(rates):
             r.check(
                 deep_rate <= shallow_rate + DEPTH_TOLERANCE,

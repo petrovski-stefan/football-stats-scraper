@@ -72,6 +72,7 @@ def check_unique_across(
     for name, values in ids.items():
         for value in set(values):
             files.setdefault(value, []).append(name)
+
     shared = sorted((value, names) for value, names in files.items() if len(names) > 1)
     example = f", e.g. {shared[0][0]} in {shared[0][1]}" if shared else ""
     r.check(not shared, f"{len(shared)} {key} values in more than one file{example}")
@@ -105,6 +106,7 @@ def check_no_dead_columns(
     """
     if df.empty:
         return
+
     empty_rate = df.isna().mean()
     dead = sorted(
         str(name)

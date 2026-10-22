@@ -62,6 +62,7 @@ def validate(r: Report, df: pd.DataFrame) -> None:
     check_coverage(r, df, STAGED_ODDS)
     _check_kickoff_years(r, df)
     _check_no_team_twice_in_a_day(r, df)
+
     for stage, group in df.groupby("s1_stage", sort=False):
         label = f"stage {stage!r}: " if stage else ""
         _check_round_sizes(r, group, label)
@@ -85,6 +86,7 @@ def _check_kickoff_years(r: Report, df: pd.DataFrame) -> None:
     start = season_start_year(str(df["s1_season"].iloc[0])) if len(df) else None
     if start is None:
         return
+
     years = df["s1_date"].map(lambda text: parse_instant(text).year)
     outside = df[(years < start) | (years > start + 1)]
     r.check(outside.empty, f"{len(outside)} kickoffs outside {start}-{start + 1}")
@@ -99,10 +101,12 @@ def _check_no_team_twice_in_a_day(r: Report, df: pd.DataFrame) -> None:
             pd.DataFrame({"team": df["s1_away_team_id"], "kickoff": kick}),
         ]
     )
+
     clashes = 0
     for _, group in long.groupby("team"):
         gaps = group["kickoff"].sort_values().diff().dropna()
         clashes += int((gaps < MIN_GAP_BETWEEN_MATCHES).sum())
+
     r.check(clashes == 0, f"{clashes} pairs of matches of one team less than 24 h apart")
 
 
@@ -113,6 +117,7 @@ def _check_round_sizes(r: Report, group: pd.DataFrame, label: str) -> None:
     sizes = group.groupby("s1_round").size()
     rounds = zip(sizes.index.tolist(), sizes.tolist(), strict=True)
     wrong = {int(rnd): int(n) for rnd, n in rounds if n != expected}
+
     r.check(
         not wrong, f"{label}{len(wrong)} rounds without {expected} matches (round: count) {wrong}"
     )
@@ -127,6 +132,7 @@ def _check_team_once_per_round(r: Report, group: pd.DataFrame, label: str) -> No
             pd.DataFrame({"round": group["s1_round"], "team": group["s1_away_team_id"]}),
         ]
     )
+
     rounds = sorted({int(rnd) for rnd in slots.loc[slots.duplicated(), "round"]})
     r.check(not rounds, f"{label}{len(rounds)} rounds where a team plays twice (rounds) {rounds}")
 
@@ -138,6 +144,7 @@ def _check_pairs_meet_equally(r: Report, group: pd.DataFrame, label: str) -> Non
         frozenset(pair)
         for pair in zip(group["s1_home_team_id"], group["s1_away_team_id"], strict=True)
     )
+
     counts = Counter(met[frozenset(pair)] for pair in combinations(teams, 2))
     r.check(
         len(counts) <= 1, f"{label}pairs of teams meet unequally (meetings: pairs) {dict(counts)}"
@@ -151,8 +158,10 @@ def _check_rounds_have_odds(r: Report, group: pd.DataFrame, label: str) -> None:
     cells = STAGED_ODDS.cells()
     if not set(cells) <= set(group.columns):
         return
+
     by_round = group[cells].notna().any(axis=1).groupby(group["s1_round"])
     sizes, priced = by_round.size(), by_round.any()
     rounds = zip(sizes.index.tolist(), sizes.tolist(), priced.tolist(), strict=True)
     blank = [int(rnd) for rnd, n, odds in rounds if n >= BLANK_ROUND_MIN_MATCHES and not odds]
+
     r.check(not blank, f"{label}{len(blank)} rounds without odds on any match (rounds) {blank}")

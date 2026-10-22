@@ -58,6 +58,7 @@ def _check_columns(r: Report, goals: pd.DataFrame) -> None:
     """Per-row ranges, independent of any match context."""
     if goals.empty:
         return
+
     bad_minute = goals[(goals["minute"] < 1) | (goals["minute"] > MAX_MINUTE)]
     r.check(bad_minute.empty, f"{len(bad_minute)} goals with a minute outside 1..{MAX_MINUTE}")
 
@@ -72,9 +73,11 @@ def _check_sequences(r: Report, goals: pd.DataFrame) -> None:
     """Per-match invariants that hold with or without a stored score."""
     if goals.empty:
         return
+
     offenders: dict[str, list[str]] = {"order": [], "index": [], "side": []}
     for match_id, group in goals.groupby(goals["match_id"].astype(str)):
         _inspect_match(str(match_id), group, offenders)
+
     r.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
     r.check(not offenders["index"], f"{len(offenders['index'])} matches with a broken goal_index")
     r.check(
@@ -96,6 +99,7 @@ def _inspect_match(match_id: str, group: pd.DataFrame, offenders: dict[str, list
     keys = list(zip(minutes, stoppages, strict=True))
     if keys != sorted(keys):
         offenders["order"].append(match_id)
+
     if indices != list(range(1, len(indices) + 1)):
         offenders["index"].append(match_id)
 
@@ -114,6 +118,7 @@ def _check_against_truth(
     """The oracle: reconcile the count and the half-time split against known scores."""
     if truth.empty:
         return
+
     scraped = set(done["match_id"].astype(str))
     truth_ids = truth["match_id"].astype(str)
     known = truth[truth_ids.isin(scraped)]
@@ -122,6 +127,7 @@ def _check_against_truth(
         unchecked == 0,
         f"{unchecked} scraped matches have no independently known score to check against",
     )
+
     if known.empty:
         return
 
@@ -166,6 +172,7 @@ def _per_match_totals(goals: pd.DataFrame) -> dict[str, tuple[int, int, int, int
     """match_id -> (ft_home, ft_away, ht_home, ht_away), counted from the goal rows."""
     if goals.empty:
         return {}
+
     is_home = goals["side"].eq("home")
     first_half = goals["minute"].le(HALF_TIME)
     frame = pd.DataFrame(
@@ -177,6 +184,7 @@ def _per_match_totals(goals: pd.DataFrame) -> dict[str, tuple[int, int, int, int
             "ht_away": (~is_home & first_half).astype(int),
         }
     )
+
     summed = frame.groupby("match_id")[["ft_home", "ft_away", "ht_home", "ht_away"]].sum()
     return {
         str(match_id): (int(row[0]), int(row[1]), int(row[2]), int(row[3]))
@@ -208,6 +216,7 @@ def _check_half_split(r: Report, goals: pd.DataFrame) -> None:
     if len(goals) < MIN_GOALS_FOR_SHARE:
         print(f"    (info) 2H goal share {share:.1%} on {len(goals)} goals (too few to judge)")
         return
+
     print(f"    (info) second-half goal share {share:.1%}")
     r.check(
         SECOND_HALF_SHARE_MIN <= share <= SECOND_HALF_SHARE_MAX,

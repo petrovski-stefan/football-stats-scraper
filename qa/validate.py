@@ -173,10 +173,13 @@ def _goal_truth() -> pd.DataFrame:
         detail_path = paths.detail_path(base)
         if not os.path.exists(detail_path):
             continue
+
         detail = pd.read_csv(detail_path, low_memory=False)
         frames.extend(_history_scores(detail))
+
     if not frames:
         return pd.DataFrame(columns=SCORE_COLUMNS)
+
     truth = pd.concat(frames, ignore_index=True).dropna(subset=["match_id"])
     return truth.drop_duplicates("match_id", keep="first")
 
@@ -189,9 +192,11 @@ def _history_scores(detail: pd.DataFrame) -> list[pd.DataFrame]:
             columns = {f"{section}_last{n}_{field}": field for field in SCORE_COLUMNS}
             if not all(c in detail.columns for c in columns):
                 continue
+
             block = detail[list(columns)].rename(columns=columns).dropna()
             if not block.empty:
                 out.append(block.astype(dict.fromkeys(SCORE_COLUMNS, "int64")))
+
     return out
 
 
@@ -216,6 +221,7 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     final_table_checks.check(t, schedule, table)
 
     reports = [r, t, *_derived_reports(schedule_path, schedule, f"{league} {season}")]
+
     # A list, not a generator: `all()` would stop at the first failure and leave the
     # remaining reports unprinted.
     verdicts = [report.flush() for report in reports]
@@ -237,7 +243,9 @@ def _derived_reports(schedule_path: str, raw: pd.DataFrame, subject: str) -> lis
             earlier[stage] = frame
         else:
             r.check(False, f"no stage-{stage} file: run `uv run python -m {builder}`")
+
         reports.append(r)
+
     return reports
 
 
@@ -250,14 +258,18 @@ def validate_corpus(schedule_paths: list[str]) -> bool:
         os.path.basename(path): schedule_checks.read_staged(path, ["match_id", "s1_league_id"])
         for path in schedule_paths
     }
+
     universal.check_unique_across(r, {name: _ids(frame) for name, frame in keys.items()})
+
     league_ids = _config_league_ids()
     r.check(league_ids is not None, f"no {paths.LEAGUES_FILE}: the leagues go unchecked")
     if league_ids is not None:
         found = {name: frame["s1_league_id"].astype(str).tolist() for name, frame in keys.items()}
         universal.check_declared(r, found, league_ids, f"league id not in {paths.LEAGUES_FILE}")
+
     for stage in _BUILDERS:
         stage_checks.check_no_orphans(r, schedule_paths, paths.schedule_csvs(stage), stage)
+
     return r.flush()
 
 
@@ -276,8 +288,10 @@ def validate_staged() -> bool:
     if not schedule_paths:
         print(f"no staged schedules found in {paths.stage_dir(1)}/")
         return False
+
     staged = [validate_staged_schedule(path) for path in schedule_paths]
     corpus = validate_corpus(schedule_paths)
+
     print(f"{staged.count(True)}/{len(staged)} staged league-seasons passed")
     return all(staged) and corpus
 
@@ -311,6 +325,7 @@ def main(argv: list[str] | None = None) -> None:
         action="store_true",
         help="check the old pipeline's files in data/archived/ instead of data/finished/",
     )
+
     args = parser.parse_args(argv)
     if not (validate_archived() if args.archived else validate_staged()):
         raise SystemExit(1)

@@ -69,6 +69,7 @@ def validate(
     checks (declared columns, the key) are `qa/validate.py`'s, as for stage 1."""
     for n, before in earlier.items():
         check_carried(r, before, frame, _ADDED[n], f"stage {n}")
+
     if stage == 2:
         check_odds_fields(r, frame)
     if stage == 3:
@@ -82,15 +83,19 @@ def check_carried(
     each of `columns`."""
     if not (_pairable(before) and _pairable(after)):
         return
+
     old, new = before.set_index("match_id"), after.set_index("match_id")
     missing = old.index.difference(new.index)
     extra = new.index.difference(old.index)
+
     r.check(missing.empty, f"{len(missing)} matches of {source} missing (stale: rebuild)")
     r.check(extra.empty, f"{len(extra)} matches not in {source} (stale: rebuild)")
+
     shared = old.index.intersection(new.index)
     names = [c for c in columns if c in old.columns and c in new.columns]
     differ = {c: int((~_same(old.loc[shared, c], new.loc[shared, c])).sum()) for c in names}
     changed = {c: n for c, n in differ.items() if n}
+
     r.check(
         not changed,
         f"{sum(changed.values())} values differ from {source} (column: count) "
@@ -107,6 +112,7 @@ def _pairable(frame: pd.DataFrame) -> bool:
 def _same(old: "pd.Series[Any]", new: "pd.Series[Any]") -> "pd.Series[bool]":
     """Equal, or both empty. Floats compare within `TOLERANCE`."""
     both_empty = old.isna() & new.isna()
+
     if pd.api.types.is_float_dtype(old) and pd.api.types.is_float_dtype(new):
         close = np.isclose(old.to_numpy(), new.to_numpy(), rtol=TOLERANCE, atol=0.0)
         return pd.Series(close, index=old.index) | both_empty
@@ -123,9 +129,11 @@ def check_odds_fields(r: Report, frame: pd.DataFrame) -> None:
         cells = markets[kind]
         if not {flag, *cells, *values} <= set(frame.columns):
             continue
+
         present = frame[list(cells)].notna().all(axis=1)
         flags = int((frame[flag].eq(True) != present).sum())
         r.check(flags == 0, f"{flags} rows where {flag} disagrees with the {kind} cells")
+
         computed = frame[list(values)].notna()
         stray = int(computed.ne(present, axis=0).any(axis=1).sum())
         r.check(
@@ -133,6 +141,7 @@ def check_odds_fields(r: Report, frame: pd.DataFrame) -> None:
             f"{stray} rows with a value computed from {kind} that is there without the "
             f"market, or missing with it",
         )
+
     if set(_PROBABILITIES) <= set(frame.columns):
         total = frame[_PROBABILITIES].sum(axis=1, min_count=len(_PROBABILITIES))
         off = int(((total - 1).abs() > TOLERANCE).sum())
@@ -146,6 +155,7 @@ def check_round_fields(r: Report, frame: pd.DataFrame) -> None:
     every comeback; and the two averages read the same matches, so they are empty together."""
     if not set(_ROUND) <= set(frame.columns):
         return
+
     (size, finished, comebacks, seven, rare, btts, goals, line) = (frame[c] for c in _ROUND)
     broken = {
         "s3_round_pre_rare_events is above comebacks + seven_plus": rare > comebacks + seven,
@@ -157,6 +167,7 @@ def check_round_fields(r: Report, frame: pd.DataFrame) -> None:
         "s3_round_pre_comebacks is above s3_round_pre_btts": comebacks > btts,
         "only one of the two round averages is empty": goals.isna() != line.isna(),
     }
+
     for rule, rows in broken.items():
         count = int(rows.sum())
         r.check(count == 0, f"{count} rows where {rule}")
@@ -171,4 +182,5 @@ def check_no_orphans(
     orphans = sorted(
         os.path.basename(p) for p in later_paths if os.path.normpath(p) not in expected
     )
+
     r.check(not orphans, f"{len(orphans)} stage-{stage} files without a stage-1 file {orphans[:3]}")

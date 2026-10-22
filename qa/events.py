@@ -64,6 +64,7 @@ def _check_columns(r: Report, events: pd.DataFrame) -> None:
     """Per-row ranges, independent of any match context."""
     if events.empty:
         return
+
     bad_minute = events[(events["minute"] < 1) | (events["minute"] > MAX_MINUTE)]
     r.check(bad_minute.empty, f"{len(bad_minute)} events with a minute outside 1..{MAX_MINUTE}")
 
@@ -81,9 +82,11 @@ def _check_sequences(r: Report, events: pd.DataFrame) -> None:
     """Per-match invariants."""
     if events.empty:
         return
+
     offenders: dict[str, list[str]] = {"order": [], "index": [], "subs": []}
     for match_id, group in events.groupby(events["match_id"].astype(str)):
         _inspect_match(str(match_id), group, offenders)
+
     r.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
     r.check(not offenders["index"], f"{len(offenders['index'])} matches with a broken event_index")
     r.check(
@@ -111,6 +114,7 @@ def _inspect_match(match_id: str, group: pd.DataFrame, offenders: dict[str, list
             strict=True,
         )
     )
+
     if keys != sorted(keys):
         offenders["order"].append(match_id)
 
@@ -128,16 +132,20 @@ def _check_rates(r: Report, events: pd.DataFrame, done: pd.DataFrame) -> None:
     matches = len(done)
     if matches == 0:
         return
+
     rates = {
         YELLOW_CARD: (float((events["kind"] == YELLOW_CARD).sum()) / matches, YELLOW_PER_MATCH),
         RED_CARD: (float((events["kind"] == RED_CARD).sum()) / matches, RED_PER_MATCH),
         SUBSTITUTION: (float((events["kind"] == SUBSTITUTION).sum()) / matches, SUBS_PER_MATCH),
     }
+
     for kind, (rate, _) in rates.items():
         print(f"    (info) {kind:<14} {rate:.2f} per match")
+
     if matches < MIN_MATCHES_FOR_RATES:
         print(f"    (info) {matches} matches — too few to judge the rate bands")
         return
+
     for kind, (rate, (low, high)) in rates.items():
         r.check(
             low <= rate <= high,
@@ -151,6 +159,7 @@ def _check_sub_side_balance(r: Report, events: pd.DataFrame) -> None:
     subs = events[events["kind"] == SUBSTITUTION]
     if len(subs) < MIN_SUBS_FOR_SIDE_CHECK:
         return
+
     away = float(subs["side"].eq("away").mean())
     print(f"    (info) substitution side split {1 - away:.2%} home / {away:.2%} away")
     r.check(
