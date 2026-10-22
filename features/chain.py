@@ -63,8 +63,8 @@ def recover_intercept() -> float:
     observed = np.array([p for _, _, p in F4_OCTILES])
     grid = np.linspace(-2.0, 4.0, 60001)
 
-    def sse(b: float) -> float:
-        predicted = 1 / (1 + np.exp(-(b - 1.72 * np.log(odds) - 1.27)))
+    def sse(intercept: float) -> float:
+        predicted = 1 / (1 + np.exp(-(intercept - 1.72 * np.log(odds) - 1.27)))
         return float(np.sum(weights * (predicted - observed) ** 2))
 
     return float(grid[int(np.argmin([sse(b) for b in grid]))])
@@ -73,7 +73,7 @@ def recover_intercept() -> float:
 # --- Validation gate ----------------------------------------------------------
 
 
-def replicate_f11(df: pd.DataFrame) -> bool:
+def replicate_f11(matrix_df: pd.DataFrame) -> bool:
     """Prove the imported completion stage is valid before anything is built on it.
 
     Two checks: the recovered intercept must reproduce F4's published octiles, and
@@ -87,43 +87,43 @@ def replicate_f11(df: pd.DataFrame) -> bool:
     recovered = recover_intercept()
     print(f"\n  intercept: stored={F11_INTERCEPT:.4f}  recomputed={recovered:.4f}")
 
-    odds = np.array([o for o, _, _ in F4_OCTILES])
-    observed = np.array([p for _, _, p in F4_OCTILES])
+    odds = np.array([octile_odds for octile_odds, _, _ in F4_OCTILES])
+    observed = np.array([completion for _, _, completion in F4_OCTILES])
     predicted = f11_completion(odds, np.ones(len(odds)), np.zeros(len(odds)))
     print("\n  vs F4's published octiles (deficit -1):")
     print("     trailer odds   published   imported model")
 
     worst = 0.0
-    for o, obs, pred in zip(odds, observed, predicted, strict=True):
+    for octile_odds, obs, pred in zip(odds, observed, predicted, strict=True):
         worst = max(worst, abs(obs - pred))
-        print(f"     {o:11.2f}   {obs:8.1%}   {pred:13.1%}")
+        print(f"     {octile_odds:11.2f}   {obs:8.1%}   {pred:13.1%}")
 
     ok_published = worst < 0.03
     print(f"    max absolute error {worst:.1%} — {'PASS' if ok_published else 'FAIL'} (bar: <3pp)")
 
-    trailing = trailing_states(df)
-    print(f"\n  applied to this corpus's {len(trailing)} trailing states:")
+    trailing_df = trailing_states(matrix_df)
+    print(f"\n  applied to this corpus's {len(trailing_df)} trailing states:")
 
-    p = f11_completion(
-        trailing["trailer_odds"].to_numpy(dtype=float),
-        trailing["deficit"].to_numpy(dtype=float),
-        trailing["trailer_is_home"].to_numpy(dtype=float),
+    completion = f11_completion(
+        trailing_df["trailer_odds"].to_numpy(dtype=float),
+        trailing_df["deficit"].to_numpy(dtype=float),
+        trailing_df["trailer_is_home"].to_numpy(dtype=float),
     )
-    trailing = trailing.assign(p=p)
+    trailing_df = trailing_df.assign(p=completion)
 
-    quartiles = pd.qcut(trailing["p"], 4, labels=False, duplicates="drop")
+    quartiles = pd.qcut(trailing_df["p"], 4, labels=False, duplicates="drop")
     print("     quartile   n   predicted   observed")
     rates = []
-    for q in sorted(pd.unique(quartiles.dropna())):
-        group = trailing[quartiles == q]
+    for quartile in sorted(pd.unique(quartiles.dropna())):
+        group = trailing_df[quartiles == quartile]
         rates.append(group["completed"].mean())
         print(
-            f"     {int(q) + 1:8d} {len(group):4d}   {group['p'].mean():8.1%}   "
+            f"     {int(quartile) + 1:8d} {len(group):4d}   {group['p'].mean():8.1%}   "
             f"{group['completed'].mean():7.1%}"
         )
 
     monotone = all(a <= b for a, b in pairwise(rates))
-    overall_pred, overall_obs = trailing["p"].mean(), trailing["completed"].mean()
+    overall_pred, overall_obs = trailing_df["p"].mean(), trailing_df["completed"].mean()
     print(f"\n     overall predicted {overall_pred:.1%} vs observed {overall_obs:.1%}")
     print(f"     monotone in predicted risk: {'PASS' if monotone else 'FAIL'}")
 
@@ -132,27 +132,29 @@ def replicate_f11(df: pd.DataFrame) -> bool:
     return ok
 
 
-def trailing_states(df: pd.DataFrame) -> pd.DataFrame:
+def trailing_states(matrix_df: pd.DataFrame) -> pd.DataFrame:
     """One row per match where somebody trailed at half-time."""
-    margin = df["ht_home_goals"] - df["ht_away_goals"]
-    sub = df[margin != 0].copy()
-    home_trails = (sub["ht_home_goals"] < sub["ht_away_goals"]).to_numpy()
+    margin = matrix_df["ht_home_goals"] - matrix_df["ht_away_goals"]
+    trailing_df = matrix_df[margin != 0].copy()
+    home_trails = (trailing_df["ht_home_goals"] < trailing_df["ht_away_goals"]).to_numpy()
 
     return pd.DataFrame(
         {
-            "match_id": sub["match_id"].to_numpy(),
-            "split": sub["split"].to_numpy(),
-            "deficit": np.abs((sub["ht_home_goals"] - sub["ht_away_goals"]).to_numpy(dtype=float)),
+            "match_id": trailing_df["match_id"].to_numpy(),
+            "split": trailing_df["split"].to_numpy(),
+            "deficit": np.abs(
+                (trailing_df["ht_home_goals"] - trailing_df["ht_away_goals"]).to_numpy(dtype=float)
+            ),
             "trailer_is_home": home_trails.astype(float),
             "trailer_odds": np.where(
                 home_trails,
-                sub["close_odds_home"].to_numpy(dtype=float),
-                sub["close_odds_away"].to_numpy(dtype=float),
+                trailing_df["close_odds_home"].to_numpy(dtype=float),
+                trailing_df["close_odds_away"].to_numpy(dtype=float),
             ),
             "completed": np.where(
                 home_trails,
-                (sub["ft_home_goals"] > sub["ft_away_goals"]).to_numpy(),
-                (sub["ft_away_goals"] > sub["ft_home_goals"]).to_numpy(),
+                (trailing_df["ft_home_goals"] > trailing_df["ft_away_goals"]).to_numpy(),
+                (trailing_df["ft_away_goals"] > trailing_df["ft_home_goals"]).to_numpy(),
             ).astype(float),
         }
     )
@@ -165,11 +167,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    matrix = engine.build_features()
-    usable = matrix[~engine.in_burn_in(matrix)]
+    matrix_df = engine.build_features()
+    usable_df = matrix_df[~engine.in_burn_in(matrix_df)]
 
     if args.replicate_f11:
-        raise SystemExit(0 if replicate_f11(usable) else 1)
+        raise SystemExit(0 if replicate_f11(usable_df) else 1)
     parser.print_help()
 
 

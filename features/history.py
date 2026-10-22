@@ -22,16 +22,16 @@ SECTIONS = ("home", "away", "h2h")
 _TRUTHY = ("true", "1", "1.0")
 
 
-def cell(frame: pd.DataFrame, column: str, row: int) -> str:
+def cell(detail_df: pd.DataFrame, column: str, row: int) -> str:
     """A history-block cell as a clean string; "" when the column or value is absent.
 
     Trailing ".0" is stripped because pandas reads an integer column with any gap in it as
     float, which turns a match id into "2789133.0" and breaks every lookup keyed on it.
     """
-    if column not in frame.columns:
+    if column not in detail_df.columns:
         return ""
 
-    value = frame[column].iloc[row]
+    value = detail_df[column].iloc[row]
     if value is None or pd.isna(value):
         return ""
 
@@ -39,35 +39,37 @@ def cell(frame: pd.DataFrame, column: str, row: int) -> str:
     return text[:-2] if text.endswith(".0") else text
 
 
-def subject_is_home(frame: pd.DataFrame, prefix: str, row: int) -> bool | None:
+def subject_is_home(detail_df: pd.DataFrame, prefix: str, row: int) -> bool | None:
     """Whether the section's subject team played at home in that history match.
 
     None when the venue is unknown, which is what makes the match unusable: without it
     there is no way to orient "for" and "against", and guessing would silently invert
     half the rows.
     """
-    raw = cell(frame, f"{prefix}is_home", row)
+    raw = cell(detail_df, f"{prefix}is_home", row)
     if raw == "":
         return None
     return raw.lower() in _TRUTHY
 
 
-def match_key(frame: pd.DataFrame, prefix: str, row: int) -> str | None:
+def match_key(detail_df: pd.DataFrame, prefix: str, row: int) -> str | None:
     """The referenced match's id, or None when it is missing or out of scope.
 
     Out of scope means a friendly (no minute data anywhere) or a pre-2023 page (truncated
     event lists) — see `domain/scope.py`, where both exclusions were established by
     measurement rather than assumption.
     """
-    match_id = cell(frame, f"{prefix}match_id", row)
+    match_id = cell(detail_df, f"{prefix}match_id", row)
     if not match_id:
         return None
-    if not scope.in_scope(cell(frame, f"{prefix}league", row), cell(frame, f"{prefix}date", row)):
+    if not scope.in_scope(
+        cell(detail_df, f"{prefix}league", row), cell(detail_df, f"{prefix}date", row)
+    ):
         return None
     return match_id
 
 
-def score_matches(frame: pd.DataFrame, prefix: str, row: int, home: int, away: int) -> bool:
+def score_matches(detail_df: pd.DataFrame, prefix: str, row: int, home: int, away: int) -> bool:
     """Do `home`-`away` reproduce the score the history block records for that match?
 
     True when the block carries no score to check against, so an unknown score is treated
@@ -77,8 +79,8 @@ def score_matches(frame: pd.DataFrame, prefix: str, row: int, home: int, away: i
     goals were found yields a wrong scoreline rather than a missing one, whether it is
     being read for goal timings or for the state a card was collected in.
     """
-    stored_home = cell(frame, f"{prefix}ft_home_goals", row)
-    stored_away = cell(frame, f"{prefix}ft_away_goals", row)
+    stored_home = cell(detail_df, f"{prefix}ft_home_goals", row)
+    stored_away = cell(detail_df, f"{prefix}ft_away_goals", row)
     if stored_home == "" or stored_away == "":
         return True
     return (home, away) == (int(stored_home), int(stored_away))
@@ -102,7 +104,7 @@ def timeline_names(field: str, depth: int) -> list[str]:
 
 
 def build_frame[T](
-    detail: pd.DataFrame,
+    detail_df: pd.DataFrame,
     depth: int,
     suffixes: Sequence[str],
     timelines: Sequence[tuple[str, Callable[[T | None], str]]],
@@ -123,21 +125,21 @@ def build_frame[T](
     """
     built: dict[str, Any] = {}
     for section in SECTIONS:
-        per_row = _resolve_section(detail, section, depth, resolve)
+        per_row = _resolve_section(detail_df, section, depth, resolve)
         built.update(_aggregates(section, suffixes, [rates(blocks) for blocks in per_row]))
         for field, render in timelines:
             built.update(_timelines(section, depth, field, per_row, render))
 
-    return pd.DataFrame(built, index=detail.index)
+    return pd.DataFrame(built, index=detail_df.index)
 
 
 def _resolve_section[T](
-    detail: pd.DataFrame, section: str, depth: int, resolve: Callable[[str, int], T | None]
+    detail_df: pd.DataFrame, section: str, depth: int, resolve: Callable[[str, int], T | None]
 ) -> list[list[T | None]]:
     """For each fixture row, that section's `depth` history matches, oldest slot last."""
     return [
         [resolve(f"{section}_last{n}_", row) for n in range(1, depth + 1)]
-        for row in range(len(detail))
+        for row in range(len(detail_df))
     ]
 
 
@@ -155,6 +157,6 @@ def _timelines[T](
     render: Callable[[T | None], str],
 ) -> dict[str, Any]:
     return {
-        f"{section}_last{n}_{field}": [render(blocks[n - 1]) for blocks in per_row]
-        for n in range(1, depth + 1)
+        f"{section}_last{slot}_{field}": [render(blocks[slot - 1]) for blocks in per_row]
+        for slot in range(1, depth + 1)
     }

@@ -88,28 +88,30 @@ class _Match(NamedTuple):
     ht: tuple[int, int]
 
 
-def round_positions(frame: pd.DataFrame) -> pd.DataFrame:
+def round_positions(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """`s3_match_index_in_round` and `s3_matches_in_round`, from kickoff times only.
 
     The position is 1.. by kickoff within (stage, round); team names break ties, which
     makes the order reproducible but carries no meaning. The count is the round's finished
     matches: the finished tree holds no unplayed rows.
     """
-    keyed = frame.assign(_kickoff=frame["s1_date"].map(parse_instant))
-    ordered = keyed.sort_values([*_ROUND_KEY, "_kickoff", "s1_home_team_name", "s1_away_team_name"])
-    groups = ordered.groupby(_ROUND_KEY, sort=False)
+    with_kickoff_df = schedule_df.assign(_kickoff=schedule_df["s1_date"].map(parse_instant))
+    ordered_df = with_kickoff_df.sort_values(
+        [*_ROUND_KEY, "_kickoff", "s1_home_team_name", "s1_away_team_name"]
+    )
+    groups = ordered_df.groupby(_ROUND_KEY, sort=False)
 
-    positions = pd.DataFrame(
+    positions_df = pd.DataFrame(
         {
             "s3_match_index_in_round": groups.cumcount() + 1,
             "s3_matches_in_round": groups["match_id"].transform("size"),
         }
     )
 
-    return positions.reindex(frame.index)
+    return positions_df.reindex(schedule_df.index)
 
 
-def round_offsets(frame: pd.DataFrame) -> pd.DataFrame:
+def round_offsets(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """`s3_days_off_round` and `s3_is_rescheduled`, from kickoff times only.
 
     The offset is this kickoff minus the median kickoff of its (stage, round), in days:
@@ -118,17 +120,19 @@ def round_offsets(frame: pd.DataFrame) -> pd.DataFrame:
     now (the user, 2026-10-10). Not `s3_out_of_round` (S3.07), whose survey wording misfires
     on a brought-forward match.
     """
-    kickoff = pd.to_datetime(frame["s1_date"].map(parse_instant), utc=True)
-    median = kickoff.groupby([frame[key] for key in _ROUND_KEY], dropna=False).transform("median")
+    kickoff = pd.to_datetime(schedule_df["s1_date"].map(parse_instant), utc=True)
+    median = kickoff.groupby([schedule_df[key] for key in _ROUND_KEY], dropna=False).transform(
+        "median"
+    )
     days = (kickoff - median).dt.total_seconds() / 86400
 
     return pd.DataFrame(
         {"s3_days_off_round": days, "s3_is_rescheduled": days.abs() >= RESCHEDULED_AFTER_DAYS},
-        index=frame.index,
+        index=schedule_df.index,
     )
 
 
-def round_so_far(frame: pd.DataFrame) -> pd.DataFrame:
+def round_so_far(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """The round so far: `s3_round_pre_finished`, `_comebacks`, `_seven_plus`,
     `_rare_events`, `_btts`, `_avg_goals` and `_avg_ou_line`.
 
@@ -141,14 +145,18 @@ def round_so_far(frame: pd.DataFrame) -> pd.DataFrame:
     50/50 point, and a match scores about 0.13 goals above it on average); both are empty when
     there is none. The first kickoff of a round sees 0 in every count.
     """
-    keyed = frame.assign(_kickoff=pd.to_datetime(frame["s1_date"].map(parse_instant), utc=True))
-    parts = [_round_counts(group) for _, group in keyed.groupby(_ROUND_KEY, sort=False)]
-    return pd.concat(parts).reindex(frame.index)
+    with_kickoff_df = schedule_df.assign(
+        _kickoff=pd.to_datetime(schedule_df["s1_date"].map(parse_instant), utc=True)
+    )
+    parts = [
+        _round_counts(round_df) for _, round_df in with_kickoff_df.groupby(_ROUND_KEY, sort=False)
+    ]
+    return pd.concat(parts).reindex(schedule_df.index)
 
 
-def _round_counts(group: pd.DataFrame) -> pd.DataFrame:
+def _round_counts(round_df: pd.DataFrame) -> pd.DataFrame:
     """`round_so_far` for one (stage, round)."""
-    kickoff = group["_kickoff"].to_numpy(dtype="datetime64[ns]")
+    kickoff = round_df["_kickoff"].to_numpy(dtype="datetime64[ns]")
 
     # Row: this match; column: a round-mate. True where the round-mate counts.
     gap = kickoff[:, None] - kickoff[None, :]
@@ -156,12 +164,14 @@ def _round_counts(group: pd.DataFrame) -> pd.DataFrame:
         gap < pd.Timedelta(ROUND_LOOK_BACK).to_timedelta64()
     )
 
-    goals = group["s2_total_goals"].to_numpy(dtype=float)
-    comeback = group["s2_is_comeback"].to_numpy(dtype=bool)
+    goals = round_df["s2_total_goals"].to_numpy(dtype=float)
+    comeback = round_df["s2_is_comeback"].to_numpy(dtype=bool)
     seven_plus = goals >= SEVEN_PLUS_GOALS
-    btts = (group["s1_ft_home_goals"].to_numpy() >= 1) & (group["s1_ft_away_goals"].to_numpy() >= 1)
+    btts = (round_df["s1_ft_home_goals"].to_numpy() >= 1) & (
+        round_df["s1_ft_away_goals"].to_numpy() >= 1
+    )
 
-    line = group["s1_odds_ou_open_line"].to_numpy(dtype=float)
+    line = round_df["s1_odds_ou_open_line"].to_numpy(dtype=float)
     priced = counted & ~np.isnan(line)
     with np.errstate(invalid="ignore"):
         # 0 / 0 where no counted round-mate has a line: empty, not zero.
@@ -178,12 +188,14 @@ def _round_counts(group: pd.DataFrame) -> pd.DataFrame:
             "s3_round_pre_avg_goals": avg_goals,
             "s3_round_pre_avg_ou_line": avg_line,
         },
-        index=group.index,
+        index=round_df.index,
     )
 
 
-def _matches_by_kickoff(group: pd.DataFrame) -> list[_Match]:
-    rows = group.assign(_kickoff=group["s1_date"].map(parse_instant)).sort_values("_kickoff")
+def _matches_by_kickoff(league_stage_df: pd.DataFrame) -> list[_Match]:
+    by_kickoff_df = league_stage_df.assign(
+        _kickoff=league_stage_df["s1_date"].map(parse_instant)
+    ).sort_values("_kickoff")
     return [
         _Match(
             index,
@@ -193,7 +205,7 @@ def _matches_by_kickoff(group: pd.DataFrame) -> list[_Match]:
             (int(row["s1_ft_home_goals"]), int(row["s1_ft_away_goals"])),
             (int(row["s1_ht_home_goals"]), int(row["s1_ht_away_goals"])),
         )
-        for index, row in rows.iterrows()
+        for index, row in by_kickoff_df.iterrows()
     ]
 
 
@@ -253,10 +265,10 @@ def _finished_by(matches: list[_Match], start: int, instant: Any) -> int:
     return end
 
 
-def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | None]]]:
+def _stage_tables(league_stage_df: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | None]]]:
     """Each match of one stage with both teams' lines, HT/FT records and stakes at its
     kickoff."""
-    matches = _matches_by_kickoff(group)
+    matches = _matches_by_kickoff(league_stage_df)
     teams = {m.home for m in matches} | {m.away for m in matches}
     tables = {"ft": Standings(teams), "ht": Standings(teams)}
     record = HalfTimeFullTime(teams)
@@ -295,7 +307,7 @@ def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | No
         left[match.away] -= 1
 
 
-def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
+def pre_kickoff_tables(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """Both teams' standings (96 columns), `s3_pre_rank_gap`, HT/FT records (54) and what is
     at stake (8).
 
@@ -304,42 +316,45 @@ def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
     `OPEN_LEAD` earlier.
     """
     rows: dict[Any, dict[str, int | None]] = {}
-    for _, group in frame.groupby("s1_stage", sort=False):
-        rows.update(_stage_tables(group))
+    for _, league_stage_df in schedule_df.groupby("s1_stage", sort=False):
+        rows.update(_stage_tables(league_stage_df))
 
-    tables = pd.DataFrame.from_dict(rows, orient="index").reindex(
-        index=frame.index, columns=pre_kickoff_columns() + pre_htft_columns() + stake_columns()
+    pre_kickoff_df = pd.DataFrame.from_dict(rows, orient="index").reindex(
+        index=schedule_df.index,
+        columns=pre_kickoff_columns() + pre_htft_columns() + stake_columns(),
     )
 
-    gap = (tables["s3_home_pre_ft_total_rank"] - tables["s3_away_pre_ft_total_rank"]).abs()
-    return tables.assign(s3_pre_rank_gap=gap).astype("Int64")
+    gap = (
+        pre_kickoff_df["s3_home_pre_ft_total_rank"] - pre_kickoff_df["s3_away_pre_ft_total_rank"]
+    ).abs()
+    return pre_kickoff_df.assign(s3_pre_rank_gap=gap).astype("Int64")
 
 
-def derive(frame: pd.DataFrame) -> pd.DataFrame:
+def derive(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """Every stage-3 column of one league-season's stage-2 rows, in declared order."""
-    out = pd.concat(
+    derived_df = pd.concat(
         [
-            round_positions(frame),
-            round_offsets(frame),
-            round_so_far(frame),
-            pre_kickoff_tables(frame),
+            round_positions(schedule_df),
+            round_offsets(schedule_df),
+            round_so_far(schedule_df),
+            pre_kickoff_tables(schedule_df),
         ],
         axis=1,
     )
 
-    return out[SCHEDULE_MULTI_COLUMNS]
+    return derived_df[SCHEDULE_MULTI_COLUMNS]
 
 
 def build(row_path: str) -> str:
     """Write the stage-3 file for one stage-2 schedule file; return its path."""
-    frame = read_stage_csv(row_path)
-    out = pd.concat([frame, derive(frame)], axis=1)
+    stage_2_df = read_stage_csv(row_path)
+    stage_3_df = pd.concat([stage_2_df, derive(stage_2_df)], axis=1)
 
     out_path = paths.schedule_at_stage(row_path, 3)
     columns = SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS + SCHEDULE_MULTI_COLUMNS
-    write_stage_csv(out, out_path, columns)
+    write_stage_csv(stage_3_df, out_path, columns)
 
-    logger.info("%s: %d rows -> %s", row_path, len(frame), out_path)
+    logger.info("%s: %d rows -> %s", row_path, len(stage_2_df), out_path)
     return out_path
 
 

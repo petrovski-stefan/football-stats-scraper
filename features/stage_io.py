@@ -18,15 +18,17 @@ def read_stage_csv(path: str) -> pd.DataFrame:
     """A stage file as written: text columns stay text, empty text stays `""`."""
     head = pd.read_csv(path, nrows=0).columns
     text = [c for c in _TEXT_COLUMNS if c in head]
-    frame = pd.read_csv(path, dtype=dict.fromkeys(text, str), keep_default_na=False, na_values=[""])
-    return frame.fillna(dict.fromkeys(text, ""))
+    stage_file_df = pd.read_csv(
+        path, dtype=dict.fromkeys(text, str), keep_default_na=False, na_values=[""]
+    )
+    return stage_file_df.fillna(dict.fromkeys(text, ""))
 
 
-def write_stage_csv(frame: pd.DataFrame, path: str, columns: list[str]) -> None:
-    """Write `frame` with exactly `columns`, in that order; a missing column is an error."""
-    missing = [c for c in columns if c not in frame.columns]
+def write_stage_csv(stage_file_df: pd.DataFrame, path: str, columns: list[str]) -> None:
+    """Write `stage_file_df` with exactly `columns`, in that order; a missing column is an error."""
+    missing = [c for c in columns if c not in stage_file_df.columns]
     if missing:
         raise KeyError(f"columns missing before writing {path}: {missing[:5]}")
 
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
-    frame[columns].to_csv(path, index=False)
+    stage_file_df[columns].to_csv(path, index=False)

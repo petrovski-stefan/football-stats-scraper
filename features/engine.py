@@ -177,7 +177,7 @@ POST_MATCH_COLUMNS = [
 ROUND_GROUP = ["league_name", "season", "stage", "round"]
 
 
-def round_position(df: pd.DataFrame) -> pd.DataFrame:
+def round_position(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Tie-aware position of each match within its round, derived from kickoff time.
 
     `match_index_in_round` is a strict 1..N ordering with an alphabetical tiebreak, so
@@ -196,8 +196,8 @@ def round_position(df: pd.DataFrame) -> pd.DataFrame:
     Deliberately wired into no preregistered family: FAMILIES and FILTER_FAMILIES are
     closed lists (notes/RECORD/PREREGISTRATION.md S4).
     """
-    dates = pd.to_datetime(df["date"], errors="coerce")
-    group = dates.groupby([df[c] for c in ROUND_GROUP], dropna=False)
+    dates = pd.to_datetime(matches_df["date"], errors="coerce")
+    group = dates.groupby([matches_df[c] for c in ROUND_GROUP], dropna=False)
     return pd.DataFrame(
         {
             "earlier": group.rank(method="min").astype("Int64") - 1,
@@ -205,7 +205,7 @@ def round_position(df: pd.DataFrame) -> pd.DataFrame:
             "slot": group.rank(method="dense").astype("Int64"),
             "slots": group.transform("nunique"),
         },
-        index=df.index,
+        index=matches_df.index,
     )
 
 
@@ -218,21 +218,21 @@ def load_enriched() -> pd.DataFrame:
             "then `python -m scrapers.detail`, then `python -m features.enrich`"
         )
 
-    df = pd.concat([pd.read_csv(p) for p in files], ignore_index=True)
-    out = df.assign(
+    enriched_df = pd.concat([pd.read_csv(p) for p in files], ignore_index=True)
+    matches_df = enriched_df.assign(
         split=np.where(
-            df["season"].isin(TRAIN_SEASONS),
+            enriched_df["season"].isin(TRAIN_SEASONS),
             "dev",
-            np.where(df["season"].isin(TEST_SEASONS), "holdout", ""),
+            np.where(enriched_df["season"].isin(TEST_SEASONS), "holdout", ""),
         ),
-        date=pd.to_datetime(df["date"], errors="coerce"),
+        date=pd.to_datetime(enriched_df["date"], errors="coerce"),
     )
 
-    _warn_unassigned(out)
-    return out
+    _warn_unassigned(matches_df)
+    return matches_df
 
 
-def _warn_unassigned(df: pd.DataFrame) -> None:
+def _warn_unassigned(matches_df: pd.DataFrame) -> None:
     """Announce league-seasons that fall in neither split, instead of dropping them mutely.
 
     `TRAIN_SEASONS` / `TEST_SEASONS` are literal labels fixed by
@@ -242,13 +242,15 @@ def _warn_unassigned(df: pd.DataFrame) -> None:
     preregistered corpus is closed. Silence about it is not, because a whole league can
     then sit in `data/` contributing nothing to any result with no sign it was ignored.
     """
-    unassigned = df.loc[df["split"] == "", ["league_name", "season"]].drop_duplicates()
-    if unassigned.empty:
+    unassigned_df = matches_df.loc[
+        matches_df["split"] == "", ["league_name", "season"]
+    ].drop_duplicates()
+    if unassigned_df.empty:
         return
 
-    listed = ", ".join(f"{r.league_name} {r.season}" for r in unassigned.itertuples())
+    listed = ", ".join(f"{r.league_name} {r.season}" for r in unassigned_df.itertuples())
     warnings.warn(
-        f"{len(unassigned)} league-season(s) match neither TRAIN_SEASONS nor TEST_SEASONS "
+        f"{len(unassigned_df)} league-season(s) match neither TRAIN_SEASONS nor TEST_SEASONS "
         f"and are excluded from dev and holdout: {listed}. This is expected for anything "
         "outside the preregistered corpus (PREREGISTRATION.md §2); widening the splits is "
         "a protocol amendment, not a code change.",
@@ -259,83 +261,88 @@ def _warn_unassigned(df: pd.DataFrame) -> None:
 # --- Rolling as-of-round team form (families A and B) -------------------------
 
 
-def _team_match_long(df: pd.DataFrame) -> pd.DataFrame:
+def _team_match_long(matches_df: pd.DataFrame) -> pd.DataFrame:
     """One row per team per match, from that team's own perspective."""
     frames = []
     for side, opp in (("home", "away"), ("away", "home")):
         frames.append(
             pd.DataFrame(
                 {
-                    "league_name": df["league_name"],
-                    "season": df["season"],
-                    "round": df["round"],
-                    "match_id": df["match_id"],
-                    "team_id": df[f"{side}_team_id"],
-                    "h1_gf": df[f"ht_{side}_goals"],
-                    "h1_ga": df[f"ht_{opp}_goals"],
-                    "h2_gf": df[f"{side}_2h_goals"],
-                    "h2_ga": df[f"{opp}_2h_goals"],
-                    "ft_gf": df[f"ft_{side}_goals"],
-                    "ft_ga": df[f"ft_{opp}_goals"],
+                    "league_name": matches_df["league_name"],
+                    "season": matches_df["season"],
+                    "round": matches_df["round"],
+                    "match_id": matches_df["match_id"],
+                    "team_id": matches_df[f"{side}_team_id"],
+                    "h1_gf": matches_df[f"ht_{side}_goals"],
+                    "h1_ga": matches_df[f"ht_{opp}_goals"],
+                    "h2_gf": matches_df[f"{side}_2h_goals"],
+                    "h2_ga": matches_df[f"{opp}_2h_goals"],
+                    "ft_gf": matches_df[f"ft_{side}_goals"],
+                    "ft_ga": matches_df[f"ft_{opp}_goals"],
                 }
             )
         )
 
-    long = pd.concat(frames, ignore_index=True)
-    long["ht_trail"] = (long["h1_gf"] < long["h1_ga"]).astype(float)
-    long["h1_gd"] = long["h1_gf"] - long["h1_ga"]
-    long["h2_gd"] = long["h2_gf"] - long["h2_ga"]
+    team_matches_df = pd.concat(frames, ignore_index=True)
+    team_matches_df["ht_trail"] = (team_matches_df["h1_gf"] < team_matches_df["h1_ga"]).astype(
+        float
+    )
+    team_matches_df["h1_gd"] = team_matches_df["h1_gf"] - team_matches_df["h1_ga"]
+    team_matches_df["h2_gd"] = team_matches_df["h2_gf"] - team_matches_df["h2_ga"]
 
-    led = long["h1_gf"] > long["h1_ga"]
-    won = long["ft_gf"] > long["ft_ga"]
-    long["blown_lead"] = (led & ~won).astype(float)
+    led = team_matches_df["h1_gf"] > team_matches_df["h1_ga"]
+    won = team_matches_df["ft_gf"] > team_matches_df["ft_ga"]
+    team_matches_df["blown_lead"] = (led & ~won).astype(float)
 
-    return long
+    return team_matches_df
 
 
-def _rolling_form(df: pd.DataFrame) -> pd.DataFrame:
+def _rolling_form(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Last-`FORM_WINDOW` team form, strictly from earlier rounds.
 
     Each team plays once per round here (asserted), so shifting one row inside a
     team's own chronological sequence is exactly a `round < current` cutoff.
     """
-    long = _team_match_long(df)
+    team_matches_df = _team_match_long(matches_df)
 
-    per_round = long.groupby(["league_name", "season", "round", "team_id"]).size()
+    per_round = team_matches_df.groupby(["league_name", "season", "round", "team_id"]).size()
     if int(per_round.max()) != 1:
         raise AssertionError(
             "as-of invariant unsafe: a team plays more than once in a round "
             f"(max={int(per_round.max())}) — shift(1) no longer implies round < current"
         )
 
-    long = long.sort_values(["league_name", "season", "team_id", "round"])
-    grouped = long.groupby(["league_name", "season", "team_id"], sort=False)
+    team_matches_df = team_matches_df.sort_values(["league_name", "season", "team_id", "round"])
+    grouped = team_matches_df.groupby(["league_name", "season", "team_id"], sort=False)
 
-    out = long[["match_id", "team_id"]].copy()
+    form_df = team_matches_df[["match_id", "team_id"]].copy()
     for src, dst in ROLLING_SPECS:
         shifted = grouped[src].shift(1)
-        out[dst] = shifted.groupby(
-            [long["league_name"], long["season"], long["team_id"]], sort=False
-        ).transform(lambda s: s.rolling(FORM_WINDOW, min_periods=BURN_IN_ROUNDS).mean())
+        form_df[dst] = shifted.groupby(
+            [team_matches_df["league_name"], team_matches_df["season"], team_matches_df["team_id"]],
+            sort=False,
+        ).transform(
+            lambda team_values: team_values.rolling(FORM_WINDOW, min_periods=BURN_IN_ROUNDS).mean()
+        )
 
-    return out
+    return form_df
 
 
-def _attach_rolling(df: pd.DataFrame) -> dict[str, Any]:
-    form = _rolling_form(df)
+def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
+    form_df = _rolling_form(matches_df)
     cols = [dst for _, dst in ROLLING_SPECS]
 
     out: dict[str, Any] = {}
     for side in ("home", "away"):
-        merged = df[["match_id", f"{side}_team_id"]].merge(
-            form,
+        side_form_df = matches_df[["match_id", f"{side}_team_id"]].merge(
+            form_df,
             left_on=["match_id", f"{side}_team_id"],
             right_on=["match_id", "team_id"],
             how="left",
         )
 
-        for c in cols:
-            out[f"{side}_{c}"] = merged[c].to_numpy()
+        for column in cols:
+            out[f"{side}_{column}"] = side_form_df[column].to_numpy()
 
     return out
 
@@ -343,14 +350,14 @@ def _attach_rolling(df: pd.DataFrame) -> dict[str, Any]:
 # --- Per-match history blocks (families C, E, F) ------------------------------
 
 
-def _block(df: pd.DataFrame, section: str, n: int, field: str) -> "pd.Series[Any]":
-    col = f"{section}_last{n}_{field}"
-    if col in df.columns:
-        return df[col]
-    return pd.Series(np.nan, index=df.index)
+def _block(matches_df: pd.DataFrame, section: str, slot: int, field: str) -> "pd.Series[Any]":
+    col = f"{section}_last{slot}_{field}"
+    if col in matches_df.columns:
+        return matches_df[col]
+    return pd.Series(np.nan, index=matches_df.index)
 
 
-def _corner_goal_share_gap(df: pd.DataFrame, section: str) -> "pd.Series[Any]":
+def _corner_goal_share_gap(matches_df: pd.DataFrame, section: str) -> "pd.Series[Any]":
     """Last-6 corner share minus goal share, from the subject team's perspective.
 
     F7 of the old league study (dropped 2026-10-13): comeback teams out-shoot even
@@ -358,16 +365,16 @@ def _corner_goal_share_gap(df: pd.DataFrame, section: str) -> "pd.Series[Any]":
     winning the corner count by more than the scoreline is the "deserved dominance
     not yet converted" candidate. Corners are the pressure proxy this corpus has.
     """
-    subj_c: pd.Series[Any] = pd.Series(0.0, index=df.index)
-    tot_c = pd.Series(0.0, index=df.index)
-    subj_g = pd.Series(0.0, index=df.index)
-    tot_g = pd.Series(0.0, index=df.index)
-    for n in range(1, MATCHES_PER_SECTION + 1):
-        is_home = _block(df, section, n, "is_home").astype("boolean")
-        ch = _block(df, section, n, "corners_ft_home")
-        ca = _block(df, section, n, "corners_ft_away")
-        gh = _block(df, section, n, "ft_home_goals")
-        ga = _block(df, section, n, "ft_away_goals")
+    subj_c: pd.Series[Any] = pd.Series(0.0, index=matches_df.index)
+    tot_c = pd.Series(0.0, index=matches_df.index)
+    subj_g = pd.Series(0.0, index=matches_df.index)
+    tot_g = pd.Series(0.0, index=matches_df.index)
+    for slot in range(1, MATCHES_PER_SECTION + 1):
+        is_home = _block(matches_df, section, slot, "is_home").astype("boolean")
+        ch = _block(matches_df, section, slot, "corners_ft_home")
+        ca = _block(matches_df, section, slot, "corners_ft_away")
+        gh = _block(matches_df, section, slot, "ft_home_goals")
+        ga = _block(matches_df, section, slot, "ft_away_goals")
 
         ok = is_home.notna() & ch.notna() & ca.notna() & gh.notna() & ga.notna()
         mine_c = np.where(is_home.fillna(False), ch, ca)
@@ -380,77 +387,81 @@ def _corner_goal_share_gap(df: pd.DataFrame, section: str) -> "pd.Series[Any]":
 
     corner_share = np.where(tot_c > 0, subj_c / tot_c, np.nan)
     goal_share = np.where(tot_g > 0, subj_g / tot_g, np.nan)
-    gap: pd.Series[Any] = pd.Series(corner_share - goal_share, index=df.index)
+    gap: pd.Series[Any] = pd.Series(corner_share - goal_share, index=matches_df.index)
     return gap
 
 
-def _congestion(df: pd.DataFrame, section: str) -> tuple["pd.Series[Any]", "pd.Series[Any]"]:
+def _congestion(
+    matches_df: pd.DataFrame, section: str
+) -> tuple["pd.Series[Any]", "pd.Series[Any]"]:
     """Competitive matches in the last 14 days, and days since the last match.
 
     Genuinely nowgoal-exclusive: the history blocks carry cup and European
     fixtures that league-only schedules omit, so this is a different variable
     from league-only rest days.
     """
-    played = pd.Series(0, index=df.index, dtype="int64")
-    most_recent = pd.Series(pd.NaT, index=df.index, dtype="datetime64[ns]")
-    for n in range(1, MATCHES_PER_SECTION + 1):
-        when = pd.to_datetime(_block(df, section, n, "date"), errors="coerce")
-        league = _block(df, section, n, "league").astype("string").str.lower()
-        gap_days = (df["date"] - when).dt.total_seconds() / 86400.0
+    played = pd.Series(0, index=matches_df.index, dtype="int64")
+    most_recent = pd.Series(pd.NaT, index=matches_df.index, dtype="datetime64[ns]")
+    for slot in range(1, MATCHES_PER_SECTION + 1):
+        when = pd.to_datetime(_block(matches_df, section, slot, "date"), errors="coerce")
+        league = _block(matches_df, section, slot, "league").astype("string").str.lower()
+        gap_days = (matches_df["date"] - when).dt.total_seconds() / 86400.0
         competitive = ~league.str.contains(scope.FRIENDLY_MARKER, na=False)
 
         recent = competitive & gap_days.between(0, CONGESTION_DAYS)
         played += recent.fillna(False).astype("int64")
         most_recent = most_recent.where(most_recent.notna() | when.isna(), when)
 
-    days_since = (df["date"] - most_recent).dt.total_seconds() / 86400.0
+    days_since = (matches_df["date"] - most_recent).dt.total_seconds() / 86400.0
     return played.astype(float), days_since
 
 
-def _h2h_ht_goals_avg(df: pd.DataFrame) -> "pd.Series[Any]":
+def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     """Mean total half-time goals in past meetings of this fixture.
 
     The exclusion filter needs the fixture's *first-half* goal environment, not just
     its full-time one: a fixture that reliably reaches the break goalless cannot
     build the half-time lead a comeback has to reverse.
     """
-    total = pd.Series(0.0, index=df.index)
-    seen = pd.Series(0.0, index=df.index)
-    for n in range(1, MATCHES_PER_SECTION + 1):
-        h = _block(df, "h2h", n, "ht_home_goals")
-        a = _block(df, "h2h", n, "ht_away_goals")
-        ok = h.notna() & a.notna()
+    total = pd.Series(0.0, index=matches_df.index)
+    seen = pd.Series(0.0, index=matches_df.index)
+    for slot in range(1, MATCHES_PER_SECTION + 1):
+        home_goals = _block(matches_df, "h2h", slot, "ht_home_goals")
+        away_goals = _block(matches_df, "h2h", slot, "ht_away_goals")
+        ok = home_goals.notna() & away_goals.notna()
 
-        total += (h.fillna(0) + a.fillna(0)).where(ok, 0.0)
+        total += (home_goals.fillna(0) + away_goals.fillna(0)).where(ok, 0.0)
         seen += ok.astype(float)
 
-    avg: pd.Series[Any] = pd.Series(np.where(seen > 0, total / seen, np.nan), index=df.index)
+    avg: pd.Series[Any] = pd.Series(
+        np.where(seen > 0, total / seen, np.nan), index=matches_df.index
+    )
     return avg
 
 
-def _h2h_ht_nondraw_rate(df: pd.DataFrame) -> "pd.Series[Any]":
+def _h2h_ht_nondraw_rate(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     """Share of past meetings in this fixture that were non-draws at half-time.
 
     Factor 1 is "does anyone lead at HT" — a fixture that historically produces
     separated half-times is the natural fixture-level predictor of it.
     """
-    hits = pd.Series(0.0, index=df.index)
-    seen = pd.Series(0.0, index=df.index)
-    for n in range(1, MATCHES_PER_SECTION + 1):
-        h = _block(df, "h2h", n, "ht_home_goals")
-        a = _block(df, "h2h", n, "ht_away_goals")
-        ok = h.notna() & a.notna()
+    hits = pd.Series(0.0, index=matches_df.index)
+    seen = pd.Series(0.0, index=matches_df.index)
+    for slot in range(1, MATCHES_PER_SECTION + 1):
+        home_goals = _block(matches_df, "h2h", slot, "ht_home_goals")
+        away_goals = _block(matches_df, "h2h", slot, "ht_away_goals")
+        ok = home_goals.notna() & away_goals.notna()
 
-        hits += (ok & (h != a)).astype(float)
+        hits += (ok & (home_goals != away_goals)).astype(float)
         seen += ok.astype(float)
 
-    return pd.Series(np.where(seen > 0, hits / seen, np.nan), index=df.index)
+    return pd.Series(np.where(seen > 0, hits / seen, np.nan), index=matches_df.index)
 
 
 # --- Market controls and the imported completion stage's inputs ---------------
 
 
-def _market_lines(df: pd.DataFrame) -> dict[str, Any]:
+def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
     """The schedule page's Asian goal line and handicap, plus the handicap magnitude.
 
     `abs_ah_line` is the match-mismatch measure. Sign convention: here
@@ -462,7 +473,11 @@ def _market_lines(df: pd.DataFrame) -> dict[str, Any]:
     """
 
     def col(name: str) -> "pd.Series[Any]":
-        return df[name] if name in df.columns else pd.Series(np.nan, index=df.index)
+        return (
+            matches_df[name]
+            if name in matches_df.columns
+            else pd.Series(np.nan, index=matches_df.index)
+        )
 
     ah_line = col("ah_line")
     return {
@@ -474,7 +489,7 @@ def _market_lines(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def _goal_timings(df: pd.DataFrame) -> dict[str, Any]:
+def _goal_timings(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Pass the goal-timing aggregates through, or NaN when they were never built.
 
     `features/enrich.py` computes these from the global store, so a corpus enriched before
@@ -482,16 +497,18 @@ def _goal_timings(df: pd.DataFrame) -> dict[str, Any]:
     the same contract as `_market_lines`.
     """
     return {
-        name: df[name] if name in df.columns else pd.Series(np.nan, index=df.index)
+        name: matches_df[name]
+        if name in matches_df.columns
+        else pd.Series(np.nan, index=matches_df.index)
         for name in GOAL_TIMING_FEATURES + EVENT_FEATURES
     }
 
 
-def _vig_free(df: pd.DataFrame) -> dict[str, Any]:
+def _vig_free(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Proportionally de-vigged 1X2 probabilities from the opening price."""
-    inv_h = 1.0 / df["home_win_initial_odds"]
-    inv_d = 1.0 / df["draw_initial_odds"]
-    inv_a = 1.0 / df["away_win_initial_odds"]
+    inv_h = 1.0 / matches_df["home_win_initial_odds"]
+    inv_d = 1.0 / matches_df["draw_initial_odds"]
+    inv_a = 1.0 / matches_df["away_win_initial_odds"]
     total = inv_h + inv_d + inv_a
     p_home, p_draw, p_away = inv_h / total, inv_d / total, inv_a / total
 
@@ -505,7 +522,7 @@ def _vig_free(df: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def _closing_odds(df: pd.DataFrame) -> dict[str, Any]:
+def _closing_odds(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Raw decimal closing odds per side, for the imported F11 completion curve.
 
     F11's coefficients are defined on the trailing team's *closing* price. The
@@ -514,8 +531,8 @@ def _closing_odds(df: pd.DataFrame) -> dict[str, Any]:
     the fallback where it is missing.
     """
     return {
-        f"close_odds_{side}": df[f"odds1x2_live_{side}"].fillna(
-            df[f"odds1x2_init_{side}"].fillna(df[f"{side}_win_initial_odds"])
+        f"close_odds_{side}": matches_df[f"odds1x2_live_{side}"].fillna(
+            matches_df[f"odds1x2_init_{side}"].fillna(matches_df[f"{side}_win_initial_odds"])
         )
         for side in ("home", "away")
     }
@@ -524,38 +541,44 @@ def _closing_odds(df: pd.DataFrame) -> dict[str, Any]:
 # --- Assembly -----------------------------------------------------------------
 
 
-def build_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
+def build_features(matches_df: pd.DataFrame | None = None) -> pd.DataFrame:
     """Assemble the full preregistered feature matrix, one row per match."""
-    df = load_enriched() if df is None else df.copy()
+    matches_df = load_enriched() if matches_df is None else matches_df.copy()
 
     built: dict[str, Any] = {}
-    built.update(_market_lines(df))
-    built.update(_goal_timings(df))
-    built.update(_vig_free(df))
-    built.update(_closing_odds(df))
-    built.update(_attach_rolling(df))
+    built.update(_market_lines(matches_df))
+    built.update(_goal_timings(matches_df))
+    built.update(_vig_free(matches_df))
+    built.update(_closing_odds(matches_df))
+    built.update(_attach_rolling(matches_df))
 
     for side in ("home", "away"):
-        built[f"{side}_corner_goal_share_gap"] = _corner_goal_share_gap(df, side)
-        played, days_since = _congestion(df, side)
+        built[f"{side}_corner_goal_share_gap"] = _corner_goal_share_gap(matches_df, side)
+        played, days_since = _congestion(matches_df, side)
         built[f"{side}_matches_14d"] = played
         built[f"{side}_days_since_last"] = days_since
 
-    built["strength_gap"] = df["strength_home"] - df["strength_away"]
-    guess_gap = (df["guess_home_pct"] - df["guess_away_pct"]) / 100.0
+    built["strength_gap"] = matches_df["strength_home"] - matches_df["strength_away"]
+    guess_gap = (matches_df["guess_home_pct"] - matches_df["guess_away_pct"]) / 100.0
     built["guess_minus_market"] = guess_gap - built["mkt_p_home"] + built["mkt_p_away"]
 
-    built["venue_ppg_gap"] = df["home_recent_venue_ppg"] - df["away_recent_venue_ppg"]
-    built["h2h_ht_nondraw_rate"] = _h2h_ht_nondraw_rate(df)
+    built["venue_ppg_gap"] = (
+        matches_df["home_recent_venue_ppg"] - matches_df["away_recent_venue_ppg"]
+    )
+    built["h2h_ht_nondraw_rate"] = _h2h_ht_nondraw_rate(matches_df)
 
-    built["combined_recent_gf"] = df["home_recent_gf_avg"] + df["away_recent_gf_avg"]
+    built["combined_recent_gf"] = (
+        matches_df["home_recent_gf_avg"] + matches_df["away_recent_gf_avg"]
+    )
 
     # Exclusion-filter additions (G2 / G3).
-    built["h2h_ht_goals_avg"] = _h2h_ht_goals_avg(df)
+    built["h2h_ht_goals_avg"] = _h2h_ht_goals_avg(matches_df)
     for side in ("home", "away"):
-        built[f"odds_drift_{side}"] = df[f"implied_live_{side}"] - df[f"implied_init_{side}"]
+        built[f"odds_drift_{side}"] = (
+            matches_df[f"implied_live_{side}"] - matches_df[f"implied_init_{side}"]
+        )
 
-    engineered = pd.DataFrame(built, index=df.index)
+    engineered_df = pd.DataFrame(built, index=matches_df.index)
     wanted = _dedupe(
         IDENTITY
         + TARGETS
@@ -567,9 +590,9 @@ def build_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
         + EVENT_FEATURES
     )
 
-    keep_raw = [c for c in wanted if c not in engineered.columns]
-    full = pd.concat([df[keep_raw], engineered], axis=1)
-    return full[wanted].copy()
+    keep_raw = [c for c in wanted if c not in engineered_df.columns]
+    matrix_df = pd.concat([matches_df[keep_raw], engineered_df], axis=1)
+    return matrix_df[wanted].copy()
 
 
 def all_feature_names() -> list[str]:
@@ -581,12 +604,12 @@ def _dedupe(names: list[str]) -> list[str]:
     return list(dict.fromkeys(names))
 
 
-def in_burn_in(df: pd.DataFrame) -> "pd.Series[Any]":
+def in_burn_in(matrix_df: pd.DataFrame) -> "pd.Series[Any]":
     """Rounds 1..BURN_IN_ROUNDS, where rolling form does not yet exist.
 
     Dropped identically for every model so the comparison stays fair.
     """
-    return df["round"] <= BURN_IN_ROUNDS
+    return matrix_df["round"] <= BURN_IN_ROUNDS
 
 
 # --- Verification -------------------------------------------------------------
@@ -598,27 +621,27 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
     For each sampled match, rebuild each team's last-6 form from scratch using
     *only* that team's matches in strictly earlier rounds, and compare.
     """
-    raw = load_enriched()
-    feats = build_features(raw)
-    merged = feats.merge(
-        raw[["match_id", "home_team_id", "away_team_id"]], on="match_id", how="left"
+    matches_df = load_enriched()
+    matrix_df = build_features(matches_df)
+    matrix_with_teams_df = matrix_df.merge(
+        matches_df[["match_id", "home_team_id", "away_team_id"]], on="match_id", how="left"
     )
-    long = _team_match_long(raw)
+    team_matches_df = _team_match_long(matches_df)
 
     rng = np.random.default_rng(seed)
-    candidates = merged[~in_burn_in(merged)]
-    chosen = rng.choice(len(candidates), size=min(sample, len(candidates)), replace=False)
-    picks = candidates.iloc[chosen]
+    candidates_df = matrix_with_teams_df[~in_burn_in(matrix_with_teams_df)]
+    chosen = rng.choice(len(candidates_df), size=min(sample, len(candidates_df)), replace=False)
+    picks_df = candidates_df.iloc[chosen]
 
     failures = 0
     checks = 0
-    for _, row in picks.iterrows():
+    for _, row in picks_df.iterrows():
         for side in ("home", "away"):
-            history = long[
-                (long["league_name"] == row["league_name"])
-                & (long["season"] == row["season"])
-                & (long["team_id"] == row[f"{side}_team_id"])
-                & (long["round"] < row["round"])
+            history = team_matches_df[
+                (team_matches_df["league_name"] == row["league_name"])
+                & (team_matches_df["season"] == row["season"])
+                & (team_matches_df["team_id"] == row[f"{side}_team_id"])
+                & (team_matches_df["round"] < row["round"])
             ].sort_values("round")
 
             window = history.tail(FORM_WINDOW)
@@ -642,54 +665,54 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
     return failures
 
 
-def summarize(df: pd.DataFrame) -> None:
+def summarize(matrix_df: pd.DataFrame) -> None:
     print("=" * 78)
     print("FEATURE MATRIX")
     print("=" * 78)
 
-    usable = df[~in_burn_in(df)]
-    print(f"  rows: {len(df)} total, {len(usable)} after {BURN_IN_ROUNDS}-round burn-in")
+    usable_df = matrix_df[~in_burn_in(matrix_df)]
+    print(f"  rows: {len(matrix_df)} total, {len(usable_df)} after {BURN_IN_ROUNDS}-round burn-in")
 
     for split in ("dev", "holdout"):
-        sub = usable[usable["split"] == split]
-        if sub.empty:
+        split_df = usable_df[usable_df["split"] == split]
+        if split_df.empty:
             # Normal while the corpus is being rebuilt one league-season at a time:
             # a single 2025-2026 season is all holdout and leaves dev empty.
             print(f"    {split:8s} n=    0  (no league-season in this split)")
             continue
 
-        cb = int(sub["is_comeback"].sum())
-        nondraw = int((sub["ht_home_goals"] != sub["ht_away_goals"]).sum())
+        cb = int(split_df["is_comeback"].sum())
+        nondraw = int((split_df["ht_home_goals"] != split_df["ht_away_goals"]).sum())
         print(
-            f"    {split:8s} n={len(sub):5d}  comebacks={cb:4d} ({cb / len(sub):.2%})  "
-            f"HT non-draws={nondraw:4d} ({nondraw / len(sub):.1%})"
+            f"    {split:8s} n={len(split_df):5d}  comebacks={cb:4d} ({cb / len(split_df):.2%})  "
+            f"HT non-draws={nondraw:4d} ({nondraw / len(split_df):.1%})"
         )
 
     print("\n  fill rate by family (post burn-in):")
     for family, names in FAMILIES.items():
-        fills = [f"{name}={usable[name].notna().mean():.0%}" for name in names]
+        fills = [f"{name}={usable_df[name].notna().mean():.0%}" for name in names]
         print(f"    {family:16s} {'  '.join(fills)}")
 
     print("\n  exclusion-filter families (post burn-in):")
     for family, names in FILTER_FAMILIES.items():
-        worst = min(usable[name].notna().mean() for name in names)
+        worst = min(usable_df[name].notna().mean() for name in names)
         print(f"    {family:18s} {len(names):2d} features, lowest fill={worst:.0%}")
 
     print("\n  market Asian lines (exploratory, outside the closed families):")
     for name in MARKET_LINE_FEATURES:
-        print(f"    {name:24s} fill={usable[name].notna().mean():.0%}")
+        print(f"    {name:24s} fill={usable_df[name].notna().mean():.0%}")
 
     print("\n  goal timings (exploratory, outside the closed families):")
     for name in GOAL_TIMING_FEATURES:
-        print(f"    {name:26s} fill={usable[name].notna().mean():.0%}")
+        print(f"    {name:26s} fill={usable_df[name].notna().mean():.0%}")
 
     print("\n  cards and substitutions (exploratory, outside the closed families):")
     for name in EVENT_FEATURES:
-        print(f"    {name:26s} fill={usable[name].notna().mean():.0%}")
+        print(f"    {name:26s} fill={usable_df[name].notna().mean():.0%}")
 
     print("\n  controls:")
     for name in CONTROLS:
-        print(f"    {name:24s} fill={usable[name].notna().mean():.0%}")
+        print(f"    {name:24s} fill={usable_df[name].notna().mean():.0%}")
 
 
 def main() -> None:

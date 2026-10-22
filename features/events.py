@@ -123,14 +123,14 @@ def timeline_names(depth: int = MATCHES_PER_SECTION) -> list[str]:
 
 def load_store(events_path: str) -> dict[str, list[tuple[int, int, str, str]]]:
     """match_id -> [(minute, stoppage, kind, side), ...], as stored."""
-    frame = pd.read_csv(events_path, usecols=["match_id", "minute", "stoppage", "kind", "side"])
+    events_df = pd.read_csv(events_path, usecols=["match_id", "minute", "stoppage", "kind", "side"])
     store: dict[str, list[tuple[int, int, str, str]]] = {}
     for match_id, minute, stoppage, kind, side in zip(
-        frame["match_id"].astype(str),
-        frame["minute"],
-        frame["stoppage"],
-        frame["kind"],
-        frame["side"],
+        events_df["match_id"].astype(str),
+        events_df["minute"],
+        events_df["stoppage"],
+        events_df["kind"],
+        events_df["side"],
         strict=True,
     ):
         store.setdefault(match_id, []).append((int(minute), int(stoppage), str(kind), str(side)))
@@ -139,7 +139,7 @@ def load_store(events_path: str) -> dict[str, list[tuple[int, int, str, str]]]:
 
 
 def build(
-    detail: pd.DataFrame,
+    detail_df: pd.DataFrame,
     store: dict[str, list[tuple[int, int, str, str]]],
     goal_store: GoalStore,
     depth: int = MATCHES_PER_SECTION,
@@ -150,17 +150,17 @@ def build(
     everything else is unaffected, so an events scrape without a goals scrape still builds.
     """
     return history.build_frame(
-        detail,
+        detail_df,
         depth,
         FEATURE_SUFFIXES,
         [(field, partial(_timeline, kind=kind)) for field, kind in TIMELINE_FIELDS],
-        lambda prefix, row: _usable_events(detail, store, goal_store, prefix, row),
+        lambda prefix, row: _usable_events(detail_df, store, goal_store, prefix, row),
         _rates,
     )
 
 
 def _usable_events(
-    detail: pd.DataFrame,
+    detail_df: pd.DataFrame,
     store: dict[str, list[tuple[int, int, str, str]]],
     goal_store: GoalStore,
     prefix: str,
@@ -174,14 +174,14 @@ def _usable_events(
     whose goals do not reconcile still has trustworthy cards, so it keeps its aggregates
     and timelines and loses only its state.
     """
-    match_id = history.match_key(detail, prefix, row)
+    match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
         return None
-    is_home = history.subject_is_home(detail, prefix, row)
+    is_home = history.subject_is_home(detail_df, prefix, row)
     if is_home is None:
         return None
 
-    line = _score_line(detail, goal_store, prefix, row, match_id, is_home)
+    line = _score_line(detail_df, goal_store, prefix, row, match_id, is_home)
     return [
         TimedEvent(
             minute,
@@ -195,7 +195,7 @@ def _usable_events(
 
 
 def _score_line(
-    detail: pd.DataFrame,
+    detail_df: pd.DataFrame,
     goal_store: GoalStore,
     prefix: str,
     row: int,
@@ -213,7 +213,7 @@ def _score_line(
     if goals is None:
         return None
     counted_home = sum(1 for _, _, side in goals if side == "home")
-    if not history.score_matches(detail, prefix, row, counted_home, len(goals) - counted_home):
+    if not history.score_matches(detail_df, prefix, row, counted_home, len(goals) - counted_home):
         return None
 
     line: list[tuple[int, int, int]] = []
@@ -253,9 +253,11 @@ def _timeline(events: Events | None, kind: str) -> str:
         return ""
 
     parts = [
-        f"{e.minute}+{e.stoppage}{e.tag}" if e.stoppage else f"{e.minute}{e.tag}"
-        for e in events
-        if e.kind == kind
+        f"{event.minute}+{event.stoppage}{event.tag}"
+        if event.stoppage
+        else f"{event.minute}{event.tag}"
+        for event in events
+        if event.kind == kind
     ]
     return ";".join(parts) if parts else UNEVENTFUL
 
@@ -273,18 +275,18 @@ def _rates(blocks: list[Events | None]) -> dict[str, float]:
     if not usable:
         return dict.fromkeys(FEATURE_SUFFIXES, float("nan"))
 
-    n = len(usable)
+    match_count = len(usable)
     flat = [e for b in usable for e in b]
     first_subs = _first_sub_minutes(usable)
     sub_minutes = [e.minute for e in flat if e.kind == SUBSTITUTION and e.tag == "F"]
 
     return {
-        "yellows_for_avg": _count(flat, YELLOW_CARD, "F") / n,
-        "yellows_against_avg": _count(flat, YELLOW_CARD, "A") / n,
+        "yellows_for_avg": _count(flat, YELLOW_CARD, "F") / match_count,
+        "yellows_against_avg": _count(flat, YELLOW_CARD, "A") / match_count,
         "yellows_while_leading_avg": _while_leading(usable),
         "reds_for_rate": _match_share(usable, RED_CARD, "F"),
         "reds_against_rate": _match_share(usable, RED_CARD, "A"),
-        "subs_for_avg": len(sub_minutes) / n,
+        "subs_for_avg": len(sub_minutes) / match_count,
         "first_sub_minute_avg": float(np.mean(first_subs)) if first_subs else float("nan"),
         "late_sub_rate": _share(sub_minutes, LATE_SUB_MINUTE),
         "events_seen": float(len(flat)),
@@ -302,15 +304,18 @@ def _while_leading(usable: list[Events]) -> float:
     split-half 0.345 against 0.564 for this one — dividing by minutes spent ahead adds
     noise faster than it adds meaning.
     """
-    known = [b for b in usable if all(e.state is not None for e in b)]
+    known = [b for b in usable if all(event.state is not None for event in b)]
     if not known:
         return float("nan")
 
     hits = sum(
         1
         for block in known
-        for e in block
-        if e.kind == YELLOW_CARD and e.tag == "F" and e.state is not None and e.state > 0
+        for event in block
+        if event.kind == YELLOW_CARD
+        and event.tag == "F"
+        and event.state is not None
+        and event.state > 0
     )
     return float(hits / len(known))
 

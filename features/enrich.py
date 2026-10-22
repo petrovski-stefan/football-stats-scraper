@@ -39,56 +39,56 @@ def build_enriched(base_path: str) -> str | None:
         logger.info("%s: no detail scrape yet, skipping", os.path.basename(base_path))
         return None
 
-    base = pd.read_csv(base_path)
-    base["match_id"] = base["match_id"].astype(str)
+    base_df = pd.read_csv(base_path)
+    base_df["match_id"] = base_df["match_id"].astype(str)
 
-    detail = pd.read_csv(detail_path, low_memory=False)
-    detail["match_id"] = detail["match_id"].astype(str)
+    detail_df = pd.read_csv(detail_path, low_memory=False)
+    detail_df["match_id"] = detail_df["match_id"].astype(str)
     # The detail scrape appends, so a re-scraped match appears twice; the later row wins.
-    detail = detail.drop_duplicates("match_id", keep="last")
+    detail_df = detail_df.drop_duplicates("match_id", keep="last")
 
-    merged = base.merge(detail, on="match_id", how="left", suffixes=("", "_detail"))
+    enriched_df = base_df.merge(detail_df, on="match_id", how="left", suffixes=("", "_detail"))
 
     # Naming the columns explicitly is load-bearing, not cosmetic: it drops the
     # `_detail`-suffixed duplicates the merge creates wherever the two files share a
     # column name, and pins the output order to base-then-detail.
     feature_cols = [c for c in DETAIL_ORDERED_COLUMNS if c != "match_id"]
-    columns = list(base.columns) + feature_cols
+    columns = list(base_df.columns) + feature_cols
 
     # The declared names rather than the built frame's own, for the same reason the detail
     # columns are named explicitly above: the output order is pinned by `features/*.py`
     # rather than by dict-insertion order. A disagreement means a column was renamed in one
     # place only, so it raises here instead of vanishing from the join unnoticed.
-    for extra, declared in (
+    for extra_df, declared in (
         (
-            _goal_timing_features(merged),
+            _goal_timing_features(enriched_df),
             goal_features.feature_names() + goal_features.timeline_names(),
         ),
         (
-            _event_features(merged),
+            _event_features(enriched_df),
             event_features.feature_names() + event_features.timeline_names(),
         ),
     ):
-        if extra is None:
+        if extra_df is None:
             continue
 
-        missing = [c for c in declared if c not in extra.columns]
+        missing = [c for c in declared if c not in extra_df.columns]
         if missing:
             raise RuntimeError(f"declared columns missing from the built block: {missing[:5]}")
 
-        merged = pd.concat([merged, extra], axis=1)
+        enriched_df = pd.concat([enriched_df, extra_df], axis=1)
         columns += declared
 
     enriched_path = paths.enriched_path(base_path)
     os.makedirs(paths.PROCESSED_DIR, exist_ok=True)
-    merged[[c for c in columns if c in merged.columns]].to_csv(enriched_path, index=False)
+    enriched_df[[c for c in columns if c in enriched_df.columns]].to_csv(enriched_path, index=False)
 
-    matched = merged["odds_bookmaker"].notna().sum() if "odds_bookmaker" in merged else 0
-    logger.info("Saved %d rows (%d with detail) to %s", len(merged), matched, enriched_path)
+    matched = enriched_df["odds_bookmaker"].notna().sum() if "odds_bookmaker" in enriched_df else 0
+    logger.info("Saved %d rows (%d with detail) to %s", len(enriched_df), matched, enriched_path)
     return enriched_path
 
 
-def _goal_timing_features(merged: pd.DataFrame) -> pd.DataFrame | None:
+def _goal_timing_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
     """Derived timing aggregates, or None when goal timings have not been scraped yet.
 
     An absent store is the normal state until `scrapers.goals` has run, so this returns
@@ -103,18 +103,18 @@ def _goal_timing_features(merged: pd.DataFrame) -> pd.DataFrame | None:
     if not store:
         return None
 
-    timing = goal_features.build(merged, store)
-    covered = timing["home_goals_seen"].gt(0).mean()
+    timing_df = goal_features.build(enriched_df, store)
+    covered = timing_df["home_goals_seen"].gt(0).mean()
     logger.info(
         "  goal timings: %d matches in the store, %.0f%% of rows have home history",
         len(store),
         covered * 100,
     )
 
-    return timing
+    return timing_df
 
 
-def _event_features(merged: pd.DataFrame) -> pd.DataFrame | None:
+def _event_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
     """Card and substitution aggregates, or None when events have not been scraped yet.
 
     Same contract as `_goal_timing_features`: an absent store yields no columns rather
@@ -135,15 +135,15 @@ def _event_features(merged: pd.DataFrame) -> pd.DataFrame | None:
     goals_path = paths.goals_path()
     goal_store = goal_features.load_store(goals_path) if os.path.exists(goals_path) else {}
 
-    built = event_features.build(merged, store, goal_store)
-    covered = built["home_events_seen"].gt(0).mean()
+    event_features_df = event_features.build(enriched_df, store, goal_store)
+    covered = event_features_df["home_events_seen"].gt(0).mean()
     logger.info(
         "  events: %d matches in the store, %.0f%% of rows have home history",
         len(store),
         covered * 100,
     )
 
-    return built
+    return event_features_df
 
 
 def build_all() -> None:

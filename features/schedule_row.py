@@ -91,16 +91,18 @@ def derive(row: Mapping[str, Any]) -> dict[str, Any]:
 
 def build(raw_path: str) -> str:
     """Write the stage-2 file for one stage-1 schedule file; return its path."""
-    raw = read_stage_csv(raw_path)
-    records = [{str(k): v for k, v in row.items()} for row in raw.to_dict("records")]
-    derived = pd.DataFrame([derive(row) for row in records], index=raw.index)
+    stage_1_df = read_stage_csv(raw_path)
+    records = [{str(k): v for k, v in row.items()} for row in stage_1_df.to_dict("records")]
+    derived_df = pd.DataFrame([derive(row) for row in records], index=stage_1_df.index)
 
     out_path = paths.schedule_at_stage(raw_path, 2)
     write_stage_csv(
-        pd.concat([raw, derived], axis=1), out_path, SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS
+        pd.concat([stage_1_df, derived_df], axis=1),
+        out_path,
+        SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS,
     )
 
-    logger.info("%s: %d rows -> %s", raw_path, len(raw), out_path)
+    logger.info("%s: %d rows -> %s", raw_path, len(stage_1_df), out_path)
     return out_path
 
 

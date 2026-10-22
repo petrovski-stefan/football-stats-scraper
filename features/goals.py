@@ -91,13 +91,13 @@ def load_store(goals_path: str) -> dict[str, Goals]:
     ignore it, because a goal at 45+3' is minute 45 for every window here and adding the
     stoppage would push it past a 45 boundary it belongs inside.
     """
-    frame = pd.read_csv(goals_path, usecols=["match_id", "minute", "stoppage", "side"])
+    goals_df = pd.read_csv(goals_path, usecols=["match_id", "minute", "stoppage", "side"])
     store: dict[str, Goals] = {}
     for match_id, minute, stoppage, side in zip(
-        frame["match_id"].astype(str),
-        frame["minute"],
-        frame["stoppage"],
-        frame["side"],
+        goals_df["match_id"].astype(str),
+        goals_df["minute"],
+        goals_df["stoppage"],
+        goals_df["side"],
         strict=True,
     ):
         store.setdefault(match_id, []).append((int(minute), int(stoppage), str(side)))
@@ -106,23 +106,23 @@ def load_store(goals_path: str) -> dict[str, Goals]:
 
 
 def build(
-    detail: pd.DataFrame,
+    detail_df: pd.DataFrame,
     store: dict[str, Goals],
     depth: int = MATCHES_PER_SECTION,
 ) -> pd.DataFrame:
     """One row per fixture: the aggregates for all three sections, plus every timeline."""
     return history.build_frame(
-        detail,
+        detail_df,
         depth,
         FEATURE_SUFFIXES,
         ((TIMELINE_FIELD, _timeline),),
-        lambda prefix, row: _usable_goals(detail, store, prefix, row),
+        lambda prefix, row: _usable_goals(detail_df, store, prefix, row),
         _rates,
     )
 
 
 def _usable_goals(
-    detail: pd.DataFrame, store: dict[str, Goals], prefix: str, row: int
+    detail_df: pd.DataFrame, store: dict[str, Goals], prefix: str, row: int
 ) -> Goals | None:
     """One history match's goals, oriented to the subject team. None when unusable.
 
@@ -133,16 +133,16 @@ def _usable_goals(
     where two of four goals were found reports a late-goal rate computed from half the
     evidence, which is a wrong number rather than a missing one.
     """
-    match_id = history.match_key(detail, prefix, row)
+    match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
         return None
-    is_home = history.subject_is_home(detail, prefix, row)
+    is_home = history.subject_is_home(detail_df, prefix, row)
     if is_home is None:
         return None
 
     goals = store[match_id]
     counted_home = sum(1 for _, _, side in goals if side == "home")
-    if not history.score_matches(detail, prefix, row, counted_home, len(goals) - counted_home):
+    if not history.score_matches(detail_df, prefix, row, counted_home, len(goals) - counted_home):
         return None
 
     return [
@@ -170,22 +170,22 @@ def _timeline(goals: Goals | None) -> str:
 
 def _rates(blocks: list[Goals | None]) -> dict[str, float]:
     """Fold one fixture's usable history matches into timing rates."""
-    scored = [m for b in blocks if b for m, _, tag in b if tag == "GF"]
-    conceded = [m for b in blocks if b for m, _, tag in b if tag == "GA"]
+    scored = [minute for b in blocks if b for minute, _, tag in b if tag == "GF"]
+    conceded = [minute for b in blocks if b for minute, _, tag in b if tag == "GA"]
 
     rates: dict[str, float] = {
         "goal_minute_avg": float(np.mean(scored)) if scored else float("nan"),
         "conceded_minute_avg": float(np.mean(conceded)) if conceded else float("nan"),
-        "late_goal_rate": _share(scored, lambda m: m >= LATE_MINUTE),
-        "late_conceded_rate": _share(conceded, lambda m: m >= LATE_MINUTE),
-        "conceded_pre_ht_rate": _share(conceded, lambda m: PRE_HT_FROM <= m <= PRE_HT_TO),
+        "late_goal_rate": _share(scored, lambda minute: minute >= LATE_MINUTE),
+        "late_conceded_rate": _share(conceded, lambda minute: minute >= LATE_MINUTE),
+        "conceded_pre_ht_rate": _share(conceded, lambda minute: PRE_HT_FROM <= minute <= PRE_HT_TO),
         "goals_seen": float(len(scored) + len(conceded)),
     }
 
     for minutes, direction in ((scored, "gf"), (conceded, "ga")):
         for lo, hi in BUCKETS:
             rates[f"{direction}_{lo:02d}_{hi}"] = _share(
-                minutes, lambda m, lo=lo, hi=hi: lo <= m <= hi
+                minutes, lambda minute, lo=lo, hi=hi: lo <= minute <= hi
             )
 
     return rates
