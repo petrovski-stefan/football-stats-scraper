@@ -196,9 +196,9 @@ PER_MATCH_FIELDS = [
 def per_match_columns() -> list[str]:
     """All flattened per-match column names, in section/index/field order."""
     return [
-        f"{section}_last{n}_{field}"
+        f"{section}_last{slot}_{field}"
         for section in PER_MATCH_SECTIONS
-        for n in range(1, MATCHES_PER_SECTION + 1)
+        for slot in range(1, MATCHES_PER_SECTION + 1)
         for field in PER_MATCH_FIELDS
     ]
 

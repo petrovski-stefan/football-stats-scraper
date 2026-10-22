@@ -113,9 +113,9 @@ def base_league_csvs() -> list[str]:
     league-season and so has no `<league>_<season>` stem to split.
     """
     return [
-        p
-        for p in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv")))
-        if not p.endswith(DETAIL_SUFFIX) and os.path.basename(p) not in GLOBAL_FILES
+        path
+        for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv")))
+        if not path.endswith(DETAIL_SUFFIX) and os.path.basename(path) not in GLOBAL_FILES
     ]
 
 
