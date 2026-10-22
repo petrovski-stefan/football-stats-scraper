@@ -10,7 +10,7 @@ Adopted 2026-10-22.
 - **A function you change follows the guide as a whole:** fix its one-letter names, its missing blank lines and any other clear readability problem inside it. Leave names that are already clear, and leave everything outside the function. A half-renamed function reads worse than either version.
 - Code that nobody changes stays as it is. A clean-up pass over a whole package is a change of its own, never part of a feature.
 - **Two kinds of rule.**
-  - **Must:** §3.2 (one-letter names, `df`), §5 (blank lines), the whole-function scope above, §9 (data, domain rules, missing values), §10 (errors) and the `_private` rule of §11. A Must holds in every case; to change one, change this guide.
+  - **Must:** §3.2 (one-letter names, the `_df` suffix), §5 (blank lines), the whole-function scope above, §9 (data, domain rules, missing values), §10 (errors) and the `_private` rule of §11. A Must holds in every case; to change one, change this guide.
   - **Default:** everything else. Follow it unless the result clearly reads worse; then break it, with a comment that says why when the reason is not obvious. In a Default, words like "never" and "only" describe the usual case, not a ban.
 - Rules that are not about readability are written once, elsewhere:
   - layers, imports, data paths, dependencies, commits: root `CLAUDE.md`;
@@ -32,11 +32,12 @@ Write for the next person who has to understand, debug or change the code. That 
 
 ### 3.1 What a name says
 
-- Name a variable after the data it holds, not its type or its position: `kickoff`, `home_goals`, `final_table`, not `time`, `value`, `row2`.
+- Name a variable after the data it holds, not its type or its position: `kickoff`, `home_goals`, `final_table`, not `time`, `value`, `row2` (the `_df` suffix, §3.2, is the one exception).
 - Avoid empty names: `data`, `value`, `item`, `result`, `out`, `temp`, `info`, `obj`. A generic name is fine only in a few lines where its meaning is obvious.
 - Use the project's words, and the same word for the same thing everywhere: the field names of `notes/FIELDS/` and the terms of `notes/REFERENCE/GLOSSARY.md` (league-season, kickoff, opening odds, HT/FT, comeback, 7+). Don't rename an established concept without a reason.
 - When a word has two meanings here, a new name says which one. _Stage_ is a pipeline stage (`1_raw`, `2_row`, `3_multi`) and also a tab on the league page (`League`, `Apertura`).
 - The short forms of the project's vocabulary are fine: `ht`, `ft`, `ah`, `ou`, `h2h`, `id`, and `one_x_two` for 1X2. Don't shorten other words to save typing.
+- A statistical quantity is named after what it is, not its symbol: `degrees_of_freedom`, `p_value`, `cochran_q`, `tau_squared`. A printed column header or a library's own keyword (scipy's `df=`) keeps its spelling.
 - A boolean reads as a yes/no question: `is_comeback`, `has_odds`, `is_rescheduled`.
 - A function that does something is named after the action: `scrape_league`, `build`, `write_stage_csv`. A pure function that returns a value may be named after the value: `season_start_year`, `round_positions`. Never `process_data`, `handle` or `do_work`.
 - A name never promises more than the code does. A flag `is_first_in_round` that is true for only one of several joint-first matches makes a false promise.
@@ -52,7 +53,7 @@ One-letter names are allowed only for:
 
 Everything else gets a descriptive name, parameters included: `report: Report`, not `r: Report`. The comprehension exception is narrow: it is never a reason to write a dense line.
 
-`df` is allowed only in a helper that takes any table, such as the checks in `qa/universal.py`. A function about one table names it: `schedule`, `goals`, `matches`, `final_table`.
+**A DataFrame's name ends in `_df`:** `matches_df`, `goals_df`, `final_table_df`. The part before `_df` says what the table holds, so never `frame_df` or `table_df`. This covers variables, parameters and dataclass fields; a Series or an array keeps a plain name. `df` alone is allowed only for a parameter of a helper that takes any table, such as the checks in `qa/universal.py`. Column names never change in a rename: they are data.
 
 ```python
 # Before
@@ -63,8 +64,8 @@ for n in range(1, MATCHES_PER_SECTION + 1):
 
 # After
 for slot in range(1, MATCHES_PER_SECTION + 1):
-    home_goals = _block(matches, "h2h", slot, "ht_home_goals")
-    away_goals = _block(matches, "h2h", slot, "ht_away_goals")
+    home_goals = _block(matches_df, "h2h", slot, "ht_home_goals")
+    away_goals = _block(matches_df, "h2h", slot, "ht_away_goals")
     both_known = home_goals.notna() & away_goals.notna()
 ```
 
@@ -115,19 +116,21 @@ Blank lines show the structure of a function. They separate phases; they don't d
 From `features/engine.py`, with descriptive names (docstring shortened):
 
 ```python
-def _h2h_ht_goals_avg(matches: pd.DataFrame) -> "pd.Series[Any]":
+def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     """Mean total half-time goals in past meetings of this fixture."""
-    total = pd.Series(0.0, index=matches.index)
-    seen = pd.Series(0.0, index=matches.index)
+    total = pd.Series(0.0, index=matches_df.index)
+    seen = pd.Series(0.0, index=matches_df.index)
     for slot in range(1, MATCHES_PER_SECTION + 1):
-        home_goals = _block(matches, "h2h", slot, "ht_home_goals")
-        away_goals = _block(matches, "h2h", slot, "ht_away_goals")
+        home_goals = _block(matches_df, "h2h", slot, "ht_home_goals")
+        away_goals = _block(matches_df, "h2h", slot, "ht_away_goals")
         both_known = home_goals.notna() & away_goals.notna()
 
         total += (home_goals.fillna(0) + away_goals.fillna(0)).where(both_known, 0.0)
         seen += both_known.astype(float)
 
-    avg: pd.Series[Any] = pd.Series(np.where(seen > 0, total / seen, np.nan), index=matches.index)
+    avg: pd.Series[Any] = pd.Series(
+        np.where(seen > 0, total / seen, np.nan), index=matches_df.index
+    )
     return avg
 ```
 
@@ -234,7 +237,7 @@ After:
 
 ## 14. Checklist
 
-- [ ] Names say what the data is, in the project's words. One-letter names only `i`, `_` and a one-line comprehension; `df` only in an any-table helper.
+- [ ] Names say what the data is, in the project's words. One-letter names only `i`, `_` and a one-line comprehension; a DataFrame's name ends in `_df` (`df` alone only in an any-table helper).
 - [ ] Each function has one job, its guards first, its phases separated by one blank line.
 - [ ] No dense expression where named steps read better.
 - [ ] Comments say why; docstrings say what comes back and what `None` means; none is stale.
