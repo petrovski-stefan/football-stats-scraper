@@ -30,9 +30,11 @@ def cell(frame: pd.DataFrame, column: str, row: int) -> str:
     """
     if column not in frame.columns:
         return ""
+
     value = frame[column].iloc[row]
     if value is None or pd.isna(value):
         return ""
+
     text = str(value).strip()
     return text[:-2] if text.endswith(".0") else text
 
@@ -125,6 +127,7 @@ def build_frame[T](
         built.update(_aggregates(section, suffixes, [rates(blocks) for blocks in per_row]))
         for field, render in timelines:
             built.update(_timelines(section, depth, field, per_row, render))
+
     return pd.DataFrame(built, index=detail.index)
 
 

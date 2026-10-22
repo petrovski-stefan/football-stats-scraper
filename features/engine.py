@@ -217,6 +217,7 @@ def load_enriched() -> pd.DataFrame:
             f"no *_enriched.csv in {paths.PROCESSED_DIR}/ — run `python -m scrapers.schedule`, "
             "then `python -m scrapers.detail`, then `python -m features.enrich`"
         )
+
     df = pd.concat([pd.read_csv(p) for p in files], ignore_index=True)
     out = df.assign(
         split=np.where(
@@ -226,6 +227,7 @@ def load_enriched() -> pd.DataFrame:
         ),
         date=pd.to_datetime(df["date"], errors="coerce"),
     )
+
     _warn_unassigned(out)
     return out
 
@@ -243,6 +245,7 @@ def _warn_unassigned(df: pd.DataFrame) -> None:
     unassigned = df.loc[df["split"] == "", ["league_name", "season"]].drop_duplicates()
     if unassigned.empty:
         return
+
     listed = ", ".join(f"{r.league_name} {r.season}" for r in unassigned.itertuples())
     warnings.warn(
         f"{len(unassigned)} league-season(s) match neither TRAIN_SEASONS nor TEST_SEASONS "
@@ -277,13 +280,16 @@ def _team_match_long(df: pd.DataFrame) -> pd.DataFrame:
                 }
             )
         )
+
     long = pd.concat(frames, ignore_index=True)
     long["ht_trail"] = (long["h1_gf"] < long["h1_ga"]).astype(float)
     long["h1_gd"] = long["h1_gf"] - long["h1_ga"]
     long["h2_gd"] = long["h2_gf"] - long["h2_ga"]
+
     led = long["h1_gf"] > long["h1_ga"]
     won = long["ft_gf"] > long["ft_ga"]
     long["blown_lead"] = (led & ~won).astype(float)
+
     return long
 
 
@@ -311,12 +317,14 @@ def _rolling_form(df: pd.DataFrame) -> pd.DataFrame:
         out[dst] = shifted.groupby(
             [long["league_name"], long["season"], long["team_id"]], sort=False
         ).transform(lambda s: s.rolling(FORM_WINDOW, min_periods=BURN_IN_ROUNDS).mean())
+
     return out
 
 
 def _attach_rolling(df: pd.DataFrame) -> dict[str, Any]:
     form = _rolling_form(df)
     cols = [dst for _, dst in ROLLING_SPECS]
+
     out: dict[str, Any] = {}
     for side in ("home", "away"):
         merged = df[["match_id", f"{side}_team_id"]].merge(
@@ -325,8 +333,10 @@ def _attach_rolling(df: pd.DataFrame) -> dict[str, Any]:
             right_on=["match_id", "team_id"],
             how="left",
         )
+
         for c in cols:
             out[f"{side}_{c}"] = merged[c].to_numpy()
+
     return out
 
 
@@ -358,13 +368,16 @@ def _corner_goal_share_gap(df: pd.DataFrame, section: str) -> "pd.Series[Any]":
         ca = _block(df, section, n, "corners_ft_away")
         gh = _block(df, section, n, "ft_home_goals")
         ga = _block(df, section, n, "ft_away_goals")
+
         ok = is_home.notna() & ch.notna() & ca.notna() & gh.notna() & ga.notna()
         mine_c = np.where(is_home.fillna(False), ch, ca)
         mine_g = np.where(is_home.fillna(False), gh, ga)
+
         subj_c += np.where(ok, mine_c, 0.0)
         tot_c += np.where(ok, ch.fillna(0) + ca.fillna(0), 0.0)
         subj_g += np.where(ok, mine_g, 0.0)
         tot_g += np.where(ok, gh.fillna(0) + ga.fillna(0), 0.0)
+
     corner_share = np.where(tot_c > 0, subj_c / tot_c, np.nan)
     goal_share = np.where(tot_g > 0, subj_g / tot_g, np.nan)
     gap: pd.Series[Any] = pd.Series(corner_share - goal_share, index=df.index)
@@ -385,9 +398,11 @@ def _congestion(df: pd.DataFrame, section: str) -> tuple["pd.Series[Any]", "pd.S
         league = _block(df, section, n, "league").astype("string").str.lower()
         gap_days = (df["date"] - when).dt.total_seconds() / 86400.0
         competitive = ~league.str.contains(scope.FRIENDLY_MARKER, na=False)
+
         recent = competitive & gap_days.between(0, CONGESTION_DAYS)
         played += recent.fillna(False).astype("int64")
         most_recent = most_recent.where(most_recent.notna() | when.isna(), when)
+
     days_since = (df["date"] - most_recent).dt.total_seconds() / 86400.0
     return played.astype(float), days_since
 
@@ -405,8 +420,10 @@ def _h2h_ht_goals_avg(df: pd.DataFrame) -> "pd.Series[Any]":
         h = _block(df, "h2h", n, "ht_home_goals")
         a = _block(df, "h2h", n, "ht_away_goals")
         ok = h.notna() & a.notna()
+
         total += (h.fillna(0) + a.fillna(0)).where(ok, 0.0)
         seen += ok.astype(float)
+
     avg: pd.Series[Any] = pd.Series(np.where(seen > 0, total / seen, np.nan), index=df.index)
     return avg
 
@@ -423,8 +440,10 @@ def _h2h_ht_nondraw_rate(df: pd.DataFrame) -> "pd.Series[Any]":
         h = _block(df, "h2h", n, "ht_home_goals")
         a = _block(df, "h2h", n, "ht_away_goals")
         ok = h.notna() & a.notna()
+
         hits += (ok & (h != a)).astype(float)
         seen += ok.astype(float)
+
     return pd.Series(np.where(seen > 0, hits / seen, np.nan), index=df.index)
 
 
@@ -475,6 +494,7 @@ def _vig_free(df: pd.DataFrame) -> dict[str, Any]:
     inv_a = 1.0 / df["away_win_initial_odds"]
     total = inv_h + inv_d + inv_a
     p_home, p_draw, p_away = inv_h / total, inv_d / total, inv_a / total
+
     return {
         "mkt_p_home": p_home,
         "mkt_p_draw": p_draw,
@@ -546,6 +566,7 @@ def build_features(df: pd.DataFrame | None = None) -> pd.DataFrame:
         + GOAL_TIMING_FEATURES
         + EVENT_FEATURES
     )
+
     keep_raw = [c for c in wanted if c not in engineered.columns]
     full = pd.concat([df[keep_raw], engineered], axis=1)
     return full[wanted].copy()
@@ -599,9 +620,11 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
                 & (long["team_id"] == row[f"{side}_team_id"])
                 & (long["round"] < row["round"])
             ].sort_values("round")
+
             window = history.tail(FORM_WINDOW)
             if len(window) < BURN_IN_ROUNDS:
                 continue
+
             for src, dst in ROLLING_SPECS:
                 checks += 1
                 expected = float(window[src].mean())
@@ -623,8 +646,10 @@ def summarize(df: pd.DataFrame) -> None:
     print("=" * 78)
     print("FEATURE MATRIX")
     print("=" * 78)
+
     usable = df[~in_burn_in(df)]
     print(f"  rows: {len(df)} total, {len(usable)} after {BURN_IN_ROUNDS}-round burn-in")
+
     for split in ("dev", "holdout"):
         sub = usable[usable["split"] == split]
         if sub.empty:
@@ -632,16 +657,19 @@ def summarize(df: pd.DataFrame) -> None:
             # a single 2025-2026 season is all holdout and leaves dev empty.
             print(f"    {split:8s} n=    0  (no league-season in this split)")
             continue
+
         cb = int(sub["is_comeback"].sum())
         nondraw = int((sub["ht_home_goals"] != sub["ht_away_goals"]).sum())
         print(
             f"    {split:8s} n={len(sub):5d}  comebacks={cb:4d} ({cb / len(sub):.2%})  "
             f"HT non-draws={nondraw:4d} ({nondraw / len(sub):.1%})"
         )
+
     print("\n  fill rate by family (post burn-in):")
     for family, names in FAMILIES.items():
         fills = [f"{name}={usable[name].notna().mean():.0%}" for name in names]
         print(f"    {family:16s} {'  '.join(fills)}")
+
     print("\n  exclusion-filter families (post burn-in):")
     for family, names in FILTER_FAMILIES.items():
         worst = min(usable[name].notna().mean() for name in names)

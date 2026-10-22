@@ -134,6 +134,7 @@ def load_store(events_path: str) -> dict[str, list[tuple[int, int, str, str]]]:
         strict=True,
     ):
         store.setdefault(match_id, []).append((int(minute), int(stoppage), str(kind), str(side)))
+
     return store
 
 
@@ -179,6 +180,7 @@ def _usable_events(
     is_home = history.subject_is_home(detail, prefix, row)
     if is_home is None:
         return None
+
     line = _score_line(detail, goal_store, prefix, row, match_id, is_home)
     return [
         TimedEvent(
@@ -213,11 +215,13 @@ def _score_line(
     counted_home = sum(1 for _, _, side in goals if side == "home")
     if not history.score_matches(detail, prefix, row, counted_home, len(goals) - counted_home):
         return None
+
     line: list[tuple[int, int, int]] = []
     diff = 0
     for minute, stoppage, side in sorted(goals):
         diff += 1 if (side == "home") == is_home else -1
         line.append((minute, stoppage, diff))
+
     return line
 
 
@@ -229,11 +233,13 @@ def _state_at(line: list[tuple[int, int, int]] | None, minute: int, stoppage: in
     """
     if line is None:
         return None
+
     diff = 0
     for goal_minute, goal_stoppage, running in line:
         if (goal_minute, goal_stoppage) >= (minute, stoppage):
             break
         diff = running
+
     return diff
 
 
@@ -245,6 +251,7 @@ def _timeline(events: Events | None, kind: str) -> str:
     """
     if events is None:
         return ""
+
     parts = [
         f"{e.minute}+{e.stoppage}{e.tag}" if e.stoppage else f"{e.minute}{e.tag}"
         for e in events
@@ -270,6 +277,7 @@ def _rates(blocks: list[Events | None]) -> dict[str, float]:
     flat = [e for b in usable for e in b]
     first_subs = _first_sub_minutes(usable)
     sub_minutes = [e.minute for e in flat if e.kind == SUBSTITUTION and e.tag == "F"]
+
     return {
         "yellows_for_avg": _count(flat, YELLOW_CARD, "F") / n,
         "yellows_against_avg": _count(flat, YELLOW_CARD, "A") / n,
@@ -297,6 +305,7 @@ def _while_leading(usable: list[Events]) -> float:
     known = [b for b in usable if all(e.state is not None for e in b)]
     if not known:
         return float("nan")
+
     hits = sum(
         1
         for block in known
@@ -313,6 +322,7 @@ def _first_sub_minutes(usable: list[Events]) -> list[int]:
         minutes = [e.minute for e in block if e.kind == SUBSTITUTION and e.tag == "F"]
         if minutes:
             found.append(min(minutes))
+
     return found
 
 

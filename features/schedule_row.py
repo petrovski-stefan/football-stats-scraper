@@ -50,8 +50,10 @@ def _odds_fields(row: Mapping[str, Any]) -> dict[str, Any]:
     one_x_two = [_number(row, f"s1_odds_1x2_open_{s}") for s in ("home", "draw", "away")]
     over_under = [_number(row, f"s1_odds_ou_open_{s}") for s in ("line", "over", "under")]
     handicap = [_number(row, f"s1_odds_ah_open_{s}") for s in ("line", "home", "away")]
+
     market = stats.vig_free_1x2(*one_x_two)
     p_home, p_draw, p_away = market if market else (None, None, None)
+
     return {
         "s2_has_odds": None not in one_x_two,
         "s2_has_ou_odds": None not in over_under,
@@ -79,6 +81,7 @@ def derive(row: Mapping[str, Any]) -> dict[str, Any]:
     """The `s2_` fields of one stage-1 row."""
     ht = (int(row["s1_ht_home_goals"]), int(row["s1_ht_away_goals"]))
     ft = (int(row["s1_ft_home_goals"]), int(row["s1_ft_away_goals"]))
+
     return {
         **_goal_fields(ht, ft),
         **_odds_fields(row),
@@ -91,10 +94,12 @@ def build(raw_path: str) -> str:
     raw = read_stage_csv(raw_path)
     records = [{str(k): v for k, v in row.items()} for row in raw.to_dict("records")]
     derived = pd.DataFrame([derive(row) for row in records], index=raw.index)
+
     out_path = paths.schedule_at_stage(raw_path, 2)
     write_stage_csv(
         pd.concat([raw, derived], axis=1), out_path, SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS
     )
+
     logger.info("%s: %d rows -> %s", raw_path, len(raw), out_path)
     return out_path
 
@@ -103,6 +108,7 @@ def build_all() -> None:
     raw_paths = paths.schedule_csvs(1)
     if not raw_paths:
         logger.warning("No stage-1 schedule files in %s", paths.stage_dir(1))
+
     for raw_path in raw_paths:
         build(raw_path)
 

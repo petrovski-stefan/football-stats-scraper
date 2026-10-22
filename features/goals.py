@@ -101,6 +101,7 @@ def load_store(goals_path: str) -> dict[str, Goals]:
         strict=True,
     ):
         store.setdefault(match_id, []).append((int(minute), int(stoppage), str(side)))
+
     return store
 
 
@@ -143,6 +144,7 @@ def _usable_goals(
     counted_home = sum(1 for _, _, side in goals if side == "home")
     if not history.score_matches(detail, prefix, row, counted_home, len(goals) - counted_home):
         return None
+
     return [
         (minute, stoppage, "GF" if (side == "home") == is_home else "GA")
         for minute, stoppage, side in goals
@@ -159,6 +161,7 @@ def _timeline(goals: Goals | None) -> str:
         return ""
     if not goals:
         return GOALLESS
+
     return ";".join(
         f"{minute}+{stoppage}{tag}" if stoppage else f"{minute}{tag}"
         for minute, stoppage, tag in goals
@@ -169,6 +172,7 @@ def _rates(blocks: list[Goals | None]) -> dict[str, float]:
     """Fold one fixture's usable history matches into timing rates."""
     scored = [m for b in blocks if b for m, _, tag in b if tag == "GF"]
     conceded = [m for b in blocks if b for m, _, tag in b if tag == "GA"]
+
     rates: dict[str, float] = {
         "goal_minute_avg": float(np.mean(scored)) if scored else float("nan"),
         "conceded_minute_avg": float(np.mean(conceded)) if conceded else float("nan"),
@@ -177,11 +181,13 @@ def _rates(blocks: list[Goals | None]) -> dict[str, float]:
         "conceded_pre_ht_rate": _share(conceded, lambda m: PRE_HT_FROM <= m <= PRE_HT_TO),
         "goals_seen": float(len(scored) + len(conceded)),
     }
+
     for minutes, direction in ((scored, "gf"), (conceded, "ga")):
         for lo, hi in BUCKETS:
             rates[f"{direction}_{lo:02d}_{hi}"] = _share(
                 minutes, lambda m, lo=lo, hi=hi: lo <= m <= hi
             )
+
     return rates
 
 

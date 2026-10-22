@@ -86,26 +86,31 @@ def replicate_f11(df: pd.DataFrame) -> bool:
 
     recovered = recover_intercept()
     print(f"\n  intercept: stored={F11_INTERCEPT:.4f}  recomputed={recovered:.4f}")
+
     odds = np.array([o for o, _, _ in F4_OCTILES])
     observed = np.array([p for _, _, p in F4_OCTILES])
     predicted = f11_completion(odds, np.ones(len(odds)), np.zeros(len(odds)))
     print("\n  vs F4's published octiles (deficit -1):")
     print("     trailer odds   published   imported model")
+
     worst = 0.0
     for o, obs, pred in zip(odds, observed, predicted, strict=True):
         worst = max(worst, abs(obs - pred))
         print(f"     {o:11.2f}   {obs:8.1%}   {pred:13.1%}")
+
     ok_published = worst < 0.03
     print(f"    max absolute error {worst:.1%} — {'PASS' if ok_published else 'FAIL'} (bar: <3pp)")
 
     trailing = trailing_states(df)
     print(f"\n  applied to this corpus's {len(trailing)} trailing states:")
+
     p = f11_completion(
         trailing["trailer_odds"].to_numpy(dtype=float),
         trailing["deficit"].to_numpy(dtype=float),
         trailing["trailer_is_home"].to_numpy(dtype=float),
     )
     trailing = trailing.assign(p=p)
+
     quartiles = pd.qcut(trailing["p"], 4, labels=False, duplicates="drop")
     print("     quartile   n   predicted   observed")
     rates = []
@@ -116,6 +121,7 @@ def replicate_f11(df: pd.DataFrame) -> bool:
             f"     {int(q) + 1:8d} {len(group):4d}   {group['p'].mean():8.1%}   "
             f"{group['completed'].mean():7.1%}"
         )
+
     monotone = all(a <= b for a, b in pairwise(rates))
     overall_pred, overall_obs = trailing["p"].mean(), trailing["completed"].mean()
     print(f"\n     overall predicted {overall_pred:.1%} vs observed {overall_obs:.1%}")
@@ -131,6 +137,7 @@ def trailing_states(df: pd.DataFrame) -> pd.DataFrame:
     margin = df["ht_home_goals"] - df["ht_away_goals"]
     sub = df[margin != 0].copy()
     home_trails = (sub["ht_home_goals"] < sub["ht_away_goals"]).to_numpy()
+
     return pd.DataFrame(
         {
             "match_id": sub["match_id"].to_numpy(),
@@ -160,6 +167,7 @@ def main() -> None:
 
     matrix = engine.build_features()
     usable = matrix[~engine.in_burn_in(matrix)]
+
     if args.replicate_f11:
         raise SystemExit(0 if replicate_f11(usable) else 1)
     parser.print_help()

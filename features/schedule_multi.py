@@ -98,12 +98,14 @@ def round_positions(frame: pd.DataFrame) -> pd.DataFrame:
     keyed = frame.assign(_kickoff=frame["s1_date"].map(parse_instant))
     ordered = keyed.sort_values([*_ROUND_KEY, "_kickoff", "s1_home_team_name", "s1_away_team_name"])
     groups = ordered.groupby(_ROUND_KEY, sort=False)
+
     positions = pd.DataFrame(
         {
             "s3_match_index_in_round": groups.cumcount() + 1,
             "s3_matches_in_round": groups["match_id"].transform("size"),
         }
     )
+
     return positions.reindex(frame.index)
 
 
@@ -119,6 +121,7 @@ def round_offsets(frame: pd.DataFrame) -> pd.DataFrame:
     kickoff = pd.to_datetime(frame["s1_date"].map(parse_instant), utc=True)
     median = kickoff.groupby([frame[key] for key in _ROUND_KEY], dropna=False).transform("median")
     days = (kickoff - median).dt.total_seconds() / 86400
+
     return pd.DataFrame(
         {"s3_days_off_round": days, "s3_is_rescheduled": days.abs() >= RESCHEDULED_AFTER_DAYS},
         index=frame.index,
@@ -146,21 +149,25 @@ def round_so_far(frame: pd.DataFrame) -> pd.DataFrame:
 def _round_counts(group: pd.DataFrame) -> pd.DataFrame:
     """`round_so_far` for one (stage, round)."""
     kickoff = group["_kickoff"].to_numpy(dtype="datetime64[ns]")
+
     # Row: this match; column: a round-mate. True where the round-mate counts.
     gap = kickoff[:, None] - kickoff[None, :]
     counted = (gap >= pd.Timedelta(FINISHED_AFTER).to_timedelta64()) & (
         gap < pd.Timedelta(ROUND_LOOK_BACK).to_timedelta64()
     )
+
     goals = group["s2_total_goals"].to_numpy(dtype=float)
     comeback = group["s2_is_comeback"].to_numpy(dtype=bool)
     seven_plus = goals >= SEVEN_PLUS_GOALS
     btts = (group["s1_ft_home_goals"].to_numpy() >= 1) & (group["s1_ft_away_goals"].to_numpy() >= 1)
+
     line = group["s1_odds_ou_open_line"].to_numpy(dtype=float)
     priced = counted & ~np.isnan(line)
     with np.errstate(invalid="ignore"):
         # 0 / 0 where no counted round-mate has a line: empty, not zero.
         avg_goals = np.where(priced, goals, 0.0).sum(axis=1) / priced.sum(axis=1)
         avg_line = np.where(priced, line, 0.0).sum(axis=1) / priced.sum(axis=1)
+
     return pd.DataFrame(
         {
             "s3_round_pre_finished": counted.sum(axis=1),
@@ -205,6 +212,7 @@ def _lines(tables: dict[str, Standings], team: int, side: str) -> dict[str, int 
             out[prefix + "goals_for"] = line.goals_for
             out[prefix + "goal_diff"] = line.goal_diff
             out[prefix + "points"] = line.points
+
     return out
 
 
@@ -225,6 +233,7 @@ def _stakes(
     the points gaps around it, and how far its rank moved after the opening odds."""
     above, below = table.points_gaps("total", team)
     rank, rank_at_open = table.ranks("total").get(team), at_open.ranks("total").get(team)
+
     return {
         f"s3_{side}_pre_matches_left": left[team],
         f"s3_{side}_pre_pts_to_above": above,
@@ -252,8 +261,10 @@ def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | No
     tables = {"ft": Standings(teams), "ht": Standings(teams)}
     record = HalfTimeFullTime(teams)
     at_open = Standings(teams)
+
     # Each team's matches from this one on, this one included: the fixture list, no result.
     left = Counter([m.home for m in matches] + [m.away for m in matches])
+
     counted = opened = 0
     for match in matches:
         end = _finished_by(matches, counted, match.kickoff)
@@ -262,10 +273,12 @@ def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | No
             tables["ht"].add(done.home, done.away, *done.ht)
             record.add(done.home, done.away, done.ht, done.ft)
         counted = end
+
         end = _finished_by(matches, opened, match.kickoff - OPEN_LEAD)
         for done in matches[opened:end]:
             at_open.add(done.home, done.away, *done.ft)
         opened = end
+
         yield (
             match.index,
             {
@@ -277,6 +290,7 @@ def _stage_tables(group: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | No
                 **_stakes(tables["ft"], at_open, left, match.away, "away"),
             },
         )
+
         left[match.home] -= 1
         left[match.away] -= 1
 
@@ -292,9 +306,11 @@ def pre_kickoff_tables(frame: pd.DataFrame) -> pd.DataFrame:
     rows: dict[Any, dict[str, int | None]] = {}
     for _, group in frame.groupby("s1_stage", sort=False):
         rows.update(_stage_tables(group))
+
     tables = pd.DataFrame.from_dict(rows, orient="index").reindex(
         index=frame.index, columns=pre_kickoff_columns() + pre_htft_columns() + stake_columns()
     )
+
     gap = (tables["s3_home_pre_ft_total_rank"] - tables["s3_away_pre_ft_total_rank"]).abs()
     return tables.assign(s3_pre_rank_gap=gap).astype("Int64")
 
@@ -310,6 +326,7 @@ def derive(frame: pd.DataFrame) -> pd.DataFrame:
         ],
         axis=1,
     )
+
     return out[SCHEDULE_MULTI_COLUMNS]
 
 
@@ -317,9 +334,11 @@ def build(row_path: str) -> str:
     """Write the stage-3 file for one stage-2 schedule file; return its path."""
     frame = read_stage_csv(row_path)
     out = pd.concat([frame, derive(frame)], axis=1)
+
     out_path = paths.schedule_at_stage(row_path, 3)
     columns = SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS + SCHEDULE_MULTI_COLUMNS
     write_stage_csv(out, out_path, columns)
+
     logger.info("%s: %d rows -> %s", row_path, len(frame), out_path)
     return out_path
 
@@ -328,6 +347,7 @@ def build_all() -> None:
     row_paths = paths.schedule_csvs(2)
     if not row_paths:
         logger.warning("No stage-2 schedule files in %s", paths.stage_dir(2))
+
     for row_path in row_paths:
         build(row_path)
 

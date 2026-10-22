@@ -27,5 +27,6 @@ def write_stage_csv(frame: pd.DataFrame, path: str, columns: list[str]) -> None:
     missing = [c for c in columns if c not in frame.columns]
     if missing:
         raise KeyError(f"columns missing before writing {path}: {missing[:5]}")
+
     os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
     frame[columns].to_csv(path, index=False)

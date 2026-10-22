@@ -71,9 +71,11 @@ def build_enriched(base_path: str) -> str | None:
     ):
         if extra is None:
             continue
+
         missing = [c for c in declared if c not in extra.columns]
         if missing:
             raise RuntimeError(f"declared columns missing from the built block: {missing[:5]}")
+
         merged = pd.concat([merged, extra], axis=1)
         columns += declared
 
@@ -96,9 +98,11 @@ def _goal_timing_features(merged: pd.DataFrame) -> pd.DataFrame | None:
     store_path = paths.goals_path()
     if not os.path.exists(store_path):
         return None
+
     store = goal_features.load_store(store_path)
     if not store:
         return None
+
     timing = goal_features.build(merged, store)
     covered = timing["home_goals_seen"].gt(0).mean()
     logger.info(
@@ -106,6 +110,7 @@ def _goal_timing_features(merged: pd.DataFrame) -> pd.DataFrame | None:
         len(store),
         covered * 100,
     )
+
     return timing
 
 
@@ -119,14 +124,17 @@ def _event_features(merged: pd.DataFrame) -> pd.DataFrame | None:
     store_path = paths.events_path()
     if not os.path.exists(store_path):
         return None
+
     store = event_features.load_store(store_path)
     if not store:
         return None
+
     # The goal store is what tells a card collected while protecting a lead from one
     # collected while chasing. Absent, the state-conditioned columns come back NaN and
     # every other event column is unaffected — so an events-only corpus still builds.
     goals_path = paths.goals_path()
     goal_store = goal_features.load_store(goals_path) if os.path.exists(goals_path) else {}
+
     built = event_features.build(merged, store, goal_store)
     covered = built["home_events_seen"].gt(0).mean()
     logger.info(
@@ -134,6 +142,7 @@ def _event_features(merged: pd.DataFrame) -> pd.DataFrame | None:
         len(store),
         covered * 100,
     )
+
     return built
 
 
@@ -144,6 +153,7 @@ def build_all() -> None:
         raise FileNotFoundError(
             f"no league CSVs in {paths.RAW_DIR}/ — run `python -m scrapers.schedule` first"
         )
+
     for base_path in base_paths:
         build_enriched(base_path)
 
