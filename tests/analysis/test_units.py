@@ -173,6 +173,16 @@ def test_null_q_has_the_mean_of_its_df(round_robin: pd.DataFrame) -> None:
         units.null_q(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, ("goals_1h", "goals", "x", "share"))
 
 
+def test_null_q_of_an_event_has_the_mean_of_its_df(round_robin: pd.DataFrame) -> None:
+    # The 0/1 draws of an event. Comebacks are too rare in these toy leagues to test this with;
+    # being behind at half-time is not.
+    rows = card.team_rows(round_robin)
+    quantity = ("behind", "one", "behind at half-time", "event")
+    mean, sd = units.null_q(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200)
+    assert mean == pytest.approx(6.0, abs=1.0)  # 8 teams in 2 leagues
+    assert sd > 0
+
+
 def test_within_tested_leaves_out_the_parts_that_tell_nothing() -> None:
     # Unit 1: part 1c expects nothing. Unit 2 has no events, so its parts tell nothing.
     frame = pd.DataFrame(

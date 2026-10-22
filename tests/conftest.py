@@ -1,12 +1,20 @@
-"""Test data shared across the test packages."""
+"""Test data shared across the test packages, and the Hypothesis settings every test runs with."""
 
 import math
 from itertools import product
 
 import pandas as pd
 import pytest
+from hypothesis import settings
 
 from analysis.methods import shin
+
+# Hypothesis tries the same cases on every run until Hypothesis, Python or the test changes, so
+# the same code gives the same result, as with every other gate. No example database: a failure
+# is not saved to `.hypothesis/` and replayed later. No deadline: a slow case on a busy machine
+# is not a failure.
+settings.register_profile("fixed", derandomize=True, database=None, deadline=None)
+settings.load_profile("fixed")
 
 
 @pytest.fixture

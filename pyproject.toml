@@ -57,10 +57,27 @@ testpaths = ["tests"]
 # `from domain import stats`-style imports, the same way `python -m` sees it.
 pythonpath = ["."]
 
+[tool.coverage.run]
+# `uv run coverage run -m pytest`: which lines of the six packages a test runs. A module no
+# test imports still counts, at 0%. No % threshold: the scrapers' browser code and the old
+# pipeline are untested on purpose; `/check` reads the lines of the diff.
+source = ["domain", "scrapers", "features", "analysis", "ml", "qa"]
+# Lines only, on Python's own monitoring: it costs the test run nearly nothing (the generated
+# leak seasons: 53 s, 54-59 s without coverage), while tracing took 100-103 s. On Python 3.13
+# it cannot measure branches; asked for branches, coverage falls back to tracing.
+core = "sysmon"
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
 [dependency-groups]
 dev = [
+    "bandit==1.9.4",
     "complexipy==8.0.1",
+    "coverage==7.16.2",
     "deptry==0.25.1",
+    "hypothesis==6.170.5",
     "ipykernel==6.29.5",
     "mypy==1.14.1",
     "pandas-stubs==2.2.3.241126",

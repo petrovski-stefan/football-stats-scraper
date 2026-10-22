@@ -1,20 +1,25 @@
 ---
 name: check
-description: Run the seven quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry, pytest), the manual caller sweep over the current diff that the tools miss, and — when the diff touches features/, analysis/, ml/ or notes/ — the self-checks and the stats-reviewer agent. Use after any code change, before committing.
-allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *) Bash(uv run pyscn *) Bash(uv run deptry *) Bash(uv run pytest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Agent Grep Read
+description: Run the mechanical checks — the eight quality gates (ruff check, ruff format --check, mypy, complexipy, pyscn, deptry, bandit, pytest under coverage), the engine self-check when features/engine.py changed, and the manual caller and coverage sweeps over the current diff — and say whether a statistical review (/stats-review) is due. Use after any code change, before committing. It never starts the stats-reviewer agent.
+allowed-tools: Bash(uv run ruff *) Bash(uv run mypy *) Bash(uv run complexipy *) Bash(uv run pyscn *) Bash(uv run deptry *) Bash(uv run bandit *) Bash(uv run coverage *) Bash(uv run pytest *) Bash(git diff *) Bash(git ls-files *) Bash(git status *) Bash(git log *) Bash(uv run python -m features.engine --self-check) Grep Read
 ---
 
-# /check — seven gates plus the caller sweep
+# /check — the mechanical checks
 
-Root `CLAUDE.md` ("Quality gates") requires all seven tools on every change **and** a caller
+Root `CLAUDE.md` ("Quality gates") requires all eight tools on every change **and** a caller
 sweep by hand, because ruff and mypy pass clean on unused functions, unreferenced constants
 and private names called across modules, and pyscn's dead-code detector misses
-unreferenced definitions too (`notes/LOG/MIGRATIONS.md`). This skill does both.
+unreferenced definitions too (`notes/LOG/MIGRATIONS.md`). It also requires that new code ships
+with its tests, which the coverage sweep checks line by line. This skill does all of that.
+Every check here gives the same result for the same code.
+
+The statistical review is a judgment, not a gate, and it is slow, so it is a skill of its own:
+`/stats-review`, run once per finished change. This skill only says when it is due (§4).
 
 Run everything from the repo root. Do not fix anything unless the user asks; this skill
 reports.
 
-## 1. The seven tools, in this order
+## 1. The eight tools, then the engine self-check
 
 Run each one even if an earlier one fails. Capture exit code and the failing lines.
 
@@ -24,7 +29,14 @@ Run each one even if an earlier one fails. Capture exit code and the failing lin
 4. `uv run complexipy . --failed`
 5. `uv run pyscn analyze .`
 6. `uv run deptry .`
-7. `uv run pytest -q` — FAIL on any failed or errored test; give the `FAILED` lines.
+7. `uv run bandit -q -r domain scrapers features analysis ml qa` — FAIL on exit 1; give each
+   finding (file:line, test id, severity, message).
+8. `uv run coverage run -m pytest -q` — FAIL on any failed or errored test; give the `FAILED`
+   lines. It also writes `.coverage` (gitignored), which §3 reads.
+
+Then the engine self-check, only when `features/engine.py` is in the diff (changed or
+untracked): `uv run python -m features.engine --self-check`. FAIL on a non-zero exit; give the
+last ~20 lines. It proves the old pipeline's as-of-round invariant.
 
 pyscn exits 0 even when it reports findings, and its text summary gives only an
 "Architecture NN% compliant" score, not what the violations are. Get them from JSON:
@@ -73,24 +85,40 @@ Scope: the current diff against `HEAD`, plus untracked `.py` files.
    - a `test_*` function in `tests/`, which pytest collects by name.
      Otherwise it stays **unreferenced**. Do not guess.
 
-## 3. Statistical review
+## 3. The coverage sweep
 
-1. `git diff HEAD --name-only -- features analysis ml notes` and
-   `git ls-files --others --exclude-standard -- features analysis ml notes`.
-   If both are empty: `stats review n/a`, skip the rest of this section.
-2. The self-check, only when its file is in that list (changed or untracked). Capture the
-   exit code and the last ~20 lines of output:
-   - `features/engine.py` → `uv run python -m features.engine --self-check`
-3. Spawn the `stats-reviewer` agent with: the full `git diff HEAD -- features analysis ml notes`,
-   the untracked file list, `git log --oneline -15`, and the self-check's exit code and
-   output — or `not run: unchanged` if its file is not in the list.
-4. Relay its report verbatim under "Statistical review". Do not re-judge its findings.
+Scope: the source lines the diff adds in the six packages (not `tests/`), against the
+`.coverage` data of gate 8. If gate 8 failed, the sweep is "not run: tests failed".
 
-## 4. Output
+1. Collect the changed source files:
+   - `git diff HEAD --name-only -- domain scrapers features analysis ml qa` (`.py` files only)
+   - `git ls-files --others --exclude-standard -- domain scrapers features analysis ml qa`
+     If both are empty, the sweep is "nothing to sweep" and passes.
+2. `uv run coverage report --include=<the files, comma-separated>`. Its `Missing` column lists
+   the lines no test ran (ranges like `318-324`).
+3. Collect the added lines: from `git diff HEAD -U0 -- <file>`, the `+c,d` part of each hunk
+   header gives lines `c` to `c+d-1`; an untracked file adds every line.
+4. Each added line that is in `Missing` is either:
+   - **by design** — untested on purpose, as root `CLAUDE.md` says: browser code
+     (`scrapers/driver.py`, `scrapers/browser_pool.py`, a scraper's Selenium loop), a `main()` /
+     `build()` / `build_all()` that only reads and writes files, or a module waiting for plan
+     steps P4–P5. Say which.
+   - **untested** — anything else: FAIL, because new code ships with its tests.
+
+## 4. Is a stats review due?
+
+1. `git diff HEAD --name-only -- features analysis ml notes tests/features tests/analysis tests/ml`
+   and `git ls-files --others --exclude-standard -- <the same paths>`.
+2. Any file listed: `stats review DUE` — run `/stats-review` before committing. There is no
+   commit while a review is due or says BLOCK (root `CLAUDE.md`, "Conventions"). No file:
+   `n/a`. Do not start the `stats-reviewer` agent here.
+
+## 5. Output
 
 First, per-tool detail only for tools that failed or warned (the failing lines, trimmed to
 the first ~15). Then the sweep table (name, file:line, verdict) listing only non-`ok` rows,
-plus a count of `ok` rows. Then the statistical review, if §3 ran.
+plus a count of `ok` rows. Then the coverage sweep's untested and by-design lines (file:line
+and the code).
 
 End with exactly this summary block, one line each:
 
@@ -101,7 +129,10 @@ mypy              PASS|FAIL  (<n> errors)
 complexipy        PASS|FAIL  (<n> functions over threshold)
 pyscn             PASS|WARN|FAIL  (<clones> clone groups, <dead> dead code, <arch> layer violations)
 deptry            PASS|FAIL  (<n> dependency issues)
+bandit            PASS|FAIL  (<n> findings)
 pytest            PASS|FAIL  (<n> passed, <f> failed)
+engine self-check PASS|FAIL|n/a
 caller sweep      PASS|FAIL  (<n> names checked, <u> unreferenced, <p> private cross-module)
-stats review      OK|BLOCK|n/a  (<n> findings, <v> not verified)
+coverage sweep    PASS|FAIL|n/a  (<n> added lines, <u> untested, <d> by design)
+stats review      DUE|n/a  (<n> files in its scope; DUE: run /stats-review before committing)
 ```

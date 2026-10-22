@@ -44,6 +44,13 @@ def test_a_row_without_a_market_is_not_checked_for_it() -> None:
     assert _issues(_row(h=None, ou=None, ah=None)) == []
 
 
+def test_a_table_without_a_markets_columns_is_not_checked_for_it() -> None:
+    # `universal.check_required_columns` reports the missing columns, once.
+    row = {cell: value for cell, value in _row().items() if not cell.startswith("ah")}
+    assert _issues(row) == []
+    assert _issues_of(check_whole_markets, row) == []
+
+
 def test_a_three_way_book_that_is_not_1x2_fails() -> None:
     assert any("overround" in issue for issue in _issues(_row(h=1.9, d=1.9, a=1.9)))
 
@@ -82,6 +89,14 @@ def test_a_row_without_1x2_prices_uses_the_no_price_band() -> None:
     assert any("AH rows with a line bigger" in issue for issue in issues)
 
 
+@pytest.mark.usefixtures("bands")
+def test_a_table_without_the_1x2_columns_uses_the_no_price_band() -> None:
+    row = {
+        cell: value for cell, value in _row(ah=5.5, ou=6.5).items() if cell not in ("h", "d", "a")
+    }
+    assert any("AH rows with a line bigger" in issue for issue in _issues(row))
+
+
 def test_line_limits_cover_every_price_and_shrink_as_the_favourite_lengthens() -> None:
     starts, ah_limits, ou_limits = zip(*odds.LINE_LIMITS, strict=True)
     assert starts[0] <= 1.0
@@ -108,6 +123,11 @@ def test_a_goal_line_above_the_handicap_passes() -> None:
 def test_an_ah_sign_against_the_favourite_fails() -> None:
     # Home is the 1X2 favourite (1.5 vs 6.0), so a negative AH line contradicts it.
     assert any("AH sign" in issue for issue in _issues(_row(ah=-1.25)))
+
+
+def test_a_level_handicap_is_not_held_to_the_favourite() -> None:
+    # A 0 line names no favourite, so the 1X2 favourite cannot contradict it.
+    assert _issues_of(odds.check_ah_sign, _row(ah=0.0)) == []
 
 
 def test_markets_hold_every_cell_once() -> None:

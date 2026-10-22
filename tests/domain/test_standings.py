@@ -1,6 +1,20 @@
 """`domain/standings.py`: lines, the three venue tables, and the rank order."""
 
+from itertools import permutations
+
+from hypothesis import given
+from hypothesis import strategies as st
+
 from domain.standings import VENUES, HalfTimeFullTime, Line, Standings
+
+_TEAMS = range(1, 7)
+# Any run of results between two different teams: (home, away, home goals, away goals).
+_RESULTS = st.lists(
+    st.tuples(
+        st.sampled_from(_TEAMS), st.sampled_from(_TEAMS), st.integers(0, 9), st.integers(0, 9)
+    ).filter(lambda match: match[0] != match[1]),
+    max_size=40,
+)
 
 
 def test_line_counts_a_win_a_draw_and_a_loss() -> None:
@@ -76,6 +90,29 @@ def test_points_gaps_count_only_teams_with_more_or_fewer_points() -> None:
 def test_points_gaps_are_empty_on_an_empty_table() -> None:
     table = Standings([1, 2])
     assert table.points_gaps("total", 1) == (None, None)
+
+
+@given(_RESULTS)
+def test_any_run_of_results_keeps_the_tables_consistent(
+    results: list[tuple[int, int, int, int]],
+) -> None:
+    table = Standings(_TEAMS)
+    for match in results:
+        table.add(*match)
+    lines = {team: table.line("total", team) for team in _TEAMS}
+    assert sum(line.played for line in lines.values()) == 2 * len(results)
+    assert sum(line.won for line in lines.values()) == sum(line.lost for line in lines.values())
+    assert sum(line.goal_diff for line in lines.values()) == 0
+    for team, total in lines.items():
+        home, away = table.line("home", team), table.line("away", team)
+        assert total.played == home.played + away.played
+        assert total.points == home.points + away.points
+    if results:  # an empty table has no ranks
+        ranks = table.ranks("total")
+        keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
+        assert min(ranks.values()) == 1
+        # Ahead exactly when better on the keys; level on every key, level in rank.
+        assert all((ranks[a] < ranks[b]) == (keys[a] > keys[b]) for a, b in permutations(_TEAMS, 2))
 
 
 # --- The half-time / full-time record (team view) --------------------------------------

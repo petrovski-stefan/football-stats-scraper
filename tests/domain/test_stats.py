@@ -1,10 +1,14 @@
 """`domain/stats.py`: the market-label kernel."""
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from domain import stats
 
 Score = tuple[int, int]
+# Decimal prices as a book could quote them.
+_PRICES = st.floats(1.01, 1000.0)
 
 
 @pytest.mark.parametrize(
@@ -98,6 +102,16 @@ def test_vig_free_1x2_sums_to_one_and_keeps_the_order() -> None:
     assert probs is not None
     assert sum(probs) == pytest.approx(1.0)
     assert probs[0] > probs[1] > probs[2]
+
+
+@given(_PRICES, _PRICES, _PRICES)
+def test_any_three_prices_give_three_chances_that_sum_to_one(
+    home: float, draw: float, away: float
+) -> None:
+    chances = stats.vig_free_1x2(home, draw, away)
+    assert chances is not None
+    assert sum(chances) == pytest.approx(1.0)
+    assert all(0 < chance < 1 for chance in chances)
 
 
 @pytest.mark.parametrize("prices", [(None, 3.0, 3.0), (2.0, 0.0, 3.0), (2.0, 3.0, None)])

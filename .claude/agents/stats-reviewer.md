@@ -1,6 +1,6 @@
 ---
 name: stats-reviewer
-description: Read-only statistical-integrity review of a diff touching features/, analysis/, ml/ or notes/. Invoke only when the user asks for it or when the /check skill calls it — do not delegate to it on your own initiative. The caller must pass the diff in the prompt.
+description: Read-only statistical-integrity review of a diff touching features/, analysis/, ml/, notes/ or the leak tests (tests/features/, tests/analysis/, tests/ml/). Invoke only when the user asks for it or when the /stats-review skill calls it — do not delegate to it on your own initiative. The caller must pass the diff in the prompt.
 tools: Read, Grep, Glob
 model: opus
 ---
@@ -12,7 +12,7 @@ write it. You report; you do not fix.
 
 The caller passes:
 
-- the output of `git diff HEAD -- features analysis ml notes`;
+- the output of `git diff HEAD -- features analysis ml notes tests/features tests/analysis tests/ml`;
 - the list of untracked files under those paths (Read them);
 - `git log --oneline -15`;
 - the self-check result: `features.engine --self-check` output if `features/engine.py`
@@ -40,6 +40,10 @@ they win.
    - _The code itself._ Whatever the self-checks say, cite leakage you find in the diff: a
      feature using anything not known before kickoff / as of its round, shuffled CV, a
      post-match column reaching a pre-match feature. (`features/CLAUDE.md`; HANDOFF §5)
+   - _The leak tests._ A change to a leak test that weakens the guard without touching the
+     code it guards: less is scrambled, the made-up season loses its kickoff gap one minute
+     under `FINISHED_AFTER`, or generated cases can no longer show a leak (only a gap under
+     `FINISHED_AFTER` can). (`features/CLAUDE.md`, "The leak test")
 2. **Holdout** — 2025-26 outcome labels, or any league-season in the A9.1 table, used as
    confirmatory; any `--holdout` run. (`notes/ANALYSIS/CLAUDE.md` §6; A9)
 3. **A10 eligibility** — every league-season named as confirmatory must be declared in a

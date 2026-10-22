@@ -3,6 +3,8 @@
 from typing import Any
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 from pydantic import ValidationError
 
 from domain.schedule import FinalTableRow, ScheduleRow, season_start_year
@@ -86,3 +88,9 @@ def test_final_table_row() -> None:
 )
 def test_season_start_year(season: str, start: int | None) -> None:
     assert season_start_year(season) == start
+
+
+@given(st.integers(1900, 2100), st.booleans())
+def test_season_start_year_reads_any_year_in_both_label_forms(year: int, cross_year: bool) -> None:
+    label = f"{year}-{year + 1}" if cross_year else str(year)
+    assert season_start_year(label) == year

@@ -131,6 +131,12 @@ def test_no_final_table_fails() -> None:
     assert not report.ok
 
 
+def test_a_stage_with_a_table_but_no_matches_fails() -> None:
+    page = [*_PAGE, _line(1, 1, (1, 1, 0, 0, 2, 3), "Clausura")]
+    issues = _run(_SCHEDULE, page).issues
+    assert "stage 'Clausura': a final table but no stored matches" in issues
+
+
 def test_each_stage_is_held_against_its_own_matches() -> None:
     schedule = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 0, 1))
     page = [

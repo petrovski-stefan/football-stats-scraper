@@ -113,6 +113,13 @@ def test_a_kickoff_in_the_wrong_year_fails() -> None:
     assert any("kickoffs outside" in issue for issue in _issues(season))
 
 
+def test_the_year_check_needs_a_season_label_it_can_read() -> None:
+    season = _season()
+    season["s1_season"] = "Apertura"
+    season.loc[0, "s1_date"] = "2030-01-01 15:00+01:00"
+    assert not any("kickoffs outside" in issue for issue in _issues(season))
+
+
 def _blank_rounds(issues: list[str]) -> list[str]:
     return [issue for issue in issues if "without odds on any match" in issue]
 
@@ -128,6 +135,11 @@ def test_one_priced_match_saves_its_round() -> None:
     unpriced = season.index[season["s1_round"] == 2][1:]
     season.loc[unpriced, STAGED_ODDS.cells()] = float("nan")
     assert _blank_rounds(_issues(season)) == []
+
+
+def test_a_table_without_the_odds_columns_is_not_checked_for_blank_rounds() -> None:
+    # `universal.check_required_columns` reports the missing columns, once.
+    assert _blank_rounds(_issues(_season().drop(columns=STAGED_ODDS.cells()))) == []
 
 
 def test_a_round_below_the_minimum_size_is_left_alone() -> None:

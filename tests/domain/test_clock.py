@@ -3,6 +3,8 @@
 from datetime import UTC, datetime, timedelta, timezone
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from domain.clock import BERLIN, parse_berlin, parse_instant, to_berlin
 
@@ -23,6 +25,16 @@ from domain.clock import BERLIN, parse_berlin, parse_instant, to_berlin
 )
 def test_to_berlin(moment: datetime, text: str) -> None:
     assert to_berlin(moment) == text
+
+
+@given(
+    st.datetimes(datetime(1990, 1, 1), datetime(2100, 1, 1), timezones=st.just(UTC)).map(
+        lambda moment: moment.replace(second=0, microsecond=0)
+    )
+)
+def test_any_instant_to_the_minute_survives_writing_and_reading(moment: datetime) -> None:
+    # Every clock change from 1990 to 2100 is in range: the written offset keeps the instant.
+    assert parse_instant(to_berlin(moment)) == moment
 
 
 def test_to_berlin_refuses_a_naive_datetime() -> None:

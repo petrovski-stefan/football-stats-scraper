@@ -8,9 +8,15 @@ calendar-year "2025" ones.
 import os
 
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from domain import paths
 from domain.paths import split_league_season
+
+# A league slug as the file names hold it: lowercase letters, digits and underscores, so it may
+# end in something that looks like a year (`liga_2000`).
+_SLUGS = st.text("abcdefghijklmnopqrstuvwxyz0123456789_", min_size=1, max_size=30)
 
 
 @pytest.mark.parametrize(
@@ -85,6 +91,14 @@ def test_the_final_table_is_stage_1_only() -> None:
 )
 def test_split_schedule_name_inverts_schedule_path(league: str, season: str) -> None:
     assert paths.split_schedule_name(paths.schedule_path(2, league, season)) == (league, season)
+
+
+@given(_SLUGS, st.integers(1900, 2100), st.booleans(), st.sampled_from(sorted(paths.STAGE_DIRS)))
+def test_any_league_and_season_survive_the_file_name(
+    league: str, year: int, cross_year: bool, stage: int
+) -> None:
+    season = f"{year}-{year + 1}" if cross_year else str(year)
+    assert paths.split_schedule_name(paths.schedule_path(stage, league, season)) == (league, season)
 
 
 def test_split_schedule_name_rejects_other_files() -> None:

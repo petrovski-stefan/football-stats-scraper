@@ -4,20 +4,27 @@ and table parsers on small hand-written fragments shaped like the league page.
 Tests on a saved, trimmed copy of the real page are a later batch (IDEAS idea 11).
 """
 
+from collections.abc import Callable
+
 import pytest
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 
 from scrapers.parsers import (
     attr,
     clean_string,
+    parse_1x2_odds,
+    parse_ah_odds,
     parse_final_table,
     parse_float,
     parse_kickoff,
     parse_line,
+    parse_ou_odds,
     parse_schedulis_row,
     parse_score,
     tag_text,
 )
+
+Prices = tuple[float | None, float | None, float | None]
 
 _SPAN = BeautifulSoup(
     '<span class="date on" data-t="2026-01-03 15:00"> 3 - 1 </span>', "html.parser"
@@ -86,6 +93,24 @@ def test_parse_float(raw: str | None, value: float | None) -> None:
 )
 def test_parse_line(raw: str, line: float | None) -> None:
     assert parse_line(raw) == line
+
+
+def _page_line(quarters: int) -> str:
+    """A line of `quarters` quarter-goals as the page writes it: a whole or half line as one
+    number, a quarter line as the two lines either side, with one minus sign on the first of
+    them that is not 0."""
+    sign = "-" if quarters < 0 else ""
+    size = abs(quarters)
+    if size % 2 == 0:
+        return f"{sign}{size / 4:g}"
+    low, high = (size - 1) / 4, (size + 1) / 4
+    return f"0/{sign}{high:g}" if low == 0 else f"{sign}{low:g}/{high:g}"
+
+
+def test_parse_line_reads_every_line_up_to_ten_goals_as_the_page_writes_it() -> None:
+    # All 81 lines, so no sample is needed.
+    for quarters in range(-40, 41):
+        assert parse_line(_page_line(quarters)) == quarters / 4, _page_line(quarters)
 
 
 def test_clean_string_transliterates_portuguese_letters() -> None:
@@ -158,6 +183,32 @@ def test_parse_schedulis_row_skips_an_unplayed_match() -> None:
     assert parse_schedulis_row(row) is None
 
 
+# --- The odds cells, whichever market the header shows ------------------------------
+
+
+def _odds_row(*cells: str) -> Tag:
+    spans = "".join(f"<span>{cell}</span>" for cell in cells)
+    html = f'<div class="schedulis"><span class="odds">{spans}</span></div>'
+    row = BeautifulSoup(html, "html.parser").select_one("div")
+    assert row is not None
+    return row
+
+
+def test_parse_ou_odds_reads_over_line_under() -> None:
+    assert parse_ou_odds(_odds_row("1.90", "2.5/3", "1.95")) == (1.90, 2.75, 1.95)
+
+
+def test_parse_ah_odds_reads_home_line_away() -> None:
+    assert parse_ah_odds(_odds_row("2.05", "0/-0.5", "1.80")) == (2.05, -0.25, 1.80)
+
+
+@pytest.mark.parametrize("parse", [parse_1x2_odds, parse_ou_odds, parse_ah_odds])
+def test_a_row_with_fewer_than_three_odds_cells_reads_nothing(
+    parse: Callable[[Tag], Prices],
+) -> None:
+    assert parse(_odds_row("1.90", "2.5")) == (None, None, None)
+
+
 # --- The final table -----------------------------------------------------------------
 
 _TITLE = (
@@ -211,7 +262,15 @@ def test_parse_final_table_refuses_unexpected_columns() -> None:
     )
 
 
-def test_parse_final_table_skips_a_row_that_does_not_parse() -> None:
-    broken = _standing(2, 8, "Broken FC", (1, 1, 0, 0, 2, 3)).replace("<em>2</em>", "<em>-</em>")
+@pytest.mark.parametrize(
+    ("old", "new"),
+    [
+        ("<em>2</em>", "<em>-</em>"),  # a rank that is not a number
+        (' onclick="toTeam(8)"', ""),  # a team without its link
+        ("<span>1</span>", ""),  # a missing cell: seven cells, not eight
+    ],
+)
+def test_parse_final_table_skips_a_row_that_does_not_parse(old: str, new: str) -> None:
+    broken = _standing(2, 8, "Broken FC", (1, 1, 0, 0, 2, 3)).replace(old, new, 1)
     rows = parse_final_table(_table(_standing(1, 19, "First FC", (1, 1, 0, 0, 2, 3)), broken))
     assert [r["team_id"] for r in rows] == [19]

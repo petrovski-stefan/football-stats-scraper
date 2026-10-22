@@ -1,13 +1,15 @@
 """`features/schedule_multi.py`: round positions and offsets, the round so far, the table as it
 stood at each kickoff, what is at stake, and that no score or odds of an unfinished match
-reaches a row."""
+reaches a row, on a made-up season and on generated ones."""
 
 import random
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pandas as pd
 import pytest
+from hypothesis import given
+from hypothesis import strategies as st
 
 from domain.clock import BERLIN, parse_instant, to_berlin
 from domain.columns import HTFT_RESULTS, STANDING_SIDES, STANDING_VENUES
@@ -502,20 +504,72 @@ def _differing(before: pd.DataFrame, after: pd.DataFrame, match_id: str) -> list
     return columns
 
 
-def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row() -> None:
-    # For each match, scramble the score and odds of every match that kicked off less than
-    # FINISHED_AFTER before it, or later, the match itself included. Only their fixture
-    # (teams, kickoff, round) may be read, so no stage-3 value of the match may move.
-    rows = _made_up_season()
+def _leaks(rows: list[dict[str, object]], rng: random.Random) -> dict[str, list[str]]:
+    """For each match, scramble the score and odds of every match that kicked off less than
+    FINISHED_AFTER before it, or later, the match itself included, and keep the stage-3
+    columns of the match that moved. Only those matches' fixtures (teams, kickoff, round) may
+    be read, so nothing may move."""
     before = derive(_stage_2(rows))
-    rng = random.Random(11)
+    leaks: dict[str, list[str]] = {}
     for target in rows:
         cutoff = _kickoff(target) - FINISHED_AFTER
         scrambled = [
             {**row, **_results_and_odds(rng)} if _kickoff(row) > cutoff else row for row in rows
         ]
-        after = derive(_stage_2(scrambled))
-        assert _differing(before, after, str(target["match_id"])) == [], target["match_id"]
+        moved = _differing(before, derive(_stage_2(scrambled)), str(target["match_id"]))
+        if moved:
+            leaks[str(target["match_id"])] = moved
+    return leaks
+
+
+def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row() -> None:
+    assert _leaks(_made_up_season(), random.Random(11)) == {}
+
+
+# A double round robin of four teams: six rounds of two matches, as (round, home, away).
+_FIRST_LEG = [[(1, 4), (2, 3)], [(1, 3), (4, 2)], [(1, 2), (3, 4)]]
+_SECOND_LEG = [[(away, home) for home, away in pairs] for pairs in _FIRST_LEG]
+_FIXTURES = [
+    (number, home, away)
+    for number, pairs in enumerate([*_FIRST_LEG, *_SECOND_LEG], 1)
+    for home, away in pairs
+]
+# From one kickoff to the next: anything up to 10 days, or the last gap at which the earlier
+# match is still unfinished. Only a gap under FINISHED_AFTER can show a leak: two matches
+# further apart are both finished, so neither is scrambled. The unit tests above check the
+# longer windows.
+_LAST_UNFINISHED = FINISHED_AFTER - timedelta(minutes=1)
+_GAPS = st.one_of(
+    st.just(_LAST_UNFINISHED),
+    st.integers(0, 10 * 24 * 60).map(lambda minutes: timedelta(minutes=minutes)),
+)
+_STARTS = st.datetimes(datetime(2023, 1, 1), datetime(2026, 12, 31), timezones=st.just(UTC)).map(
+    lambda moment: moment.replace(second=0, microsecond=0)
+)
+
+
+@given(
+    start=_STARTS,
+    gaps=st.lists(_GAPS, min_size=len(_FIXTURES), max_size=len(_FIXTURES)),
+    order=st.permutations(range(len(_FIXTURES))),
+    seed=st.integers(0, 2**32 - 1),
+)
+def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row_of_a_generated_season(
+    start: datetime, gaps: list[timedelta], order: list[int], seed: int
+) -> None:
+    # Kickoffs a generated gap apart, dealt to the fixtures in a generated order: round-mates
+    # at once or days apart, matches played out of their round, and matches one minute short
+    # of finished.
+    kickoffs = [start + sum(gaps[: slot + 1], timedelta()) for slot in range(len(gaps))]
+    rng = random.Random(seed)
+    rows = [
+        {
+            **_match(f"m{i}", kickoffs[slot], (home, away), (0, 0), round_number=number),
+            **_results_and_odds(rng),
+        }
+        for i, ((number, home, away), slot) in enumerate(zip(_FIXTURES, order, strict=True))
+    ]
+    assert _leaks(rows, rng) == {}
 
 
 def test_the_leak_check_can_fail() -> None:

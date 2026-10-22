@@ -80,6 +80,12 @@ def test_check_no_dead_columns() -> None:
     assert r.ok
 
 
+def test_check_no_dead_columns_leaves_an_empty_table_to_check_not_empty() -> None:
+    r = _report()
+    universal.check_no_dead_columns(r, pd.DataFrame({"a": []}))
+    assert r.ok
+
+
 def test_check_no_dead_columns_respects_the_threshold() -> None:
     half_empty = pd.DataFrame({"half": [1, np.nan]})
     r = _report()
