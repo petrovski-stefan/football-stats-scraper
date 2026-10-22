@@ -27,6 +27,7 @@ def resampled_sums(
     codes = pd.factorize(clusters)[0]
     per_cluster = np.zeros((codes.max() + 1, values.shape[1]))
     np.add.at(per_cluster, codes, values)
+
     picks = np.random.default_rng(seed).integers(0, len(per_cluster), (draws, len(per_cluster)))
     return np.asarray(per_cluster[picks].sum(axis=1))
 
@@ -56,6 +57,7 @@ def top_n_table(
         sums = resampled_sums(np.column_stack(columns), clusters, draws)
         with np.errstate(divide="ignore", invalid="ignore"):
             shares = sums[:, 0::2] / sums[:, 1::2]
+
         at = names.index(reference)
         for i, name in enumerate(names):
             hits = float((y * masks[i]).sum())
@@ -74,6 +76,7 @@ def top_n_table(
                     "chance": n * float(np.mean(y)),
                 }
             )
+
     return pd.DataFrame(table)
 
 
@@ -96,6 +99,7 @@ def loss_table(
     losses = np.column_stack([log_loss_rows(y, chances[name]) for name in names])
     sums = resampled_sums(np.column_stack([losses, np.ones(len(y))]), clusters, draws)
     means = sums[:, :-1] / sums[:, -1:]
+
     at = names.index(reference)
     table = []
     for i, name in enumerate(names):
@@ -110,6 +114,7 @@ def loss_table(
                 "high": high,
             }
         )
+
     return pd.DataFrame(table)
 
 
@@ -119,5 +124,6 @@ def calibration_table(y: np.ndarray, p: np.ndarray, bins: int = 10) -> pd.DataFr
     group = pd.qcut(pd.Series(p).rank(method="first"), bins, labels=False)
     frame = pd.DataFrame({"group": group, "y": y, "p": p})
     table = frame.groupby("group").agg(rows=("y", "size"), chance=("p", "mean"), rate=("y", "mean"))
+
     table["O/E"] = table["rate"] / table["chance"]
     return table.reset_index()

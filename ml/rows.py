@@ -57,6 +57,7 @@ def odds_fields(matches: pd.DataFrame, frame: pd.DataFrame, side: str, other: st
     of the same matches (`analysis/methods/yardstick.py:frame`)."""
     sign = 1.0 if side == "home" else -1.0
     ah_home = matches["s2_implied_ah_home"]
+
     return pd.DataFrame(
         {
             "venue_home": 1.0 if side == "home" else 0.0,
@@ -95,12 +96,14 @@ def table_fields(matches: pd.DataFrame, side: str, who: str) -> dict[str, "pd.Se
             out[f"{who}_{half}_{venue}_played"] = matches[f"{base}_played"].astype(float)
             for stat in RATE_STATS:
                 out[f"{who}_{half}_{venue}_{stat}_pg"] = per_game(matches[f"{base}_{stat}"], played)
+
         for stat in ("goals_for", "goal_diff"):
             second_half = (
                 matches[f"s3_{side}_pre_ft_{venue}_{stat}"]
                 - matches[f"s3_{side}_pre_ht_{venue}_{stat}"]
             )
             out[f"{who}_2h_{venue}_{stat}_pg"] = per_game(second_half, played)
+
     return out
 
 
@@ -114,8 +117,10 @@ def record_fields(matches: pd.DataFrame, side: str, who: str) -> dict[str, "pd.S
             for ft in RESULTS:
                 count = matches[f"s3_{side}_pre_htft_{venue}_{ht}_{ft}"]
                 out[f"{who}_htft_{venue}_{ht}_{ft}_pg"] = per_game(count, played)
+
     for stake in STAKES:
         out[f"{who}_{stake}"] = matches[f"s3_{side}_{stake}"].astype(float)
+
     return out
 
 
@@ -123,13 +128,16 @@ def match_fields(matches: pd.DataFrame) -> pd.DataFrame:
     """The fields of the match: the round so far (S3.01, S3.14 to S3.20), the gap between the two
     ranks (S3.04), the round (S1.05), the kickoff in Berlin time (S1.07) and the league (S1.02)."""
     kickoff = pd.to_datetime(matches["s1_date"], utc=True).dt.tz_convert("Europe/Berlin")
+
     out = matches[list(ROUND_SO_FAR)].astype(float)
     out["s3_pre_rank_gap"] = matches["s3_pre_rank_gap"].astype(float)
     out["round"] = matches["s1_round"].astype(float)
+
     out["weekday"] = kickoff.dt.weekday.astype(float)
     out["hour"] = (kickoff.dt.hour + kickoff.dt.minute / 60.0).astype(float)
     out["month"] = kickoff.dt.month.astype(float)
     out[LEAGUE] = pd.Categorical(matches["s1_league_id"])
+
     return out
 
 
@@ -141,6 +149,7 @@ def side_fields(matches: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
         team = (side, other)[index]
         teams |= table_fields(matches, team, who)
         teams |= record_fields(matches, team, who)
+
     return pd.concat([pd.DataFrame(teams, index=matches.index), match_fields(matches)], axis=1)
 
 
@@ -150,6 +159,7 @@ def side_rows(matches: pd.DataFrame, frame: pd.DataFrame) -> tuple[pd.DataFrame,
     yardstick's frame of the matches."""
     priced = matches.loc[frame.index]
     rows = card.team_yardstick_rows(priced, frame)
+
     fields = pd.concat(
         [
             pd.concat(
@@ -160,6 +170,7 @@ def side_rows(matches: pd.DataFrame, frame: pd.DataFrame) -> tuple[pd.DataFrame,
         ],
         ignore_index=True,
     )
+
     return rows.join(fields), list(fields.columns)
 
 

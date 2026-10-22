@@ -72,6 +72,7 @@ def tune(
     number of trees where that loss was lowest."""
     data = dataset(rows, fields, target)
     folds = group_folds(groups)
+
     tried = []
     for setting in grid:
         history = lgb.cv(
@@ -81,10 +82,13 @@ def tune(
             folds=folds,
             callbacks=[lgb.early_stopping(PATIENCE, verbose=False)],
         )
+
         losses = cast("list[float]", history[CV_LOSS])
         tried.append({**setting, "trees": len(losses), "cv loss": float(losses[-1])})
+
     table = pd.DataFrame(tried)
     best = int(table["cv loss"].idxmin())
+
     return Tuned(
         params=BASE | grid[best],
         trees=int(table.at[best, "trees"]),

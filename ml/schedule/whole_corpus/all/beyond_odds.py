@@ -59,6 +59,7 @@ def importance(contributions: pd.DataFrame) -> pd.DataFrame:
             "odds": [field in rows.ODDS for field in mean_abs.index],
         }
     )
+
     return table.sort_values("mean |SHAP|", ascending=False, ignore_index=True)
 
 
@@ -89,15 +90,18 @@ def run_split(
         f"\n#### {title}: {len(train):,} training rows ({train[rows.TARGET].sum():.0f} "
         f"comebacks), {len(test):,} test rows ({y.sum():.0f})"
     )
+
     chances = {"yardstick": yardstick_chance(train, test)}
     tuned, boosters = {}, {}
     for name, fields in models(fields_b).items():
         tuned[name] = boosting.tune(train, fields, rows.TARGET, train["cluster"])
         boosters[name] = boosting.fit(train, fields, rows.TARGET, tuned[name])
         chances[name] = boosting.predict(boosters[name], test, fields)
+
     report.show(f"{title}: the chosen settings", tuning_table(tuned))
     for name, result in tuned.items():
         report.show(f"{title}: every setting of model {name}", result.table)
+
     base_rate = np.full(len(test), train[rows.TARGET].mean())
     report.show(
         f"{title}: log loss",
@@ -107,8 +111,10 @@ def run_split(
         f"{title}: comebacks in the top N",
         score.top_n_table(y, chances, test["cluster"], TOP_N, "A"),
     )
+
     for name in ("A", "B"):
         report.show(f"{title}: calibration of {name}", score.calibration_table(y, chances[name]))
+
     model_fields = models(fields_b)
     for name in ("B", NO_LEAGUE):
         shap = importance(boosting.contributions(boosters[name], test, model_fields[name]))
@@ -130,6 +136,7 @@ def split_rows(
     train = matches[matches["season_cohort"] == train_cohort]
     share = yardstick.first_half_share(yardstick.priced(train))
     side_rows, fields_b = rows.side_rows(matches, yardstick.frame(matches, grid, share=share))
+
     return side_rows, fields_b, share
 
 
@@ -137,6 +144,7 @@ def main() -> None:
     matches = corpus.load()
     print(corpus.corpus_line(matches))
     print(f"each interval: {score.DRAWS} resamples of whole league-seasons of the test cohort")
+
     grid = yardstick.build_grid()
     for train_cohort, test_cohort in SPLITS:
         side_rows, fields_b, share = split_rows(matches, grid, train_cohort)
