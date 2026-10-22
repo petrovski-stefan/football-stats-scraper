@@ -51,117 +51,129 @@ def read_staged(path: str, columns: list[str] | None = None) -> pd.DataFrame:
     """A staged file with its text columns kept as text: an empty stage stays ""."""
     head = pd.read_csv(path, nrows=0).columns
     text = [c for c in _TEXT_COLUMNS if c in head and (columns is None or c in columns)]
-    frame = pd.read_csv(path, usecols=columns, dtype=dict.fromkeys(text, str))
-    return frame.fillna(dict.fromkeys(text, ""))
+    staged_df = pd.read_csv(path, usecols=columns, dtype=dict.fromkeys(text, str))
+    return staged_df.fillna(dict.fromkeys(text, ""))
 
 
-def validate(r: Report, df: pd.DataFrame) -> None:
-    _check_scores(r, df)
-    check_all(r, df, STAGED_ODDS)
-    check_whole_markets(r, df, STAGED_ODDS)
-    check_coverage(r, df, STAGED_ODDS)
-    _check_kickoff_years(r, df)
-    _check_no_team_twice_in_a_day(r, df)
+def validate(report: Report, schedule_df: pd.DataFrame) -> None:
+    _check_scores(report, schedule_df)
+    check_all(report, schedule_df, STAGED_ODDS)
+    check_whole_markets(report, schedule_df, STAGED_ODDS)
+    check_coverage(report, schedule_df, STAGED_ODDS)
+    _check_kickoff_years(report, schedule_df)
+    _check_no_team_twice_in_a_day(report, schedule_df)
 
-    for stage, group in df.groupby("s1_stage", sort=False):
+    for stage, league_stage_df in schedule_df.groupby("s1_stage", sort=False):
         label = f"stage {stage!r}: " if stage else ""
-        _check_round_sizes(r, group, label)
-        _check_team_once_per_round(r, group, label)
-        _check_pairs_meet_equally(r, group, label)
-        _check_rounds_have_odds(r, group, label)
+        _check_round_sizes(report, league_stage_df, label)
+        _check_team_once_per_round(report, league_stage_df, label)
+        _check_pairs_meet_equally(report, league_stage_df, label)
+        _check_rounds_have_odds(report, league_stage_df, label)
 
 
-def _check_scores(r: Report, df: pd.DataFrame) -> None:
+def _check_scores(report: Report, schedule_df: pd.DataFrame) -> None:
     """Half-time goals never exceed full-time goals, and no score is negative."""
-    impossible = df[
-        (df["s1_ht_home_goals"] > df["s1_ft_home_goals"])
-        | (df["s1_ht_away_goals"] > df["s1_ft_away_goals"])
-        | (df[["s1_ht_home_goals", "s1_ht_away_goals"]] < 0).any(axis=1)
+    impossible_df = schedule_df[
+        (schedule_df["s1_ht_home_goals"] > schedule_df["s1_ft_home_goals"])
+        | (schedule_df["s1_ht_away_goals"] > schedule_df["s1_ft_away_goals"])
+        | (schedule_df[["s1_ht_home_goals", "s1_ht_away_goals"]] < 0).any(axis=1)
     ]
-    r.check(impossible.empty, f"{len(impossible)} rows with impossible HT/FT scores")
+    report.check(impossible_df.empty, f"{len(impossible_df)} rows with impossible HT/FT scores")
 
 
-def _check_kickoff_years(r: Report, df: pd.DataFrame) -> None:
+def _check_kickoff_years(report: Report, schedule_df: pd.DataFrame) -> None:
     """Kickoffs fall in the season's start year or the year after (a wrong clock would not)."""
-    start = season_start_year(str(df["s1_season"].iloc[0])) if len(df) else None
+    start = season_start_year(str(schedule_df["s1_season"].iloc[0])) if len(schedule_df) else None
     if start is None:
         return
 
-    years = df["s1_date"].map(lambda text: parse_instant(text).year)
-    outside = df[(years < start) | (years > start + 1)]
-    r.check(outside.empty, f"{len(outside)} kickoffs outside {start}-{start + 1}")
+    years = schedule_df["s1_date"].map(lambda text: parse_instant(text).year)
+    outside_df = schedule_df[(years < start) | (years > start + 1)]
+    report.check(outside_df.empty, f"{len(outside_df)} kickoffs outside {start}-{start + 1}")
 
 
-def _check_no_team_twice_in_a_day(r: Report, df: pd.DataFrame) -> None:
+def _check_no_team_twice_in_a_day(report: Report, schedule_df: pd.DataFrame) -> None:
     """No team has two matches less than `MIN_GAP_BETWEEN_MATCHES` apart."""
-    kick = df["s1_date"].map(parse_instant)
-    long = pd.concat(
+    kick = schedule_df["s1_date"].map(parse_instant)
+    kickoffs_df = pd.concat(
         [
-            pd.DataFrame({"team": df["s1_home_team_id"], "kickoff": kick}),
-            pd.DataFrame({"team": df["s1_away_team_id"], "kickoff": kick}),
+            pd.DataFrame({"team": schedule_df["s1_home_team_id"], "kickoff": kick}),
+            pd.DataFrame({"team": schedule_df["s1_away_team_id"], "kickoff": kick}),
         ]
     )
 
     clashes = 0
-    for _, group in long.groupby("team"):
-        gaps = group["kickoff"].sort_values().diff().dropna()
+    for _, team_kickoffs_df in kickoffs_df.groupby("team"):
+        gaps = team_kickoffs_df["kickoff"].sort_values().diff().dropna()
         clashes += int((gaps < MIN_GAP_BETWEEN_MATCHES).sum())
 
-    r.check(clashes == 0, f"{clashes} pairs of matches of one team less than 24 h apart")
+    report.check(clashes == 0, f"{clashes} pairs of matches of one team less than 24 h apart")
 
 
-def _check_round_sizes(r: Report, group: pd.DataFrame, label: str) -> None:
+def _check_round_sizes(report: Report, league_stage_df: pd.DataFrame, label: str) -> None:
     """Every round holds floor(teams / 2) matches: none missing, none doubled."""
-    teams = set(group["s1_home_team_id"]) | set(group["s1_away_team_id"])
+    teams = set(league_stage_df["s1_home_team_id"]) | set(league_stage_df["s1_away_team_id"])
     expected = len(teams) // 2
-    sizes = group.groupby("s1_round").size()
+    sizes = league_stage_df.groupby("s1_round").size()
     rounds = zip(sizes.index.tolist(), sizes.tolist(), strict=True)
     wrong = {int(rnd): int(n) for rnd, n in rounds if n != expected}
 
-    r.check(
+    report.check(
         not wrong, f"{label}{len(wrong)} rounds without {expected} matches (round: count) {wrong}"
     )
 
 
-def _check_team_once_per_round(r: Report, group: pd.DataFrame, label: str) -> None:
+def _check_team_once_per_round(report: Report, league_stage_df: pd.DataFrame, label: str) -> None:
     """No team plays twice in one round. A page round that holds a team twice is a label, not
     a round of the round robin, even when its size is right (found 2026-10-08)."""
-    slots = pd.concat(
+    slots_df = pd.concat(
         [
-            pd.DataFrame({"round": group["s1_round"], "team": group["s1_home_team_id"]}),
-            pd.DataFrame({"round": group["s1_round"], "team": group["s1_away_team_id"]}),
+            pd.DataFrame(
+                {"round": league_stage_df["s1_round"], "team": league_stage_df["s1_home_team_id"]}
+            ),
+            pd.DataFrame(
+                {"round": league_stage_df["s1_round"], "team": league_stage_df["s1_away_team_id"]}
+            ),
         ]
     )
 
-    rounds = sorted({int(rnd) for rnd in slots.loc[slots.duplicated(), "round"]})
-    r.check(not rounds, f"{label}{len(rounds)} rounds where a team plays twice (rounds) {rounds}")
+    rounds = sorted({int(rnd) for rnd in slots_df.loc[slots_df.duplicated(), "round"]})
+    report.check(
+        not rounds, f"{label}{len(rounds)} rounds where a team plays twice (rounds) {rounds}"
+    )
 
 
-def _check_pairs_meet_equally(r: Report, group: pd.DataFrame, label: str) -> None:
+def _check_pairs_meet_equally(report: Report, league_stage_df: pd.DataFrame, label: str) -> None:
     """In a k-fold round robin, every pair of teams meets the same number of times."""
-    teams = sorted(set(group["s1_home_team_id"]) | set(group["s1_away_team_id"]))
+    teams = sorted(
+        set(league_stage_df["s1_home_team_id"]) | set(league_stage_df["s1_away_team_id"])
+    )
     met = Counter(
         frozenset(pair)
-        for pair in zip(group["s1_home_team_id"], group["s1_away_team_id"], strict=True)
+        for pair in zip(
+            league_stage_df["s1_home_team_id"], league_stage_df["s1_away_team_id"], strict=True
+        )
     )
 
     counts = Counter(met[frozenset(pair)] for pair in combinations(teams, 2))
-    r.check(
+    report.check(
         len(counts) <= 1, f"{label}pairs of teams meet unequally (meetings: pairs) {dict(counts)}"
     )
 
 
-def _check_rounds_have_odds(r: Report, group: pd.DataFrame, label: str) -> None:
+def _check_rounds_have_odds(report: Report, league_stage_df: pd.DataFrame, label: str) -> None:
     """No round of `BLANK_ROUND_MIN_MATCHES` or more matches lacks odds on every match.
     A table without the odds columns is skipped: `universal.check_required_columns` reports
     them once."""
     cells = STAGED_ODDS.cells()
-    if not set(cells) <= set(group.columns):
+    if not set(cells) <= set(league_stage_df.columns):
         return
 
-    by_round = group[cells].notna().any(axis=1).groupby(group["s1_round"])
+    by_round = league_stage_df[cells].notna().any(axis=1).groupby(league_stage_df["s1_round"])
     sizes, priced = by_round.size(), by_round.any()
     rounds = zip(sizes.index.tolist(), sizes.tolist(), priced.tolist(), strict=True)
     blank = [int(rnd) for rnd, n, odds in rounds if n >= BLANK_ROUND_MIN_MATCHES and not odds]
 
-    r.check(not blank, f"{label}{len(blank)} rounds without odds on any match (rounds) {blank}")
+    report.check(
+        not blank, f"{label}{len(blank)} rounds without odds on any match (rounds) {blank}"
+    )

@@ -62,51 +62,69 @@ def declared_columns(stage: int) -> list[str]:
 
 
 def validate(
-    r: Report, frame: pd.DataFrame, stage: int, earlier: Mapping[int, pd.DataFrame]
+    report: Report, stage_file_df: pd.DataFrame, stage: int, earlier: Mapping[int, pd.DataFrame]
 ) -> None:
     """One derived stage file: each earlier stage's columns carried over unchanged
     (`earlier` maps a stage to its file), and at stage 2 the odds fields. The universal
     checks (declared columns, the key) are `qa/validate.py`'s, as for stage 1."""
-    for n, before in earlier.items():
-        check_carried(r, before, frame, _ADDED[n], f"stage {n}")
+    for earlier_stage, earlier_df in earlier.items():
+        check_carried(
+            report, earlier_df, stage_file_df, _ADDED[earlier_stage], f"stage {earlier_stage}"
+        )
 
     if stage == 2:
-        check_odds_fields(r, frame)
+        check_odds_fields(report, stage_file_df)
     if stage == 3:
-        check_round_fields(r, frame)
+        check_round_fields(report, stage_file_df)
 
 
 def check_carried(
-    r: Report, before: pd.DataFrame, after: pd.DataFrame, columns: Sequence[str], source: str
+    report: Report,
+    earlier_df: pd.DataFrame,
+    later_df: pd.DataFrame,
+    columns: Sequence[str],
+    source: str,
 ) -> None:
-    """`after` holds the matches of `before`, no more and no fewer, with the same value in
-    each of `columns`."""
-    if not (_pairable(before) and _pairable(after)):
+    """`later_df` holds the matches of `earlier_df`, no more and no fewer, with the same value
+    in each of `columns`."""
+    if not (_pairable(earlier_df) and _pairable(later_df)):
         return
 
-    old, new = before.set_index("match_id"), after.set_index("match_id")
-    missing = old.index.difference(new.index)
-    extra = new.index.difference(old.index)
+    earlier_by_id_df, later_by_id_df = (
+        earlier_df.set_index("match_id"),
+        later_df.set_index("match_id"),
+    )
+    missing = earlier_by_id_df.index.difference(later_by_id_df.index)
+    extra = later_by_id_df.index.difference(earlier_by_id_df.index)
 
-    r.check(missing.empty, f"{len(missing)} matches of {source} missing (stale: rebuild)")
-    r.check(extra.empty, f"{len(extra)} matches not in {source} (stale: rebuild)")
+    report.check(missing.empty, f"{len(missing)} matches of {source} missing (stale: rebuild)")
+    report.check(extra.empty, f"{len(extra)} matches not in {source} (stale: rebuild)")
 
-    shared = old.index.intersection(new.index)
-    names = [c for c in columns if c in old.columns and c in new.columns]
-    differ = {c: int((~_same(old.loc[shared, c], new.loc[shared, c])).sum()) for c in names}
-    changed = {c: n for c, n in differ.items() if n}
+    shared = earlier_by_id_df.index.intersection(later_by_id_df.index)
+    names = [
+        column
+        for column in columns
+        if column in earlier_by_id_df.columns and column in later_by_id_df.columns
+    ]
+    differ = {
+        column: int(
+            (~_same(earlier_by_id_df.loc[shared, column], later_by_id_df.loc[shared, column])).sum()
+        )
+        for column in names
+    }
+    changed = {column: n for column, n in differ.items() if n}
 
-    r.check(
+    report.check(
         not changed,
         f"{sum(changed.values())} values differ from {source} (column: count) "
         f"{dict(list(changed.items())[:5])} (stale: rebuild)",
     )
 
 
-def _pairable(frame: pd.DataFrame) -> bool:
+def _pairable(stage_file_df: pd.DataFrame) -> bool:
     """Rows pair up by `match_id`: the column is there and no id repeats. Otherwise the
     file's own key check reports it."""
-    return "match_id" in frame.columns and not frame["match_id"].duplicated().any()
+    return "match_id" in stage_file_df.columns and not stage_file_df["match_id"].duplicated().any()
 
 
 def _same(old: "pd.Series[Any]", new: "pd.Series[Any]") -> "pd.Series[bool]":
@@ -119,7 +137,7 @@ def _same(old: "pd.Series[Any]", new: "pd.Series[Any]") -> "pd.Series[bool]":
     return (old == new) | both_empty
 
 
-def check_odds_fields(r: Report, frame: pd.DataFrame) -> None:
+def check_odds_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
     """Stage 2's odds fields agree with the stage-1 cells of the same row: each `s2_has_*`
     flag is true exactly when its market's three cells are filled, each value computed from
     a market is there exactly when the market is, and the three 1X2 probabilities, margin
@@ -127,36 +145,36 @@ def check_odds_fields(r: Report, frame: pd.DataFrame) -> None:
     markets = STAGED_ODDS.markets()
     for kind, (flag, values) in _MARKET_FIELDS.items():
         cells = markets[kind]
-        if not {flag, *cells, *values} <= set(frame.columns):
+        if not {flag, *cells, *values} <= set(stage_file_df.columns):
             continue
 
-        present = frame[list(cells)].notna().all(axis=1)
-        flags = int((frame[flag].eq(True) != present).sum())
-        r.check(flags == 0, f"{flags} rows where {flag} disagrees with the {kind} cells")
+        present = stage_file_df[list(cells)].notna().all(axis=1)
+        flags = int((stage_file_df[flag].eq(True) != present).sum())
+        report.check(flags == 0, f"{flags} rows where {flag} disagrees with the {kind} cells")
 
-        computed = frame[list(values)].notna()
-        stray = int(computed.ne(present, axis=0).any(axis=1).sum())
-        r.check(
+        computed_df = stage_file_df[list(values)].notna()
+        stray = int(computed_df.ne(present, axis=0).any(axis=1).sum())
+        report.check(
             stray == 0,
             f"{stray} rows with a value computed from {kind} that is there without the "
             f"market, or missing with it",
         )
 
-    if set(_PROBABILITIES) <= set(frame.columns):
-        total = frame[_PROBABILITIES].sum(axis=1, min_count=len(_PROBABILITIES))
+    if set(_PROBABILITIES) <= set(stage_file_df.columns):
+        total = stage_file_df[_PROBABILITIES].sum(axis=1, min_count=len(_PROBABILITIES))
         off = int(((total - 1).abs() > TOLERANCE).sum())
-        r.check(off == 0, f"{off} rows whose 1X2 probabilities do not sum to 1")
+        report.check(off == 0, f"{off} rows whose 1X2 probabilities do not sum to 1")
 
 
-def check_round_fields(r: Report, frame: pd.DataFrame) -> None:
+def check_round_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
     """The round-so-far counts agree with each other in every row, whatever the results: a
     rare event is a comeback or a 7+ match, counted once when it is both; a match never
     counts itself, so fewer round-mates finished than the round holds; both teams score in
     every comeback; and the two averages read the same matches, so they are empty together."""
-    if not set(_ROUND) <= set(frame.columns):
+    if not set(_ROUND) <= set(stage_file_df.columns):
         return
 
-    (size, finished, comebacks, seven, rare, btts, goals, line) = (frame[c] for c in _ROUND)
+    (size, finished, comebacks, seven, rare, btts, goals, line) = (stage_file_df[c] for c in _ROUND)
     broken = {
         "s3_round_pre_rare_events is above comebacks + seven_plus": rare > comebacks + seven,
         "s3_round_pre_rare_events is below the larger of comebacks and seven_plus": (
@@ -170,17 +188,24 @@ def check_round_fields(r: Report, frame: pd.DataFrame) -> None:
 
     for rule, rows in broken.items():
         count = int(rows.sum())
-        r.check(count == 0, f"{count} rows where {rule}")
+        report.check(count == 0, f"{count} rows where {rule}")
 
 
 def check_no_orphans(
-    r: Report, raw_paths: Collection[str], later_paths: Collection[str], stage: int
+    report: Report, raw_paths: Collection[str], later_paths: Collection[str], stage: int
 ) -> None:
     """Every stage-`stage` file has its stage-1 file. One without it belongs to a
     league-season no longer in the project, and would still be read with the rest."""
-    expected = {os.path.normpath(paths.schedule_at_stage(p, stage)) for p in raw_paths}
+    expected = {
+        os.path.normpath(paths.schedule_at_stage(schedule_path, stage))
+        for schedule_path in raw_paths
+    }
     orphans = sorted(
-        os.path.basename(p) for p in later_paths if os.path.normpath(p) not in expected
+        os.path.basename(schedule_path)
+        for schedule_path in later_paths
+        if os.path.normpath(schedule_path) not in expected
     )
 
-    r.check(not orphans, f"{len(orphans)} stage-{stage} files without a stage-1 file {orphans[:3]}")
+    report.check(
+        not orphans, f"{len(orphans)} stage-{stage} files without a stage-1 file {orphans[:3]}"
+    )

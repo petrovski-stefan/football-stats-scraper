@@ -77,25 +77,33 @@ def _present(df: pd.DataFrame, *columns: str) -> pd.DataFrame:
     return df[df[list(columns)].notna().all(axis=1)]
 
 
-def check_1x2(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_1x2(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """The 1X2 prices are real prices, and the column really is 1X2."""
-    sub = _present(df, c.home, c.draw, c.away)
-    if sub.empty:
+    present_df = _present(df, odds_columns.home, odds_columns.draw, odds_columns.away)
+    if present_df.empty:
         return
 
-    impossible = sub[(sub[c.home] <= 1) | (sub[c.draw] <= 1) | (sub[c.away] <= 1)]
-    r.check(impossible.empty, f"{len(impossible)} rows with a 1X2 price <= 1")
+    impossible_df = present_df[
+        (present_df[odds_columns.home] <= 1)
+        | (present_df[odds_columns.draw] <= 1)
+        | (present_df[odds_columns.away] <= 1)
+    ]
+    report.check(impossible_df.empty, f"{len(impossible_df)} rows with a 1X2 price <= 1")
 
-    overround = 1 / sub[c.home] + 1 / sub[c.draw] + 1 / sub[c.away]
-    out_of_band = sub[(overround < OVERROUND_MIN) | (overround > OVERROUND_MAX)]
-    r.check(
-        out_of_band.empty,
-        f"{len(out_of_band)} rows with an implausible overround "
+    overround = (
+        1 / present_df[odds_columns.home]
+        + 1 / present_df[odds_columns.draw]
+        + 1 / present_df[odds_columns.away]
+    )
+    out_of_band_df = present_df[(overround < OVERROUND_MIN) | (overround > OVERROUND_MAX)]
+    report.check(
+        out_of_band_df.empty,
+        f"{len(out_of_band_df)} rows with an implausible overround "
         f"(outside {OVERROUND_MIN:.2f}-{OVERROUND_MAX:.2f}) — is the column really 1X2?",
     )
 
 
-def check_asian(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_asian(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """The O/U and AH columns hold real two-way Asian markets.
 
     Their vig is far tighter than the 1X2 column's, and both lines move in quarter-goal
@@ -103,39 +111,43 @@ def check_asian(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
     a line is `check_line_size`'s job.
     """
     markets = (
-        ("OU", c.ou_line, c.over, c.under),
-        ("AH", c.ah_line, c.ah_home, c.ah_away),
+        ("OU", odds_columns.ou_line, odds_columns.over, odds_columns.under),
+        ("AH", odds_columns.ah_line, odds_columns.ah_home, odds_columns.ah_away),
     )
 
     for kind, line, price_a, price_b in markets:
-        sub = _present(df, line, price_a, price_b)
-        if sub.empty:
+        present_df = _present(df, line, price_a, price_b)
+        if present_df.empty:
             continue
 
-        bad_price = sub[(sub[price_a] <= 1) | (sub[price_b] <= 1)]
-        r.check(bad_price.empty, f"{len(bad_price)} {kind} rows with a price <= 1")
+        bad_price_df = present_df[(present_df[price_a] <= 1) | (present_df[price_b] <= 1)]
+        report.check(bad_price_df.empty, f"{len(bad_price_df)} {kind} rows with a price <= 1")
 
-        overround = 1 / sub[price_a] + 1 / sub[price_b]
-        wide = sub[(overround < OVERROUND_MIN) | (overround > TWO_WAY_OVERROUND_MAX)]
-        r.check(
-            wide.empty,
-            f"{len(wide)} {kind} rows with a two-way overround outside "
+        overround = 1 / present_df[price_a] + 1 / present_df[price_b]
+        wide_df = present_df[(overround < OVERROUND_MIN) | (overround > TWO_WAY_OVERROUND_MAX)]
+        report.check(
+            wide_df.empty,
+            f"{len(wide_df)} {kind} rows with a two-way overround outside "
             f"{OVERROUND_MIN:.2f}-{TWO_WAY_OVERROUND_MAX:.2f}",
         )
 
-        off_grid = sub[((sub[line] / QUARTER).round() - sub[line] / QUARTER).abs() > 1e-9]
-        r.check(
-            off_grid.empty,
-            f"{len(off_grid)} {kind} rows with a line off the quarter-goal grid "
+        off_grid_df = present_df[
+            ((present_df[line] / QUARTER).round() - present_df[line] / QUARTER).abs() > 1e-9
+        ]
+        report.check(
+            off_grid_df.empty,
+            f"{len(off_grid_df)} {kind} rows with a line off the quarter-goal grid "
             f"(parse_line mis-split a fraction?)",
         )
 
 
-def _line_limits(df: pd.DataFrame, c: OddsColumns) -> tuple["pd.Series[float]", "pd.Series[float]"]:
+def _line_limits(
+    df: pd.DataFrame, odds_columns: OddsColumns
+) -> tuple["pd.Series[float]", "pd.Series[float]"]:
     """Each row's largest AH size and OU line, from its 1X2 favourite's band."""
-    if {c.home, c.away} <= set(df.columns):
-        prices = df[[c.home, c.away]].astype(float)
-        favourite = prices.min(axis=1, skipna=False).fillna(NO_PRICE_BAND)
+    if {odds_columns.home, odds_columns.away} <= set(df.columns):
+        prices_df = df[[odds_columns.home, odds_columns.away]].astype(float)
+        favourite = prices_df.min(axis=1, skipna=False).fillna(NO_PRICE_BAND)
     else:
         favourite = pd.Series(NO_PRICE_BAND, index=df.index)
 
@@ -148,50 +160,62 @@ def _line_limits(df: pd.DataFrame, c: OddsColumns) -> tuple["pd.Series[float]", 
     return ah_max, ou_max
 
 
-def check_line_size(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_line_size(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """No line is bigger than its 1X2 favourite's price allows (`LINE_LIMITS`).
 
     A line past its band's limit means a column was misread, or the line belongs to another
     match. The fixed limits used before 2026-10-10 (a 4-goal handicap, a 5.5 total) failed
     real mismatches, where a 1.01-1.04 favourite carries a 4.25-6 handicap and a total up to 7.
     """
-    ah_max, ou_max = _line_limits(df, c)
+    ah_max, ou_max = _line_limits(df, odds_columns)
 
-    ou = _present(df, c.ou_line, c.over, c.under)
-    if not ou.empty:
-        off = ou[(ou[c.ou_line] < OU_LINE_MIN) | (ou[c.ou_line] > ou_max[ou.index])]
-        r.check(
-            off.empty,
-            f"{len(off)} OU rows with a line below {OU_LINE_MIN} or above its favourite's limit",
+    ou_present_df = _present(df, odds_columns.ou_line, odds_columns.over, odds_columns.under)
+    if not ou_present_df.empty:
+        ou_off_limit_df = ou_present_df[
+            (ou_present_df[odds_columns.ou_line] < OU_LINE_MIN)
+            | (ou_present_df[odds_columns.ou_line] > ou_max[ou_present_df.index])
+        ]
+        report.check(
+            ou_off_limit_df.empty,
+            f"{len(ou_off_limit_df)} OU rows with a line below "
+            f"{OU_LINE_MIN} or above its favourite's limit",
         )
 
-    ah = _present(df, c.ah_line, c.ah_home, c.ah_away)
-    if not ah.empty:
-        big = ah[ah[c.ah_line].abs() > ah_max[ah.index]]
-        r.check(big.empty, f"{len(big)} AH rows with a line bigger than its favourite's limit")
+    ah_present_df = _present(df, odds_columns.ah_line, odds_columns.ah_home, odds_columns.ah_away)
+    if not ah_present_df.empty:
+        ah_off_limit_df = ah_present_df[
+            ah_present_df[odds_columns.ah_line].abs() > ah_max[ah_present_df.index]
+        ]
+        report.check(
+            ah_off_limit_df.empty,
+            f"{len(ah_off_limit_df)} AH rows with a line bigger than its favourite's limit",
+        )
 
 
-def check_ah_sign(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_ah_sign(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """A positive AH line must mean the home side is the 1X2 favourite."""
-    sub = _present(df, c.ah_line, c.home, c.away)
-    if sub.empty:
+    present_df = _present(df, odds_columns.ah_line, odds_columns.home, odds_columns.away)
+    if present_df.empty:
         return
 
-    sub = sub[sub[c.ah_line] != 0]
-    if sub.empty:
+    present_df = present_df[present_df[odds_columns.ah_line] != 0]
+    if present_df.empty:
         return
 
-    home_fav = sub[c.home] < sub[c.away]
-    disagree = sub[(sub[c.ah_line] > 0) != home_fav]
-    share = len(disagree) / len(sub)
-    r.check(
+    home_fav = present_df[odds_columns.home] < present_df[odds_columns.away]
+    disagree_df = present_df[(present_df[odds_columns.ah_line] > 0) != home_fav]
+    share = len(disagree_df) / len(present_df)
+    report.check(
         share <= AH_SIGN_TOLERANCE,
-        f"{len(disagree)}/{len(sub)} ({share:.1%}) rows where the AH sign contradicts the "
+        f"{len(disagree_df)}/{len(present_df)} ("
+        f"{share:.1%}) rows where the AH sign contradicts the "
         f"1X2 favourite — sign convention broken?",
     )
 
 
-def check_goal_line_above_handicap(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_goal_line_above_handicap(
+    report: Report, df: pd.DataFrame, odds_columns: OddsColumns
+) -> None:
     """The O/U goal line is above the AH line's size.
 
     A total no larger than the expected margin would mean the favourite scores every goal.
@@ -199,52 +223,54 @@ def check_goal_line_above_handicap(r: Report, df: pd.DataFrame, c: OddsColumns) 
     2026-10-08). When that size is 1.5 or more, the line passes every other check, so only
     this one sees it.
     """
-    sub = _present(df, c.ou_line, c.ah_line)
-    if sub.empty:
+    present_df = _present(df, odds_columns.ou_line, odds_columns.ah_line)
+    if present_df.empty:
         return
 
-    flat = sub[sub[c.ou_line] <= sub[c.ah_line].abs()]
-    r.check(flat.empty, f"{len(flat)} rows whose OU line is not above the AH line's size")
+    flat_df = present_df[present_df[odds_columns.ou_line] <= present_df[odds_columns.ah_line].abs()]
+    report.check(
+        flat_df.empty, f"{len(flat_df)} rows whose OU line is not above the AH line's size"
+    )
 
 
-def check_whole_markets(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_whole_markets(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """Each market is all or nothing: a row holds all three of its cells or none.
 
     The page shows a market's line and prices together, and `scrapers/schedule.py:
     drop_stale_odds` empties whole markets only, so a part-filled market is a misread cell.
     """
-    for kind, cells in c.markets().items():
+    for kind, cells in odds_columns.markets().items():
         if not set(cells) <= set(df.columns):
             continue
 
         filled = df[list(cells)].notna().sum(axis=1)
         part = int(((filled > 0) & (filled < len(cells))).sum())
-        r.check(part == 0, f"{part} {kind} rows with only part of the market filled")
+        report.check(part == 0, f"{part} {kind} rows with only part of the market filled")
 
 
-def check_coverage(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_coverage(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """At least `COVERAGE_FLOOR` of the rows carry all three markets.
 
     A table without one of the columns is skipped: `universal.check_required_columns`
     reports the column once.
     """
-    if df.empty or not set(c.cells()) <= set(df.columns):
+    if df.empty or not set(odds_columns.cells()) <= set(df.columns):
         return
 
-    full = len(_present(df, *c.cells()))
+    full = len(_present(df, *odds_columns.cells()))
     share = full / len(df)
-    r.check(
+    report.check(
         share >= COVERAGE_FLOOR,
         f"{full}/{len(df)} rows ({share:.1%}) carry all three markets, "
         f"below the {COVERAGE_FLOOR:.0%} floor",
     )
 
 
-def check_all(r: Report, df: pd.DataFrame, c: OddsColumns) -> None:
+def check_all(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """The checks every table gets. The staged schedule adds `check_whole_markets` and
     `check_coverage` (`qa/schedule.py`); the archived files predate both."""
-    check_1x2(r, df, c)
-    check_asian(r, df, c)
-    check_line_size(r, df, c)
-    check_ah_sign(r, df, c)
-    check_goal_line_above_handicap(r, df, c)
+    check_1x2(report, df, odds_columns)
+    check_asian(report, df, odds_columns)
+    check_line_size(report, df, odds_columns)
+    check_ah_sign(report, df, odds_columns)
+    check_goal_line_above_handicap(report, df, odds_columns)

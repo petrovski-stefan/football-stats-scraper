@@ -39,62 +39,74 @@ MIN_GOALS_FOR_SHARE = 500
 HT_ONLY_TOLERANCE = 0.005
 
 
-def validate(r: Report, goals: pd.DataFrame, done: pd.DataFrame, truth: pd.DataFrame) -> None:
+def validate(
+    report: Report, goals_df: pd.DataFrame, attempt_log_df: pd.DataFrame, truth_df: pd.DataFrame
+) -> None:
     """Run every goal-store check.
 
-    `truth` carries match_id plus the ht/ft goal columns for every match whose score is
+    `truth_df` carries match_id plus the ht/ft goal columns for every match whose score is
     known independently — the corpus itself *and* every match referenced by a fixture's
     history, whose score the detail page records. That second source is what makes the
     whole store checkable rather than just the ~20% that are corpus matches.
     """
-    universal.check_attempt_log(r, goals, done, "n_goals")
-    _check_columns(r, goals)
-    _check_sequences(r, goals)
-    _check_against_truth(r, goals, done, truth)
-    _check_half_split(r, goals)
+    universal.check_attempt_log(report, goals_df, attempt_log_df, "n_goals")
+    _check_columns(report, goals_df)
+    _check_sequences(report, goals_df)
+    _check_against_truth(report, goals_df, attempt_log_df, truth_df)
+    _check_half_split(report, goals_df)
 
 
-def _check_columns(r: Report, goals: pd.DataFrame) -> None:
+def _check_columns(report: Report, goals_df: pd.DataFrame) -> None:
     """Per-row ranges, independent of any match context."""
-    if goals.empty:
+    if goals_df.empty:
         return
 
-    bad_minute = goals[(goals["minute"] < 1) | (goals["minute"] > MAX_MINUTE)]
-    r.check(bad_minute.empty, f"{len(bad_minute)} goals with a minute outside 1..{MAX_MINUTE}")
+    bad_minute_df = goals_df[(goals_df["minute"] < 1) | (goals_df["minute"] > MAX_MINUTE)]
+    report.check(
+        bad_minute_df.empty, f"{len(bad_minute_df)} goals with a minute outside 1..{MAX_MINUTE}"
+    )
 
-    bad_stop = goals[(goals["stoppage"] < 0) | (goals["stoppage"] > MAX_STOPPAGE)]
-    r.check(bad_stop.empty, f"{len(bad_stop)} goals with stoppage outside 0..{MAX_STOPPAGE}")
+    bad_stop_df = goals_df[(goals_df["stoppage"] < 0) | (goals_df["stoppage"] > MAX_STOPPAGE)]
+    report.check(
+        bad_stop_df.empty, f"{len(bad_stop_df)} goals with stoppage outside 0..{MAX_STOPPAGE}"
+    )
 
-    bad_side = goals[~goals["side"].isin(["home", "away"])]
-    r.check(bad_side.empty, f"{len(bad_side)} goals with a side that is neither home nor away")
+    bad_side_df = goals_df[~goals_df["side"].isin(["home", "away"])]
+    report.check(
+        bad_side_df.empty, f"{len(bad_side_df)} goals with a side that is neither home nor away"
+    )
 
 
-def _check_sequences(r: Report, goals: pd.DataFrame) -> None:
+def _check_sequences(report: Report, goals_df: pd.DataFrame) -> None:
     """Per-match invariants that hold with or without a stored score."""
-    if goals.empty:
+    if goals_df.empty:
         return
 
     offenders: dict[str, list[str]] = {"order": [], "index": [], "side": []}
-    for match_id, group in goals.groupby(goals["match_id"].astype(str)):
-        _inspect_match(str(match_id), group, offenders)
+    for match_id, match_goals_df in goals_df.groupby(goals_df["match_id"].astype(str)):
+        _inspect_match(str(match_id), match_goals_df, offenders)
 
-    r.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
-    r.check(not offenders["index"], f"{len(offenders['index'])} matches with a broken goal_index")
-    r.check(
+    report.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
+    report.check(
+        not offenders["index"], f"{len(offenders['index'])} matches with a broken goal_index"
+    )
+    report.check(
         not offenders["side"],
         f"{len(offenders['side'])} matches where `side` disagrees with which score advanced",
     )
 
 
-def _inspect_match(match_id: str, group: pd.DataFrame, offenders: dict[str, list[str]]) -> None:
+def _inspect_match(
+    match_id: str, match_goals_df: pd.DataFrame, offenders: dict[str, list[str]]
+) -> None:
     """Order, index, and side/score agreement within one match."""
-    ordered = group.sort_values("goal_index")
-    minutes = [int(v) for v in ordered["minute"]]
-    stoppages = [int(v) for v in ordered["stoppage"]]
-    indices = [int(v) for v in ordered["goal_index"]]
-    sides = [str(v) for v in ordered["side"]]
-    homes = [int(v) for v in ordered["home_score_after"]]
-    aways = [int(v) for v in ordered["away_score_after"]]
+    ordered_df = match_goals_df.sort_values("goal_index")
+    minutes = [int(v) for v in ordered_df["minute"]]
+    stoppages = [int(v) for v in ordered_df["stoppage"]]
+    indices = [int(v) for v in ordered_df["goal_index"]]
+    sides = [str(v) for v in ordered_df["side"]]
+    homes = [int(v) for v in ordered_df["home_score_after"]]
+    aways = [int(v) for v in ordered_df["away_score_after"]]
 
     keys = list(zip(minutes, stoppages, strict=True))
     if keys != sorted(keys):
@@ -113,30 +125,30 @@ def _inspect_match(match_id: str, group: pd.DataFrame, offenders: dict[str, list
 
 
 def _check_against_truth(
-    r: Report, goals: pd.DataFrame, done: pd.DataFrame, truth: pd.DataFrame
+    report: Report, goals_df: pd.DataFrame, attempt_log_df: pd.DataFrame, truth_df: pd.DataFrame
 ) -> None:
     """The oracle: reconcile the count and the half-time split against known scores."""
-    if truth.empty:
+    if truth_df.empty:
         return
 
-    scraped = set(done["match_id"].astype(str))
-    truth_ids = truth["match_id"].astype(str)
-    known = truth[truth_ids.isin(scraped)]
-    unchecked = len(scraped) - len(known)
-    r.check(
+    scraped = set(attempt_log_df["match_id"].astype(str))
+    truth_ids = truth_df["match_id"].astype(str)
+    known_df = truth_df[truth_ids.isin(scraped)]
+    unchecked = len(scraped) - len(known_df)
+    report.check(
         unchecked == 0,
         f"{unchecked} scraped matches have no independently known score to check against",
     )
 
-    if known.empty:
+    if known_df.empty:
         return
 
-    totals = _per_match_totals(goals)
-    ids = [str(v) for v in known["match_id"]]
-    ft_home = [int(v) for v in known["ft_home_goals"]]
-    ft_away = [int(v) for v in known["ft_away_goals"]]
-    ht_home = [int(v) for v in known["ht_home_goals"]]
-    ht_away = [int(v) for v in known["ht_away_goals"]]
+    totals = _per_match_totals(goals_df)
+    ids = [str(v) for v in known_df["match_id"]]
+    ft_home = [int(v) for v in known_df["ft_home_goals"]]
+    ft_away = [int(v) for v in known_df["ft_away_goals"]]
+    ht_home = [int(v) for v in known_df["ht_home_goals"]]
+    ht_away = [int(v) for v in known_df["ht_away_goals"]]
 
     ft_bad: list[str] = []
     ht_bad: list[str] = []
@@ -147,20 +159,25 @@ def _check_against_truth(
         if (got[2], got[3]) != (hh, ha):
             ht_bad.append(match_id)
 
-    n = len(ids)
-    r.check(not ft_bad, f"{len(ft_bad)}/{n} matches where goals do not reproduce the FT score")
+    match_count = len(ids)
+    report.check(
+        not ft_bad, f"{len(ft_bad)}/{match_count} matches where goals do not reproduce the FT score"
+    )
 
     # Half-time disagreements where full time reconciles are the source contradicting
     # itself; the ones where full time ALSO fails are already reported above.
     ht_only = [m for m in ht_bad if m not in set(ft_bad)]
-    share = len(ht_only) / n
-    r.check(
+    share = len(ht_only) / match_count
+    report.check(
         share <= HT_ONLY_TOLERANCE,
-        f"{len(ht_only)}/{n} ({share:.2%}) matches where full time reconciles but the "
+        f"{len(ht_only)}/{match_count} ({share:.2%}) matches where full time reconciles but the "
         f"half-time split does not — above the {HT_ONLY_TOLERANCE:.1%} tolerance, which "
         f"means a stoppage-parsing regression, not source noise: {sorted(ht_only)[:5]}",
     )
-    print(f"    (info) reconciled {n - len(ft_bad)}/{n} FT, {n - len(ht_bad)}/{n} HT")
+    print(
+        f"    (info) reconciled {match_count - len(ft_bad)}/{match_count} FT, "
+        f"{match_count - len(ht_bad)}/{match_count} HT"
+    )
     if ht_only:
         print(
             f"    (info) {len(ht_only)} half-time-only disagreements ({share:.2%}, "
@@ -168,16 +185,16 @@ def _check_against_truth(
         )
 
 
-def _per_match_totals(goals: pd.DataFrame) -> dict[str, tuple[int, int, int, int]]:
+def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, tuple[int, int, int, int]]:
     """match_id -> (ft_home, ft_away, ht_home, ht_away), counted from the goal rows."""
-    if goals.empty:
+    if goals_df.empty:
         return {}
 
-    is_home = goals["side"].eq("home")
-    first_half = goals["minute"].le(HALF_TIME)
-    frame = pd.DataFrame(
+    is_home = goals_df["side"].eq("home")
+    first_half = goals_df["minute"].le(HALF_TIME)
+    goal_counts_df = pd.DataFrame(
         {
-            "match_id": goals["match_id"].astype(str),
+            "match_id": goals_df["match_id"].astype(str),
             "ft_home": is_home.astype(int),
             "ft_away": (~is_home).astype(int),
             "ht_home": (is_home & first_half).astype(int),
@@ -185,40 +202,42 @@ def _per_match_totals(goals: pd.DataFrame) -> dict[str, tuple[int, int, int, int
         }
     )
 
-    summed = frame.groupby("match_id")[["ft_home", "ft_away", "ht_home", "ht_away"]].sum()
+    totals_df = goal_counts_df.groupby("match_id")[
+        ["ft_home", "ft_away", "ht_home", "ht_away"]
+    ].sum()
     return {
         str(match_id): (int(row[0]), int(row[1]), int(row[2]), int(row[3]))
-        for match_id, row in zip(summed.index, summed.to_numpy(), strict=True)
+        for match_id, row in zip(totals_df.index, totals_df.to_numpy(), strict=True)
     }
 
 
-def second_half_share(goals: pd.DataFrame) -> float | None:
+def second_half_share(goals_df: pd.DataFrame) -> float | None:
     """Share of goals scored after half-time.
 
     The same quantity is computable from the stored ht/ft columns with no
     minute data at all, so agreement between the two is a real check, not a tautology.
     """
-    if goals.empty:
+    if goals_df.empty:
         return None
-    return float((~goals["minute"].le(HALF_TIME)).mean())
+    return float((~goals_df["minute"].le(HALF_TIME)).mean())
 
 
-def _check_half_split(r: Report, goals: pd.DataFrame) -> None:
+def _check_half_split(report: Report, goals_df: pd.DataFrame) -> None:
     """Tier 2: the corpus-level second-half share, against an independent measurement.
 
     Only meaningful once enough goals have accumulated, so below `MIN_GOALS_FOR_SHARE`
     this reports the figure without judging it — a handful of matches says nothing about
     a population rate.
     """
-    share = second_half_share(goals)
+    share = second_half_share(goals_df)
     if share is None:
         return
-    if len(goals) < MIN_GOALS_FOR_SHARE:
-        print(f"    (info) 2H goal share {share:.1%} on {len(goals)} goals (too few to judge)")
+    if len(goals_df) < MIN_GOALS_FOR_SHARE:
+        print(f"    (info) 2H goal share {share:.1%} on {len(goals_df)} goals (too few to judge)")
         return
 
     print(f"    (info) second-half goal share {share:.1%}")
-    r.check(
+    report.check(
         SECOND_HALF_SHARE_MIN <= share <= SECOND_HALF_SHARE_MAX,
         f"second-half goal share {share:.1%} outside the {SECOND_HALF_SHARE_MIN:.1%}-"
         f"{SECOND_HALF_SHARE_MAX:.1%} band — "

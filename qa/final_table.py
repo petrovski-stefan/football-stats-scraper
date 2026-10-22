@@ -40,15 +40,17 @@ SCHEDULE_COLUMNS = [
 _COUNTS = ("played", "won", "drawn", "lost", "goal_diff", "points")
 
 
-def _rebuild(matches: pd.DataFrame) -> Standings:
-    columns = [matches[c].astype(int).tolist() for c in SCHEDULE_COLUMNS[1:]]
+def _rebuild(matches_df: pd.DataFrame) -> Standings:
+    columns = [matches_df[c].astype(int).tolist() for c in SCHEDULE_COLUMNS[1:]]
     table = Standings(set(columns[0]) | set(columns[1]))
     for home, away, home_goals, away_goals in zip(*columns, strict=True):
         table.add(home, away, home_goals, away_goals)
     return table
 
 
-def _check_team(r: Report, label: str, table: Standings, points: dict[int, int], page: Any) -> None:
+def _check_team(
+    report: Report, label: str, table: Standings, points: dict[int, int], page: Any
+) -> None:
     """`points`: every team's rebuilt points, declared deductions included."""
     team = int(page.team_id)
     ours = table.line("total", team)
@@ -59,41 +61,43 @@ def _check_team(r: Report, label: str, table: Standings, points: dict[int, int],
         for name in _COUNTS
         if int(getattr(page, f"s1_{name}")) != rebuilt[name]
     }
-    r.check(not differ, f"{label}{page.s1_team_name}: (page, rebuilt) {differ}")
+    report.check(not differ, f"{label}{page.s1_team_name}: (page, rebuilt) {differ}")
 
     # Teams level on points share a block of positions; the page may order them either way.
     first = 1 + sum(other > points[team] for other in points.values())
     last = first + list(points.values()).count(points[team]) - 1
-    r.check(
+    report.check(
         first <= int(page.s1_rank) <= last,
         f"{label}{page.s1_team_name}: page rank {page.s1_rank}, rebuilt {first}..{last}",
     )
 
 
-def check(r: Report, schedule: pd.DataFrame, final_table: pd.DataFrame) -> None:
+def check(report: Report, schedule_df: pd.DataFrame, final_table_df: pd.DataFrame) -> None:
     """Compare every stage's final table with the table rebuilt from the stage's results."""
-    if final_table.empty:
-        r.check(False, "no final table: the rebuilt standings are unchecked")
+    if final_table_df.empty:
+        report.check(False, "no final table: the rebuilt standings are unchecked")
         return
 
-    first_row = final_table.iloc[0]
+    first_row = final_table_df.iloc[0]
     league, season = int(first_row["league_id"]), str(first_row["season"])
-    for stage, page in final_table.groupby("stage", sort=False):
+    for stage, page_table_df in final_table_df.groupby("stage", sort=False):
         label = f"stage {stage!r}: " if stage else ""
-        matches = schedule[schedule["s1_stage"] == stage]
-        if matches.empty:
-            r.check(False, f"{label}a final table but no stored matches")
+        stage_matches_df = schedule_df[schedule_df["s1_stage"] == stage]
+        if stage_matches_df.empty:
+            report.check(False, f"{label}a final table but no stored matches")
             continue
 
-        table = _rebuild(matches)
+        table = _rebuild(stage_matches_df)
         ranks = table.ranks("total")
-        on_page = {int(team) for team in page["team_id"]}
+        on_page = {int(team) for team in page_table_df["team_id"]}
         extra, missing = sorted(on_page - set(ranks)), sorted(set(ranks) - on_page)
 
-        r.check(not extra, f"{label}teams on the page with no stored match: {extra}")
-        r.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
+        report.check(not extra, f"{label}teams on the page with no stored match: {extra}")
+        report.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
 
         deducted = deductions.on_page(league, season, str(stage))
         points = {team: table.line("total", team).points + deducted.get(team, 0) for team in ranks}
-        for row in page[page["team_id"].astype(int).isin(ranks)].itertuples(index=False):
-            _check_team(r, label, table, points, row)
+        for row in page_table_df[page_table_df["team_id"].astype(int).isin(ranks)].itertuples(
+            index=False
+        ):
+            _check_team(report, label, table, points, row)

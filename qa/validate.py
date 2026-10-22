@@ -64,41 +64,43 @@ def validate_league_season(base_path: str) -> bool:
     subject = f"{league} {season}"
     reports: list[Report] = []
 
-    base = pd.read_csv(base_path)
-    r = Report(f"{subject} - base")
-    universal.check_not_empty(r, base)
-    universal.check_required_columns(r, base, ORDERED_DF_COLUMNS)
-    universal.check_primary_key(r, base)
-    universal.check_no_dead_columns(r, base, optional=OPTIONAL_BASE_COLUMNS)
-    league_checks.validate(r, base)
-    reports.append(r)
+    base_df = pd.read_csv(base_path)
+    report = Report(f"{subject} - base")
+    universal.check_not_empty(report, base_df)
+    universal.check_required_columns(report, base_df, ORDERED_DF_COLUMNS)
+    universal.check_primary_key(report, base_df)
+    universal.check_no_dead_columns(report, base_df, optional=OPTIONAL_BASE_COLUMNS)
+    league_checks.validate(report, base_df)
+    reports.append(report)
 
     detail_path = paths.detail_path(base_path)
     enriched_path = paths.enriched_path(base_path)
-    detail = pd.read_csv(detail_path, low_memory=False) if os.path.exists(detail_path) else None
+    detail_df = pd.read_csv(detail_path, low_memory=False) if os.path.exists(detail_path) else None
 
-    if detail is not None:
-        r = Report(f"{subject} - detail")
-        universal.check_not_empty(r, detail)
-        universal.check_required_columns(r, detail, DETAIL_ORDERED_COLUMNS)
-        universal.check_primary_key(r, detail)
-        universal.check_no_dead_columns(r, detail)
-        detail_checks.validate(r, detail)
-        reports.append(r)
+    if detail_df is not None:
+        report = Report(f"{subject} - detail")
+        universal.check_not_empty(report, detail_df)
+        universal.check_required_columns(report, detail_df, DETAIL_ORDERED_COLUMNS)
+        universal.check_primary_key(report, detail_df)
+        universal.check_no_dead_columns(report, detail_df)
+        detail_checks.validate(report, detail_df)
+        reports.append(report)
 
-    if detail is not None or os.path.exists(enriched_path):
-        r = Report(f"{subject} - joins")
-        if detail is not None:
-            universal.check_ids_covered(r, _ids(base), _ids(detail), "the detail file")
+    if detail_df is not None or os.path.exists(enriched_path):
+        report = Report(f"{subject} - joins")
+        if detail_df is not None:
+            universal.check_ids_covered(report, _ids(base_df), _ids(detail_df), "the detail file")
         if os.path.exists(enriched_path):
-            enriched = pd.read_csv(enriched_path, low_memory=False)
-            r.check(
-                len(enriched) == len(base),
-                f"enriched row count {len(enriched)} != base row count {len(base)}",
+            enriched_df = pd.read_csv(enriched_path, low_memory=False)
+            report.check(
+                len(enriched_df) == len(base_df),
+                f"enriched row count {len(enriched_df)} != base row count {len(base_df)}",
             )
-            universal.check_primary_key(r, enriched)
-            universal.check_ids_covered(r, _ids(base), _ids(enriched), "the enriched file")
-        reports.append(r)
+            universal.check_primary_key(report, enriched_df)
+            universal.check_ids_covered(
+                report, _ids(base_df), _ids(enriched_df), "the enriched file"
+            )
+        reports.append(report)
 
     # Flush every report before deciding — `all()` over a generator would short-circuit
     # on the first failure and swallow the remaining subjects' output.
@@ -117,16 +119,16 @@ def validate_goals() -> bool | None:
     if not os.path.exists(done_path):
         return None
 
-    goals = (
+    goals_df = (
         pd.read_csv(goals_path)
         if os.path.exists(goals_path)
         else pd.DataFrame(columns=GOALS_ORDERED_COLUMNS)
     )
-    done = pd.read_csv(done_path)
+    attempt_log_df = pd.read_csv(done_path)
 
-    r = Report("goal timings (global store)")
-    goal_checks.validate(r, goals, done, _goal_truth())
-    return r.flush()
+    report = Report("goal timings (global store)")
+    goal_checks.validate(report, goals_df, attempt_log_df, _goal_truth())
+    return report.flush()
 
 
 def validate_events() -> bool | None:
@@ -140,16 +142,16 @@ def validate_events() -> bool | None:
     if not os.path.exists(done_path):
         return None
 
-    events = (
+    events_df = (
         pd.read_csv(events_path)
         if os.path.exists(events_path)
         else pd.DataFrame(columns=EVENTS_ORDERED_COLUMNS)
     )
-    done = pd.read_csv(done_path)
+    attempt_log_df = pd.read_csv(done_path)
 
-    r = Report("cards and substitutions (global store)")
-    event_checks.validate(r, events, done)
-    return r.flush()
+    report = Report("cards and substitutions (global store)")
+    event_checks.validate(report, events_df, attempt_log_df)
+    return report.flush()
 
 
 SCORE_COLUMNS = ["match_id", "ht_home_goals", "ht_away_goals", "ft_home_goals", "ft_away_goals"]
@@ -174,28 +176,28 @@ def _goal_truth() -> pd.DataFrame:
         if not os.path.exists(detail_path):
             continue
 
-        detail = pd.read_csv(detail_path, low_memory=False)
-        frames.extend(_history_scores(detail))
+        detail_df = pd.read_csv(detail_path, low_memory=False)
+        frames.extend(_history_scores(detail_df))
 
     if not frames:
         return pd.DataFrame(columns=SCORE_COLUMNS)
 
-    truth = pd.concat(frames, ignore_index=True).dropna(subset=["match_id"])
-    return truth.drop_duplicates("match_id", keep="first")
+    truth_df = pd.concat(frames, ignore_index=True).dropna(subset=["match_id"])
+    return truth_df.drop_duplicates("match_id", keep="first")
 
 
-def _history_scores(detail: pd.DataFrame) -> list[pd.DataFrame]:
+def _history_scores(detail_df: pd.DataFrame) -> list[pd.DataFrame]:
     """The per-match history blocks, reshaped into the same columns as a base CSV."""
     out: list[pd.DataFrame] = []
     for section in PER_MATCH_SECTIONS:
-        for n in range(1, MATCHES_PER_SECTION + 1):
-            columns = {f"{section}_last{n}_{field}": field for field in SCORE_COLUMNS}
-            if not all(c in detail.columns for c in columns):
+        for slot in range(1, MATCHES_PER_SECTION + 1):
+            columns = {f"{section}_last{slot}_{field}": field for field in SCORE_COLUMNS}
+            if not all(c in detail_df.columns for c in columns):
                 continue
 
-            block = detail[list(columns)].rename(columns=columns).dropna()
-            if not block.empty:
-                out.append(block.astype(dict.fromkeys(SCORE_COLUMNS, "int64")))
+            history_block_df = detail_df[list(columns)].rename(columns=columns).dropna()
+            if not history_block_df.empty:
+                out.append(history_block_df.astype(dict.fromkeys(SCORE_COLUMNS, "int64")))
 
     return out
 
@@ -204,23 +206,29 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     """One staged league-season: its stage-1 schedule, the page's final table against the
     table rebuilt from it, then its stage-2 and stage-3 files against the stages before."""
     league, season = paths.split_schedule_name(schedule_path)
-    schedule = schedule_checks.read_staged(schedule_path)
+    schedule_df = schedule_checks.read_staged(schedule_path)
 
-    r = Report(f"{league} {season} - schedule (stage 1)")
-    universal.check_not_empty(r, schedule)
-    universal.check_required_columns(r, schedule, SCHEDULE_RAW_COLUMNS)
-    universal.check_primary_key(r, schedule)
-    universal.check_no_dead_columns(r, schedule, optional=OPTIONAL_SCHEDULE_COLUMNS)
-    if not schedule.empty:
-        schedule_checks.validate(r, schedule)
+    schedule_report = Report(f"{league} {season} - schedule (stage 1)")
+    universal.check_not_empty(schedule_report, schedule_df)
+    universal.check_required_columns(schedule_report, schedule_df, SCHEDULE_RAW_COLUMNS)
+    universal.check_primary_key(schedule_report, schedule_df)
+    universal.check_no_dead_columns(
+        schedule_report, schedule_df, optional=OPTIONAL_SCHEDULE_COLUMNS
+    )
+    if not schedule_df.empty:
+        schedule_checks.validate(schedule_report, schedule_df)
 
-    t = Report(f"{league} {season} - final table vs rebuilt standings")
+    final_table_report = Report(f"{league} {season} - final table vs rebuilt standings")
     table_path = paths.final_table_path(league, season)
     exists = os.path.exists(table_path)
-    table = schedule_checks.read_staged(table_path) if exists else pd.DataFrame()
-    final_table_checks.check(t, schedule, table)
+    final_table_df = schedule_checks.read_staged(table_path) if exists else pd.DataFrame()
+    final_table_checks.check(final_table_report, schedule_df, final_table_df)
 
-    reports = [r, t, *_derived_reports(schedule_path, schedule, f"{league} {season}")]
+    reports = [
+        schedule_report,
+        final_table_report,
+        *_derived_reports(schedule_path, schedule_df, f"{league} {season}"),
+    ]
 
     # A list, not a generator: `all()` would stop at the first failure and leave the
     # remaining reports unprinted.
@@ -228,23 +236,25 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     return all(verdicts)
 
 
-def _derived_reports(schedule_path: str, raw: pd.DataFrame, subject: str) -> list[Report]:
+def _derived_reports(schedule_path: str, stage_1_df: pd.DataFrame, subject: str) -> list[Report]:
     """Stage 2 and stage 3 of one league-season, each against every stage before it."""
-    earlier = {1: raw}
+    earlier = {1: stage_1_df}
     reports: list[Report] = []
     for stage, builder in _BUILDERS.items():
-        r = Report(f"{subject} - schedule (stage {stage})")
+        report = Report(f"{subject} - schedule (stage {stage})")
         path = paths.schedule_at_stage(schedule_path, stage)
         if os.path.exists(path):
-            frame = schedule_checks.read_staged(path)
-            universal.check_required_columns(r, frame, stage_checks.declared_columns(stage))
-            universal.check_primary_key(r, frame)
-            stage_checks.validate(r, frame, stage, earlier)
-            earlier[stage] = frame
+            stage_file_df = schedule_checks.read_staged(path)
+            universal.check_required_columns(
+                report, stage_file_df, stage_checks.declared_columns(stage)
+            )
+            universal.check_primary_key(report, stage_file_df)
+            stage_checks.validate(report, stage_file_df, stage, earlier)
+            earlier[stage] = stage_file_df
         else:
-            r.check(False, f"no stage-{stage} file: run `uv run python -m {builder}`")
+            report.check(False, f"no stage-{stage} file: run `uv run python -m {builder}`")
 
-        reports.append(r)
+        reports.append(report)
 
     return reports
 
@@ -253,32 +263,39 @@ def validate_corpus(schedule_paths: list[str]) -> bool:
     """The checks across files: no match in two league-seasons, every league-season's
     league in `config/leagues.json`, and no stage-2 or stage-3 file left without its
     stage-1 file."""
-    r = Report(f"corpus - {len(schedule_paths)} staged league-seasons together")
+    report = Report(f"corpus - {len(schedule_paths)} staged league-seasons together")
     keys = {
         os.path.basename(path): schedule_checks.read_staged(path, ["match_id", "s1_league_id"])
         for path in schedule_paths
     }
 
-    universal.check_unique_across(r, {name: _ids(frame) for name, frame in keys.items()})
+    universal.check_unique_across(
+        report, {name: _ids(schedule_df) for name, schedule_df in keys.items()}
+    )
 
     league_ids = _config_league_ids()
-    r.check(league_ids is not None, f"no {paths.LEAGUES_FILE}: the leagues go unchecked")
+    report.check(league_ids is not None, f"no {paths.LEAGUES_FILE}: the leagues go unchecked")
     if league_ids is not None:
-        found = {name: frame["s1_league_id"].astype(str).tolist() for name, frame in keys.items()}
-        universal.check_declared(r, found, league_ids, f"league id not in {paths.LEAGUES_FILE}")
+        found = {
+            name: schedule_df["s1_league_id"].astype(str).tolist()
+            for name, schedule_df in keys.items()
+        }
+        universal.check_declared(
+            report, found, league_ids, f"league id not in {paths.LEAGUES_FILE}"
+        )
 
     for stage in _BUILDERS:
-        stage_checks.check_no_orphans(r, schedule_paths, paths.schedule_csvs(stage), stage)
+        stage_checks.check_no_orphans(report, schedule_paths, paths.schedule_csvs(stage), stage)
 
-    return r.flush()
+    return report.flush()
 
 
 def _config_league_ids() -> set[str] | None:
     """The league ids the config declares, as text; None when there is no config."""
     if not os.path.exists(paths.LEAGUES_FILE):
         return None
-    with open(paths.LEAGUES_FILE, encoding="utf-8") as f:
-        return {str(league["league_id"]) for league in json.load(f)}
+    with open(paths.LEAGUES_FILE, encoding="utf-8") as leagues_file:
+        return {str(league["league_id"]) for league in json.load(leagues_file)}
 
 
 def validate_staged() -> bool:

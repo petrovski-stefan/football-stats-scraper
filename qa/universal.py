@@ -19,49 +19,49 @@ from qa.report import Report
 DEAD_COLUMN_THRESHOLD = 0.95
 
 
-def check_not_empty(r: Report, df: pd.DataFrame) -> None:
+def check_not_empty(report: Report, df: pd.DataFrame) -> None:
     """The file exists but holds no rows — a scrape that produced nothing."""
-    r.check(not df.empty, "file has no rows")
+    report.check(not df.empty, "file has no rows")
 
 
-def check_required_columns(r: Report, df: pd.DataFrame, expected: Sequence[str]) -> None:
+def check_required_columns(report: Report, df: pd.DataFrame, expected: Sequence[str]) -> None:
     """Every column the schema declares is present.
 
     `scrapers/csv_io.py:write_ordered_csv` filters to the columns present in the frame,
     so a field that stops being produced disappears from the CSV without complaint.
     """
     missing = [c for c in expected if c not in df.columns]
-    r.check(
+    report.check(
         not missing,
         f"{len(missing)} declared column(s) missing: {missing[:8]}"
         + (" ..." if len(missing) > 8 else ""),
     )
 
 
-def check_primary_key(r: Report, df: pd.DataFrame, key: str = "match_id") -> None:
+def check_primary_key(report: Report, df: pd.DataFrame, key: str = "match_id") -> None:
     """The key column exists, is fully populated, and identifies rows uniquely.
 
     Values are normalised to stripped strings first so the same id compares equal
     whatever dtype pandas inferred for a given file.
     """
     if key not in df.columns:
-        r.check(False, f"missing primary key column {key!r}")
+        report.check(False, f"missing primary key column {key!r}")
         return
 
     column = df[key]
     null_count = int(column.isna().sum())
-    r.check(null_count == 0, f"{null_count} rows with a null {key}")
+    report.check(null_count == 0, f"{null_count} rows with a null {key}")
 
     normalised = column.dropna().astype(str).str.strip()
     blank_count = int((normalised == "").sum())
-    r.check(blank_count == 0, f"{blank_count} rows with a blank {key}")
+    report.check(blank_count == 0, f"{blank_count} rows with a blank {key}")
 
     duplicate_count = int(normalised.duplicated().sum())
-    r.check(duplicate_count == 0, f"{duplicate_count} duplicate {key}")
+    report.check(duplicate_count == 0, f"{duplicate_count} duplicate {key}")
 
 
 def check_unique_across(
-    r: Report, ids: Mapping[str, Collection[str]], key: str = "match_id"
+    report: Report, ids: Mapping[str, Collection[str]], key: str = "match_id"
 ) -> None:
     """No id appears in more than one file. `ids` maps each file's name to its ids; a repeat
     inside one file is `check_primary_key`'s job.
@@ -75,11 +75,11 @@ def check_unique_across(
 
     shared = sorted((value, names) for value, names in files.items() if len(names) > 1)
     example = f", e.g. {shared[0][0]} in {shared[0][1]}" if shared else ""
-    r.check(not shared, f"{len(shared)} {key} values in more than one file{example}")
+    report.check(not shared, f"{len(shared)} {key} values in more than one file{example}")
 
 
 def check_declared(
-    r: Report, found: Mapping[str, Collection[str]], declared: Collection[str], what: str
+    report: Report, found: Mapping[str, Collection[str]], declared: Collection[str], what: str
 ) -> None:
     """Every file holds only declared values. `found` maps each file's name to its values;
     `what` names a stray value in the message.
@@ -89,11 +89,11 @@ def check_declared(
     """
     allowed = set(declared)
     stray = sorted(name for name, values in found.items() if not set(values) <= allowed)
-    r.check(not stray, f"{len(stray)} files with a {what} {stray[:3]}")
+    report.check(not stray, f"{len(stray)} files with a {what} {stray[:3]}")
 
 
 def check_no_dead_columns(
-    r: Report,
+    report: Report,
     df: pd.DataFrame,
     *,
     optional: Collection[str] = (),
@@ -113,7 +113,7 @@ def check_no_dead_columns(
         for name, rate in empty_rate.items()
         if rate >= threshold and str(name) not in optional
     )
-    r.check(
+    report.check(
         not dead,
         f"{len(dead)} column(s) >= {threshold:.0%} empty (parser canary): {dead[:8]}"
         + (" ..." if len(dead) > 8 else ""),
@@ -121,14 +121,16 @@ def check_no_dead_columns(
 
 
 def check_ids_covered(
-    r: Report, expected: Collection[str], actual: Collection[str], subject: str
+    report: Report, expected: Collection[str], actual: Collection[str], subject: str
 ) -> None:
     """Every id in `expected` appears in `actual` — join/coverage completeness."""
     missing = set(expected) - set(actual)
-    r.check(not missing, f"{len(missing)} ids missing from {subject}")
+    report.check(not missing, f"{len(missing)} ids missing from {subject}")
 
 
-def check_attempt_log(r: Report, rows: pd.DataFrame, done: pd.DataFrame, count_field: str) -> None:
+def check_attempt_log(
+    report: Report, store_df: pd.DataFrame, attempt_log_df: pd.DataFrame, count_field: str
+) -> None:
     """A global store and its attempt log agree, in all three ways they can disagree.
 
     Both `data/archived/raw/goals.csv` and `data/archived/raw/events.csv` are append-only stores
@@ -141,19 +143,23 @@ def check_attempt_log(r: Report, rows: pd.DataFrame, done: pd.DataFrame, count_f
     the two appends), and a log entry whose claimed count disagrees with the rows actually
     present (a partial write).
     """
-    dupes = int(done["match_id"].duplicated().sum())
-    r.check(dupes == 0, f"{dupes} duplicate match_id in the attempt log (would re-scrape)")
+    dupes = int(attempt_log_df["match_id"].duplicated().sum())
+    report.check(dupes == 0, f"{dupes} duplicate match_id in the attempt log (would re-scrape)")
 
-    logged = set(done["match_id"].astype(str))
-    orphans = set(rows["match_id"].astype(str)) - logged
-    r.check(not orphans, f"{len(orphans)} matches have rows but no attempt-log entry")
+    logged = set(attempt_log_df["match_id"].astype(str))
+    orphans = set(store_df["match_id"].astype(str)) - logged
+    report.check(not orphans, f"{len(orphans)} matches have rows but no attempt-log entry")
 
-    counted = rows.groupby(rows["match_id"].astype(str)).size().to_dict()
+    counted = store_df.groupby(store_df["match_id"].astype(str)).size().to_dict()
     claimed = dict(
-        zip(done["match_id"].astype(str), [int(v) for v in done[count_field]], strict=True)
+        zip(
+            attempt_log_df["match_id"].astype(str),
+            [int(v) for v in attempt_log_df[count_field]],
+            strict=True,
+        )
     )
     mismatched = [m for m, n in claimed.items() if int(counted.get(m, 0)) != n]
-    r.check(
+    report.check(
         not mismatched,
         f"{len(mismatched)} matches where the attempt log's {count_field} disagrees with the rows",
     )

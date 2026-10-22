@@ -51,66 +51,78 @@ SUB_SIDE_TOLERANCE = 0.05
 MIN_SUBS_FOR_SIDE_CHECK = 500
 
 
-def validate(r: Report, events: pd.DataFrame, done: pd.DataFrame) -> None:
+def validate(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.DataFrame) -> None:
     """Run every event-store check."""
-    universal.check_attempt_log(r, events, done, "n_events")
-    _check_columns(r, events)
-    _check_sequences(r, events)
-    _check_rates(r, events, done)
-    _check_sub_side_balance(r, events)
+    universal.check_attempt_log(report, events_df, attempt_log_df, "n_events")
+    _check_columns(report, events_df)
+    _check_sequences(report, events_df)
+    _check_rates(report, events_df, attempt_log_df)
+    _check_sub_side_balance(report, events_df)
 
 
-def _check_columns(r: Report, events: pd.DataFrame) -> None:
+def _check_columns(report: Report, events_df: pd.DataFrame) -> None:
     """Per-row ranges, independent of any match context."""
-    if events.empty:
+    if events_df.empty:
         return
 
-    bad_minute = events[(events["minute"] < 1) | (events["minute"] > MAX_MINUTE)]
-    r.check(bad_minute.empty, f"{len(bad_minute)} events with a minute outside 1..{MAX_MINUTE}")
+    bad_minute_df = events_df[(events_df["minute"] < 1) | (events_df["minute"] > MAX_MINUTE)]
+    report.check(
+        bad_minute_df.empty, f"{len(bad_minute_df)} events with a minute outside 1..{MAX_MINUTE}"
+    )
 
-    bad_stop = events[(events["stoppage"] < 0) | (events["stoppage"] > MAX_STOPPAGE)]
-    r.check(bad_stop.empty, f"{len(bad_stop)} events with stoppage outside 0..{MAX_STOPPAGE}")
+    bad_stop_df = events_df[(events_df["stoppage"] < 0) | (events_df["stoppage"] > MAX_STOPPAGE)]
+    report.check(
+        bad_stop_df.empty, f"{len(bad_stop_df)} events with stoppage outside 0..{MAX_STOPPAGE}"
+    )
 
-    bad_side = events[~events["side"].isin(["home", "away"])]
-    r.check(bad_side.empty, f"{len(bad_side)} events with a side that is neither home nor away")
+    bad_side_df = events_df[~events_df["side"].isin(["home", "away"])]
+    report.check(
+        bad_side_df.empty, f"{len(bad_side_df)} events with a side that is neither home nor away"
+    )
 
-    bad_kind = events[~events["kind"].isin(list(EVENT_KINDS))]
-    r.check(bad_kind.empty, f"{len(bad_kind)} events with a kind outside {list(EVENT_KINDS)}")
+    bad_kind_df = events_df[~events_df["kind"].isin(list(EVENT_KINDS))]
+    report.check(
+        bad_kind_df.empty, f"{len(bad_kind_df)} events with a kind outside {list(EVENT_KINDS)}"
+    )
 
 
-def _check_sequences(r: Report, events: pd.DataFrame) -> None:
+def _check_sequences(report: Report, events_df: pd.DataFrame) -> None:
     """Per-match invariants."""
-    if events.empty:
+    if events_df.empty:
         return
 
     offenders: dict[str, list[str]] = {"order": [], "index": [], "subs": []}
-    for match_id, group in events.groupby(events["match_id"].astype(str)):
-        _inspect_match(str(match_id), group, offenders)
+    for match_id, match_events_df in events_df.groupby(events_df["match_id"].astype(str)):
+        _inspect_match(str(match_id), match_events_df, offenders)
 
-    r.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
-    r.check(not offenders["index"], f"{len(offenders['index'])} matches with a broken event_index")
-    r.check(
+    report.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
+    report.check(
+        not offenders["index"], f"{len(offenders['index'])} matches with a broken event_index"
+    )
+    report.check(
         not offenders["subs"],
         f"{len(offenders['subs'])} matches where one side made more than "
         f"{MAX_SUBS_PER_SIDE} substitutions — side detection or dedupe has regressed: "
         f"{sorted(offenders['subs'])[:5]}",
     )
 
-    subs = events[events["kind"] == SUBSTITUTION]
-    incomplete = subs[subs["player"].isna() | subs["player_off"].isna()]
-    r.check(
-        incomplete.empty,
-        f"{len(incomplete)} substitutions missing the player coming on or off",
+    subs_df = events_df[events_df["kind"] == SUBSTITUTION]
+    incomplete_df = subs_df[subs_df["player"].isna() | subs_df["player_off"].isna()]
+    report.check(
+        incomplete_df.empty,
+        f"{len(incomplete_df)} substitutions missing the player coming on or off",
     )
 
 
-def _inspect_match(match_id: str, group: pd.DataFrame, offenders: dict[str, list[str]]) -> None:
+def _inspect_match(
+    match_id: str, match_events_df: pd.DataFrame, offenders: dict[str, list[str]]
+) -> None:
     """Order, index contiguity, and the per-side substitution cap within one match."""
-    ordered = group.sort_values("event_index")
+    ordered_df = match_events_df.sort_values("event_index")
     keys = list(
         zip(
-            [int(v) for v in ordered["minute"]],
-            [int(v) for v in ordered["stoppage"]],
+            [int(v) for v in ordered_df["minute"]],
+            [int(v) for v in ordered_df["stoppage"]],
             strict=True,
         )
     )
@@ -118,25 +130,25 @@ def _inspect_match(match_id: str, group: pd.DataFrame, offenders: dict[str, list
     if keys != sorted(keys):
         offenders["order"].append(match_id)
 
-    indices = [int(v) for v in ordered["event_index"]]
+    indices = [int(v) for v in ordered_df["event_index"]]
     if indices != list(range(1, len(indices) + 1)):
         offenders["index"].append(match_id)
 
-    subs = ordered[ordered["kind"] == SUBSTITUTION]
-    if not subs.empty and int(subs.groupby("side").size().max()) > MAX_SUBS_PER_SIDE:
+    subs_df = ordered_df[ordered_df["kind"] == SUBSTITUTION]
+    if not subs_df.empty and int(subs_df.groupby("side").size().max()) > MAX_SUBS_PER_SIDE:
         offenders["subs"].append(match_id)
 
 
-def _check_rates(r: Report, events: pd.DataFrame, done: pd.DataFrame) -> None:
+def _check_rates(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.DataFrame) -> None:
     """Corpus-level plausibility. Reports below the threshold rather than judging."""
-    matches = len(done)
+    matches = len(attempt_log_df)
     if matches == 0:
         return
 
     rates = {
-        YELLOW_CARD: (float((events["kind"] == YELLOW_CARD).sum()) / matches, YELLOW_PER_MATCH),
-        RED_CARD: (float((events["kind"] == RED_CARD).sum()) / matches, RED_PER_MATCH),
-        SUBSTITUTION: (float((events["kind"] == SUBSTITUTION).sum()) / matches, SUBS_PER_MATCH),
+        YELLOW_CARD: (float((events_df["kind"] == YELLOW_CARD).sum()) / matches, YELLOW_PER_MATCH),
+        RED_CARD: (float((events_df["kind"] == RED_CARD).sum()) / matches, RED_PER_MATCH),
+        SUBSTITUTION: (float((events_df["kind"] == SUBSTITUTION).sum()) / matches, SUBS_PER_MATCH),
     }
 
     for kind, (rate, _) in rates.items():
@@ -147,22 +159,22 @@ def _check_rates(r: Report, events: pd.DataFrame, done: pd.DataFrame) -> None:
         return
 
     for kind, (rate, (low, high)) in rates.items():
-        r.check(
+        report.check(
             low <= rate <= high,
             f"{kind} runs {rate:.2f} per match, outside the plausible {low:.2f}-{high:.2f} "
             f"band — a whole kind may be mis-parsed or duplicated",
         )
 
 
-def _check_sub_side_balance(r: Report, events: pd.DataFrame) -> None:
+def _check_sub_side_balance(report: Report, events_df: pd.DataFrame) -> None:
     """Substitutions must split ~50/50 between home and away — see SUB_SIDE_TOLERANCE."""
-    subs = events[events["kind"] == SUBSTITUTION]
-    if len(subs) < MIN_SUBS_FOR_SIDE_CHECK:
+    subs_df = events_df[events_df["kind"] == SUBSTITUTION]
+    if len(subs_df) < MIN_SUBS_FOR_SIDE_CHECK:
         return
 
-    away = float(subs["side"].eq("away").mean())
+    away = float(subs_df["side"].eq("away").mean())
     print(f"    (info) substitution side split {1 - away:.2%} home / {away:.2%} away")
-    r.check(
+    report.check(
         abs(away - 0.5) <= SUB_SIDE_TOLERANCE,
         f"substitutions split {away:.1%} away, more than {SUB_SIDE_TOLERANCE:.0%} from the "
         f"50/50 every competition's equal allowance guarantees — side detection has broken",
