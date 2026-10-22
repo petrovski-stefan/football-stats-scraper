@@ -31,10 +31,12 @@ def team_frame(matches: pd.DataFrame) -> pd.DataFrame:
             "one": 1.0,
         }
     ).astype(float)
+
     out[runner.LEAGUE_SEASON] = np.tile(matches[runner.LEAGUE_SEASON].to_numpy(), 2)
     out["season_cohort"] = np.tile(matches["season_cohort"].to_numpy(), 2)
     teams = pd.Series(np.arange(size) % 4).astype(str)
     out[runner.TEAM_SEASON] = out[runner.LEAGUE_SEASON] + " " + teams
+
     return out
 
 
@@ -59,6 +61,7 @@ def test_odds_share_counts_only_the_rows_with_a_denominator() -> None:
             "chance": [0.0, 1.0, 0.7, 0.2],
         }
     )
+
     assert runner.odds_share(frame, "won", "behind", "chance") == pytest.approx(1.0)
 
 
@@ -74,6 +77,7 @@ def test_level_tests_give_one_row_per_level_quantity_and_reading(
 ) -> None:
     every = tuple(level for level, *_ in runner.LEVELS)
     table = runner.level_tests(rows, every, draws=2)
+
     per_reading = 3 * len(card.ODDS_CARD) + len(runner.TEAM_QUANTITIES)
     assert len(table) == len(runner.READINGS) * per_reading
     assert table.groupby("level")["parts"].max().to_dict() == {

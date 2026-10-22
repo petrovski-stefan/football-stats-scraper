@@ -54,6 +54,7 @@ def test_subject_team_id_is_the_team_in_most_rows() -> None:
 
 def test_aggregate_form() -> None:
     form = detail_parsers.aggregate_form(RECORDS, subject_id=1)
+
     assert form == {
         "played": 3,
         "wins": 1,
@@ -93,6 +94,7 @@ def test_aggregate_recent_adds_the_venue_split() -> None:
 
 def test_aggregate_h2h() -> None:
     h2h = detail_parsers.aggregate_h2h(RECORDS, subject_id=1)
+
     assert h2h == {
         "h2h_played": 3,
         "h2h_home_team_wins": 1,
@@ -112,11 +114,13 @@ def test_aggregate_h2h_without_data() -> None:
 
 def test_flatten_history_has_a_fixed_schema() -> None:
     flat = detail_parsers.flatten_history(RECORDS[:2], subject_id=1, section="home")
+
     assert set(flat) == {
         f"home_last{n}_{field}"
         for n in range(1, MATCHES_PER_SECTION + 1)
         for field in PER_MATCH_FIELDS
     }
+
     # Blocks past the available matches are present but empty.
     assert all(value is None for key, value in flat.items() if key.startswith("home_last3_"))
 
@@ -124,10 +128,12 @@ def test_flatten_history_has_a_fixed_schema() -> None:
 def test_flatten_history_orients_each_block_to_the_subject() -> None:
     records = [_record(1, 2, (2, 1), corner_ft=(5, 3)), _record(3, 1, (1, 1))]
     flat = detail_parsers.flatten_history(records, subject_id=1, section="away")
+
     assert flat["away_last1_is_home"] is True
     assert flat["away_last1_opponent"] == "Team 2"
     assert flat["away_last1_result"] == "W"
     assert flat["away_last1_corners_total"] == 8
+
     assert flat["away_last2_is_home"] is False
     assert flat["away_last2_opponent"] == "Team 3"
     assert flat["away_last2_result"] == "D"

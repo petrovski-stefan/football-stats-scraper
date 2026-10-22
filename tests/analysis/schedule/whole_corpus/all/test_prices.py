@@ -42,6 +42,7 @@ def test_x12_bets_give_three_bets_a_match_and_their_profits(
     toy_matches: pd.DataFrame,
 ) -> None:
     bets = runner.x12_bets(toy_matches)
+
     assert len(bets) == 3 * 4  # the toy match without a draw price has no bets
     assert bets["profit"].tolist() == pytest.approx(
         np.where(bets["hit"], bets["price"] - 1.0, -1.0).tolist()
@@ -54,9 +55,11 @@ def test_x12_bets_give_three_bets_a_match_and_their_profits(
 def test_x12_table_orders_the_bands_from_the_shortest_price(toy_matches: pd.DataFrame) -> None:
     bets = runner.x12_bets(toy_matches)
     bands = runner.x12_table(bets, "band")
+
     edges = [float(band.split(",")[0].strip("(")) for band in bands["band"]]
     assert edges == sorted(edges)
     assert bands["bets"].sum() == len(bets)
+
     sides = runner.x12_table(bets, "side")
     assert sides["side"].tolist() == ["home", "draw", "away"]
 
@@ -84,8 +87,10 @@ def asian() -> pd.DataFrame:
 
 def test_two_way_bets_settle_both_markets(asian: pd.DataFrame) -> None:
     bets = runner.two_way_bets(asian)
+
     assert bets["over"].tolist() == pytest.approx([0.9, -1.0, 0.0, 0.0])
     assert bets["under"].tolist() == pytest.approx([-1.0, 0.9, 0.0, 0.0])
+
     # Home gives 1 and wins by 1: a push. Level and a draw: a push. Home gets 0.5 and draws:
     # it wins. Home gives 1.25 and wins by 3: it wins.
     assert bets["home"].tolist() == pytest.approx([0.0, 0.0, 0.9, 0.8])
@@ -98,11 +103,14 @@ def test_groups_cover_the_lines_and_the_bands(
 ) -> None:
     bets = runner.two_way_bets(asian)
     monkeypatch.setattr(runner, "MIN_LINE_MATCHES", 2)
+
     assert list(runner.ou_groups(bets)) == ["2.5", "all lines"]
+
     groups = runner.ah_groups(bets)
     assert groups["home gives 1 or more"].tolist() == [True, False, False, True]
     assert groups["level"].tolist() == [False, True, False, False]
     assert groups["away gives 0.25 to 0.75"].tolist() == [False, False, True, False]
+
     table = runner.side_table(bets, groups, ("home", "away"), "ah_cost")
     assert table.loc[table["group"] == "all lines", "matches"].item() == 4.0
 
@@ -144,10 +152,13 @@ def test_calibrated_totals_match_the_observed_mean_of_each_band(tail: pd.DataFra
 
 def test_tail_tables(tail: pd.DataFrame) -> None:
     bands = runner.tail_bands(tail)
+
     assert bands["matches"].tolist() == [3, 3]
     assert bands["observed / model"].tolist() == pytest.approx([7 / 6, 4 / 3.6])
+
     counts = runner.tail_counts(tail).set_index("goals")
     assert counts.loc["7+", "observed"] == 1.0
+
     table = runner.tail_oe(tail)
     market, matched = table["expected"]
     assert table["gap closed"].tolist() == pytest.approx([0.0, (market - matched) / (market - 1)])

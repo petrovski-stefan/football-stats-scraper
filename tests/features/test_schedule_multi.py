@@ -65,7 +65,9 @@ def test_round_positions_order_by_kickoff_then_names() -> None:
         _match("c", _START, (3, 4), (0, 0)),  # same kickoff as b: names break the tie
         _match("d", _START, (7, 8), (0, 0), round_number=2),
     )
+
     pos = round_positions(frame)
+
     assert [pos.at[m, "s3_match_index_in_round"] for m in ("c", "b", "a")] == [1, 2, 3]
     assert pos.loc["a", "s3_matches_in_round"] == 3
     assert pos.loc["d", "s3_match_index_in_round"] == 1
@@ -79,7 +81,9 @@ def test_round_offsets_leave_a_friday_to_monday_round_alone() -> None:
         _match("sun", _START + timedelta(days=1), (5, 6), (0, 0)),
         _match("mon", _START + timedelta(days=2, hours=5), (7, 8), (0, 0)),
     )
+
     offsets = round_offsets(frame)
+
     assert not offsets["s3_is_rescheduled"].any()
     assert offsets.at["fri", "s3_days_off_round"] < 0 < offsets.at["mon", "s3_days_off_round"]
 
@@ -97,7 +101,9 @@ def test_round_offsets_flag_a_match_played_off_its_round(late: timedelta, flagge
         _match("late", _START + late, (90, 91), (0, 0)),
         _match("early", _START - timedelta(days=30), (92, 93), (0, 0)),
     )
+
     offsets = round_offsets(frame)
+
     assert offsets.at["late", "s3_days_off_round"] == pytest.approx(late / timedelta(days=1))
     assert bool(offsets.at["late", "s3_is_rescheduled"]) is flagged
     assert offsets.at["early", "s3_days_off_round"] == pytest.approx(-30)
@@ -112,14 +118,17 @@ def test_round_offsets_keep_each_stages_round_apart() -> None:
         _match("c", _START + timedelta(days=180), (1, 3), (0, 0), stage="Clausura"),
         _match("d", _START + timedelta(days=180, hours=2), (2, 4), (0, 0), stage="Clausura"),
     )
+
     assert not round_offsets(frame)["s3_is_rescheduled"].any()
 
 
 def test_the_first_match_sees_an_empty_table() -> None:
     tables = pre_kickoff_tables(_frame(_match("a", _START, (1, 2), (1, 0))))
+
     rank = tables.at["a", "s3_home_pre_ft_total_rank"]
     played = tables.at["a", "s3_home_pre_ft_total_played"]
     gap = tables.at["a", "s3_pre_rank_gap"]
+
     assert pd.isna(rank)
     assert played == 0
     assert pd.isna(gap)
@@ -146,7 +155,9 @@ def test_a_postponed_match_counts_only_from_when_it_is_played() -> None:
         _match("r1_ab", _START + 2 * day, (1, 2), (0, 1), round_number=1),
         _match("r3_ad", _START + 3 * day, (1, 4), (0, 0), round_number=3),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # Before round 2, team 1 has played nothing: its round-1 match has not happened.
     assert tables.loc["r2_ac", "s3_home_pre_ft_total_played"] == 0
     # The postponed match itself sees round 2's result.
@@ -161,7 +172,9 @@ def test_venue_tables_count_only_that_venue() -> None:
         _match("a", _START, (1, 2), (1, 0)),
         _match("b", _START + timedelta(days=7), (2, 1), (0, 0)),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # Team 2 is home in b; it has played one away match and no home match.
     assert tables.loc["b", "s3_home_pre_ft_away_played"] == 1
     assert tables.loc["b", "s3_home_pre_ft_home_played"] == 0
@@ -183,7 +196,9 @@ def test_rank_gap() -> None:
         _match("b", _START, (3, 4), (1, 1)),
         _match("c", _START + timedelta(days=7), (1, 2), (0, 0)),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # Team 1 is first, team 2 last (4th); teams 3 and 4 share 2nd.
     assert tables.loc["c", "s3_home_pre_ft_total_rank"] == 1
     assert tables.loc["c", "s3_away_pre_ft_total_rank"] == 4
@@ -232,6 +247,7 @@ def _cells(
 def test_htft_counts_agree_with_the_standings() -> None:
     tables = pre_kickoff_tables(_season())
     every = HTFT_RESULTS
+
     for side in STANDING_SIDES:
         for venue in STANDING_VENUES:
             played = tables[f"s3_{side}_pre_ft_{venue}_played"]
@@ -254,7 +270,9 @@ def test_matches_left_count_this_match_and_the_later_ones() -> None:
         _match("c", _START + 2 * week, (2, 1), (0, 0)),
         _match("d", _START + 3 * week, (1, 3), (0, 0), stage="Clausura"),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # Team 1 plays a, b and c in the first stage; d belongs to another stage.
     assert tables.at["a", "s3_home_pre_matches_left"] == 3
     assert tables.at["b", "s3_home_pre_matches_left"] == 2
@@ -268,12 +286,15 @@ def test_points_gaps_read_the_table_at_kickoff() -> None:
         _match("b", _START, (3, 4), (0, 0)),
         _match("c", _START + timedelta(days=7), (1, 3), (0, 0)),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # Before c: 1 has 3 points, 3 and 4 have 1, 2 has none.
     assert pd.isna(tables.at["c", "s3_home_pre_pts_to_above"])
     assert tables.at["c", "s3_home_pre_pts_to_below"] == 2
     assert tables.at["c", "s3_away_pre_pts_to_above"] == 2
     assert tables.at["c", "s3_away_pre_pts_to_below"] == 1
+
     # The first matches see an empty table.
     assert pd.isna(tables.at["a", "s3_home_pre_pts_to_above"])
     assert pd.isna(tables.at["a", "s3_home_pre_pts_to_below"])
@@ -286,11 +307,14 @@ def test_rank_change_since_open_counts_the_results_after_the_opening_odds() -> N
         _match("c", _START + timedelta(days=5), (2, 4), (3, 0)),
         _match("d", _START + timedelta(days=8), (2, 3), (0, 0)),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # When d's odds opened only a and b had been played: 1 first, 3 and 4 joint second, 2
     # last. By kickoff c lifted 2 to first (3 points, GD +2) and 3 fell to third.
     assert tables.at["d", "s3_home_rank_change_since_open"] == -3
     assert tables.at["d", "s3_away_rank_change_since_open"] == 1
+
     # Nothing had been played when a's odds opened.
     assert pd.isna(tables.at["a", "s3_home_rank_change_since_open"])
 
@@ -306,7 +330,9 @@ def test_a_result_is_news_only_after_the_odds_opened(gap: timedelta, change: int
         _match("news", played, (3, 4), (2, 0)),
         _match("target", played + gap, (1, 3), (0, 0)),
     )
+
     tables = pre_kickoff_tables(frame)
+
     # "news" lifts 3 above 1. It is in the table at the open only if it had surely finished.
     assert tables.at["target", "s3_home_rank_change_since_open"] == change
 
@@ -339,8 +365,11 @@ def test_round_so_far_counts_the_finished_round_mates() -> None:
         _with_events(_match("d", _START + timedelta(hours=1), (7, 8), (0, 0))),
         _with_events(_match("e", _START + FINISHED_AFTER, (9, 10), (0, 0), round_number=2)),
     )
+
     so_far = round_so_far(frame)
+
     assert _counts(so_far, "c") == [2, 1, 1, 2]
+
     # The first kickoff, a match kicking off before anything finished, another round.
     for match in ("a", "b", "d", "e"):
         assert _counts(so_far, match) == [0, 0, 0, 0]
@@ -378,10 +407,13 @@ def test_round_so_far_averages_goals_and_lines_and_counts_both_teams_scoring() -
         _with_events(_match("c", _START, (5, 6), (0, 2)), goals=2, line=2.75),
         _with_events(_match("d", _START + FINISHED_AFTER, (7, 8), (3, 2)), goals=5, line=3.25),
     )
+
     so_far = round_so_far(frame)
+
     assert so_far.at["d", "s3_round_pre_avg_goals"] == pytest.approx(8 / 3)
     assert so_far.at["d", "s3_round_pre_avg_ou_line"] == pytest.approx(7.75 / 3)
     assert so_far.at["d", "s3_round_pre_btts"] == 1
+
     # Nothing had finished at the first kickoff: no average, no count.
     assert pd.isna(so_far.at["a", "s3_round_pre_avg_goals"])
     assert pd.isna(so_far.at["a", "s3_round_pre_avg_ou_line"])
@@ -397,11 +429,14 @@ def test_a_round_mate_without_a_line_counts_but_stays_out_of_both_averages() -> 
         _with_events(_match("x", _START, (7, 8), (2, 2), round_number=2), goals=4, line=nan),
         _with_events(_match("y", _START + FINISHED_AFTER, (9, 10), (0, 0), round_number=2)),
     )
+
     so_far = round_so_far(frame)
+
     assert so_far.at["c", "s3_round_pre_finished"] == 2
     assert so_far.at["c", "s3_round_pre_btts"] == 1
     assert so_far.at["c", "s3_round_pre_avg_goals"] == pytest.approx(1.0)
     assert so_far.at["c", "s3_round_pre_avg_ou_line"] == pytest.approx(2.25)
+
     # Round 2's only finished match has no line: both averages stay empty.
     assert so_far.at["y", "s3_round_pre_finished"] == 1
     assert pd.isna(so_far.at["y", "s3_round_pre_avg_goals"])
@@ -424,6 +459,7 @@ def _results_and_odds(rng: random.Random) -> dict[str, object]:
     ht = (rng.randint(0, 2), rng.randint(0, 2))
     ft = (ht[0] + rng.randint(0, 3), ht[1] + rng.randint(0, 3))
     p_home, p_draw = rng.uniform(0.2, 0.6), rng.uniform(0.2, 0.3)
+
     return {
         "s1_ht_home_goals": ht[0],
         "s1_ht_away_goals": ht[1],
@@ -453,6 +489,7 @@ def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
         single.append([(teams[i], teams[-1 - i]) for i in range(len(teams) // 2)])
         teams = [teams[0], teams[-1], *teams[1:-1]]
     rounds = single + [[(away, home) for home, away in pairs] for pairs in single]
+
     gaps = (
         FINISHED_AFTER,
         FINISHED_AFTER - timedelta(minutes=1),
@@ -460,6 +497,7 @@ def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
         timedelta(hours=4),
     )
     moved = {(2, 2): timedelta(days=10), (7, 0): -timedelta(days=30)}
+
     rows: list[dict[str, object]] = []
     for r, pairs in enumerate(rounds):
         for i, (home, away) in enumerate(pairs):
@@ -477,6 +515,7 @@ def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
                     **_results_and_odds(rng),
                 }
             )
+
     return rows
 
 
@@ -501,6 +540,7 @@ def _differing(before: pd.DataFrame, after: pd.DataFrame, match_id: str) -> list
                 columns.append(str(column))
         elif a != b:
             columns.append(str(column))
+
     return columns
 
 
@@ -510,15 +550,18 @@ def _leaks(rows: list[dict[str, object]], rng: random.Random) -> dict[str, list[
     columns of the match that moved. Only those matches' fixtures (teams, kickoff, round) may
     be read, so nothing may move."""
     before = derive(_stage_2(rows))
+
     leaks: dict[str, list[str]] = {}
     for target in rows:
         cutoff = _kickoff(target) - FINISHED_AFTER
         scrambled = [
             {**row, **_results_and_odds(rng)} if _kickoff(row) > cutoff else row for row in rows
         ]
+
         moved = _differing(before, derive(_stage_2(scrambled)), str(target["match_id"]))
         if moved:
             leaks[str(target["match_id"])] = moved
+
     return leaks
 
 
@@ -561,6 +604,7 @@ def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row_of_a_generated_se
     # at once or days apart, matches played out of their round, and matches one minute short
     # of finished.
     kickoffs = [start + sum(gaps[: slot + 1], timedelta()) for slot in range(len(gaps))]
+
     rng = random.Random(seed)
     rows = [
         {
@@ -569,6 +613,7 @@ def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row_of_a_generated_se
         }
         for i, ((number, home, away), slot) in enumerate(zip(_FIXTURES, order, strict=True))
     ]
+
     assert _leaks(rows, rng) == {}
 
 
@@ -577,11 +622,15 @@ def test_the_leak_check_can_fail() -> None:
     # kickoff does move the last match's values.
     rows = _made_up_season()
     before = derive(_stage_2(rows))
+
     last = max(rows, key=_kickoff)
     cutoff = _kickoff(last) - FINISHED_AFTER
+
     rng = random.Random(11)
     scrambled = [
         {**row, **_results_and_odds(rng)} if _kickoff(row) <= cutoff else row for row in rows
     ]
+
     after = derive(_stage_2(scrambled))
+
     assert _differing(before, after, str(last["match_id"]))

@@ -137,6 +137,7 @@ def _flagged_rows(cells: list[tuple[str, int, int, int, int]]) -> pd.DataFrame:
         for (flag, event), count in zip(kinds, counts, strict=True)
         for _ in range(count)
     ]
+
     return pd.DataFrame(rows)
 
 
@@ -146,7 +147,9 @@ def _mh(rows: pd.DataFrame) -> stats.MantelHaenszel:
 
 def test_mantel_haenszel_of_one_table_is_its_odds_ratio_with_woolfs_interval() -> None:
     a, b, c, d = 10, 20, 30, 90
+
     result = _mh(_flagged_rows([("s", a, b, c, d)]))
+
     assert result.odds_ratio == pytest.approx(a * d / (b * c))
     half = stats.Z95 * math.sqrt(1 / a + 1 / b + 1 / c + 1 / d)
     assert result.low == pytest.approx(1.5 * math.exp(-half))

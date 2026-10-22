@@ -43,6 +43,7 @@ def test_scored_drops_unpriced_matches_and_defines_the_gain(toy_matches: pd.Data
 def test_outcome_rows_give_each_match_three_sides_and_one_hit(toy_matches: pd.DataFrame) -> None:
     frame = shin.scored(toy_matches)
     rows = shin.outcome_rows(frame)
+
     assert len(rows) == 3 * len(frame)
     assert rows["side"].tolist() == ["home"] * 4 + ["draw"] * 4 + ["away"] * 4
     assert int(rows["hit"].sum()) == len(frame)

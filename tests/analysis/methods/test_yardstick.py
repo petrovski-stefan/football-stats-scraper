@@ -41,9 +41,11 @@ def test_fit_recovers_the_rates_that_made_the_market() -> None:
     grid = yardstick.build_grid(COARSE)
     point = np.flatnonzero((grid.home == 1.4) & (grid.away == 1.0))
     over = yardstick.fair_over(np.array([2.4]), 2.5)
+
     lam_home, lam_away, error = yardstick.fit_rates(
         grid, grid.p_home[point], grid.p_away[point], over, np.array([2.5])
     )
+
     assert (lam_home[0], lam_away[0]) == pytest.approx((1.4, 1.0))
     assert error[0] == pytest.approx(0.0, abs=1e-12)
 
@@ -100,6 +102,7 @@ def test_completions_over_every_half_time_score_add_up_to_the_comeback_chance() 
         np.full(len(margins), home), np.full(len(margins), away), share, margins
     )
     model = yardstick.implied(np.array([home]), np.array([away]), share)
+
     assert (weights * completion).sum() == pytest.approx(model["m_cb"][0])
 
 
@@ -107,10 +110,12 @@ def test_a_share_per_match_gives_each_match_the_chances_of_its_own_share() -> No
     home, away, shares = np.array([1.4, 1.4]), np.array([1.1, 1.1]), np.array([0.40, 0.50])
     model = yardstick.implied(home, away, shares)
     completion = yardstick.completion_given_ht(home, away, shares, np.array([-1, -1]))
+
     for i, share in enumerate(shares):
         one_home, one_away = home[i : i + 1], away[i : i + 1]
         alone = yardstick.implied(one_home, one_away, float(share))
         assert model.iloc[i].to_numpy() == pytest.approx(alone.iloc[0].to_numpy())
+
         single = yardstick.completion_given_ht(one_home, one_away, float(share), np.array([-1]))
         assert completion[i] == pytest.approx(single[0])
 
@@ -148,6 +153,7 @@ def test_first_half_share_is_one_number(toy_priced_matches: pd.DataFrame) -> Non
 
 def test_frame_scores_every_priced_match(toy_priced_matches: pd.DataFrame) -> None:
     out = yardstick.frame(toy_priced_matches, yardstick.build_grid(COARSE))
+
     assert out["match_id"].tolist() == ["m1", "m2", "m3", "m4"]
     assert out["cluster"].tolist() == ["1 2024", "1 2025", "2 2024-2025", "2 2025-2026"]
     assert out["m_goals_1h"].to_numpy() == pytest.approx((2 / 6) * out["m_goals"].to_numpy())

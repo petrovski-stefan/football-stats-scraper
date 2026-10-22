@@ -26,6 +26,7 @@ def _schedule(*matches: tuple[str, int, int, int, int]) -> pd.DataFrame:
 
 def _line(team: int, rank: int, counts: tuple[int, ...], stage: str = "") -> dict[str, object]:
     played, won, drawn, lost, goal_diff, points = counts
+
     return {
         "season": _SEASON,
         "league_id": _LEAGUE,
@@ -76,6 +77,7 @@ def test_teams_level_on_points_may_appear_in_either_order() -> None:
         _line(4, 3, (1, 0, 0, 1, -1, 0)),
         _line(2, 4, (1, 0, 0, 1, -3, 0)),
     ]
+
     assert _run(schedule, page).ok
 
 
@@ -95,6 +97,7 @@ def test_a_declared_deduction_passes(monkeypatch: pytest.MonkeyPatch) -> None:
         _line(1, 3, (1, 1, 0, 0, 2, 0)),
         _line(2, 4, (1, 0, 0, 1, -2, 0)),
     ]
+
     assert _run(_SCHEDULE, page).ok
 
 
@@ -108,9 +111,11 @@ def test_the_pages_own_total_is_what_the_page_is_held_to(monkeypatch: pytest.Mon
     key = (_LEAGUE, _SEASON, "", 1)
     monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {key: -3})
     monkeypatch.setattr(deductions, "PAGE_TOTALS", {key: -1})
+
     # The page takes 1 of the 3 points off team 1, which stays top.
     partly = [{**_PAGE[0], "s1_points": 2}, *_PAGE[1:]]
     assert _run(_SCHEDULE, partly).ok
+
     fully = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
     assert not _run(_SCHEDULE, fully).ok
 
@@ -145,11 +150,13 @@ def test_each_stage_is_held_against_its_own_matches() -> None:
         _line(2, 1, (1, 1, 0, 0, 1, 3), "Clausura"),
         _line(1, 2, (1, 0, 0, 1, -1, 0), "Clausura"),
     ]
+
     assert _run(schedule, page).ok
 
 
 def test_a_deduction_counts_only_in_its_own_stage(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "Apertura", 1): -3})
+
     # Team 1 wins both stages; only its Apertura win is cancelled by the deduction.
     schedule = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 1, 0))
     page = [
@@ -158,4 +165,5 @@ def test_a_deduction_counts_only_in_its_own_stage(monkeypatch: pytest.MonkeyPatc
         _line(1, 1, (1, 1, 0, 0, 1, 3), "Clausura"),
         _line(2, 2, (1, 0, 0, 1, -1, 0), "Clausura"),
     ]
+
     assert _run(schedule, page).ok

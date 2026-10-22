@@ -20,6 +20,7 @@ def _row(**overrides: float | None) -> dict[str, float | None]:
         "ou": 2.75, "over": 1.9, "under": 1.95,
         "ah": 1.25, "ah_h": 1.9, "ah_a": 1.95,
     }  # fmt: skip
+
     row.update(overrides)
     return row
 

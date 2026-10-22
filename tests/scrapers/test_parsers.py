@@ -160,6 +160,7 @@ def _schedule_row(score: str, ht: str) -> str:
 def test_parse_schedulis_row_reads_page_values_only() -> None:
     row = BeautifulSoup(_schedule_row("3 - 2", "0-2"), "html.parser").select_one("div")
     assert row is not None
+
     assert parse_schedulis_row(row) == {
         "match_id": "11",
         "s1_date": "2026-01-31 18:30+01:00",
@@ -239,7 +240,9 @@ def test_parse_final_table() -> None:
         _standing(1, 19, "First FC", (38, 26, 7, 5, 44, 85)),
         _standing(20, 7, "Last FC", (38, 3, 5, 30, -61, 14)),
     )
+
     first, last = parse_final_table(soup)
+
     assert first == {
         "team_id": 19,
         "s1_team_name": "First FC",

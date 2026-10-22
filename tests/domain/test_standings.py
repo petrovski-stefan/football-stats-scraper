@@ -22,6 +22,7 @@ def test_line_counts_a_win_a_draw_and_a_loss() -> None:
     line.add(3, 1)
     line.add(2, 2)
     line.add(0, 1)
+
     assert (line.played, line.won, line.drawn, line.lost) == (3, 1, 1, 1)
     assert (line.goals_for, line.goals_against) == (5, 4)
     assert line.points == 4
@@ -31,6 +32,7 @@ def test_line_counts_a_win_a_draw_and_a_loss() -> None:
 def test_a_result_feeds_total_and_each_teams_own_venue() -> None:
     table = Standings([1, 2])
     table.add(home=1, away=2, home_goals=2, away_goals=0)
+
     assert table.line("total", 1).won == 1
     assert table.line("total", 2).lost == 1
     assert table.line("home", 1).played == 1
@@ -50,7 +52,9 @@ def test_ranks_order_by_points_then_goal_difference_then_goals_for() -> None:
     table.add(1, 2, 3, 0)  # team 1: 3 pts, GD +3, GF 3
     table.add(3, 4, 1, 0)  # team 3: 3 pts, GD +1, GF 1
     table.add(2, 4, 2, 2)  # teams 2 and 4: 1 pt each
+
     ranks = table.ranks("total")
+
     assert ranks[1] == 1
     assert ranks[3] == 2
     # Team 2: GD -3, GF 2. Team 4: GD -1, GF 2. Goal difference separates them.
@@ -79,6 +83,7 @@ def test_points_gaps_count_only_teams_with_more_or_fewer_points() -> None:
     table.add(3, 4, 0, 0)
     table.add(1, 3, 2, 0)
     table.add(2, 4, 1, 0)
+
     # Points: 1 has 6, 2 has 3, 3 and 4 have 1 each.
     assert table.points_gaps("total", 1) == (None, 3)
     assert table.points_gaps("total", 2) == (3, 2)
@@ -99,14 +104,17 @@ def test_any_run_of_results_keeps_the_tables_consistent(
     table = Standings(_TEAMS)
     for match in results:
         table.add(*match)
+
     lines = {team: table.line("total", team) for team in _TEAMS}
     assert sum(line.played for line in lines.values()) == 2 * len(results)
     assert sum(line.won for line in lines.values()) == sum(line.lost for line in lines.values())
     assert sum(line.goal_diff for line in lines.values()) == 0
+
     for team, total in lines.items():
         home, away = table.line("home", team), table.line("away", team)
         assert total.played == home.played + away.played
         assert total.points == home.points + away.points
+
     if results:  # an empty table has no ranks
         ranks = table.ranks("total")
         keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
@@ -121,6 +129,7 @@ def test_any_run_of_results_keeps_the_tables_consistent(
 def test_one_comeback_is_l_w_for_one_team_and_w_l_for_the_other() -> None:
     record = HalfTimeFullTime([1, 2])
     record.add(home=1, away=2, ht=(0, 2), ft=(3, 2))  # the home team came back
+
     assert record.count("home", 1, "L", "W") == 1
     assert record.count("total", 1, "L", "W") == 1
     assert record.count("away", 2, "W", "L") == 1
@@ -134,9 +143,11 @@ def test_total_is_home_plus_away() -> None:
     record = HalfTimeFullTime([1, 2])
     record.add(1, 2, (1, 0), (1, 0))  # team 1 at home: W/W
     record.add(2, 1, (0, 1), (2, 1))  # team 1 away: W at half-time, L at full time
+
     pairs = [(ht, ft) for ht in "WDL" for ft in "WDL"]
     for ht, ft in pairs:
         total = record.count("total", 1, ht, ft)
         assert total == record.count("home", 1, ht, ft) + record.count("away", 1, ht, ft)
+
     assert record.count("total", 1, "W", "W") == 1
     assert record.count("total", 1, "W", "L") == 1

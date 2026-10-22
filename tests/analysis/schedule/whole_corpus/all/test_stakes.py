@@ -26,6 +26,7 @@ def matches() -> pd.DataFrame:
             "s2_is_comeback_away": [False, False, False, False],
         }
     )
+
     for side, left, above, change in (
         ("home", [4, 9, 9, 3], [2, 1, 1, 1], [3, 0, 0, 0]),
         ("away", [12, 5, 5, 3], [8, np.nan, 1, 1], [0, np.nan, 0, 0]),
@@ -33,6 +34,7 @@ def matches() -> pd.DataFrame:
         frame[f"s3_{side}_pre_matches_left"] = left
         frame[f"s3_{side}_pre_pts_to_above"] = above
         frame[f"s3_{side}_rank_change_since_open"] = change
+
     return frame
 
 
@@ -45,7 +47,9 @@ def test_fifth_cuts_pool_the_home_and_away_chances_of_priced_matches(
 
 def test_trailing_states_read_the_side_behind(matches: pd.DataFrame) -> None:
     cuts = np.array([0.25, 0.35, 0.45, 0.55])
+
     states = runner.trailing_states(matches, cuts)
+
     assert states.index.tolist() == [0, 1]  # no one behind in match 2, no odds in match 3
     assert states["p_win"].tolist() == [0.6, 0.3]
     assert states["win"].tolist() == [True, False]
@@ -80,7 +84,9 @@ def test_mh_table_gives_each_cohort_then_all_pooled() -> None:
         ],
         ignore_index=True,
     )
+
     table = runner.mh_table(states)
+
     assert table["states"].tolist() == ["2024", "2025", "pooled"]
     assert table["flagged"].tolist() == [4, 4, 8]
     assert float(table.at[0, "MH OR"]) == pytest.approx(1.0)
@@ -97,7 +103,9 @@ def test_the_bar_needs_a_small_holm_p_and_the_same_side_in_both_cohorts() -> Non
         "split": table(1.4, 0.9, 0.001),
         "weak": table(1.1, 1.1, 0.4),
     }
+
     bar = runner.the_bar(tables).set_index("flag")
+
     assert bar["Holm p"].tolist() == pytest.approx([0.02, 0.003, 0.4])
     assert bar["same side"].tolist() == [True, False, True]
     assert bar["met"].tolist() == [True, False, False]
@@ -112,7 +120,9 @@ def test_against_odds_reads_the_flagged_and_the_rest_against_the_yardstick() -> 
         }
     )
     chance = pd.Series([0.25, 0.25, 0.1, 0.1, np.nan])
+
     table = runner.against_odds(states, chance).set_index("states")
+
     assert float(table.at["flagged", "oe"]) == pytest.approx(1 / 0.5)
     assert float(table.at["rest", "oe"]) == pytest.approx(1 / 0.2)
     assert float(table.at["rest", "n"]) == 2.0

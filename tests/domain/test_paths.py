@@ -41,6 +41,7 @@ def test_global_stores_live_in_raw_and_are_not_league_seasons() -> None:
         paths.events_path(),
         paths.events_done_path(),
     ]
+
     assert all(os.path.dirname(p) == paths.RAW_DIR for p in stores)
     assert {os.path.basename(p) for p in stores} == paths.GLOBAL_FILES
 

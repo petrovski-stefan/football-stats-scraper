@@ -19,8 +19,10 @@ def _write(tmp_path: Path, league_id: int, season: str, n: int) -> str:
             "s1_season": [season] * n,
         }
     )
+
     path = str(tmp_path / f"league{league_id}_{season}_schedule.csv")
     write_stage_csv(frame, path, list(frame.columns))
+
     return path
 
 
@@ -62,6 +64,7 @@ def test_round_key_names_the_league_season_stage_and_round() -> None:
             "s1_round": [3, 3, 3],
         }
     )
+
     assert corpus.round_key(frame).tolist() == [
         "7 2025 Apertura 3",
         "7 2025 Clausura 3",

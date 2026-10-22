@@ -11,8 +11,10 @@ def test_league_table_has_one_row_per_league_shrunk_toward_the_pool(
     toy_matches: pd.DataFrame,
 ) -> None:
     table, tests = runner.league_table(shin.scored(toy_matches))
+
     assert table["league"].tolist() == ["A", "B"]
     assert table["matches"].tolist() == [2, 2]
+
     for name in runner.QUANTITIES:
         pooled = tests[name].pooled
         for raw, shrunk in zip(table[name], table[f"{name}_shrunk"], strict=True):

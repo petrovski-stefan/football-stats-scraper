@@ -98,6 +98,7 @@ def _stage_two_row(**overrides: object) -> dict[str, object]:
         "s2_implied_over": 0.5,
         "s2_implied_ah_home": 0.5,
     }
+
     row.update(overrides)
     return row
 
@@ -122,6 +123,7 @@ def test_odds_fields_that_agree_pass() -> None:
         s2_mkt_sup=None,
         s2_mkt_tot=None,
     )
+
     assert _odds_issues(_stage_two_row(), no_1x2) == []
 
 
@@ -159,8 +161,10 @@ def test_stage_three_is_held_to_stage_two_as_well() -> None:
     raw = _raw()
     row = raw.assign(s2_total_goals=[1, 2])
     multi = row.assign(s2_total_goals=[1, 3])
+
     r = Report("test")
     validate(r, multi, 3, {1: raw, 2: row})
+
     assert any("differ from stage 2" in issue for issue in r.issues)
     assert not any("differ from stage 1" in issue for issue in r.issues)
 
@@ -186,6 +190,7 @@ def _round_row(**overrides: object) -> dict[str, object]:
         "s3_round_pre_avg_goals": 3.67,
         "s3_round_pre_avg_ou_line": 2.75,
     }
+
     row.update(overrides)
     return row
 
@@ -206,6 +211,7 @@ def test_round_fields_that_agree_pass() -> None:
         s3_round_pre_avg_goals=np.nan,
         s3_round_pre_avg_ou_line=np.nan,
     )
+
     assert _round_issues(_round_row(), nothing_yet) == []
 
 

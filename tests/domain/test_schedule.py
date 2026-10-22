@@ -28,6 +28,7 @@ def _row(**overrides: Any) -> dict[str, Any]:
         "s1_ft_home_goals": 2,
         "s1_ft_away_goals": 1,
     }
+
     row.update(overrides)
     return row
 
@@ -68,6 +69,7 @@ def test_final_table_row() -> None:
         s1_goal_diff=-3,
         s1_points=65,
     )
+
     assert line.s1_goal_diff == -3
 
 

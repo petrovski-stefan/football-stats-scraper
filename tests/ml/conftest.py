@@ -21,11 +21,13 @@ def toy_schedule(toy_priced_matches: pd.DataFrame) -> pd.DataFrame:
     frame["s1_odds_ah_open_away"] = 1.9
     frame["s2_implied_ah_home"] = [0.6, 0.5, 0.4, 0.45, 0.55]
     frame["s1_round"] = [1, 2, 3, 4, 5]
+
     # Summer and winter kickoffs in Berlin time with their offsets: Sunday 15:30 and
     # Wednesday 20:45.
     frame["s1_date"] = ["2024-08-04 15:30+02:00", "2025-01-15 20:45+01:00"] + [
         "2025-03-01 18:00+01:00"
     ] * 3
+
     played = {"home": np.arange(0, 10, 2), "away": np.arange(1, 10, 2)}
     columns: dict[str, np.ndarray] = {}
     for side, counts in played.items():
@@ -33,6 +35,7 @@ def toy_schedule(toy_priced_matches: pd.DataFrame) -> pd.DataFrame:
     for column in rows.ROUND_SO_FAR:
         columns[column] = np.ones(len(frame), dtype=int)
     columns["s3_pre_rank_gap"] = np.full(len(frame), 3)
+
     return pd.concat([frame, pd.DataFrame(columns, index=frame.index)], axis=1)
 
 
@@ -55,4 +58,5 @@ def record_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:
         for ht in rows.RESULTS
         for ft in rows.RESULTS
     }
+
     return records | {f"s3_{side}_{stake}": counts + 100 for stake in rows.STAKES}

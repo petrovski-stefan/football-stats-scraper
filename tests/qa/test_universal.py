@@ -44,6 +44,7 @@ def test_check_primary_key_null_blank_and_duplicate() -> None:
     # " 1" and 1 normalise to the same id, so they count as a duplicate.
     ids = pd.DataFrame({"match_id": [1, " 1", None, " "]}, dtype=object)
     universal.check_primary_key(r, ids)
+
     assert r.issues == [
         "1 rows with a null match_id",
         "1 rows with a blank match_id",
@@ -72,11 +73,13 @@ def test_check_no_dead_columns() -> None:
     frame = pd.DataFrame({"full": [1, 2], "dead": [np.nan, np.nan]})
     r = _report()
     universal.check_no_dead_columns(r, frame)
+
     assert len(r.issues) == 1
     assert "['dead']" in r.issues[0]
 
     r = _report()
     universal.check_no_dead_columns(r, frame, optional={"dead"})
+
     assert r.ok
 
 
@@ -116,6 +119,7 @@ def test_check_attempt_log_catches_each_disagreement() -> None:
     done = pd.DataFrame({"match_id": ["1", "1"], "goals": [1, 1]})
     r = _report()
     universal.check_attempt_log(r, rows, done, "goals")
+
     assert r.issues == [
         "1 duplicate match_id in the attempt log (would re-scrape)",
         "1 matches have rows but no attempt-log entry",

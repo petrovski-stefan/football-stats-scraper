@@ -18,8 +18,10 @@ def test_text_columns_survive_a_round_trip(tmp_path: Path) -> None:
             "s1_odds_1x2_open_home": [1.5, None],
         }
     )
+
     write_stage_csv(frame, path, list(frame.columns))
     back = read_stage_csv(path)
+
     assert back["match_id"].tolist() == ["0012", "34"]
     assert back["s1_season"].tolist() == ["2025", "2025"]
     assert back["s1_stage"].tolist() == ["", "Group A"]

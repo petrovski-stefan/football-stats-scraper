@@ -48,7 +48,9 @@ def test_the_summary_counts_failures(capsys: pytest.CaptureFixture[str]) -> None
         Outcome(_JOBS[0], matches=380, dropped=1),
         Outcome(_JOBS[2], error="TimeoutException: Message:"),
     ]
+
     assert summarise(outcomes, on_disk=[_JOBS[1]]) == 1
+
     printed = capsys.readouterr().out
     assert "1 scraped, 1 already on disk, 1 failed, 1 rows dropped" in printed
     assert "FAILED OTH 2025" in printed
@@ -75,6 +77,7 @@ def _fake_run(
     monkeypatch.setattr(schedule, "scraped_league_seasons", set)
     monkeypatch.setattr(schedule, "_run_job", run_job)
     monkeypatch.setattr(time, "sleep", pauses.append)
+
     return names, pauses
 
 
@@ -111,6 +114,7 @@ def _odds(x12: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
         ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"): ou,
         ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away"): ah,
     }
+
     return {
         name: value
         for names, values in fields.items()

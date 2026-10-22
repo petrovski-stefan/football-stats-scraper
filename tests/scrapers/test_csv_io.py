@@ -46,11 +46,14 @@ def test_league_slug_does_not_repeat_the_country(league: str, slug: str) -> None
 def test_save_unless_shrinking(tmp_path: Path) -> None:
     path = str(tmp_path / "out.csv")
     columns = ["a", "b"]
+
     assert save_unless_shrinking([{"b": 1, "a": 2}, {"b": 3, "a": 4}], path, columns)
     assert list(pd.read_csv(path).columns) == columns
+
     # A shorter scrape is a partial run: the fuller file stays.
     assert not save_unless_shrinking([{"a": 9, "b": 9}], path, columns)
     assert len(pd.read_csv(path)) == 2
+
     # An equal or longer one replaces it.
     assert save_unless_shrinking([{"a": 5, "b": 6}] * 3, path, columns)
     assert len(pd.read_csv(path)) == 3

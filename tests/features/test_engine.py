@@ -25,7 +25,9 @@ def test_round_position_handles_shared_kickoffs_and_stages() -> None:
             ],
         }
     )
+
     position = round_position(df)
+
     assert position["earlier"].tolist() == [0, 0, 2, 3, 0]
     assert position["later"].tolist() == [2, 2, 1, 0, 0]
     assert position["slot"].tolist() == [1, 1, 2, 3, 1]

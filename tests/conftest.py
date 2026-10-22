@@ -50,17 +50,21 @@ def toy_matches() -> pd.DataFrame:
         "s1_ft_home_goals",
         "s1_ft_away_goals",
     ]
+
     frame = pd.DataFrame(rows, columns=columns)
     frame.insert(0, "match_id", [f"m{i}" for i in range(1, len(frame) + 1)])
+
     # League 1: teams 11 and 12. League 2: teams 21, 22 and 23.
     frame["s1_home_team_id"] = [11, 12, 21, 22, 21]
     frame["s1_away_team_id"] = [12, 11, 22, 21, 23]
     frame["s1_home_team_name"] = frame["s1_home_team_id"].map(lambda team: f"t{team}")
     frame["s1_away_team_name"] = frame["s1_away_team_id"].map(lambda team: f"t{team}")
+
     inverse = 1.0 / frame[shin.ODDS]
     proportional = inverse.div(inverse.sum(axis=1), axis=0)
     for odds_column, column in zip(shin.ODDS, shin.PROPORTIONAL, strict=True):
         frame[column] = proportional[odds_column]
+
     return frame
 
 
@@ -77,13 +81,17 @@ def toy_priced_matches(toy_matches: pd.DataFrame) -> pd.DataFrame:
     frame["s1_odds_ou_open_line"] = [2.5, 2.25, 2.0, 3.0, 2.5]
     frame["s1_odds_ou_open_over"] = [1.9, 2.0, 1.8, 2.1, 1.95]
     frame["s1_odds_ou_open_under"] = [1.9, 1.8, 2.0, 1.75, 1.85]
+
     inverse_over = 1.0 / frame["s1_odds_ou_open_over"]
     frame["s2_implied_over"] = inverse_over / (inverse_over + 1.0 / frame["s1_odds_ou_open_under"])
+
     frame["s2_total_goals"] = frame["s1_ft_home_goals"] + frame["s1_ft_away_goals"]
     frame["s2_goals_1h"] = frame["s1_ht_home_goals"] + frame["s1_ht_away_goals"]
     frame["s2_goals_2h"] = frame["s2_total_goals"] - frame["s2_goals_1h"]
+
     frame["s2_is_comeback_home"] = [False] * 5
     frame["s2_is_comeback_away"] = [False, False, False, True, False]
     frame["s2_is_comeback"] = frame["s2_is_comeback_home"] | frame["s2_is_comeback_away"]
     frame["s2_ht_decisive"] = frame["s1_ht_home_goals"] != frame["s1_ht_away_goals"]
+
     return frame

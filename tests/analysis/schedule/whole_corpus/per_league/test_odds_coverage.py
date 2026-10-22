@@ -50,6 +50,7 @@ def season() -> pd.DataFrame:
                     "s3_is_rescheduled": moved,
                 }
             )
+
     return runner.with_markets(pd.DataFrame(rows))
 
 
@@ -76,6 +77,7 @@ def test_three_nil_is_a_three_goal_shutout() -> None:
 
 def test_each_gap_gets_the_first_cause_that_fits(season: pd.DataFrame) -> None:
     table = runner.gaps(season).set_index("match_id")["cause"]
+
     assert table.to_dict() == {
         "m10": "stage start",
         "m30": "isolated",
@@ -100,8 +102,10 @@ def test_award_shapes_split_the_three_nil_results_by_half_time() -> None:
             }
         )
     )
+
     table = runner.award_shapes(frame).set_index("half-time score").to_dict("index")
     columns = ("matches", "all three markets", "no odds")
+
     assert table["0-0"] == dict(zip(columns, (2, 1, 1), strict=True))
     assert table["the full-time score"] == dict(zip(columns, (1, 1, 0), strict=True))
     assert table["other"] == dict(zip(columns, (1, 1, 0), strict=True))

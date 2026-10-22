@@ -49,6 +49,7 @@ def _league(**overrides: Any) -> dict[str, Any]:
             {"season": "2025", "url": "https://example.com/league/2025/36", "enabled": False},
         ],
     }
+
     entry.update(overrides)
     return entry
 
@@ -96,6 +97,7 @@ def _config(tmp_path: Path) -> str:
             {"season": "2026", "url": "https://example.com/league/2026/71", "enabled": False},
         ],
     )
+
     path = tmp_path / "leagues.json"
     path.write_text(json.dumps([_league(), other]), encoding="utf-8")
     return str(path)

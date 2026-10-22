@@ -42,10 +42,12 @@ def frame() -> pd.DataFrame:
             "one": 1.0,
         }
     ).astype(float)
+
     out["cluster"] = np.repeat(["a 2024", "b 2024", "a 2025", "b 2025"], 330)
     out["season_cohort"] = np.repeat([2024, 2024, 2025, 2025], 330)
     out["third"] = np.tile(np.repeat([1, 2, 3], 110), 4)
     out["round"] = np.r_[np.repeat([1, 2], 650), np.full(20, 3)]
+
     return runner.with_league_season(out)
 
 
@@ -53,7 +55,9 @@ def test_phases_split_a_stage_into_thirds_by_round_and_by_kickoff() -> None:
     matches = stage_matches(9)
     # Round 1's match was put off until after round 9.
     matches.loc[0, "s1_date"] = "2024-08-20T15:00:00+02:00"
+
     phases = runner.phases(matches)
+
     assert phases["rounds"].tolist() == [9] * 9
     assert phases["third"].tolist() == [1, 1, 1, 2, 2, 2, 3, 3, 3]
     assert phases["third_kickoff"].tolist() == [3, 1, 1, 1, 2, 2, 2, 3, 3]
@@ -78,6 +82,7 @@ def test_the_league_season_reading_expects_what_each_league_season_has(
         expected = frame[runner.league_season_column(label)]
         sums = pd.DataFrame({"observed": frame[observed], "expected": expected})
         sums = sums.groupby(frame["cluster"]).sum()
+
         assert sums["expected"].to_numpy() == pytest.approx(sums["observed"].to_numpy())
         assert (expected[frame[denominator] == 0] == 0).all()
 
@@ -94,7 +99,9 @@ def test_readings_are_raw_then_the_league_season_then_the_odds() -> None:
 def test_phase_values_give_each_reading_per_phase(frame: pd.DataFrame) -> None:
     comeback = runner.QUANTITIES[0]
     table = runner.phase_values(frame, "third", comeback).set_index("phase")
+
     assert table.index.tolist() == [1, 2, 3]
+
     part = frame[frame["third"] == 1]
     assert float(table.at[1, "count"]) == part["is_comeback"].sum()
     assert float(table.at[1, "raw"]) == pytest.approx(part["is_comeback"].mean())

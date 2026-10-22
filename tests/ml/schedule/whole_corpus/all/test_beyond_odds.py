@@ -15,14 +15,18 @@ COARSE = np.round(np.arange(0.1, 4.01, 0.1), 2)
 def test_split_rows_read_no_goal_of_the_test_cohort(toy_schedule: pd.DataFrame) -> None:
     grid = yardstick.build_grid(COARSE)
     side_rows, fields_b, share = runner.split_rows(toy_schedule, grid, 2024)
+
     train = toy_schedule[toy_schedule["season_cohort"] == 2024]
     assert share == pytest.approx(yardstick.first_half_share(yardstick.priced(train)))
+
     # More first-half goals in the 2025 cohort change no field of any row.
     changed = toy_schedule.copy()
     later = changed["season_cohort"] == 2025
     changed.loc[later, "s2_goals_1h"] += 3
     changed.loc[later, "s2_total_goals"] += 3
+
     again, _, _ = runner.split_rows(changed, grid, 2024)
+
     pd.testing.assert_frame_equal(side_rows[fields_b], again[fields_b])
 
 
@@ -55,7 +59,9 @@ def test_tuning_table_shows_the_chosen_setting_of_each_model() -> None:
     tuned = boosting.Tuned(
         params=boosting.BASE | setting, trees=42, cv_loss=0.118, table=pd.DataFrame()
     )
+
     table = runner.tuning_table({"A": tuned})
+
     assert table["model"].tolist() == ["A"]
     assert table["trees"].tolist() == [42]
     assert set(setting) <= set(table.columns)

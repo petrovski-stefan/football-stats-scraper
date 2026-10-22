@@ -18,6 +18,7 @@ def test_resampled_sums_resample_whole_clusters() -> None:
     values = np.array([[1.0, 1.0], [2.0, 1.0], [3.0, 1.0]])
     one = score.resampled_sums(values, pd.Series(["a", "a", "a"]), draws=5)
     assert one.tolist() == [[6.0, 3.0]] * 5
+
     two = score.resampled_sums(values, pd.Series(["a", "a", "b"]), draws=200)
     # Each resample holds two clusters: a + a, a + b, b + a or b + b.
     assert set(map(tuple, two.tolist())) <= {(6.0, 4.0), (6.0, 3.0), (6.0, 2.0)}
@@ -39,6 +40,7 @@ def test_top_n_table_counts_the_hits_and_the_difference(
 ) -> None:
     y, scores, clusters = ranked
     table = score.top_n_table(y, scores, clusters, (3,), "flat", draws=200).set_index("ranking")
+
     assert table.at["perfect", "comebacks"] == 3.0
     assert table.at["flat", "comebacks"] == 1.0  # rows 0, 1 and 2
     assert table.at["perfect", "- flat"] == pytest.approx(2 / 3)
@@ -54,6 +56,7 @@ def test_log_loss_rows_and_the_loss_table(
     assert score.log_loss_rows(np.array([1.0, 0.0]), np.array([0.5, 0.5])) == pytest.approx(
         [np.log(2), np.log(2)]
     )
+
     chances = {"base": np.full(10, 0.3), "better": np.where(y == 1, 0.6, 0.15)}
     table = score.loss_table(y, chances, clusters, "base", draws=200).set_index("model")
     assert table.at["better", "- base"] < 0
@@ -65,7 +68,9 @@ def test_calibration_table_has_groups_of_equal_size() -> None:
     p = np.linspace(0.01, 0.2, 20)
     y = np.zeros(20)
     y[-2:] = 1.0
+
     table = score.calibration_table(y, p, bins=4)
+
     assert table["rows"].tolist() == [5, 5, 5, 5]
     assert table["rate"].tolist() == [0.0, 0.0, 0.0, 0.4]
     assert table["chance"].is_monotonic_increasing

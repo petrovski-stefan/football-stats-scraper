@@ -24,6 +24,7 @@ def matches() -> pd.DataFrame:
             "s2_total_goals": [2, 3, 7, 4],
         }
     )
+
     return frame
 
 

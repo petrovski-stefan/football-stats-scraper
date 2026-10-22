@@ -45,6 +45,7 @@ def test_odds_fields_take_the_view_of_the_side(
     side_rows, _, frame = built
     away = side_rows.iloc[PRICED:]
     priced = toy_schedule.loc[frame.index]
+
     assert away["p_T"].tolist() == pytest.approx(frame["shin_p_away"].tolist())
     assert away["lam_O"].tolist() == pytest.approx(frame["lam_home"].tolist())
     assert away["ah_line_T"].tolist() == pytest.approx((-priced["s1_odds_ah_open_line"]).tolist())
@@ -57,6 +58,7 @@ def test_table_fields_are_rates_per_match_played(
 ) -> None:
     side_rows, _, _ = built
     home, away = side_rows.iloc[:PRICED], side_rows.iloc[PRICED:]
+
     # The first match: the home side has played 0 matches, so its rates are empty.
     assert np.isnan(home["T_ft_total_won_pg"].iloc[0])
     assert home["T_ft_total_won_pg"].iloc[1:].tolist() == [1.0] * (PRICED - 1)

@@ -52,6 +52,7 @@ def _season(teams: int = 4, legs: int = 2) -> pd.DataFrame:
                         **_ODDS,
                     }
                 )
+
     return pd.DataFrame(rows)
 
 
@@ -88,7 +89,9 @@ def test_a_team_twice_in_one_round_fails_even_when_round_sizes_hold() -> None:
     second = season.index[season["s1_round"] == 2]
     season.loc[first[1], "s1_round"] = 2
     season.loc[second[0], "s1_round"] = 1
+
     issues = _issues(season)
+
     assert any("plays twice" in issue for issue in issues)
     assert not any("rounds without" in issue or "meet unequally" in issue for issue in issues)
 
@@ -153,7 +156,9 @@ def test_read_staged_keeps_text_columns(tmp_path: Path) -> None:
     pd.DataFrame(
         {"match_id": ["007"], "s1_season": ["2025"], "s1_stage": [""], "s1_odds": [None]}
     ).to_csv(path, index=False)
+
     back = read_staged(str(path))
+
     assert back.loc[0, "match_id"] == "007"
     assert back.loc[0, "s1_season"] == "2025"
     assert back.loc[0, "s1_stage"] == ""

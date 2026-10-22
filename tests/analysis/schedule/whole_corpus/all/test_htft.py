@@ -29,10 +29,12 @@ def toy_frame() -> pd.DataFrame:
 
 def test_with_cells_marks_the_result_that_happened(toy_frame: pd.DataFrame) -> None:
     out = runner.with_cells(toy_frame, SHARE)
+
     assert out["o_1/1"].tolist() == [1.0, 0.0, 0.0, 0.0]
     assert out["o_X/X"].tolist() == [0.0, 1.0, 0.0, 0.0]
     assert out["o_2/1"].tolist() == [0.0, 0.0, 1.0, 0.0]
     assert out["o_1/X"].tolist() == [0.0, 0.0, 0.0, 1.0]
+
     observed = out[[f"o_{cell}" for cell in yardstick.HTFT]].sum(axis=1)
     assert observed.tolist() == [1.0, 1.0, 1.0, 1.0]
 

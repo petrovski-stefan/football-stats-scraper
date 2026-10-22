@@ -28,9 +28,11 @@ def toy_frame() -> pd.DataFrame:
             "cluster": ["a", "a", "b", "b"],
         }
     )
+
     frame["goals_1h"] = frame["goals_home_1h"] + frame["goals_away_1h"]
     frame["goals_2h"] = frame["goals_home"] + frame["goals_away"] - frame["goals_1h"]
     frame["m_goals_2h"] = (1 - SHARE) * (frame["lam_home"] + frame["lam_away"])
+
     return frame
 
 
@@ -41,6 +43,7 @@ def test_state_of_names_each_margin() -> None:
 
 def test_team_halves_mirror_each_match(toy_frame: pd.DataFrame) -> None:
     teams = runner.team_halves(toy_frame, SHARE)
+
     assert len(teams) == 8
     assert teams["state"].tolist()[:2] == ["ahead by 1", "behind by 2"]
     assert teams["state"].tolist()[4:6] == ["behind by 1", "ahead by 2"]
@@ -51,6 +54,7 @@ def test_team_halves_mirror_each_match(toy_frame: pd.DataFrame) -> None:
 
 def test_by_state_keeps_the_order_and_skips_empty_states(toy_frame: pd.DataFrame) -> None:
     table = runner.by_state(runner.team_halves(toy_frame, SHARE))
+
     assert table["state"].tolist() == [
         "behind by 2",
         "behind by 1",
@@ -87,6 +91,7 @@ def test_no_factors_give_the_basic_model(toy_frame: pd.DataFrame) -> None:
         SHARE,
         toy_frame["ht_margin"].to_numpy(),
     ).sum()
+
     assert runner.scaled_completions(toy_frame, SHARE, {}) == pytest.approx(basic)
 
 

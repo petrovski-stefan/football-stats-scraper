@@ -35,9 +35,11 @@ def corpus(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> list[str]:
         _schedule(1, "test_league", "2024", ["a1", "a2"]),
         _schedule(1, "test_league", "2025", ["b1", "b2"]),
     ]
+
     for stage in (2, 3):
         _schedule(stage, "test_league", "2024", ["a1", "a2"])
         _schedule(stage, "test_league", "2025", ["b1", "b2"])
+
     return raw
 
 

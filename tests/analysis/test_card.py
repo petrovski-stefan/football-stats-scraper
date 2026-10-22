@@ -28,6 +28,7 @@ def test_the_odds_card_reads_columns_of_the_yardstick_frame(
 
 def test_card_frame_reads_the_stage_columns(toy_priced_matches: pd.DataFrame) -> None:
     frame = card.card_frame(toy_priced_matches)
+
     # Half-times 1-0, 0-0, 0-0, 1-0 and 0-1; full-time totals 2, 0, 1, 3 and 2.
     assert frame["home_behind"].tolist() == [0.0, 0.0, 0.0, 0.0, 1.0]
     assert frame["away_behind"].tolist() == [1.0, 0.0, 0.0, 1.0, 0.0]
@@ -41,19 +42,24 @@ def test_card_frame_reads_the_stage_columns(toy_priced_matches: pd.DataFrame) ->
         "2 2025-2026",
         "2 2025-2026",
     ]
+
     columns = {column for row in card.CARD for column in row[:2]}
     assert columns <= set(frame.columns)
 
 
 def test_team_rows_give_each_team_its_roles(toy_priced_matches: pd.DataFrame) -> None:
     rows = card.team_rows(toy_priced_matches)
+
     assert len(rows) == 2 * len(toy_priced_matches)
+
     team_21 = rows[rows["team"] == 21]  # behind away at 22 and wins; behind at home to 23
     assert team_21["behind"].sum() == 2.0
     assert team_21["comes_back"].sum() == 1.0
     assert team_21["comes_back_away"].sum() == 1.0
+
     team_22 = rows[rows["team"] == 22]  # ahead at home to 21, then loses
     assert team_22["loses_lead_home"].sum() == 1.0
+
     assert (rows["home"] + rows["away"]).tolist() == [1.0] * len(rows)
     assert set(rows[card.TEAM_UNIT]) == {"11 1", "12 1", "21 2", "22 2", "23 2"}
 
@@ -76,6 +82,7 @@ def test_each_team_gets_the_chances_of_its_own_side(
     team_yardstick: tuple[pd.DataFrame, pd.DataFrame],
 ) -> None:
     rows, frame = team_yardstick
+
     assert len(rows) == 2 * len(frame)
     home, away = rows[rows["home"] == 1.0], rows[rows["home"] == 0.0]
     assert home["m_comes_back"].tolist() == pytest.approx(frame["m_cb_home"].tolist())
@@ -100,11 +107,14 @@ def test_top_teams_rank_by_the_distance_from_the_league(round_robin: pd.DataFram
     rows = card.team_rows(round_robin)
     quantity = ("goals_for", "one", "goals scored", "count")
     _, result = units.within_row(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity)
+
     table = card.top_teams(rows, result.values, top=3)
+
     assert len(table) == 3
     distances = table["shrunk - league"].tolist()
     assert distances == sorted(distances, reverse=True)
     assert set(table.columns) >= {"team_name", "league_name", "rate", "league", "shrunk"}
+
     renamed = card.top_teams(rows, result.values, top=3, names=("observed", "expected", "O/E"))
     assert "O/E" in renamed.columns
 

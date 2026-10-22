@@ -55,7 +55,9 @@ def test_league_table_ranks_by_the_shrunk_comeback_rate(frame: pd.DataFrame) -> 
 
     by_label = {label: values([0.3, 0.4]) for label, _, _ in runner.TABLE_COLUMNS}
     by_label["comeback"] = values([0.2, 0.6])
+
     table = runner.league_table(frame, by_label)
+
     assert table["league"].tolist() == ["b", "a"]
     assert table["shrunk"].tolist() == [0.6, 0.2]
     assert table["matches"].tolist() == [4, 4]

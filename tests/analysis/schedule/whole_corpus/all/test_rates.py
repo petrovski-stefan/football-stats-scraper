@@ -30,13 +30,16 @@ def card_frame() -> pd.DataFrame:
             "ht_deficit": [1, 1, 0, 1, 2, 0],
         }
     ).astype(float)
+
     frame["one"] = 1.0
     frame["cluster"] = ["a", "a", "a", "b", "b", "b"]
+
     return frame
 
 
 def test_card_table_has_one_row_per_quantity_as_a_ratio_of_sums(card_frame: pd.DataFrame) -> None:
     table = runner.card_table(card_frame).set_index("quantity")
+
     assert list(table.index) == [label for _, _, label, _ in card.CARD]
     assert table.loc["comeback", "value"] == pytest.approx(2 / 6)
     assert table.loc["link 1: a team is behind at half-time", "value"] == pytest.approx(4 / 6)

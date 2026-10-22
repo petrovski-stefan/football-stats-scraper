@@ -42,9 +42,11 @@ def test_each_stage_names_its_own_columns() -> None:
         "s2_": columns.SCHEDULE_ROW_COLUMNS,
         "s3_": columns.SCHEDULE_MULTI_COLUMNS,
     }
+
     for code, declared in by_code.items():
         unkeyed = [c for c in declared if c not in _SCHEDULE_KEYS]
         assert all(c.startswith(code) for c in unkeyed), code
+
     table = [c for c in columns.FINAL_TABLE_COLUMNS if c not in _FINAL_TABLE_KEYS]
     assert all(c.startswith("s1_") for c in table)
 
@@ -64,6 +66,7 @@ def test_pre_kickoff_columns_cover_every_combination() -> None:
         * len(columns.STANDING_VENUES)
         * len(columns.STANDING_STATS)
     )
+
     assert len(names) == len(set(names)) == expected
     assert names[0] == "s3_home_pre_ft_total_rank"
 

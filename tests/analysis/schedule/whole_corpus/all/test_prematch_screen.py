@@ -19,6 +19,7 @@ def standings(rows: int, **values: float) -> pd.DataFrame:
                 for name in ("rank", "played", "goals_for", "goal_diff", "points"):
                     key = f"{side}_{half}_{venue}_{name}"
                     columns[f"s3_{side}_pre_{half}_{venue}_{name}"] = values.get(key, 1.0)
+
     return pd.DataFrame(columns, index=range(rows))
 
 
@@ -58,7 +59,9 @@ def test_market_mirrors_the_handicap_for_the_away_side() -> None:
         }
     )
     model = model_frame()
+
     home, away = runner.market(matches, model, "home"), runner.market(matches, model, "away")
+
     assert home["mk_margin"].tolist() == pytest.approx([1.0, 1 / 2.5 + 1 / 3.2 + 1 / 2.8])
     assert home.at[0, "mk_ah_resid"] == pytest.approx(0.5 - 0.5)
     assert away.at[0, "mk_ah_resid"] == pytest.approx(-0.5 + 0.5)
@@ -79,7 +82,9 @@ def test_table_compares_the_teams_per_match_played() -> None:
         away_ft_total_goals_for=5,
         away_ft_total_goal_diff=-5,
     )
+
     table = runner.table(matches, "home", "away").iloc[0]
+
     assert float(table["tb_ppg_diff"]) == pytest.approx(2.0 - 1.0)
     assert float(table["tb_gd_diff"]) == pytest.approx(0.5 - (-1.0))
     # Goals for and against per match: home (15 + 10) / 10, away (5 + 10) / 5.
@@ -99,7 +104,9 @@ def test_halves_split_the_goal_difference_and_read_each_side_at_its_venue() -> N
         home_ht_home_goal_diff=1,
         away_ft_away_played=0,
     )
+
     halves = runner.halves(matches, "home", "away").iloc[0]
+
     assert float(halves["hp_T_1h_gd"]) == pytest.approx(2 / 4)
     assert float(halves["hp_T_2h_gd"]) == pytest.approx(4 / 4)
     assert float(halves["hp_T_2h_share_for"]) == pytest.approx(6 / 8)
@@ -118,7 +125,9 @@ def test_record_shrinks_the_completion_toward_the_prior() -> None:
     matches["s3_home_pre_ft_total_played"] = 10.0
     matches["s3_home_pre_htft_total_l_w"] = 2.0
     matches["s3_home_pre_htft_total_l_l"] = 3.0
+
     record = runner.record(matches, "home", "away").iloc[0]
+
     assert float(record["rec_T_trail_rate"]) == pytest.approx(5 / 10)
     assert float(record["rec_T_compl"]) == pytest.approx(
         (2 + runner.PRIOR_WEIGHT * runner.COMPLETION_PRIOR) / (5 + runner.PRIOR_WEIGHT)
@@ -133,7 +142,9 @@ def test_season_gives_the_share_played_and_a_dead_rubber() -> None:
     matches["s3_home_pre_matches_left"] = [4, 4]
     matches["s1_league_id"], matches["s1_season"], matches["s1_stage"] = 1, "2024", np.nan
     matches["s1_home_team_id"] = [11, 12]  # 2 teams seen: a rank of 1 is a share of 0.5
+
     season = runner.season(matches, "home", "away")
+
     assert season["ss_progress"].tolist() == pytest.approx([0.8, 0.8])
     assert season["ss_dead_rubber"].tolist() == [0.0, 1.0]
 
@@ -153,7 +164,9 @@ def test_calendar_reads_the_berlin_weekday_and_the_last_kickoff() -> None:
             "s1_round": [3, 4, 4],
         }
     )
+
     calendar = runner.calendar(matches)
+
     assert calendar["cal_midweek"].tolist() == [1.0, 0.0, 0.0]
     assert calendar["cal_last_ko"].tolist() == [0.0, 1.0, 0.0]  # round 3 has one kickoff
 
@@ -167,7 +180,9 @@ def test_round_so_far_needs_a_finished_round_mate() -> None:
             "s3_round_pre_avg_ou_line": [np.nan, 2.5],
         }
     )
+
     fields = runner.round_so_far(matches)
+
     assert np.isnan(fields.at[0, "rnd_cb_share"])
     assert fields.at[1, "rnd_cb_share"] == pytest.approx(0.25)
     assert fields.at[1, "rnd_goal_excess"] == pytest.approx(0.5)
@@ -187,7 +202,9 @@ def test_last_season_reads_the_earlier_cohort_for_the_later_rows_only() -> None:
             "m_cb": [0.25, 0.25, 0.1, 0.1],
         }
     )
+
     out = runner.last_season(rows)
+
     assert out.loc[[0, 1], "prev_T_cb_rate"].isna().all()
     weight = runner.TEAM_PRIOR_WEIGHT
     assert out.at[2, "prev_T_cb_rate"] == pytest.approx((1 + weight * 0.5) / (1 + weight))
@@ -211,37 +228,46 @@ def synthetic_rows(size: int = 3000, seed: int = 0) -> pd.DataFrame:
     rows = pd.DataFrame({field: rng.standard_normal(size) for field in runner.FAMILIES})
     for field in runner.BINARY:
         rows[field] = (rows[field] > 1).astype(float)
+
     rows["p_T"] = rng.uniform(0.15, 0.7, size)
     rows["lam_T"], rows["lam_O"] = rng.uniform(0.8, 2.0, size), rng.uniform(0.8, 2.0, size)
     rows["home"] = (np.arange(size) % 2).astype(float)
     rows["m_trail"] = rng.uniform(0.2, 0.5, size)
     rows["m_cb"] = rows["m_trail"] * rng.uniform(0.05, 0.15, size)
     rows["m_compl"] = rows["m_cb"] / rows["m_trail"]
+
     rows["behind"] = (rng.random(size) < rows["m_trail"]).astype(float)
     chance = 1 / (1 + np.exp(-(-1.5 + 1.0 * rows["tb_ppg_diff"])))
     rows["comes_back"] = rows["behind"] * (rng.random(size) < chance)
+
     rows["cluster"] = [f"c{i % 20}" for i in range(size)]
     rows["season_cohort"] = np.where(np.arange(size) % 20 < 10, 2024, 2025)
     rows.loc[rows["season_cohort"] == 2024, list(runner.LAST_SEASON)] = np.nan
+
     return rows
 
 
 def test_field_test_finds_a_field_that_drives_the_outcome() -> None:
     rows = synthetic_rows()
+
     strong = runner.field_test(rows, "tb_ppg_diff", "comeback")
+
     assert strong["OR"] > 1.5
     assert strong["p"] < 1e-6
     assert strong["low"] < strong["OR"] < strong["high"]
+
     link_2 = runner.field_test(rows, "tb_ppg_diff", "link 2")
     assert link_2["n"] == rows["behind"].sum()
 
 
 def test_screen_gives_each_field_once_sorted_by_p_with_holm() -> None:
     table = runner.screen(synthetic_rows())
+
     assert sorted(table["field"]) == sorted(runner.FAMILIES)
     assert table.at[0, "field"] == "tb_ppg_diff"
     assert (table["Holm"] >= table["p"]).all()
     assert table["p"].is_monotonic_increasing
+
     last_season = table[table["field"].isin(runner.LAST_SEASON)]
     assert last_season["OR 2024"].isna().all()
 
@@ -256,7 +282,9 @@ def test_joint_design_fills_and_scales_with_the_training_rows() -> None:
     train = synthetic_rows(size=200)
     test = train.head(3).copy()
     test.loc[0, "tb_goal_env"] = np.nan
+
     design = runner.joint_design(test, train, ["tb_goal_env"])
+
     expected = (train["tb_goal_env"].median() - train["tb_goal_env"].mean()) / train[
         "tb_goal_env"
     ].std()
@@ -303,7 +331,9 @@ def test_split_rows_take_the_share_of_the_training_cohort(
     monkeypatch.setattr(yardstick, "frame", frame)
     monkeypatch.setattr(runner, "screen_rows", lambda matches, model: model)
     monkeypatch.setattr(runner, "eligible", lambda rows: rows)
+
     rows, share = runner.split_rows(toy_priced_matches, None, 2024)  # type: ignore[arg-type]
+
     train = toy_priced_matches[toy_priced_matches["season_cohort"] == 2024]
     expected = yardstick.first_half_share(yardstick.priced(train))
     assert share == pytest.approx(expected)

@@ -25,6 +25,7 @@ def priced_matches() -> tuple[pd.DataFrame, pd.DataFrame]:
     matches["s2_mkt_p_away"] = 0.25
     matches["season_cohort"] = [2024, 2024, 2025, 2025]
     matches["s1_league_name"] = ["a", "b", "a", "b"]
+
     model = pd.DataFrame(
         {
             "is_comeback": [1.0, 0.0, 1.0, 0.0],
@@ -34,12 +35,15 @@ def priced_matches() -> tuple[pd.DataFrame, pd.DataFrame]:
             "cluster": ["a 2024", "b 2024", "a 2025", "b 2025"],
         }
     )
+
     return matches, model
 
 
 def test_group_frame_keeps_the_matches_with_an_ah_market_and_groups_them() -> None:
     matches, model = priced_matches()
+
     frame = runner.group_frame(matches, model)
+
     assert frame.index.tolist() == [0, 1, 2]
     exact_1x2, exact_9, near = (
         frame[name]
@@ -62,7 +66,9 @@ def test_the_null_chances_add_up_to_the_observed_count() -> None:
 
 def test_group_sizes_count_the_groups_and_their_shared_matches() -> None:
     frame = pd.DataFrame({name: [0, 0, 0, 1, 2] for name, _ in runner.GROUPINGS})
+
     table = runner.group_sizes(frame)
+
     assert table.iloc[0].to_dict() == {
         "grouping": "exact 1X2 prices",
         "groups": 3,
@@ -76,10 +82,13 @@ def test_group_stats_count_crowded_groups_and_the_smallest_tail() -> None:
     groups = np.array([0, 0, 0, 1, 1, 2])
     events = np.array([1.0, 1.0, 1.0, 1.0, 1.0, 0.0])
     expected = np.array([0.5, 1.0, 0.2])
+
     stats = runner.group_stats(groups, events, expected)
+
     assert stats["2 or more"] == 2.0
     assert stats["3 or more"] == 1.0
     assert stats[runner.SMALLEST_TAIL] == pytest.approx(float(poisson.sf(2, 0.5)))
+
     no_events = runner.group_stats(groups, np.zeros(6), expected)
     assert no_events[runner.SMALLEST_TAIL] == 1.0
 
@@ -105,7 +114,9 @@ def test_group_table_gives_each_group_its_prices_counts_and_leagues() -> None:
         }
     )
     frame["exact 1X2 prices"] = frame["g"]
+
     table = runner.group_table(frame, "exact 1X2 prices", "is_comeback", np.array([0.1, 0.2, 0.3]))
+
     first = table.loc[0]
     assert float(first[shin.ODDS[0]]) == 1.9
     assert (int(first["matches"]), float(first["events"])) == (2, 2.0)
@@ -137,7 +148,9 @@ def test_carry_over_reads_the_top_groups_of_one_cohort_in_the_other() -> None:
             for g in range(6)
         ]
     )
+
     table = runner.carry_over(frame, "g", "obs", "exp").set_index("chosen in")
+
     first = table.loc[2024]
     assert (int(first["groups"]), int(first["chosen"])) == (5, 1)
     assert float(first["O/E where chosen"]) == pytest.approx(2.0)
