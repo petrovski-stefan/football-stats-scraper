@@ -175,10 +175,12 @@ def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: s
             logger.error("%s: config keeps %s but the page has no stage tabs", label, list(keep))
             return []
         return [_Stage(None, "")]
+
     if not keep:
         names = [name for _, name in tabs]
         logger.error("%s: page has stage tabs %s but config keeps none", label, names)
         return []
+
     missing = sorted(set(keep) - {name for _, name in tabs})
     if missing:
         logger.warning("%s: kept stages %s are not on the page", label, missing)
@@ -198,9 +200,11 @@ def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[st
         if not sync_standings_to_stage(driver, stage.stage_id):
             logger.warning("  %s: standings not available, no final table", stage.name)
             return []
+
     if not show_total_standings(driver):
         logger.warning("  %s: the standings' Total view did not show, no final table", stage.name)
         return []
+
     lines = parse_final_table(BeautifulSoup(driver.page_source, "html.parser"))
     context = {"season": ctx.season, "league_id": ctx.league_id, "stage": stage.name}
     return [{**context, **line} for line in lines]
@@ -210,10 +214,12 @@ def _scrape_stage(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, A
     """Scrape one stage pass round by round."""
     if ctx.stage.stage_id is not None:
         click_stage(driver, ctx.stage.stage_id)
+
     rounds = _read_rounds(driver, ctx.stage.stage_id)
     logger.info(
         "League '%s' (%s) %s: %d rounds", ctx.league_name, ctx.season, ctx.stage.name, len(rounds)
     )
+
     matches: list[dict[str, Any]] = []
     for round_number in rounds:
         matches.extend(_scrape_round(driver, round_number, ctx))
@@ -246,6 +252,7 @@ def _scrape_round(
         parsed = parse_schedulis_row(row)
         if parsed is None:
             continue
+
         parsed.update(context)
         parsed.update(secondary.get(parsed["match_id"], {}))
         stale += bool(drop_stale_odds(parsed))
@@ -294,6 +301,7 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
         for a, b in combinations(_MARKETS, 2)
         if cells[a] == cells[b] and any(v is not None for v in cells[a])
     )
+
     missing = _MISSING_BY_REPEATS.get(repeats, [])
     for market in missing:
         row.update(dict.fromkeys(_MARKETS[market]))
@@ -315,12 +323,14 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
         if not switch_odds_type(driver, kind):
             logger.warning("  odds type %r unavailable", kind)
             continue
+
         wait_for_odds(driver)
         soup = BeautifulSoup(driver.page_source, "html.parser")
         for row in soup.select(SCHEDULE_ROWS):
             match_id = (attr(row, "matchid") or "").strip()
             if match_id:
                 out.setdefault(match_id, {}).update(dict(zip(fields, parse(row), strict=True)))
+
     switch_odds_type(driver, "1x2")
     wait_for_odds(driver)
     return out
@@ -329,6 +339,7 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
 def _read_league_name(driver: webdriver.Chrome, season: str) -> str:
     # Title looks like: "Schedule, Fixture, Latest Results - 2025-2026 English Premier League"
     name = driver.title.split(" - ")[-1].strip()
+
     # Drop the leading season, e.g. "2025-2026 English Premier League" -> "English Premier League"
     if name.startswith(season):
         name = name[len(season) :].strip()
@@ -345,12 +356,14 @@ def _read_rounds(driver: webdriver.Chrome, stage_id: str | None) -> list[int]:
     """
     selector = ROUND_SPANS if stage_id is None else STAGE_ROUND_SPANS.format(stage=stage_id)
     spans = driver.find_elements(By.CSS_SELECTOR, selector)
+
     numbers: list[int] = []
     current: int | None = None
     for span in spans:
         raw = span.get_attribute("round")
         if not raw or not raw.isdigit():
             continue
+
         number = int(raw)
         numbers.append(number)
         if ROUND_CURRENT_CLASS in (span.get_attribute("class") or ""):
@@ -375,6 +388,7 @@ def _validate(
             valid.append(model(**row).model_dump())
         except ValidationError as exc:
             logger.warning("Skipping %s %s: %s", what, row.get("match_id", row.get("team_id")), exc)
+
     return valid
 
 
@@ -401,6 +415,7 @@ def scraped_league_seasons() -> set[tuple[int, str]]:
         )
         if not head.empty:
             done.add((int(head.at[0, "s1_league_id"]), str(head.at[0, "s1_season"])))
+
     return done
 
 
@@ -413,6 +428,7 @@ def plan_jobs(
     for job in jobs:
         skip = not force and (job.league_id, job.season) in done
         (on_disk if skip else to_scrape).append(job)
+
     return to_scrape, on_disk
 
 
@@ -420,6 +436,7 @@ def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
     league = league_slug(job.country, scrape.league_name)
     matches = _validate(scrape.matches, ScheduleRow, "match")
     table = _validate(scrape.final_table, FinalTableRow, "final-table team")
+
     if matches:
         save_unless_shrinking(
             matches, paths.schedule_path(1, league, job.season), SCHEDULE_RAW_COLUMNS
@@ -428,6 +445,7 @@ def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
         save_unless_shrinking(
             table, paths.final_table_path(league, job.season), FINAL_TABLE_COLUMNS
         )
+
     dropped = len(scrape.matches) - len(matches) + len(scrape.final_table) - len(table)
     logger.info(
         "%s %s: %d matches, %d table rows, %d dropped",
@@ -456,6 +474,7 @@ def summarise(outcomes: list[Outcome], on_disk: list[LeagueSeason]) -> int:
         f"\n{len(outcomes) - len(failed)} scraped, {len(on_disk)} already on disk, "
         f"{len(failed)} failed, {sum(o.dropped for o in outcomes)} rows dropped by validation"
     )
+
     for outcome in failed:
         print(f"  FAILED {outcome.job.code} {outcome.job.season}: {outcome.error}")
     if failed:
@@ -468,10 +487,12 @@ def scrape_all(
 ) -> int:
     """Scrape the chosen league-seasons into their stage-1 files; return the failure count."""
     to_scrape, on_disk = plan_jobs(get_league_seasons(selection), scraped_league_seasons(), force)
+
     for job in on_disk:
         print(f"  on disk   {job.code:8s} {job.season:9s} {job.name}", flush=True)
     for job in to_scrape:
         print(f"  to scrape {job.code:8s} {job.season:9s} {job.name}", flush=True)
+
     # Flushed: in a run logged to a file, the plan must show before hours of progress lines.
     print(f"{len(to_scrape)} to scrape, {len(on_disk)} already on disk", flush=True)
     if list_only:
@@ -493,6 +514,7 @@ def _start(number: int, total: int, job: LeagueSeason) -> Outcome:
     threading.current_thread().name = f"{job.code} {job.season}"
     if number > WORKERS:
         time.sleep(PAUSE_BETWEEN_JOBS)
+
     logger.info("[%d/%d] Scraping %s", number, total, job.url)
     return _run_job(job)
 
@@ -503,6 +525,7 @@ def main() -> None:
     for stream in (sys.stdout, sys.stderr):
         if isinstance(stream, io.TextIOWrapper):
             stream.reconfigure(encoding="utf-8")
+
     parser = argparse.ArgumentParser(
         description="Scrape league schedules into data/finished/1_raw/."
     )
@@ -518,9 +541,11 @@ def main() -> None:
         "--list", action="store_true", dest="list_only", help="print the jobs; open no page"
     )
     parser.add_argument("--force", action="store_true", help="scrape again what is already on disk")
+
     args = parser.parse_args()
     codes = tuple(code.strip() for code in (args.leagues or "").split(",") if code.strip())
     selection = Selection(codes, args.all_leagues, args.before_year)
+
     failed = scrape_all(selection, force=args.force, list_only=args.list_only)
     raise SystemExit(1 if failed else 0)
 

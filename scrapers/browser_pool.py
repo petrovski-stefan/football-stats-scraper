@@ -35,6 +35,7 @@ class BrowserPool:
             self._local.driver = driver
             with self._lock:
                 self._drivers.append(driver)
+
         return driver
 
     def close_all(self) -> None:
@@ -45,6 +46,7 @@ class BrowserPool:
         """
         with self._lock:
             drivers, self._drivers = self._drivers, []
+
         for driver in drivers:
             driver.quit()
 

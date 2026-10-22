@@ -18,6 +18,7 @@ def league_slug(country: str, league_name: str) -> str:
     `domain` may not import from `scrapers`."""
     prefix = country.lower().replace(" ", "_")
     league = clean_string(league_name)
+
     if league == prefix or league.startswith(f"{prefix}_"):
         return league
     return f"{prefix}_{league}"
@@ -28,6 +29,7 @@ def write_ordered_csv(rows: list[dict[str, Any]], csv_path: str, columns: list[s
     os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
     df = pd.DataFrame(rows)
     df = df[[c for c in columns if c in df.columns]]
+
     df.to_csv(csv_path, index=False)
     logger.info("Saved %d rows to %s", len(df), csv_path)
 
@@ -39,9 +41,11 @@ def append_rows(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -
     """
     if not rows:
         return
+
     os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
     df = pd.DataFrame(rows)
     df = df[[c for c in columns if c in df.columns]]
+
     write_header = not os.path.exists(csv_path)
     df.to_csv(csv_path, mode="a", header=write_header, index=False)
 
@@ -59,5 +63,6 @@ def save_unless_shrinking(rows: list[dict[str, Any]], csv_path: str, columns: li
                 "Not overwriting %s: new=%d rows < old=%d rows", csv_path, len(rows), old_len
             )
             return False
+
     write_ordered_csv(rows, csv_path, columns)
     return True

@@ -80,6 +80,7 @@ def parse_line(raw: str) -> float | None:
     text = (raw or "").strip()
     if not text:
         return None
+
     negative = "-" in text
     try:
         parts = [float(p) for p in text.replace("-", "").split("/") if p != ""]
@@ -87,6 +88,7 @@ def parse_line(raw: str) -> float | None:
         return None
     if not parts:
         return None
+
     magnitude = sum(parts) / len(parts)
     return -magnitude if negative else magnitude
 
@@ -155,15 +157,18 @@ def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
     header = tuple(tag_text(s) for s in title.find_all("span", recursive=False)) if title else ()
     if header != _FINAL_TABLE_HEADER:
         return []
+
     lines: list[dict[str, Any]] = []
     for row in soup.select(STANDING_ROWS):
         cells = row.find_all("span", recursive=False)
         if len(cells) != len(_FINAL_TABLE_HEADER):
             continue
+
         team_id = _team_id_from_onclick(cells[1])
         numbers = [_parse_int(tag_text(cell)) for cell in (cells[0], *cells[2:])]
         if team_id is None or None in numbers:
             continue
+
         rank, played, won, drawn, lost, goal_diff, points = numbers
         lines.append(
             {
@@ -180,6 +185,7 @@ def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
                 "s1_points": points,
             }
         )
+
     return lines
 
 

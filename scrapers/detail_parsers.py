@@ -65,6 +65,7 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
     )
     odds = [parse_float(tag_text(cells[i])) if len(cells) > i else None for i in HIST_ODDS_TDS]
     date_tag = row.select_one(HIST_DATE)
+
     return {
         # The referenced match's own id, carried on the row. This is what lets a history
         # row be joined to anything else -- goal timings in particular.
@@ -114,10 +115,12 @@ def subject_team_id(records: list[dict[str, Any]]) -> int | None:
     """The team common to (most of) the rows — the one whose form the table shows."""
     if not records:
         return None
+
     counter: Counter[int] = Counter()
     for r in records:
         counter[r["home_id"]] += 1
         counter[r["away_id"]] += 1
+
     return counter.most_common(1)[0][0]
 
 
@@ -137,12 +140,14 @@ def aggregate_form(
         subject_home = r["home_id"] == subject_id
         sgf = r["ft_home"] if subject_home else r["ft_away"]
         sga = r["ft_away"] if subject_home else r["ft_home"]
+
         gf += sgf
         ga += sga
         pts += stats.points(sgf, sga)
         outcome = stats.team_result(sgf, sga)
         tally[outcome] += 1
         form_chars.append(outcome)
+
         if stats.is_over(r["ft_home"] + r["ft_away"]):
             over25 += 1
         if stats.is_btts(r["ft_home"], r["ft_away"]):
@@ -206,20 +211,24 @@ def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict
             "h2h_btts_rate": None,
             "h2h_avg_total_goals": None,
         }
+
     home_wins = draws = away_wins = over25 = btts = total = 0
     for r in records:
         subject_home = r["home_id"] == subject
         sgf = r["ft_home"] if subject_home else r["ft_away"]
         sga = r["ft_away"] if subject_home else r["ft_home"]
+
         if sgf > sga:
             home_wins += 1
         elif sgf == sga:
             draws += 1
         else:
             away_wins += 1
+
         total += r["ft_home"] + r["ft_away"]
         over25 += stats.is_over(r["ft_home"] + r["ft_away"])
         btts += stats.is_btts(r["ft_home"], r["ft_away"])
+
     return {
         "h2h_played": n,
         "h2h_home_team_wins": home_wins,
@@ -296,6 +305,7 @@ def _flatten_one(
         "corners_ht_away": _side_of(record["corner_ht"], 1),
         "corners_total": (corner_ft[0] + corner_ft[1]) if corner_ft else None,
     }
+
     return {f"{prefix}{field}": values[field] for field in PER_MATCH_FIELDS}
 
 
@@ -312,6 +322,7 @@ def parse_odds_1x2(soup: BeautifulSoup) -> dict[str, Any]:
         "odds1x2_live_draw": None,
         "odds1x2_live_away": None,
     }
+
     if table is None:
         return empty
 
@@ -327,6 +338,7 @@ def parse_odds_1x2(soup: BeautifulSoup) -> dict[str, Any]:
     init = _row_1x2(init_row)
     live_row = init_row.find_next_sibling("tr")
     live = _row_1x2(live_row) if isinstance(live_row, Tag) else (None, None, None)
+
     return {
         "odds_bookmaker": bookmaker,
         "odds1x2_init_home": init[0],
@@ -352,10 +364,12 @@ def _bookmaker_initial_rows(table: Tag) -> list[tuple[str, Tag]]:
     for tr in table.select("tr"):
         if not tr.select(DETAIL_ODDS_1X2_CELLS):
             continue
+
         first = tr.find("td")
         name = tag_text(first if isinstance(first, Tag) else None)
         if name and name not in ("Live", "In-Play"):
             out.append((name, tr))
+
     return out
 
 
@@ -363,6 +377,7 @@ def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
     cells = row.select(DETAIL_ODDS_1X2_CELLS)
     if len(cells) < 3:
         return None, None, None
+
     vals = [parse_float(attr(c, "data-o") or tag_text(c)) for c in cells[:3]]
     return vals[0], vals[1], vals[2]
 
@@ -376,30 +391,35 @@ def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
         "h2h_compare_home_pct": None,
         "h2h_compare_away_pct": None,
     }
+
     block = soup.select_one(DETAIL_STRENGTH_BLOCK)
     if block is not None:
         nums = re.findall(r"\b(\d{1,3})\b", block.get_text())
         # The headline split is the first "NN NN" pair after the team names.
         if len(nums) >= 2:
             out["strength_home"], out["strength_away"] = int(nums[0]), int(nums[1])
+
     bar = soup.select_one(DETAIL_H2H_COMPARE_BAR)
     if bar is not None:
         pcts = _PCT_RE.findall(bar.get_text())
         if len(pcts) >= 2:
             out["h2h_compare_home_pct"] = float(pcts[0])
             out["h2h_compare_away_pct"] = float(pcts[1])
+
     return out
 
 
 def parse_guess(soup: BeautifulSoup) -> dict[str, Any]:
     """Crowd 'Who will win?' percentages (home / away)."""
     out: dict[str, Any] = {"guess_home_pct": None, "guess_away_pct": None}
+
     box = soup.select_one(DETAIL_GUESS_BOX)
     if box is not None:
         pcts = _PCT_RE.findall(box.get_text())
         if len(pcts) >= 2:
             out["guess_home_pct"] = float(pcts[0])
             out["guess_away_pct"] = float(pcts[-1])
+
     return out
 
 
@@ -416,6 +436,7 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
     team's countdown as the away value.
     """
     out: dict[str, Any] = {"home_next_fixture_days": None, "away_next_fixture_days": None}
+
     for key, selector in (
         ("home_next_fixture_days", DETAIL_FIXTURE_HOME),
         ("away_next_fixture_days", DETAIL_FIXTURE_AWAY),
@@ -425,6 +446,7 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
             if m:
                 out[key] = int(m.group(1))
                 break
+
     return out
 
 

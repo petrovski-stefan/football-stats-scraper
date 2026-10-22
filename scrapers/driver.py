@@ -76,6 +76,7 @@ def robots_refusal(url: str) -> str | None:
     rules = ROBOTS_DISALLOW.get(parts.netloc)
     if rules is None:
         return f"no robots.txt rules recorded for {parts.netloc!r}"
+
     blocked = next((rule for rule in rules if parts.path.startswith(rule)), None)
     if blocked is not None:
         return f"robots.txt disallows {blocked!r} on {parts.netloc}"
@@ -95,8 +96,10 @@ def open_page(driver: webdriver.Chrome, url: str) -> None:
     refusal = robots_refusal(url)
     if refusal is not None:
         raise ValueError(f"Refusing {url}: {refusal}")
+
     driver.get(url)
     landed = driver.current_url
+
     refusal = robots_refusal(landed)
     if refusal is not None:
         raise ValueError(f"Refusing {url}: it redirected to {landed}, and {refusal}")
@@ -133,6 +136,7 @@ def get_detail_page(
     WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, DETAIL_V3_TABLE))
     )
+
     _scroll_page(driver)
     WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, DETAIL_ODDS_TABLE_CANDIDATES))
@@ -170,6 +174,7 @@ def _scroll_page(driver: webdriver.Chrome, steps: int = 12) -> None:
     for _ in range(steps):
         driver.execute_script(js)  # type: ignore[no-untyped-call]
         time.sleep(0.3)
+
     time.sleep(1.0)
 
 
@@ -196,6 +201,7 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
         WebDriverWait(driver, timeout).until(some_row_has_odds)
     except TimeoutException:
         return False
+
     time.sleep(0.3)
     return True
 
@@ -211,6 +217,7 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
     dom_type, label = ODDS_TYPES[kind]
     if _odds_label(driver) == label:
         return True
+
     items = driver.find_elements(By.CSS_SELECTOR, ODDS_TYPE_ITEM.format(kind=dom_type))
     if not items:
         return False
@@ -222,6 +229,7 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
         WebDriverWait(driver, timeout).until(lambda d: _odds_label(d) == label)
     except TimeoutException:
         switched = False
+
     # The header relabels before the column repaints, so the label alone is not a
     # readiness signal: reading here can still return the previous type's numbers.
     # Wait for the cells themselves to change. The middle cell is a draw price under
@@ -278,6 +286,7 @@ def click_round(
         selector = ROUND_SPAN.format(round=round_number)
     else:
         selector = STAGE_ROUND_SPAN.format(stage=stage_id, round=round_number)
+
     _click_schedule_tab(driver, selector, ROUND_ACTIVE_CLASS, timeout)
 
 
@@ -318,11 +327,13 @@ def _click_schedule_tab(
     WebDriverWait(driver, timeout).until(
         lambda d: _has_class(d.find_element(By.CSS_SELECTOR, selector), active_class)
     )
+
     # Wait for the row list to actually swap (unless the button was already active).
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
             lambda d: _first_row_match_id(d) != prev_first_id or _first_row_match_id(d) is None
         )
+
     wait_for_schedule_rows(driver, timeout)
     time.sleep(0.4)  # small settle for trailing DOM updates
 
@@ -351,6 +362,7 @@ def _select_standings(
         )
     except TimeoutException:
         ok = False
+
     time.sleep(0.3)
     return ok
 

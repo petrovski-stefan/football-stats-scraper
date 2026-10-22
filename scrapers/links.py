@@ -46,11 +46,13 @@ class LeagueConfig(BaseModel):
         unknown = set(self.keep) - set(self.stages)
         if unknown:
             raise ValueError(f"{self.name}: keep {sorted(unknown)} is not in stages")
+
         for s in self.seasons:
             if parse_league_url(s.url) != (s.season, self.league_id):
                 raise ValueError(
                     f"{self.name}: {s.url} is not season {s.season} of id {self.league_id}"
                 )
+
         return self
 
 
@@ -101,9 +103,11 @@ def get_league_seasons(
     """
     chosen = selection or Selection()
     leagues = load_leagues(path)
+
     unknown = sorted(set(chosen.leagues) - {league.code for league in leagues})
     if unknown:
         raise ValueError(f"league codes not in {path}: {unknown}")
+
     return [
         LeagueSeason(
             s.url,
@@ -125,8 +129,10 @@ def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) ->
         picked = selection.all_leagues or league.code in selection.leagues
     else:
         picked = season.enabled
+
     if not picked or selection.before_year is None:
         return picked
+
     start = season_start_year(season.season)
     return start is not None and start < selection.before_year
 
@@ -136,4 +142,5 @@ def parse_league_url(url: str) -> tuple[str, int]:
     match = _LEAGUE_URL_RE.search(url)
     if match is None:
         raise ValueError(f"Cannot parse season/league id from URL: {url!r}")
+
     return match.group("season"), int(match.group("league_id"))

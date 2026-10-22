@@ -58,6 +58,25 @@ Tool config: Ruff, mypy, pytest and Coverage.py are configured in `pyproject.tom
 
 The user's VS Code formats on save (Ruff for `.py`, pointed at the project's ruff by `.vscode/settings.json`; Prettier with `.prettierrc` for `.md`). A `PostToolUse` hook (`.claude/hooks/format-on-write.sh`) runs the same formatters on every file Claude writes, using the Prettier copy inside the VS Code extension, so a Ctrl+S afterwards changes nothing. **`notes/` is not formatted** (`.prettierignore`): padded tables cost about 2.4× the context on every read.
 
+### Readability
+
+The user's rules, 2026-10-22. They apply to all new and changed Python code, `tests/` included.
+
+- Write for the human reader: explicit code over compact code; never trade readability for fewer lines.
+- Give new and changed code descriptive names; one-letter names only for `i`, `_` and a one-line comprehension.
+- Before you finish, read every changed file as a whole for readability, not only for correctness.
+
+Blank lines are part of code quality. Split a function into its logical phases, with one blank line between phases.
+
+- Typical phases: scrapers open → wait → parse → validate → write; features load → derive → write; runners load → compute → print; tests arrange → act → assert.
+- Keep closely related lines together (several fields read from one row, counters set together).
+- Put a blank line after a guard block (`if not ids: return`) and before the work it guards.
+- Put a blank line before and after a loop, `with` or `if` block that is a phase of its own.
+- A comment that introduces a phase gets a blank line above it.
+- One blank line, never two, and never directly after `def`, `if` or `for` (ruff format removes those).
+- Not after every statement: a blank line marks the end of a phase.
+- Before you finish a function, look at it as a whole and add the missing breaks.
+
 ## Required runtime setup
 
 - `config/leagues.json` (gitignored; start from the committed template `config/leagues.example.json`, one fake league) — a list of leagues: `name`, `code`, `continent`, `country`, `league_id`, `stages` (every stage tab the league page shows, `[]` for none), `keep` (the stages to scrape) and `seasons` (`season`, `url`, `enabled`). `scrapers.schedule` scrapes only the seasons with `"enabled": true`. `scrapers/links.py` validates the whole file when it loads, and fails on any bad entry. Season URLs have the format `/league/<season>/<id>`. **`<season>` takes two forms**, both accepted: `2025-2026` for a cross-year European league (`.../league/2025-2026/36`) and `2025` for a calendar-year one — Scandinavia, Brazil, Japan and others that play inside a single year (`.../league/2025/71`). See "Season labels" in `domain/CLAUDE.md`.

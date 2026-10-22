@@ -66,6 +66,7 @@ class LiveRow:
         index = _minute_index(cells)
         if index is None or self.side is None:
             return None
+
         cell = cells[0] if self.side == "home" else cells[-1]
         return cell if isinstance(cell, Tag) else None
 
@@ -77,10 +78,12 @@ def iter_rows(soup: BeautifulSoup) -> Iterator[LiveRow]:
         parsed = MINUTE_RE.match(cell.get_text(strip=True))
         if parsed is None:
             continue
+
         row = cell.find_parent(LIVE_EVENT_ROW)
         if row is None or id(row) in seen:
             continue
         seen.add(id(row))
+
         cells = row.find_all("td", recursive=False)
         side = _side_of(cells)
         yield LiveRow(
@@ -105,6 +108,7 @@ def _side_of(cells: list[Tag]) -> str | None:
     index = _minute_index(cells)
     if index is None:
         return None
+
     home = _populated(cells[:index])
     away = _populated(cells[index + 1 :])
     if home == away:  # neither side, or both — not attributable
@@ -121,9 +125,11 @@ def _kind(cells: list[Tag], side: str | None) -> str:
     index = _minute_index(cells)
     if index is None or side is None:
         return ""
+
     icon_index = index - 1 if side == "home" else index + 1
     if not 0 <= icon_index < len(cells):
         return ""
+
     for icon in cells[icon_index].select(LIVE_EVENT_ICON):
         alt = icon.get("alt")
         if isinstance(alt, str) and alt.strip():

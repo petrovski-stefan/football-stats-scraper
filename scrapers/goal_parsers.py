@@ -57,6 +57,7 @@ def parse_goal_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
             # longer be trusted, so stop rather than emit a wrong side. qa/goals.py catches
             # the resulting short count against the stored full-time score.
             break
+
         goals.append(
             {
                 "goal_index": len(goals) + 1,
@@ -69,6 +70,7 @@ def parse_goal_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
             }
         )
         home, away = new_home, new_away
+
     return goals
 
 
@@ -88,6 +90,7 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     unique: dict[tuple[int, int], dict[str, Any]] = {}
     for event in sorted(events, key=lambda e: (e["minute"], e["stoppage"])):
         unique.setdefault((event["home_score_after"], event["away_score_after"]), event)
+
     return sorted(unique.values(), key=lambda e: (e["minute"], e["stoppage"]))
 
 
@@ -100,6 +103,7 @@ def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
             continue  # a card, a substitution, or a VAR annotation
         if row.minute > MAX_MINUTE or row.stoppage > MAX_STOPPAGE:
             continue
+
         out.append(
             {
                 "minute": row.minute,
@@ -109,6 +113,7 @@ def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
                 "kind": row.kind,
             }
         )
+
     return out
 
 

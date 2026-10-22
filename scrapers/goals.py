@@ -82,12 +82,14 @@ def scrape_match_live(
     """
     get_live_page(driver, match_id)
     soup = BeautifulSoup(driver.page_source, "html.parser")
+
     goals = [
         Goal(match_id=str(match_id), **event).model_dump() for event in parse_goal_events(soup)
     ]
     events = [
         Event(match_id=str(match_id), **event).model_dump() for event in parse_match_events(soup)
     ]
+
     return goals, events
 
 
@@ -101,6 +103,7 @@ def corpus_ids() -> dict[str, int | None]:
         frame = pd.read_csv(path, usecols=lambda c: c in {"match_id", "league_id"})
         for row in frame.itertuples(index=False):
             found.setdefault(str(row.match_id), _as_int(getattr(row, "league_id", None)))
+
     return found
 
 
@@ -117,14 +120,17 @@ def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
         for field in ("match_id", "league_id", "league", "date")
     }
     prefixes = [f"{section}_last{n}_" for section in sections for n in range(1, depth + 1)]
+
     found: dict[str, int | None] = {}
     for base in paths.base_league_csvs():
         detail = paths.detail_path(base)
         if not os.path.exists(detail):
             continue
+
         frame = pd.read_csv(detail, usecols=lambda c: c in wanted, low_memory=False)
         for prefix in prefixes:
             _collect_block_ids(frame, prefix, found)
+
     return found
 
 
@@ -137,10 +143,12 @@ def _collect_block_ids(frame: pd.DataFrame, prefix: str, found: dict[str, int | 
     id_col = f"{prefix}match_id"
     if id_col not in frame.columns:
         return
+
     blank = pd.Series([None] * len(frame), index=frame.index)
     leagues = frame.get(f"{prefix}league_id", blank)
     names = frame.get(f"{prefix}league", blank)
     dates = frame.get(f"{prefix}date", blank)
+
     for raw_id, raw_league, name, date in zip(frame[id_col], leagues, names, dates, strict=True):
         match_id = _as_id(raw_id)
         # Friendlies carry no timings and pre-2023 pages are truncated, so they are
@@ -164,6 +172,7 @@ def build_work_list(sections: tuple[str, ...], depth: int) -> dict[str, int | No
     corpus = corpus_ids()
     history = history_ids(sections, depth)
     union: dict[str, int | None] = {**history, **corpus}  # corpus league id wins
+
     goals_done = done_ids(paths.goals_done_path())
     events_done = done_ids(paths.events_done_path())
     pending = {k: v for k, v in union.items() if k not in goals_done or k not in events_done}
@@ -178,6 +187,7 @@ def build_work_list(sections: tuple[str, ...], depth: int) -> dict[str, int | No
         len(events_done),
         len(pending),
     )
+
     if history and not any(k not in corpus for k in history):
         logger.warning("no history ids outside the corpus — are the detail files stale?")
     return pending
@@ -194,6 +204,7 @@ def _as_id(value: Any) -> str:
     """History ids arrive from pandas as floats when the column has gaps."""
     if value is None or pd.isna(value):
         return ""
+
     text = str(value).strip()
     return text[:-2] if text.endswith(".0") else text
 
@@ -233,6 +244,7 @@ def _store_rows(
     """
     for row in rows:
         row["league_id"] = league_id
+
     append_rows(rows, store_path, store_columns)
     append_rows(
         [{"match_id": match_id, "scraped_at": _stamp(), count_field: len(rows)}],
@@ -253,6 +265,7 @@ def scrape_goals(
     goals_done = done_ids(paths.goals_done_path())
     events_done = done_ids(paths.events_done_path())
     csv_lock = threading.Lock()
+
     with _POOL, ThreadPoolExecutor(max_workers=WORKERS) as pool:
         futures = {pool.submit(_scrape_one, mid): mid for mid in ids}
         for i, future in enumerate(as_completed(futures), 1):
@@ -260,6 +273,7 @@ def scrape_goals(
             if exc is not None:
                 logger.warning("  [%d/%d] %s failed: %s", i, len(ids), match_id, exc)
                 continue
+
             league_id = pending.get(match_id)
             # Only the store that is actually missing gets written, so a match fetched
             # purely to backfill events does not duplicate its goal rows.
@@ -275,6 +289,7 @@ def scrape_goals(
                         GOALS_DONE_COLUMNS,
                         "n_goals",
                     )
+
                 if match_id not in events_done:
                     _store_rows(
                         events,
@@ -286,6 +301,7 @@ def scrape_goals(
                         EVENTS_DONE_COLUMNS,
                         "n_events",
                     )
+
             logger.info(
                 "  [%d/%d] %s -> %d goals, %d events",
                 i,
@@ -294,6 +310,7 @@ def scrape_goals(
                 len(goals),
                 len(events),
             )
+
     logger.info("done — run `python -m features.enrich` to rebuild the enriched join")
 
 
@@ -309,8 +326,10 @@ def main() -> None:
     parser.add_argument(
         "--depth", type=int, default=MATCHES_PER_SECTION, help="matches per section"
     )
+
     args = parser.parse_args()
     chosen = tuple(s.strip() for s in args.sections.split(",") if s.strip())
+
     scrape_goals(limit=args.limit, sections=chosen, depth=args.depth)
 
 

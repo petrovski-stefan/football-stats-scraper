@@ -75,6 +75,7 @@ def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, An
     row.update(dp.flatten_history(home_records, home_id, "home"))
     row.update(dp.flatten_history(away_records, away_id, "away"))
     row.update(dp.flatten_history(h2h_records, home_id, "h2h"))
+
     return row
 
 
@@ -126,10 +127,12 @@ def enrich_league(
         if row is None:
             logger.warning("  [%d/%d] %s failed: %s", i, len(pending), mid, exc)
             continue
+
         # Append each row immediately so an interrupted run stays resumable;
         # the lock serializes writes since all workers share one CSV per league.
         with csv_lock:
             append_rows([row], detail_path, DETAIL_ORDERED_COLUMNS)
+
         logger.info(
             "  [%d/%d] %s odds=%s h2h=%s",
             i,
@@ -145,6 +148,7 @@ def enrich_finished(limit: int | None = None) -> None:
     with _POOL, ThreadPoolExecutor(max_workers=WORKERS) as pool:
         for base_path in paths.base_league_csvs():
             enrich_league(pool, base_path, limit, csv_lock)
+
     logger.info("done — run `python -m features.enrich` to rebuild the enriched join")
 
 

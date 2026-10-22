@@ -45,6 +45,7 @@ def parse_match_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
             continue
         if row.minute > MAX_MINUTE or row.stoppage > MAX_STOPPAGE:
             continue
+
         player, player_off = _players(row)
         found.append(
             {
@@ -60,6 +61,7 @@ def parse_match_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
     ordered = _dedupe(found)
     for index, event in enumerate(ordered, 1):
         event["event_index"] = index
+
     return ordered
 
 
@@ -87,6 +89,7 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
             event["player_off"],
         )
         unique.setdefault(key, event)
+
     return sorted(unique.values(), key=_when)
 
 
@@ -105,6 +108,7 @@ def _players(row: live_rows.LiveRow) -> tuple[str, str]:
     cell = row.content_cell()
     if cell is None:
         return "", ""
+
     names = [a.get_text(strip=True) for a in cell.find_all("a") if a.get_text(strip=True)]
     if row.kind != SUBSTITUTION:
         return (names[0] if names else ""), ""
@@ -125,6 +129,7 @@ def _by_marker(cell: Tag) -> tuple[str, str]:
             if isinstance(alt, str) and alt.strip() in (SUB_IN_ALT, SUB_OUT_ALT):
                 marker = alt.strip()
             continue
+
         name = node.get_text(strip=True)
         if not name:
             continue
@@ -132,4 +137,5 @@ def _by_marker(cell: Tag) -> tuple[str, str]:
             on = name
         elif marker == SUB_OUT_ALT and not off:
             off = name
+
     return on, off
