@@ -63,39 +63,39 @@ CALIBRATED = (
 TOP = 20
 
 
-def calibration(rows: pd.DataFrame) -> pd.DataFrame:
+def calibration(team_rows_df: pd.DataFrame) -> pd.DataFrame:
     """O/E of the calibrated quantities by the team's own win chance, with the interval over
     league-seasons."""
-    bands = pd.cut(rows["win_chance"], WIN_EDGES)
+    bands = pd.cut(team_rows_df["win_chance"], WIN_EDGES)
 
     table = []
-    for band, group in rows.groupby(bands, observed=True):
+    for band, band_df in team_rows_df.groupby(bands, observed=True):
         for observed, expected, label, _ in QUANTITIES:
             if label in CALIBRATED:
                 table.append(
                     {
                         "win chance": str(band),
                         "quantity": label,
-                        **stats.observed_expected(group, observed, expected),
+                        **stats.observed_expected(band_df, observed, expected),
                     }
                 )
 
     return pd.DataFrame(table)
 
 
-def shuffle_table(rows: pd.DataFrame) -> pd.DataFrame:
+def shuffle_table(team_rows_df: pd.DataFrame) -> pd.DataFrame:
     """The goal tests of the teams around their league against shuffles of the team-matches
     inside their league (`units.level_row`)."""
     return pd.DataFrame(
         [
-            units.level_row(rows, LEAGUE, UNIT, quantity)
+            units.level_row(team_rows_df, LEAGUE, UNIT, quantity)
             for quantity in QUANTITIES
             if quantity[2] in GOALS
         ]
     )
 
 
-def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataFrame:
+def null_table(team_rows_df: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataFrame:
     """For each role quantity: its real Q, and Q when the outcomes come from the test's own
     null (`units.null_q`), in sds of the null draws."""
     table = []
@@ -104,7 +104,7 @@ def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataF
         if label not in ROLES:
             continue
 
-        mean, sd = units.null_q(rows, LEAGUE, UNIT, quantity)
+        mean, sd = units.null_q(team_rows_df, LEAGUE, UNIT, quantity)
         real = results[label].cochran_q
         table.append(
             {
@@ -121,27 +121,27 @@ def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataF
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    share = yardstick.first_half_share(yardstick.priced(matches))
-    frame = yardstick.frame(matches, yardstick.build_grid(), share=share)
-    rows = card.team_yardstick_rows(matches, frame)
-    print(f"Priced: {len(frame):,} matches; first-half share {share:.4f}")
-    print(card.team_line(rows))
+    share = yardstick.first_half_share(yardstick.priced(matches_df))
+    yardstick_df = yardstick.frame(matches_df, yardstick.build_grid(), share=share)
+    team_rows_df = card.team_yardstick_rows(matches_df, yardstick_df)
+    print(f"Priced: {len(yardstick_df):,} matches; first-half share {share:.4f}")
+    print(card.team_line(team_rows_df))
 
-    report.show("Calibration by the team's own win chance (O/E)", calibration(rows))
+    report.show("Calibration by the team's own win chance (O/E)", calibration(team_rows_df))
 
     summary, results = [], {}
     for quantity in QUANTITIES:
-        row, results[quantity[2]] = units.within_row(rows, LEAGUE, UNIT, quantity)
+        row, results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
         summary.append(row)
 
     report.show("One test of the teams around their league, for each O/E", pd.DataFrame(summary))
-    report.show("Q against the test's own null (100 draws)", null_table(rows, results))
+    report.show("Q against the test's own null (100 draws)", null_table(team_rows_df, results))
     report.show(
         f"The goal tests against {units.NULL_DRAWS} shuffles of the team-matches in their league",
-        shuffle_table(rows),
+        shuffle_table(team_rows_df),
     )
     report.show(
         "The luck line of the two roles",
@@ -152,7 +152,10 @@ def main() -> None:
         report.show(
             f"Teams most above their league: {label}",
             card.top_teams(
-                rows, results[label].part_values_df, TOP, names=("observed", "expected", "O/E")
+                team_rows_df,
+                results[label].part_values_df,
+                TOP,
+                names=("observed", "expected", "O/E"),
             ),
         )
 

@@ -39,15 +39,15 @@ TOP = 20
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    rows = card.team_rows(matches)
-    print(card.team_line(rows))
+    team_rows_df = card.team_rows(matches_df)
+    print(card.team_line(team_rows_df))
 
     summary, results = [], {}
     for quantity in QUANTITIES:
-        row, results[quantity[2]] = units.within_row(rows, LEAGUE, UNIT, quantity)
+        row, results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
         summary.append(row)
 
     report.show(
@@ -61,7 +61,7 @@ def main() -> None:
     for label in RANKED:
         report.show(
             f"Teams most above their league: {label}",
-            card.top_teams(rows, results[label].part_values_df, TOP),
+            card.top_teams(team_rows_df, results[label].part_values_df, TOP),
         )
 
 

@@ -17,41 +17,45 @@ QUANTITIES = {"z": "shin_z", "gain": "ll_gain"}
 
 
 def league_table(
-    frame: pd.DataFrame,
+    scored_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, dict[str, stats.Heterogeneity]]:
     """Per league: matches, and each quantity's raw and shrunk mean; one test per quantity."""
-    grouped = frame.groupby("s1_league_id")
+    grouped = scored_df.groupby("s1_league_id")
     sizes = grouped.size()
-    table = pd.DataFrame({"league": grouped["s1_league_name"].first(), "matches": sizes})
+    league_table_df = pd.DataFrame({"league": grouped["s1_league_name"].first(), "matches": sizes})
 
     tests: dict[str, stats.Heterogeneity] = {}
     for name, column in QUANTITIES.items():
         means = grouped[column].mean()
         variances = grouped[column].var() / sizes
         tests[name] = stats.heterogeneity(means, variances)
-        table[name] = means
-        table[f"{name}_shrunk"] = stats.shrink(means, variances, tests[name])
+        league_table_df[name] = means
+        league_table_df[f"{name}_shrunk"] = stats.shrink(means, variances, tests[name])
 
-    return table.sort_values("league"), tests
+    return league_table_df.sort_values("league"), tests
 
 
-def cohort_stability(frame: pd.DataFrame, column: str) -> tuple[float, int]:
+def cohort_stability(scored_df: pd.DataFrame, column: str) -> tuple[float, int]:
     """Spearman correlation of the league means between the two season cohorts, and its n."""
-    means = frame.groupby(["s1_league_id", "season_cohort"])[column].mean().unstack().dropna()
-    return float(means.iloc[:, 0].corr(means.iloc[:, 1], method="spearman")), len(means)
+    league_means_df = (
+        scored_df.groupby(["s1_league_id", "season_cohort"])[column].mean().unstack().dropna()
+    )
+    return float(
+        league_means_df.iloc[:, 0].corr(league_means_df.iloc[:, 1], method="spearman")
+    ), len(league_means_df)
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    frame = shin.scored(matches)
-    table, tests = league_table(frame)
-    print(f"Priced: {len(frame):,} matches in {len(table)} leagues")
+    scored_df = shin.scored(matches_df)
+    league_table_df, tests = league_table(scored_df)
+    print(f"Priced: {len(scored_df):,} matches in {len(league_table_df)} leagues")
 
     for name, column in QUANTITIES.items():
-        het, shrunk = tests[name], table[f"{name}_shrunk"]
-        r, n = cohort_stability(frame, column)
+        het, shrunk = tests[name], league_table_df[f"{name}_shrunk"]
+        cohort_correlation, cohort_count = cohort_stability(scored_df, column)
 
         print(f"\n== {name} ({column})")
         print(
@@ -63,10 +67,13 @@ def main() -> None:
             f"shrunk league values: min {shrunk.min():.6f}, median {shrunk.median():.6f}, "
             f"max {shrunk.max():.6f}"
         )
-        print(f"league means, season cohort 1 vs 2: Spearman {r:.3f} over {n} leagues")
+        print(
+            f"league means, season cohort 1 vs 2: Spearman {cohort_correlation:.3f} over "
+            f"{cohort_count} leagues"
+        )
 
     print("\n== Leagues (sorted by name)")
-    print(table.to_string(index=False, float_format=lambda v: f"{v:.5f}"))
+    print(league_table_df.to_string(index=False, float_format=lambda value: f"{value:.5f}"))
 
 
 if __name__ == "__main__":

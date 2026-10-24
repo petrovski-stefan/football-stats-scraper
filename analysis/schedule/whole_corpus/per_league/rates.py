@@ -40,25 +40,34 @@ def quantity(label: str) -> tuple[str, str, str, str]:
     return next(row for row in card.CARD if row[2] == label)
 
 
-def season_tests(frame: pd.DataFrame) -> pd.DataFrame:
+def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
     """Per sliced quantity: one test of the league-seasons around their own league."""
     rows = []
     for label in SLICED:
         numerator, denominator, _, kind = quantity(label)
-        q, df, p = units.within_test(frame, LEAGUE, "cluster", numerator, denominator, kind)
-        rows.append({"quantity": label, "Q": q, "df": float(df), "p": f"{p:.3g}"})
+        cochran_q, degrees_of_freedom, p_value = units.within_test(
+            card_df, LEAGUE, "cluster", numerator, denominator, kind
+        )
+        rows.append(
+            {
+                "quantity": label,
+                "Q": cochran_q,
+                "df": float(degrees_of_freedom),
+                "p": f"{p_value:.3g}",
+            }
+        )
     return pd.DataFrame(rows)
 
 
-def stage_table(frame: pd.DataFrame) -> pd.DataFrame:
+def stage_table(card_df: pd.DataFrame) -> pd.DataFrame:
     """The sliced quantities in the two stages of the leagues that keep both."""
-    stage = frame["stage"].map(STAGES)
+    stage = card_df["stage"].map(STAGES)
 
     rows = []
-    for name, group in frame.groupby(stage):
+    for name, league_stage_df in card_df.groupby(stage):
         for label in SLICED:
             numerator, denominator, _, _ = quantity(label)
-            ratio = stats.observed_expected(group, numerator, denominator)
+            ratio = stats.observed_expected(league_stage_df, numerator, denominator)
             rows.append(
                 {
                     "stage": name,
@@ -73,40 +82,40 @@ def stage_table(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def league_table(frame: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def league_table(card_df: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Per league: its matches and the columns of the table, highest shrunk comeback rate first."""
-    grouped = frame.groupby(LEAGUE)
-    table = pd.DataFrame({"league": grouped["league"].first(), "matches": grouped.size()})
+    grouped = card_df.groupby(LEAGUE)
+    league_table_df = pd.DataFrame({"league": grouped["league"].first(), "matches": grouped.size()})
     for label, column, header in TABLE_COLUMNS:
-        table[header] = values[label][column]
-    return table.sort_values(["shrunk", "league"], ascending=[False, True])
+        league_table_df[header] = values[label][column]
+    return league_table_df.sort_values(["shrunk", "league"], ascending=[False, True])
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    frame = card.card_frame(matches)
-    frame[LEAGUE] = matches[LEAGUE]
-    frame["league"] = matches["s1_league_name"]
-    frame["stage"] = matches["s1_stage"]
-    print(f"{frame[LEAGUE].nunique()} leagues; each test: Cochran's Q across them")
+    card_df = card.card_frame(matches_df)
+    card_df[LEAGUE] = matches_df[LEAGUE]
+    card_df["league"] = matches_df["s1_league_name"]
+    card_df["stage"] = matches_df["s1_stage"]
+    print(f"{card_df[LEAGUE].nunique()} leagues; each test: Cochran's Q across them")
 
     rows, values = [], {}
     for row_of_card in card.CARD:
         label = row_of_card[2]
-        row, values[label] = units.summary_row(frame, LEAGUE, row_of_card, luck=label in MARKETS)
+        row, values[label] = units.summary_row(card_df, LEAGUE, row_of_card, luck=label in MARKETS)
         rows.append(row)
 
     report.show("One test across the leagues for each quantity of the card", pd.DataFrame(rows))
     report.show(
-        "League-seasons inside their league (one test for all leagues)", season_tests(frame)
+        "League-seasons inside their league (one test for all leagues)", season_tests(card_df)
     )
 
-    stages = frame[frame["stage"].isin(STAGES)]
-    print(f"\nleagues that keep two stages: {stages[LEAGUE].nunique()}")
-    report.show("Their two stages", stage_table(stages))
-    report.show("Leagues, by the shrunk comeback rate", league_table(frame, values))
+    with_stage_df = card_df[card_df["stage"].isin(STAGES)]
+    print(f"\nleagues that keep two stages: {with_stage_df[LEAGUE].nunique()}")
+    report.show("Their two stages", stage_table(with_stage_df))
+    report.show("Leagues, by the shrunk comeback rate", league_table(card_df, values))
 
 
 if __name__ == "__main__":

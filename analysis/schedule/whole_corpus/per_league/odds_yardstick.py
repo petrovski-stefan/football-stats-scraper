@@ -55,50 +55,52 @@ LINK_COLUMNS = (
 )
 
 
-def with_own_share(frame: pd.DataFrame) -> pd.DataFrame:
+def with_own_share(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """The frame with the chances that use the share made again from each league's own share."""
-    sums = frame.groupby(LEAGUE)[["goals_1h", "goals"]].sum()
-    share = frame[LEAGUE].map(sums["goals_1h"] / sums["goals"]).to_numpy(dtype=float)
+    sums_df = yardstick_df.groupby(LEAGUE)[["goals_1h", "goals"]].sum()
+    share = yardstick_df[LEAGUE].map(sums_df["goals_1h"] / sums_df["goals"]).to_numpy(dtype=float)
 
-    lam_home, lam_away = frame["lam_home"].to_numpy(), frame["lam_away"].to_numpy()
-    out = frame.copy()
-    model = yardstick.implied(lam_home, lam_away, share)
-    out[model.columns] = model.to_numpy()
-    out["m_completion"] = yardstick.completion_given_ht(
-        lam_home, lam_away, share, frame["ht_margin"].to_numpy()
+    lam_home, lam_away = yardstick_df["lam_home"].to_numpy(), yardstick_df["lam_away"].to_numpy()
+    with_own_share_df = yardstick_df.copy()
+    implied_df = yardstick.implied(lam_home, lam_away, share)
+    with_own_share_df[implied_df.columns] = implied_df.to_numpy()
+    with_own_share_df["m_completion"] = yardstick.completion_given_ht(
+        lam_home, lam_away, share, yardstick_df["ht_margin"].to_numpy()
     )
 
-    return out
+    return with_own_share_df
 
 
 def league_table(
-    frame: pd.DataFrame,
+    yardstick_df: pd.DataFrame,
     values: dict[str, pd.DataFrame],
     columns: tuple[tuple[str, str, str], ...],
 ) -> pd.DataFrame:
     """Per league, in the order of the names: its matches and each column asked for."""
-    grouped = frame.groupby(LEAGUE)
-    table = pd.DataFrame({"league": grouped["s1_league_name"].first(), "matches": grouped.size()})
+    grouped = yardstick_df.groupby(LEAGUE)
+    league_table_df = pd.DataFrame(
+        {"league": grouped["s1_league_name"].first(), "matches": grouped.size()}
+    )
     for label, column, header in columns:
-        table[header] = values[label][column]
-    return table.sort_values("league")
+        league_table_df[header] = values[label][column]
+    return league_table_df.sort_values("league")
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    share = yardstick.first_half_share(yardstick.priced(matches))
-    frame = yardstick.frame(matches, yardstick.build_grid(), share=share).assign(one=1.0)
+    share = yardstick.first_half_share(yardstick.priced(matches_df))
+    yardstick_df = yardstick.frame(matches_df, yardstick.build_grid(), share=share).assign(one=1.0)
     print(
-        f"Priced: {len(frame):,} matches in {frame[LEAGUE].nunique()} leagues; "
+        f"Priced: {len(yardstick_df):,} matches in {yardstick_df[LEAGUE].nunique()} leagues; "
         f"first-half share {share:.4f}"
     )
 
     rows, values = [], {}
     for quantity in QUANTITIES:
         row, values[quantity[2]] = units.summary_row(
-            frame, LEAGUE, quantity, luck=quantity[2] in LUCK
+            yardstick_df, LEAGUE, quantity, luck=quantity[2] in LUCK
         )
         rows.append(row)
 
@@ -108,14 +110,16 @@ def main() -> None:
     comeback = next(q for q in QUANTITIES if q[2] == "comeback O/E")
     report.show(
         "Comeback O/E with each league's own first-half share",
-        pd.DataFrame([units.summary_row(with_own_share(frame), LEAGUE, comeback, luck=True)[0]]),
+        pd.DataFrame(
+            [units.summary_row(with_own_share(yardstick_df), LEAGUE, comeback, luck=True)[0]]
+        ),
     )
 
     report.show(
         "Leagues: goals, comebacks, 7+ goals and the share",
-        league_table(frame, values, MAIN_COLUMNS),
+        league_table(yardstick_df, values, MAIN_COLUMNS),
     )
-    report.show("Leagues: the two links", league_table(frame, values, LINK_COLUMNS))
+    report.show("Leagues: the two links", league_table(yardstick_df, values, LINK_COLUMNS))
 
 
 if __name__ == "__main__":
