@@ -12,6 +12,7 @@ import pandas as pd
 
 from analysis import card
 from analysis.methods import shin
+from domain.clock import BERLIN
 
 TARGET = "comes_back"
 SIDES = (("home", "away"), ("away", "home"))
@@ -131,7 +132,7 @@ def record_fields(matches_df: pd.DataFrame, side: str, who: str) -> dict[str, "p
 def match_fields(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The fields of the match: the round so far (S3.01, S3.14 to S3.20), the gap between the two
     ranks (S3.04), the round (S1.05), the kickoff in Berlin time (S1.07) and the league (S1.02)."""
-    kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert("Europe/Berlin")
+    kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert(BERLIN)
 
     match_fields_df = matches_df[list(ROUND_SO_FAR)].astype(float)
     match_fields_df["s3_pre_rank_gap"] = matches_df["s3_pre_rank_gap"].astype(float)

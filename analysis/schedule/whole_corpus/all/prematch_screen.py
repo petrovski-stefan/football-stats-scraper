@@ -20,6 +20,7 @@ from scipy import stats as sps
 
 from analysis import card, corpus, report, stats
 from analysis.methods import shin, yardstick
+from domain.clock import BERLIN
 
 MIN_PLAYED = 5  # both teams have played this many matches of the stage
 PRIOR_WEIGHT = 10.0  # pseudo-counts of a shrunk HT/FT record rate
@@ -236,7 +237,7 @@ def season(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 def calendar(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The calendar family: a kickoff from Tuesday to Thursday (Berlin time), and the last
     kickoff of a round that has more than one kickoff time."""
-    kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert("Europe/Berlin")
+    kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert(BERLIN)
     keys = [
         matches_df["s1_league_id"],
         matches_df["s1_season"],
