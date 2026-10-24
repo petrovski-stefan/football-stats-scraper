@@ -87,11 +87,11 @@ def test_score_and_total_chances_follow_the_poisson_formulas() -> None:
 
 def test_completion_from_each_half_time_score() -> None:
     home, away, share = np.full(3, 1.3), np.full(3, 1.1), 0.45
-    h2, a2 = 0.55 * 1.3, 0.55 * 1.1
+    home_rate_2h, away_rate_2h = 0.55 * 1.3, 0.55 * 1.1
     out = yardstick.completion_given_ht(home, away, share, np.array([0, -1, 2]))
     assert out[0] == 0.0
-    assert out[1] == pytest.approx(sps.skellam.sf(1, h2, a2))
-    assert out[2] == pytest.approx(sps.skellam.cdf(-3, h2, a2))
+    assert out[1] == pytest.approx(sps.skellam.sf(1, home_rate_2h, away_rate_2h))
+    assert out[2] == pytest.approx(sps.skellam.cdf(-3, home_rate_2h, away_rate_2h))
 
 
 def test_completions_over_every_half_time_score_add_up_to_the_comeback_chance() -> None:

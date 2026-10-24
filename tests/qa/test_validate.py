@@ -22,8 +22,8 @@ def _schedule(stage: int, league: str, season: str, ids: list[str], league_id: i
 
 def _config(league_ids: list[int]) -> None:
     os.makedirs(os.path.dirname(paths.LEAGUES_FILE), exist_ok=True)
-    with open(paths.LEAGUES_FILE, "w", encoding="utf-8") as fh:
-        json.dump([{"league_id": league_id} for league_id in league_ids], fh)
+    with open(paths.LEAGUES_FILE, "w", encoding="utf-8") as config_file:
+        json.dump([{"league_id": league_id} for league_id in league_ids], config_file)
 
 
 @pytest.fixture

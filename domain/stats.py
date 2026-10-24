@@ -83,5 +83,5 @@ def two_way_prob(odds_for: float | None, odds_against: float | None) -> float | 
     """
     if not odds_for or not odds_against:
         return None
-    inv_for, inv_against = 1 / odds_for, 1 / odds_against
-    return inv_for / (inv_for + inv_against)
+    implied_for, implied_against = 1 / odds_for, 1 / odds_against
+    return implied_for / (implied_for + implied_against)

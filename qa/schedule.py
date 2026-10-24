@@ -116,7 +116,7 @@ def _check_round_sizes(report: Report, league_stage_df: pd.DataFrame, label: str
     expected = len(teams) // 2
     sizes = league_stage_df.groupby("s1_round").size()
     rounds = zip(sizes.index.tolist(), sizes.tolist(), strict=True)
-    wrong = {int(rnd): int(n) for rnd, n in rounds if n != expected}
+    wrong = {int(round_number): int(n) for round_number, n in rounds if n != expected}
 
     report.check(
         not wrong, f"{label}{len(wrong)} rounds without {expected} matches (round: count) {wrong}"
@@ -137,7 +137,9 @@ def _check_team_once_per_round(report: Report, league_stage_df: pd.DataFrame, la
         ]
     )
 
-    rounds = sorted({int(rnd) for rnd in slots_df.loc[slots_df.duplicated(), "round"]})
+    rounds = sorted(
+        {int(round_number) for round_number in slots_df.loc[slots_df.duplicated(), "round"]}
+    )
     report.check(
         not rounds, f"{label}{len(rounds)} rounds where a team plays twice (rounds) {rounds}"
     )
@@ -172,7 +174,11 @@ def _check_rounds_have_odds(report: Report, league_stage_df: pd.DataFrame, label
     by_round = league_stage_df[cells].notna().any(axis=1).groupby(league_stage_df["s1_round"])
     sizes, priced = by_round.size(), by_round.any()
     rounds = zip(sizes.index.tolist(), sizes.tolist(), priced.tolist(), strict=True)
-    blank = [int(rnd) for rnd, n, odds in rounds if n >= BLANK_ROUND_MIN_MATCHES and not odds]
+    blank = [
+        int(round_number)
+        for round_number, match_count, odds in rounds
+        if match_count >= BLANK_ROUND_MIN_MATCHES and not odds
+    ]
 
     report.check(
         not blank, f"{label}{len(blank)} rounds without odds on any match (rounds) {blank}"

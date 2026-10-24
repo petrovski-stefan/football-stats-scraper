@@ -134,23 +134,28 @@ def market(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame, side: str) -> p
 def table(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """The table family, per match played: the points and goal difference against the
     opponent's, and the goals for and against of both teams."""
-    played_t = stat(matches_df, side, "ft", "total", "played")
-    played_o = stat(matches_df, other, "ft", "total", "played")
+    team_played = stat(matches_df, side, "ft", "total", "played")
+    opponent_played = stat(matches_df, other, "ft", "total", "played")
 
     def per_game(who: str, name: str, played: "pd.Series[float]") -> "pd.Series[float]":
         return stat(matches_df, who, "ft", "total", name) / played
 
-    goals_t = 2 * per_game(side, "goals_for", played_t) - per_game(side, "goal_diff", played_t)
-    goals_o = 2 * per_game(other, "goals_for", played_o) - per_game(other, "goal_diff", played_o)
+    team_goals = 2 * per_game(side, "goals_for", team_played) - per_game(
+        side, "goal_diff", team_played
+    )
+    opponent_goals = 2 * per_game(other, "goals_for", opponent_played) - per_game(
+        other, "goal_diff", opponent_played
+    )
 
     return pd.DataFrame(
         {
-            "played_T": played_t,
-            "played_O": played_o,
-            "tb_ppg_diff": per_game(side, "points", played_t) - per_game(other, "points", played_o),
-            "tb_gd_diff": per_game(side, "goal_diff", played_t)
-            - per_game(other, "goal_diff", played_o),
-            "tb_goal_env": (goals_t + goals_o) / 2,
+            "played_T": team_played,
+            "played_O": opponent_played,
+            "tb_ppg_diff": per_game(side, "points", team_played)
+            - per_game(other, "points", opponent_played),
+            "tb_gd_diff": per_game(side, "goal_diff", team_played)
+            - per_game(other, "goal_diff", opponent_played),
+            "tb_goal_env": (team_goals + opponent_goals) / 2,
         },
         index=matches_df.index,
     )
@@ -163,16 +168,18 @@ def halves(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     halves_df = pd.DataFrame(index=matches_df.index)
     for who, tag in ((side, "T"), (other, "O")):
         played = stat(matches_df, who, "ft", "total", "played")
-        ft_gd, ht_gd = (stat(matches_df, who, h, "total", "goal_diff") for h in ("ft", "ht"))
-        halves_df[f"hp_{tag}_1h_gd"] = ht_gd / played
-        halves_df[f"hp_{tag}_2h_gd"] = (ft_gd - ht_gd) / played
+        ft_goal_diff, ht_goal_diff = (
+            stat(matches_df, who, half, "total", "goal_diff") for half in ("ft", "ht")
+        )
+        halves_df[f"hp_{tag}_1h_gd"] = ht_goal_diff / played
+        halves_df[f"hp_{tag}_2h_gd"] = (ft_goal_diff - ht_goal_diff) / played
 
         # A side's venue in this match is its side: the home team plays at home.
         venue_played = stat(matches_df, who, "ft", who, "played").replace(0, np.nan)
-        venue_2h = stat(matches_df, who, "ft", who, "goal_diff") - stat(
+        venue_2h_goal_diff = stat(matches_df, who, "ft", who, "goal_diff") - stat(
             matches_df, who, "ht", who, "goal_diff"
         )
-        halves_df[f"hp_{tag}_2h_gd_venue"] = venue_2h / venue_played
+        halves_df[f"hp_{tag}_2h_gd_venue"] = venue_2h_goal_diff / venue_played
 
     goals_for = stat(matches_df, side, "ft", "total", "goals_for")
     ht_for = stat(matches_df, side, "ht", "total", "goals_for")
@@ -192,8 +199,8 @@ def halves(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 def record(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """The HT/FT record family: how often the team was behind at half-time and came back,
     its shrunk completion, and how often the opponent led at half-time and did not win."""
-    played_t = stat(matches_df, side, "ft", "total", "played")
-    played_o = stat(matches_df, other, "ft", "total", "played")
+    team_played = stat(matches_df, side, "ft", "total", "played")
+    opponent_played = stat(matches_df, other, "ft", "total", "played")
 
     behind = sum(htft(matches_df, side, "l", ft) for ft in "wdl")
     came_back = htft(matches_df, side, "l", "w")
@@ -202,10 +209,10 @@ def record(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 
     return pd.DataFrame(
         {
-            "rec_T_trail_rate": behind / played_t,
-            "rec_T_cb_rate": came_back / played_t,
+            "rec_T_trail_rate": behind / team_played,
+            "rec_T_cb_rate": came_back / team_played,
             "rec_T_compl": (came_back + PRIOR_WEIGHT * COMPLETION_PRIOR) / (behind + PRIOR_WEIGHT),
-            "rec_O_lead_rate": led / played_o,
+            "rec_O_lead_rate": led / opponent_played,
             "rec_O_blown": (lost + PRIOR_WEIGHT * COMPLETION_PRIOR) / (led + PRIOR_WEIGHT),
             "rec_O_not_won": (lost + drew + PRIOR_WEIGHT * NOT_WON_PRIOR) / (led + PRIOR_WEIGHT),
         },
@@ -223,11 +230,11 @@ def season(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     teams = matches_df["s1_home_team_id"].groupby(keys).transform("nunique").astype(float)
 
     low, high = MID_TABLE
-    mid = [
+    in_mid_table = [
         stat(matches_df, who, "ft", "total", "rank").div(teams).between(low, high)
         for who in (side, other)
     ]
-    dead = (progress >= LATE_SEASON) & mid[0] & mid[1]
+    dead = (progress >= LATE_SEASON) & in_mid_table[0] & in_mid_table[1]
 
     return pd.DataFrame(
         {"ss_progress": progress, "ss_dead_rubber": dead.astype(float)}, index=matches_df.index
@@ -314,27 +321,29 @@ def last_season(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
     if len(cohorts) < 2:
         return with_last_season_df
 
-    before, later = (
+    earlier_cohort_df, later = (
         screen_rows_df[screen_rows_df["season_cohort"] == cohorts[0]],
         screen_rows_df["season_cohort"] == cohorts[1],
     )
-    base = before["comes_back"].mean()
-    team = before.groupby("team")[["comes_back", "loses_lead", "ahead", "one"]].sum()
-    cb_rate = (team["comes_back"] + TEAM_PRIOR_WEIGHT * base) / (team["one"] + TEAM_PRIOR_WEIGHT)
+    base = earlier_cohort_df["comes_back"].mean()
+    team = earlier_cohort_df.groupby("team")[["comes_back", "loses_lead", "ahead", "one"]].sum()
+    comeback_rate = (team["comes_back"] + TEAM_PRIOR_WEIGHT * base) / (
+        team["one"] + TEAM_PRIOR_WEIGHT
+    )
     blown = (team["loses_lead"] + PRIOR_WEIGHT * COMPLETION_PRIOR) / (team["ahead"] + PRIOR_WEIGHT)
 
-    league = before.groupby(card.TEAM_LEAGUE)[["comes_back", "m_cb"]].sum()
-    league_oe = league["comes_back"] / league["m_cb"]
+    league = earlier_cohort_df.groupby(card.TEAM_LEAGUE)[["comes_back", "m_cb"]].sum()
+    league_observed_over_expected = league["comes_back"] / league["m_cb"]
 
     with_last_season_df.loc[later, "prev_T_cb_rate"] = screen_rows_df.loc[later, "team"].map(
-        cb_rate
+        comeback_rate
     )
     with_last_season_df.loc[later, "prev_O_blown"] = screen_rows_df.loc[later, "opponent"].map(
         blown
     )
     with_last_season_df.loc[later, "prev_league_oe"] = screen_rows_df.loc[
         later, card.TEAM_LEAGUE
-    ].map(league_oe)
+    ].map(league_observed_over_expected)
 
     return with_last_season_df
 
@@ -418,8 +427,12 @@ def screen(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
         row: dict[str, object] = {"field": field, "family": family, **pooled}
 
         for cohort in cohorts:
-            part = screen_rows_df[screen_rows_df["season_cohort"] == cohort]
-            single = field_test(part, field, "comeback") if part[field].notna().any() else None
+            cohort_rows_df = screen_rows_df[screen_rows_df["season_cohort"] == cohort]
+            single = (
+                field_test(cohort_rows_df, field, "comeback")
+                if cohort_rows_df[field].notna().any()
+                else None
+            )
             row[f"OR {cohort}"] = single["OR"] if single else np.nan
             row[f"p {cohort}"] = single["p"] if single else np.nan
 

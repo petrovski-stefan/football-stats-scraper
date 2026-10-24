@@ -347,7 +347,7 @@ def null_q(
     means = (sums_df[observed] / sums_df[expected] * df[expected]).to_numpy(dtype=float)
 
     rng = np.random.default_rng(seed)
-    qs = []
+    cochran_qs = []
     for _ in range(draws):
         if kind == "event":
             drawn = (rng.random(len(means)) < np.clip(means, 0.0, 1.0)).astype(float)
@@ -355,9 +355,9 @@ def null_q(
             drawn = rng.poisson(means).astype(float)
 
         drawn_df = df.assign(drawn=drawn)
-        qs.append(within_tested(drawn_df, unit, part, "drawn", expected, kind).cochran_q)
+        cochran_qs.append(within_tested(drawn_df, unit, part, "drawn", expected, kind).cochran_q)
 
-    return float(np.mean(qs)), float(np.std(qs))
+    return float(np.mean(cochran_qs)), float(np.std(cochran_qs))
 
 
 def permuted_qs(
@@ -379,12 +379,14 @@ def permuted_qs(
     observed, expected, _, kind = quantity
 
     rng = np.random.default_rng(seed)
-    qs = []
+    cochran_qs = []
     for _ in range(draws):
         shuffled_df = df.assign(**{part: shuffled_parts(df[unit], df[part], rng)})
-        qs.append(within_tested(shuffled_df, unit, part, observed, expected, kind).cochran_q)
+        cochran_qs.append(
+            within_tested(shuffled_df, unit, part, observed, expected, kind).cochran_q
+        )
 
-    return np.asarray(qs)
+    return np.asarray(cochran_qs)
 
 
 def shuffled_parts(
@@ -438,8 +440,8 @@ def level_row(
     part_values_df = result.part_values_df
     pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
 
-    qs = permuted_qs(df, unit, part, quantity, draws)
-    null_mean = float(qs.mean())
+    cochran_qs = permuted_qs(df, unit, part, quantity, draws)
+    null_mean = float(cochran_qs.mean())
     tau_squared = (
         max(0.0, (result.cochran_q - null_mean) / result.scale) if result.scale > 0 else 0.0
     )
@@ -453,8 +455,8 @@ def level_row(
         "df": float(result.degrees_of_freedom),
         "p chi2": f"{result.p_value:.3g}",
         "shuffled mean": null_mean,
-        "shuffled sd": float(qs.std()),
-        "p": f"{(1 + (qs >= result.cochran_q).sum()) / (1 + draws):.3g}",
+        "shuffled sd": float(cochran_qs.std()),
+        "p": f"{(1 + (cochran_qs >= result.cochran_q).sum()) / (1 + draws):.3g}",
         "tau/pooled": tau_squared**0.5 / pooled,
         "found/pooled": found / pooled,
         "share": variance_share(df, observed, expected, tau_squared),

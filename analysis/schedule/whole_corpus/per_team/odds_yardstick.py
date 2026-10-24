@@ -104,7 +104,7 @@ def null_table(team_rows_df: pd.DataFrame, results: dict[str, units.Within]) -> 
         if label not in ROLES:
             continue
 
-        mean, sd = units.null_q(team_rows_df, LEAGUE, UNIT, quantity)
+        mean, standard_deviation = units.null_q(team_rows_df, LEAGUE, UNIT, quantity)
         real = results[label].cochran_q
         table.append(
             {
@@ -112,8 +112,8 @@ def null_table(team_rows_df: pd.DataFrame, results: dict[str, units.Within]) -> 
                 "Q": real,
                 "df": float(results[label].degrees_of_freedom),
                 "null Q mean": mean,
-                "null Q sd": sd,
-                "real - null, in sd": (real - mean) / sd,
+                "null Q sd": standard_deviation,
+                "real - null, in sd": (real - mean) / standard_deviation,
             }
         )
 

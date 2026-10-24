@@ -239,10 +239,14 @@ def test_a_match_never_counts_in_its_own_record() -> None:
 
 
 def _cells(
-    pre_kickoff_df: pd.DataFrame, side: str, venue: str, hts: tuple[str, ...], fts: tuple[str, ...]
+    pre_kickoff_df: pd.DataFrame,
+    side: str,
+    venue: str,
+    ht_results: tuple[str, ...],
+    ft_results: tuple[str, ...],
 ) -> "pd.Series[Any]":
     """The sum of some HT/FT cells, row by row."""
-    names = [f"s3_{side}_pre_htft_{venue}_{ht}_{ft}" for ht in hts for ft in fts]
+    names = [f"s3_{side}_pre_htft_{venue}_{ht}_{ft}" for ht in ht_results for ft in ft_results]
     return pre_kickoff_df[names].sum(axis=1)
 
 

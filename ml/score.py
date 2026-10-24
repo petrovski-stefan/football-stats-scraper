@@ -42,7 +42,7 @@ def top_n_table(
     outcomes: np.ndarray,
     scores: dict[str, np.ndarray],
     clusters: "pd.Series[Any]",
-    ns: tuple[int, ...],
+    top_n_sizes: tuple[int, ...],
     reference: str,
     draws: int = DRAWS,
 ) -> pd.DataFrame:
@@ -51,7 +51,7 @@ def top_n_table(
     resample keeps the rows that the full set put in the top N."""
     names = list(scores)
     table = []
-    for top_n in ns:
+    for top_n in top_n_sizes:
         masks = [top_mask(scores[name], top_n) for name in names]
         columns = [column for mask in masks for column in (outcomes * mask, mask.astype(float))]
         sums = resampled_sums(np.column_stack(columns), clusters, draws)

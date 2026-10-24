@@ -185,8 +185,8 @@ def carry_over(
 
     rows = []
     for chosen, other in ((cohorts[0], cohorts[1]), (cohorts[1], cohorts[0])):
-        oe = events_df[chosen] / chances_df[chosen]
-        top = oe >= oe.quantile(1 - TOP_SHARE)
+        observed_over_expected = events_df[chosen] / chances_df[chosen]
+        top = observed_over_expected >= observed_over_expected.quantile(1 - TOP_SHARE)
 
         rows.append(
             {

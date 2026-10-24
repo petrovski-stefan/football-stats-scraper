@@ -115,11 +115,11 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
     print("     quartile   n   predicted   observed")
     rates = []
     for quartile in sorted(pd.unique(quartiles.dropna())):
-        group = trailing_df[quartiles == quartile]
-        rates.append(group["completed"].mean())
+        quartile_df = trailing_df[quartiles == quartile]
+        rates.append(quartile_df["completed"].mean())
         print(
-            f"     {int(quartile) + 1:8d} {len(group):4d}   {group['p'].mean():8.1%}   "
-            f"{group['completed'].mean():7.1%}"
+            f"     {int(quartile) + 1:8d} {len(quartile_df):4d}   {quartile_df['p'].mean():8.1%}   "
+            f"{quartile_df['completed'].mean():7.1%}"
         )
 
     monotone = all(a <= b for a, b in pairwise(rates))

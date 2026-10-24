@@ -135,11 +135,11 @@ def test_within_tested_uses_each_units_value_and_shrinks_toward_it(
 ) -> None:
     result = units.within_tested(seasons_df, UNIT, "part", "goals", "one", "count")
     part_values_df = result.part_values_df
-    phi = units.dispersion(seasons_df, "part", "goals", "one", "count")
+    dispersion = units.dispersion(seasons_df, "part", "goals", "one", "count")
 
     # Unit 1 has the value 2 and unit 2 the value 3.25; each part has 2 matches.
-    assert part_values_df.loc["1a", "variance"] == pytest.approx(phi * 2.0 / 2)
-    assert part_values_df.loc["2a", "variance"] == pytest.approx(phi * 3.25 / 2)
+    assert part_values_df.loc["1a", "variance"] == pytest.approx(dispersion * 2.0 / 2)
+    assert part_values_df.loc["2a", "variance"] == pytest.approx(dispersion * 3.25 / 2)
     assert part_values_df.loc["1a", "owner_mean"] == pytest.approx(2.0)
     assert part_values_df["shrunk"].loc[["1a", "1b"]].tolist() == pytest.approx([2.0, 2.0])
 
@@ -215,10 +215,12 @@ def test_null_q_has_the_mean_of_its_df(round_robin_df: pd.DataFrame) -> None:
     team_rows_df = card.team_rows(round_robin_df)
     quantity = ("goals_for", "one", "goals scored", "count")
 
-    mean, sd = units.null_q(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200)
+    mean, standard_deviation = units.null_q(
+        team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200
+    )
 
     assert mean == pytest.approx(6.0, abs=1.0)  # 8 teams in 2 leagues
-    assert sd > 0
+    assert standard_deviation > 0
 
     with pytest.raises(ValueError, match="no null draws"):
         units.null_q(
@@ -231,9 +233,11 @@ def test_null_q_of_an_event_has_the_mean_of_its_df(round_robin_df: pd.DataFrame)
     # being behind at half-time is not.
     team_rows_df = card.team_rows(round_robin_df)
     quantity = ("behind", "one", "behind at half-time", "event")
-    mean, sd = units.null_q(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200)
+    mean, standard_deviation = units.null_q(
+        team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200
+    )
     assert mean == pytest.approx(6.0, abs=1.0)  # 8 teams in 2 leagues
-    assert sd > 0
+    assert standard_deviation > 0
 
 
 def test_within_tested_leaves_out_the_parts_that_tell_nothing() -> None:
@@ -278,12 +282,12 @@ def test_permuted_qs_fall_below_the_q_of_parts_that_really_differ() -> None:
     )
 
     quantity = ("goals", "one", "goals", "count")
-    qs = units.permuted_qs(unit_rows_df, UNIT, "part", quantity, draws=30)
+    cochran_qs = units.permuted_qs(unit_rows_df, UNIT, "part", quantity, draws=30)
 
-    assert qs.shape == (30,)
+    assert cochran_qs.shape == (30,)
 
     real = units.within_tested(unit_rows_df, UNIT, "part", "goals", "one", "count").cochran_q
-    assert (qs < real).all()
+    assert (cochran_qs < real).all()
 
 
 def test_variance_share_scales_tau2_by_the_expected_values() -> None:

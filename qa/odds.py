@@ -202,8 +202,8 @@ def check_ah_sign(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -
     if present_df.empty:
         return
 
-    home_fav = present_df[odds_columns.home] < present_df[odds_columns.away]
-    disagree_df = present_df[(present_df[odds_columns.ah_line] > 0) != home_fav]
+    home_is_favourite = present_df[odds_columns.home] < present_df[odds_columns.away]
+    disagree_df = present_df[(present_df[odds_columns.ah_line] > 0) != home_is_favourite]
     share = len(disagree_df) / len(present_df)
     report.check(
         share <= AH_SIGN_TOLERANCE,

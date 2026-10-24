@@ -107,10 +107,10 @@ def test_a_failed_job_is_counted_and_the_others_still_run(
 _Cells = tuple[float | None, float | None, float | None]
 
 
-def _odds(x12: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
+def _odds(one_x_two: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
     """A row's three markets, each as its three cells in page order."""
     fields = {
-        ("s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away"): x12,
+        ("s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away"): one_x_two,
         ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"): ou,
         ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away"): ah,
     }

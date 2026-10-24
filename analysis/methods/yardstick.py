@@ -111,14 +111,18 @@ def implied(
     times P(win the second half by more than d); `m_cb_away` mirrors it. The share is one
     number for every match, or one per match.
     """
-    h1, a1 = share * lam_home, share * lam_away
-    h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
+    home_rate_1h, away_rate_1h = share * lam_home, share * lam_away
+    home_rate_2h, away_rate_2h = (1 - share) * lam_home, (1 - share) * lam_away
 
     cb_home = np.zeros(len(lam_home))
     cb_away = np.zeros(len(lam_home))
     for deficit in range(1, MAX_DEFICIT + 1):
-        cb_home += sps.skellam.pmf(-deficit, h1, a1) * sps.skellam.sf(deficit, h2, a2)
-        cb_away += sps.skellam.pmf(deficit, h1, a1) * sps.skellam.cdf(-deficit - 1, h2, a2)
+        cb_home += sps.skellam.pmf(-deficit, home_rate_1h, away_rate_1h) * sps.skellam.sf(
+            deficit, home_rate_2h, away_rate_2h
+        )
+        cb_away += sps.skellam.pmf(deficit, home_rate_1h, away_rate_1h) * sps.skellam.cdf(
+            -deficit - 1, home_rate_2h, away_rate_2h
+        )
 
     total = lam_home + lam_away
     return pd.DataFrame(
@@ -126,9 +130,9 @@ def implied(
             "m_cb_home": cb_home,
             "m_cb_away": cb_away,
             "m_cb": cb_home + cb_away,
-            "m_ht_decisive": 1.0 - sps.skellam.pmf(0, h1, a1),
-            "m_home_behind": sps.skellam.cdf(-1, h1, a1),
-            "m_away_behind": sps.skellam.sf(0, h1, a1),
+            "m_ht_decisive": 1.0 - sps.skellam.pmf(0, home_rate_1h, away_rate_1h),
+            "m_home_behind": sps.skellam.cdf(-1, home_rate_1h, away_rate_1h),
+            "m_away_behind": sps.skellam.sf(0, home_rate_1h, away_rate_1h),
             "m_seven": sps.poisson.sf(6, total),
             "m_00": np.exp(-total),
             "m_11": lam_home * lam_away * np.exp(-total),
@@ -153,12 +157,12 @@ def completion_given_ht(
     is behind, so no comeback can happen. `home_factor` and `away_factor` scale each side's
     second-half rate; 1 is the basic model. The share is one number, or one per match.
     """
-    h2 = (1 - share) * lam_home * home_factor
-    a2 = (1 - share) * lam_away * away_factor
+    home_rate_2h = (1 - share) * lam_home * home_factor
+    away_rate_2h = (1 - share) * lam_away * away_factor
 
     deficit = np.abs(ht_margin)
-    home_behind = sps.skellam.sf(deficit, h2, a2)
-    away_behind = sps.skellam.cdf(-deficit - 1, h2, a2)
+    home_behind = sps.skellam.sf(deficit, home_rate_2h, away_rate_2h)
+    away_behind = sps.skellam.cdf(-deficit - 1, home_rate_2h, away_rate_2h)
 
     return np.asarray(
         np.where(ht_margin < 0, home_behind, np.where(ht_margin > 0, away_behind, 0.0))
@@ -176,18 +180,20 @@ def htft_cells(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.D
     The half-time margin and the second-half margin are independent Skellam counts; the
     full-time margin is their sum. `m_2/1` is the home comeback and `m_1/2` the away one.
     """
-    h1, a1 = share * lam_home, share * lam_away
-    h2, a2 = (1 - share) * lam_home, (1 - share) * lam_away
+    home_rate_1h, away_rate_1h = share * lam_home, share * lam_away
+    home_rate_2h, away_rate_2h = (1 - share) * lam_home, (1 - share) * lam_away
 
     margins = np.arange(-MAX_MARGIN, MAX_MARGIN + 1)
-    second = [sps.skellam.pmf(k, h2, a2) for k in margins]
+    second = [sps.skellam.pmf(k, home_rate_2h, away_rate_2h) for k in margins]
 
     cells = {name: np.zeros(len(lam_home)) for name in HTFT}
-    for k1 in margins:
-        first = sps.skellam.pmf(k1, h1, a1)
-        ht = str(result_code(np.array(k1)))
-        for k2, chance in zip(margins, second, strict=True):
-            cells[f"{ht}/{result_code(np.array(k1 + k2))!s}"] += first * chance
+    for ht_margin in margins:
+        first = sps.skellam.pmf(ht_margin, home_rate_1h, away_rate_1h)
+        ht = str(result_code(np.array(ht_margin)))
+        for second_half_margin, chance in zip(margins, second, strict=True):
+            cells[f"{ht}/{result_code(np.array(ht_margin + second_half_margin))!s}"] += (
+                first * chance
+            )
 
     return pd.DataFrame({f"m_{name}": chance for name, chance in cells.items()})
 

@@ -22,7 +22,7 @@ def season_df() -> pd.DataFrame:
     rows = []
     for round_number in range(1, 9):
         for match in range(3):
-            ht_h, ht_a, ft_h, ft_a, x12, ou, ah, moved = GAPS.get(
+            ht_home, ht_away, ft_home, ft_away, one_x_two, ou, ah, moved = GAPS.get(
                 (round_number, match), (1, 1, 2, 1, True, True, True, False)
             )
             kickoff = pd.Timestamp("2024-08-03 18:00+02:00") + pd.Timedelta(
@@ -40,11 +40,11 @@ def season_df() -> pd.DataFrame:
                     "s1_date": kickoff.isoformat(sep=" ", timespec="minutes"),
                     "s1_home_team_name": f"home {match}",
                     "s1_away_team_name": f"away {match}",
-                    "s1_ht_home_goals": ht_h,
-                    "s1_ht_away_goals": ht_a,
-                    "s1_ft_home_goals": ft_h,
-                    "s1_ft_away_goals": ft_a,
-                    "s2_has_odds": x12,
+                    "s1_ht_home_goals": ht_home,
+                    "s1_ht_away_goals": ht_away,
+                    "s1_ft_home_goals": ft_home,
+                    "s1_ft_away_goals": ft_away,
+                    "s2_has_odds": one_x_two,
                     "s2_has_ou_odds": ou,
                     "s2_has_ah_odds": ah,
                     "s3_is_rescheduled": moved,

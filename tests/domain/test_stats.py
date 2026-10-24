@@ -68,9 +68,11 @@ def test_is_btts(home: int, away: int, btts: bool) -> None:
     assert stats.is_btts(home, away) is btts
 
 
-@pytest.mark.parametrize(("goals_for", "goals_against", "pts"), [(2, 1, 3), (1, 1, 1), (0, 1, 0)])
-def test_points(goals_for: int, goals_against: int, pts: int) -> None:
-    assert stats.points(goals_for, goals_against) == pts
+@pytest.mark.parametrize(
+    ("goals_for", "goals_against", "points"), [(2, 1, 3), (1, 1, 1), (0, 1, 0)]
+)
+def test_points(goals_for: int, goals_against: int, points: int) -> None:
+    assert stats.points(goals_for, goals_against) == points
 
 
 @pytest.mark.parametrize(("odds", "prob"), [(2.0, 0.5), (4.0, 0.25), (None, None), (0.0, None)])
