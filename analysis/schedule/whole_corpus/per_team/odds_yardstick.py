@@ -105,12 +105,12 @@ def null_table(rows: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataF
             continue
 
         mean, sd = units.null_q(rows, LEAGUE, UNIT, quantity)
-        real = results[label].q
+        real = results[label].cochran_q
         table.append(
             {
                 "quantity": label,
                 "Q": real,
-                "df": float(results[label].df),
+                "df": float(results[label].degrees_of_freedom),
                 "null Q mean": mean,
                 "null Q sd": sd,
                 "real - null, in sd": (real - mean) / sd,
@@ -151,7 +151,9 @@ def main() -> None:
     for label in RANKED:
         report.show(
             f"Teams most above their league: {label}",
-            card.top_teams(rows, results[label].values, TOP, names=("observed", "expected", "O/E")),
+            card.top_teams(
+                rows, results[label].part_values_df, TOP, names=("observed", "expected", "O/E")
+            ),
         )
 
 

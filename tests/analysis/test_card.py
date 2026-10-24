@@ -108,14 +108,16 @@ def test_top_teams_rank_by_the_distance_from_the_league(round_robin: pd.DataFram
     quantity = ("goals_for", "one", "goals scored", "count")
     _, result = units.within_row(rows, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity)
 
-    table = card.top_teams(rows, result.values, top=3)
+    table = card.top_teams(rows, result.part_values_df, top=3)
 
     assert len(table) == 3
     distances = table["shrunk - league"].tolist()
     assert distances == sorted(distances, reverse=True)
     assert set(table.columns) >= {"team_name", "league_name", "rate", "league", "shrunk"}
 
-    renamed = card.top_teams(rows, result.values, top=3, names=("observed", "expected", "O/E"))
+    renamed = card.top_teams(
+        rows, result.part_values_df, top=3, names=("observed", "expected", "O/E")
+    )
     assert "O/E" in renamed.columns
 
 

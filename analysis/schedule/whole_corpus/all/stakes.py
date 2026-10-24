@@ -101,7 +101,7 @@ def mh_row(label: str, states: pd.DataFrame) -> dict[str, object]:
         "MH OR": result.odds_ratio,
         "low": result.low,
         "high": result.high,
-        "CMH p": result.p,
+        "CMH p": result.p_value,
         "strata": result.strata,
     }
 

@@ -78,15 +78,15 @@ def test_observed_expected_table_has_one_row_per_comparison(
 
 def test_equal_units_show_no_heterogeneity() -> None:
     het = stats.heterogeneity(pd.Series([0.5, 0.5, 0.5]), pd.Series([0.01, 0.02, 0.04]))
-    assert (het.q, het.df, het.tau2) == (0.0, 2, 0.0)
-    assert het.p == pytest.approx(1.0)
+    assert (het.cochran_q, het.degrees_of_freedom, het.tau_squared) == (0.0, 2, 0.0)
+    assert het.p_value == pytest.approx(1.0)
     assert het.pooled == pytest.approx(0.5)
 
 
 def test_spread_units_show_heterogeneity() -> None:
     het = stats.heterogeneity(pd.Series([0.0, 1.0, 2.0]), pd.Series([0.01, 0.01, 0.01]))
-    assert het.p < 1e-6
-    assert het.tau2 > 0
+    assert het.p_value < 1e-6
+    assert het.tau_squared > 0
 
 
 def test_detectable_tau_matches_the_closed_form_for_equal_variances() -> None:
@@ -115,13 +115,17 @@ def test_detectable_tau_grows_with_the_noise() -> None:
 
 
 def test_shrink_without_spread_gives_the_pooled_mean() -> None:
-    het = stats.Heterogeneity(q=0.0, df=1, p=1.0, tau2=0.0, pooled=0.3)
+    het = stats.Heterogeneity(
+        cochran_q=0.0, degrees_of_freedom=1, p_value=1.0, tau_squared=0.0, pooled=0.3
+    )
     shrunk = stats.shrink(pd.Series([0.2, 0.4]), pd.Series([0.01, 0.01]), het)
     assert shrunk.tolist() == pytest.approx([0.3, 0.3])
 
 
 def test_shrink_keeps_a_precise_unit_near_its_own_mean() -> None:
-    het = stats.Heterogeneity(q=0.0, df=1, p=1.0, tau2=0.01, pooled=0.3)
+    het = stats.Heterogeneity(
+        cochran_q=0.0, degrees_of_freedom=1, p_value=1.0, tau_squared=0.01, pooled=0.3
+    )
     shrunk = stats.shrink(pd.Series([0.2, 0.4]), pd.Series([1e-9, 1.0]), het)
     assert shrunk[0] == pytest.approx(0.2, abs=1e-6)
     assert abs(shrunk[1] - 0.3) < abs(0.4 - 0.3)
@@ -167,7 +171,7 @@ def test_the_cmh_test_of_one_table_is_pearsons_scaled_by_n_minus_one() -> None:
     n = a + b + c + d
     pearson = n * (a * d - b * c) ** 2 / ((a + b) * (c + d) * (a + c) * (b + d))
     result = _mh(_flagged_rows([("s", a, b, c, d)]))
-    assert result.p == pytest.approx(float(chi2.sf(pearson * (n - 1) / n, 1)))
+    assert result.p_value == pytest.approx(float(chi2.sf(pearson * (n - 1) / n, 1)))
 
 
 def test_mantel_haenszel_pools_strata_that_share_one_odds_ratio() -> None:

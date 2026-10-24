@@ -41,63 +41,65 @@ def match_variance(
     raise ValueError(f"unknown kind {kind!r}")
 
 
-def dispersion(frame: pd.DataFrame, unit: str, observed: str, expected: str, kind: str) -> float:
+def dispersion(df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str) -> float:
     """How far the matches spread around their unit's value, against what the kind says.
 
     The squared residuals around each unit's own value, summed, over the summed variance
     that the kind gives at that value. 1 means that the kind's variance fits the matches.
     """
-    sums = frame.groupby(unit)[[observed, expected]].transform("sum")
-    own = sums[observed] / sums[expected]
-    residual = frame[observed] - own * frame[expected]
-    return float((residual**2).sum() / match_variance(kind, own, frame[expected]).sum())
+    sums_df = df.groupby(unit)[[observed, expected]].transform("sum")
+    own = sums_df[observed] / sums_df[expected]
+    residual = df[observed] - own * df[expected]
+    return float((residual**2).sum() / match_variance(kind, own, df[expected]).sum())
 
 
 def unit_values(
-    frame: pd.DataFrame,
+    df: pd.DataFrame,
     unit: str,
     observed: str,
     expected: str,
     kind: str,
-    phi: float = 1.0,
+    dispersion_factor: float = 1.0,
     within: str | None = None,
 ) -> pd.DataFrame:
     """Per unit: the two sums, their ratio (`value`), and its variance if all were equal.
 
     The variance is that of the value under one pooled value for every unit, sum(observed)
-    / sum(expected) over all matches, times the dispersion `phi`. With `within` (such as the
+    / sum(expected) over all matches, times the `dispersion_factor`. With `within` (such as the
     league of a team), each match takes the pooled value of its `within` group instead.
     """
     if within is None:
-        null: float | pd.Series[float] = float(frame[observed].sum() / frame[expected].sum())
+        null: float | pd.Series[float] = float(df[observed].sum() / df[expected].sum())
     else:
-        sums = frame.groupby(within)[[observed, expected]].transform("sum")
-        null = sums[observed] / sums[expected]
+        sums_df = df.groupby(within)[[observed, expected]].transform("sum")
+        null = sums_df[observed] / sums_df[expected]
 
-    parts = pd.DataFrame(
+    parts_df = pd.DataFrame(
         {
-            "observed": frame[observed],
-            "expected": frame[expected],
-            "variance": phi * match_variance(kind, null, frame[expected]),
+            "observed": df[observed],
+            "expected": df[expected],
+            "variance": dispersion_factor * match_variance(kind, null, df[expected]),
         }
     )
 
-    values = parts.groupby(frame[unit]).sum()
-    values["value"] = values["observed"] / values["expected"]
-    values["variance"] = values["variance"] / values["expected"] ** 2
+    unit_values_df = parts_df.groupby(df[unit]).sum()
+    unit_values_df["value"] = unit_values_df["observed"] / unit_values_df["expected"]
+    unit_values_df["variance"] = unit_values_df["variance"] / unit_values_df["expected"] ** 2
 
-    return values
+    return unit_values_df
 
 
 def tested(
-    frame: pd.DataFrame, unit: str, observed: str, expected: str, kind: str
+    df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str
 ) -> tuple[pd.DataFrame, stats.Heterogeneity, float]:
     """The unit values with their shrunk values, the one test, and the dispersion used."""
-    phi = dispersion(frame, unit, observed, expected, kind)
-    values = unit_values(frame, unit, observed, expected, kind, phi)
-    het = stats.heterogeneity(values["value"], values["variance"])
-    values["shrunk"] = stats.shrink(values["value"], values["variance"], het)
-    return values, het, phi
+    dispersion_factor = dispersion(df, unit, observed, expected, kind)
+    unit_values_df = unit_values(df, unit, observed, expected, kind, dispersion_factor)
+    het = stats.heterogeneity(unit_values_df["value"], unit_values_df["variance"])
+    unit_values_df["shrunk"] = stats.shrink(
+        unit_values_df["value"], unit_values_df["variance"], het
+    )
+    return unit_values_df, het, dispersion_factor
 
 
 def luck_line(
@@ -115,20 +117,20 @@ def luck_line(
 
 
 def cohort_values(
-    frame: pd.DataFrame, unit: str, observed: str, expected: str, against: str | None = None
+    df: pd.DataFrame, unit: str, observed: str, expected: str, against: str | None = None
 ) -> pd.DataFrame:
     """The unit values of each season cohort, one column per cohort, for the units in both.
 
     With `against` (such as the league of a team), each value is taken relative to the value
     of its `against` group in the same cohort.
     """
-    sums = frame.groupby([unit, "season_cohort"])[[observed, expected]].sum()
-    values = sums[observed] / sums[expected]
+    sums_df = df.groupby([unit, "season_cohort"])[[observed, expected]].sum()
+    values = sums_df[observed] / sums_df[expected]
 
     if against is not None:
-        group_sums = frame.groupby([against, "season_cohort"])[[observed, expected]].sum()
-        group_values = group_sums[observed] / group_sums[expected]
-        owner = frame.groupby(unit)[against].first()
+        group_sums_df = df.groupby([against, "season_cohort"])[[observed, expected]].sum()
+        group_values = group_sums_df[observed] / group_sums_df[expected]
+        owner = df.groupby(unit)[against].first()
         units, cohorts = values.index.get_level_values(0), values.index.get_level_values(1)
         keys = list(zip(owner.loc[units], cohorts, strict=True))
         values = values - group_values.loc[keys].to_numpy()
@@ -137,25 +139,27 @@ def cohort_values(
 
 
 def cohort_agreement(
-    frame: pd.DataFrame, unit: str, observed: str, expected: str
+    df: pd.DataFrame, unit: str, observed: str, expected: str
 ) -> tuple[float, int]:
     """Spearman correlation of the unit values between the two season cohorts, and its n."""
-    values = cohort_values(frame, unit, observed, expected)
-    return float(values.iloc[:, 0].corr(values.iloc[:, 1], method="spearman")), len(values)
+    cohort_values_df = cohort_values(df, unit, observed, expected)
+    return float(
+        cohort_values_df.iloc[:, 0].corr(cohort_values_df.iloc[:, 1], method="spearman")
+    ), len(cohort_values_df)
 
 
 def repeat_test(
-    frame: pd.DataFrame, unit: str, observed: str, expected: str, against: str
+    df: pd.DataFrame, unit: str, observed: str, expected: str, against: str
 ) -> tuple[float, int, float]:
     """The repeat test: does a unit's value in one season cohort predict its value in the
     other, both relative to its `against` group? Spearman's r, its n, and the p of r = 0."""
-    values = cohort_values(frame, unit, observed, expected, against)
-    result = spearmanr(values.iloc[:, 0], values.iloc[:, 1])
-    return float(result.statistic), len(values), float(result.pvalue)
+    cohort_values_df = cohort_values(df, unit, observed, expected, against)
+    result = spearmanr(cohort_values_df.iloc[:, 0], cohort_values_df.iloc[:, 1])
+    return float(result.statistic), len(cohort_values_df), float(result.pvalue)
 
 
 def summary_row(
-    frame: pd.DataFrame, unit: str, quantity: tuple[str, str, str, str], luck: bool = False
+    df: pd.DataFrame, unit: str, quantity: tuple[str, str, str, str], luck: bool = False
 ) -> tuple[dict[str, float | str], pd.DataFrame]:
     """One quantity's test as a row of the summary, and its unit values.
 
@@ -163,51 +167,51 @@ def summary_row(
     Poisson draws, so ask for it only for counts and rare events.
     """
     observed, expected, label, kind = quantity
-    values, het, phi = tested(frame, unit, observed, expected, kind)
+    unit_values_df, het, dispersion_factor = tested(df, unit, observed, expected, kind)
 
-    pooled = float(values["observed"].sum() / values["expected"].sum())
-    low, high = luck_line(values["expected"], pooled) if luck else (np.nan, np.nan)
-    r, n = cohort_agreement(frame, unit, observed, expected)
-    tau, found = het.tau2**0.5, stats.detectable_tau(values["variance"])
+    pooled = float(unit_values_df["observed"].sum() / unit_values_df["expected"].sum())
+    low, high = luck_line(unit_values_df["expected"], pooled) if luck else (np.nan, np.nan)
+    cohort_correlation, cohort_count = cohort_agreement(df, unit, observed, expected)
+    between_unit_sd, found = het.tau_squared**0.5, stats.detectable_tau(unit_values_df["variance"])
 
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
-        "dispersion": phi,
-        "Q": het.q,
-        "p": f"{het.p:.3g}",
-        "tau": tau,
-        "tau/pooled": tau / pooled,
+        "dispersion": dispersion_factor,
+        "Q": het.cochran_q,
+        "p": f"{het.p_value:.3g}",
+        "tau": between_unit_sd,
+        "tau/pooled": between_unit_sd / pooled,
         "found 80%": found,
         "found/pooled": found / pooled,
-        "raw min": float(values["value"].min()),
-        "raw max": float(values["value"].max()),
+        "raw min": float(unit_values_df["value"].min()),
+        "raw max": float(unit_values_df["value"].max()),
         "luck min": low,
         "luck max": high,
-        "shrunk min": float(values["shrunk"].min()),
-        "shrunk median": float(values["shrunk"].median()),
-        "shrunk max": float(values["shrunk"].max()),
-        "cohorts r": r,
-        "cohorts n": float(n),
+        "shrunk min": float(unit_values_df["shrunk"].min()),
+        "shrunk median": float(unit_values_df["shrunk"].median()),
+        "shrunk max": float(unit_values_df["shrunk"].max()),
+        "cohorts r": cohort_correlation,
+        "cohorts n": float(cohort_count),
     }
 
-    return row, values
+    return row, unit_values_df
 
 
 @dataclass(frozen=True)
 class Within:
     """One test of the parts of each unit around the unit's own value, pooled over the units."""
 
-    values: pd.DataFrame  # per part: the sums, value, variance, owner, owner_mean, shrunk
-    q: float
-    df: int
-    p: float
-    tau2: float  # the variance of the parts inside a unit, pooled over the units
+    part_values_df: pd.DataFrame  # per part: the sums, value, variance, owner, owner_mean, shrunk
+    cochran_q: float
+    degrees_of_freedom: int
+    p_value: float
+    tau_squared: float  # the variance of the parts inside a unit, pooled over the units
     scale: float  # tau^2 = (Q - df) / scale, the method of moments (DerSimonian-Laird)
 
 
 def within_tested(
-    frame: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
+    df: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
 ) -> Within:
     """Do the parts of a unit (its seasons, or its teams) differ by more than noise?
 
@@ -216,42 +220,55 @@ def within_tested(
     unit. tau^2 comes from the summed Q (DerSimonian-Laird), and each part is shrunk toward
     the mean of its unit.
     """
-    phi = dispersion(frame, part, observed, expected, kind)
-    values = unit_values(frame, part, observed, expected, kind, phi, within=unit)
-    values["owner"] = frame.groupby(part)[unit].first()
+    dispersion_factor = dispersion(df, part, observed, expected, kind)
+    part_values_df = unit_values(df, part, observed, expected, kind, dispersion_factor, within=unit)
+    part_values_df["owner"] = df.groupby(part)[unit].first()
 
     # A part that expects nothing, or of a unit with no events, tells nothing: it leaves the
     # test, with its degree of freedom.
-    values = values[(values["expected"] > 0) & (values["variance"] > 0)].copy()
+    part_values_df = part_values_df[
+        (part_values_df["expected"] > 0) & (part_values_df["variance"] > 0)
+    ].copy()
 
-    weights = 1.0 / values["variance"]
-    by_owner = values["owner"]
+    weights = 1.0 / part_values_df["variance"]
+    by_owner = part_values_df["owner"]
     weight_sums = weights.groupby(by_owner).transform("sum")
-    values["owner_mean"] = (weights * values["value"]).groupby(by_owner).transform("sum") / (
-        weight_sums
+    part_values_df["owner_mean"] = (weights * part_values_df["value"]).groupby(by_owner).transform(
+        "sum"
+    ) / (weight_sums)
+
+    cochran_q = float(
+        (weights * (part_values_df["value"] - part_values_df["owner_mean"]) ** 2).sum()
+    )
+    degrees_of_freedom = len(part_values_df) - by_owner.nunique()
+    scale = float(weights.sum() - (weights**2 / weight_sums).sum())
+    tau_squared = max(0.0, (cochran_q - degrees_of_freedom) / scale) if scale > 0 else 0.0
+
+    keep = tau_squared / (tau_squared + part_values_df["variance"])
+    part_values_df["shrunk"] = part_values_df["owner_mean"] + keep * (
+        part_values_df["value"] - part_values_df["owner_mean"]
     )
 
-    q = float((weights * (values["value"] - values["owner_mean"]) ** 2).sum())
-    df = len(values) - by_owner.nunique()
-    scale = float(weights.sum() - (weights**2 / weight_sums).sum())
-    tau2 = max(0.0, (q - df) / scale) if scale > 0 else 0.0
-
-    keep = tau2 / (tau2 + values["variance"])
-    values["shrunk"] = values["owner_mean"] + keep * (values["value"] - values["owner_mean"])
-
-    return Within(values=values, q=q, df=df, p=float(chi2.sf(q, df)), tau2=tau2, scale=scale)
+    return Within(
+        part_values_df=part_values_df,
+        cochran_q=cochran_q,
+        degrees_of_freedom=degrees_of_freedom,
+        p_value=float(chi2.sf(cochran_q, degrees_of_freedom)),
+        tau_squared=tau_squared,
+        scale=scale,
+    )
 
 
 def within_test(
-    frame: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
+    df: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
 ) -> tuple[float, int, float]:
     """`within_tested`, as Q, its df and p only."""
-    result = within_tested(frame, unit, part, observed, expected, kind)
-    return result.q, result.df, result.p
+    result = within_tested(df, unit, part, observed, expected, kind)
+    return result.cochran_q, result.degrees_of_freedom, result.p_value
 
 
 def within_row(
-    frame: pd.DataFrame, unit: str, part: str, quantity: tuple[str, str, str, str]
+    df: pd.DataFrame, unit: str, part: str, quantity: tuple[str, str, str, str]
 ) -> tuple[dict[str, float | str], Within]:
     """One quantity's test of the parts around their unit (`within_tested`) as a row of a
     summary, and its result: the spread that the test finds at 80%, the median share that a
@@ -260,31 +277,33 @@ def within_row(
     `quantity` is (observed column, expected column, label, kind).
     """
     observed, expected, label, kind = quantity
-    result = within_tested(frame, unit, part, observed, expected, kind)
-    r, n, p = repeat_test(frame, part, observed, expected, unit)
+    result = within_tested(df, unit, part, observed, expected, kind)
+    repeat_correlation, repeat_count, repeat_p_value = repeat_test(
+        df, part, observed, expected, unit
+    )
 
-    values = result.values
-    pooled = float(values["observed"].sum() / values["expected"].sum())
-    against = values["shrunk"] - values["owner_mean"]
-    keep = result.tau2 / (result.tau2 + values["variance"])
-    found = stats.detectable_tau(values["variance"], groups=values["owner"])
+    part_values_df = result.part_values_df
+    pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
+    against = part_values_df["shrunk"] - part_values_df["owner_mean"]
+    keep = result.tau_squared / (result.tau_squared + part_values_df["variance"])
+    found = stats.detectable_tau(part_values_df["variance"], groups=part_values_df["owner"])
 
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
-        "Q": result.q,
-        "df": float(result.df),
-        "p": f"{result.p:.3g}",
-        "tau": result.tau2**0.5,
-        "tau/pooled": result.tau2**0.5 / pooled,
+        "Q": result.cochran_q,
+        "df": float(result.degrees_of_freedom),
+        "p": f"{result.p_value:.3g}",
+        "tau": result.tau_squared**0.5,
+        "tau/pooled": result.tau_squared**0.5 / pooled,
         "found 80%": found,
         "found/pooled": found / pooled,
         "keep median": float(keep.median()),
         "shrunk - league min": float(against.min()),
         "shrunk - league max": float(against.max()),
-        "repeat r": r,
-        "repeat n": float(n),
-        "repeat p": f"{p:.3g}",
+        "repeat r": repeat_correlation,
+        "repeat n": float(repeat_count),
+        "repeat p": f"{repeat_p_value:.3g}",
     }
 
     return row, result
@@ -293,21 +312,21 @@ def within_row(
 def within_luck_row(label: str, result: Within) -> dict[str, float | str]:
     """How far the raw part values reach, and how far they would reach by luck alone if every
     part had the value of its unit."""
-    values = result.values
-    low, high = luck_line(values["expected"], values["owner_mean"].to_numpy())
+    part_values_df = result.part_values_df
+    low, high = luck_line(part_values_df["expected"], part_values_df["owner_mean"].to_numpy())
 
     return {
         "quantity": label,
-        "events, median": float(values["observed"].median()),
-        "raw min": float(values["value"].min()),
-        "raw max": float(values["value"].max()),
+        "events, median": float(part_values_df["observed"].median()),
+        "raw min": float(part_values_df["value"].min()),
+        "raw max": float(part_values_df["value"].max()),
         "luck min": low,
         "luck max": high,
     }
 
 
 def null_q(
-    frame: pd.DataFrame,
+    df: pd.DataFrame,
     unit: str,
     part: str,
     quantity: tuple[str, str, str, str],
@@ -324,8 +343,8 @@ def null_q(
     if kind not in ("event", "count"):
         raise ValueError(f"no null draws for kind {kind!r}")
 
-    sums = frame.groupby(unit)[[observed, expected]].transform("sum")
-    means = (sums[observed] / sums[expected] * frame[expected]).to_numpy(dtype=float)
+    sums_df = df.groupby(unit)[[observed, expected]].transform("sum")
+    means = (sums_df[observed] / sums_df[expected] * df[expected]).to_numpy(dtype=float)
 
     rng = np.random.default_rng(seed)
     qs = []
@@ -335,14 +354,14 @@ def null_q(
         else:
             drawn = rng.poisson(means).astype(float)
 
-        drawn_frame = frame.assign(drawn=drawn)
-        qs.append(within_tested(drawn_frame, unit, part, "drawn", expected, kind).q)
+        drawn_df = df.assign(drawn=drawn)
+        qs.append(within_tested(drawn_df, unit, part, "drawn", expected, kind).cochran_q)
 
     return float(np.mean(qs)), float(np.std(qs))
 
 
 def permuted_qs(
-    frame: pd.DataFrame,
+    df: pd.DataFrame,
     unit: str,
     part: str,
     quantity: tuple[str, str, str, str],
@@ -362,8 +381,8 @@ def permuted_qs(
     rng = np.random.default_rng(seed)
     qs = []
     for _ in range(draws):
-        moved = frame.assign(**{part: shuffled_parts(frame[unit], frame[part], rng)})
-        qs.append(within_tested(moved, unit, part, observed, expected, kind).q)
+        shuffled_df = df.assign(**{part: shuffled_parts(df[unit], df[part], rng)})
+        qs.append(within_tested(shuffled_df, unit, part, observed, expected, kind).cochran_q)
 
     return np.asarray(qs)
 
@@ -385,7 +404,7 @@ def shuffled_parts(
     return moved
 
 
-def variance_share(frame: pd.DataFrame, observed: str, expected: str, tau2: float) -> float:
+def variance_share(df: pd.DataFrame, observed: str, expected: str, tau_squared: float) -> float:
     """The share of a match's variance that a spread tau^2 of the unit values makes.
 
     A unit's value scales the expected value of each of its matches, so a spread tau^2 of
@@ -393,13 +412,13 @@ def variance_share(frame: pd.DataFrame, observed: str, expected: str, tau2: floa
     over the matches that count (expected above 0), against the variance of their observed
     values.
     """
-    counted = frame[frame[expected] > 0]
-    spread = float(np.var(counted[observed].to_numpy(dtype=float), ddof=1))
-    return float(tau2 * (counted[expected] ** 2).mean() / spread)
+    counted_df = df[df[expected] > 0]
+    spread = float(np.var(counted_df[observed].to_numpy(dtype=float), ddof=1))
+    return float(tau_squared * (counted_df[expected] ** 2).mean() / spread)
 
 
 def level_row(
-    frame: pd.DataFrame,
+    df: pd.DataFrame,
     unit: str,
     part: str,
     quantity: tuple[str, str, str, str],
@@ -415,27 +434,29 @@ def level_row(
     match's variance (`variance_share`).
     """
     observed, expected, label, kind = quantity
-    result = within_tested(frame, unit, part, observed, expected, kind)
-    values = result.values
-    pooled = float(values["observed"].sum() / values["expected"].sum())
+    result = within_tested(df, unit, part, observed, expected, kind)
+    part_values_df = result.part_values_df
+    pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
 
-    qs = permuted_qs(frame, unit, part, quantity, draws)
+    qs = permuted_qs(df, unit, part, quantity, draws)
     null_mean = float(qs.mean())
-    tau2 = max(0.0, (result.q - null_mean) / result.scale) if result.scale > 0 else 0.0
-    found = stats.detectable_tau(values["variance"], groups=values["owner"])
+    tau_squared = (
+        max(0.0, (result.cochran_q - null_mean) / result.scale) if result.scale > 0 else 0.0
+    )
+    found = stats.detectable_tau(part_values_df["variance"], groups=part_values_df["owner"])
 
     return {
         "quantity": label,
-        "parts": float(len(values)),
+        "parts": float(len(part_values_df)),
         "pooled": pooled,
-        "Q": result.q,
-        "df": float(result.df),
-        "p chi2": f"{result.p:.3g}",
+        "Q": result.cochran_q,
+        "df": float(result.degrees_of_freedom),
+        "p chi2": f"{result.p_value:.3g}",
         "shuffled mean": null_mean,
         "shuffled sd": float(qs.std()),
-        "p": f"{(1 + (qs >= result.q).sum()) / (1 + draws):.3g}",
-        "tau/pooled": tau2**0.5 / pooled,
+        "p": f"{(1 + (qs >= result.cochran_q).sum()) / (1 + draws):.3g}",
+        "tau/pooled": tau_squared**0.5 / pooled,
         "found/pooled": found / pooled,
-        "share": variance_share(frame, observed, expected, tau2),
-        "found share": variance_share(frame, observed, expected, found**2),
+        "share": variance_share(df, observed, expected, tau_squared),
+        "found share": variance_share(df, observed, expected, found**2),
     }

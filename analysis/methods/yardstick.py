@@ -192,18 +192,18 @@ def htft_cells(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.D
     return pd.DataFrame({f"m_{name}": chance for name, chance in cells.items()})
 
 
-def first_half_share(matches: pd.DataFrame) -> float:
+def first_half_share(matches_df: pd.DataFrame) -> float:
     """The share of all goals that came in the first half: one number for every match."""
-    return float(matches["s2_goals_1h"].sum() / matches["s2_total_goals"].sum())
+    return float(matches_df["s2_goals_1h"].sum() / matches_df["s2_total_goals"].sum())
 
 
-def priced(matches: pd.DataFrame) -> pd.DataFrame:
+def priced(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The matches that have all three opening 1X2 prices and the opening O/U market."""
-    return matches.dropna(subset=[*shin.ODDS, *OU])
+    return matches_df.dropna(subset=[*shin.ODDS, *OU])
 
 
 def frame(
-    matches: pd.DataFrame,
+    matches_df: pd.DataFrame,
     grid: Grid,
     share: float | None = None,
     proportional: bool = False,
@@ -215,64 +215,68 @@ def frame(
     floats, so an observed count and an expected count add up the same way. `cluster` is
     the league-season.
     """
-    rows = priced(matches)
+    priced_df = priced(matches_df)
     if proportional:
-        probs = rows[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
+        probabilities_df = priced_df[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
     else:
-        probs = shin.shin_frame(rows)[shin.PROBS]
+        probabilities_df = shin.shin_frame(priced_df)[shin.PROBS]
 
-    lines = rows["s1_odds_ou_open_line"].to_numpy(dtype=float)
+    lines = priced_df["s1_odds_ou_open_line"].to_numpy(dtype=float)
     lam_home, lam_away, error = fit_rates(
         grid,
-        probs["shin_p_home"].to_numpy(dtype=float),
-        probs["shin_p_away"].to_numpy(dtype=float),
-        rows["s2_implied_over"].to_numpy(dtype=float),
+        probabilities_df["shin_p_home"].to_numpy(dtype=float),
+        probabilities_df["shin_p_away"].to_numpy(dtype=float),
+        priced_df["s2_implied_over"].to_numpy(dtype=float),
         lines,
     )
 
-    share = first_half_share(rows) if share is None else share
+    share = first_half_share(priced_df) if share is None else share
 
-    out = rows[shin.KEYS].copy()
-    out[shin.PROBS] = probs.to_numpy()
-    out["line"] = lines
-    out["lam_home"], out["lam_away"], out["fit_error"] = lam_home, lam_away, error
+    yardstick_df = priced_df[shin.KEYS].copy()
+    yardstick_df[shin.PROBS] = probabilities_df.to_numpy()
+    yardstick_df["line"] = lines
+    yardstick_df["lam_home"], yardstick_df["lam_away"], yardstick_df["fit_error"] = (
+        lam_home,
+        lam_away,
+        error,
+    )
 
-    model = implied(lam_home, lam_away, share)
-    out[model.columns] = model.to_numpy()
+    implied_df = implied(lam_home, lam_away, share)
+    yardstick_df[implied_df.columns] = implied_df.to_numpy()
 
-    ht_margin = (rows["s1_ht_home_goals"] - rows["s1_ht_away_goals"]).to_numpy()
-    out["m_completion"] = completion_given_ht(lam_home, lam_away, share, ht_margin)
+    ht_margin = (priced_df["s1_ht_home_goals"] - priced_df["s1_ht_away_goals"]).to_numpy()
+    yardstick_df["m_completion"] = completion_given_ht(lam_home, lam_away, share, ht_margin)
 
-    out = out.join(_outcomes(rows, ht_margin))
-    out["fav_p"] = out[["shin_p_home", "shin_p_away"]].max(axis=1)
-    out["fav_is_home"] = out["shin_p_home"] >= out["shin_p_away"]
-    out["cluster"] = rows["s1_league_id"].astype(str) + " " + rows["s1_season"]
+    yardstick_df = yardstick_df.join(_outcomes(priced_df, ht_margin))
+    yardstick_df["fav_p"] = yardstick_df[["shin_p_home", "shin_p_away"]].max(axis=1)
+    yardstick_df["fav_is_home"] = yardstick_df["shin_p_home"] >= yardstick_df["shin_p_away"]
+    yardstick_df["cluster"] = priced_df["s1_league_id"].astype(str) + " " + priced_df["s1_season"]
 
-    return out
+    return yardstick_df
 
 
-def _outcomes(rows: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
+def _outcomes(priced_df: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
     """The observed side of each comparison, as floats on the priced index."""
-    home, away = rows["s1_ft_home_goals"], rows["s1_ft_away_goals"]
-    out = pd.DataFrame(
+    home, away = priced_df["s1_ft_home_goals"], priced_df["s1_ft_away_goals"]
+    outcomes_df = pd.DataFrame(
         {
-            "is_comeback": rows["s2_is_comeback"],
-            "is_comeback_home": rows["s2_is_comeback_home"],
-            "is_comeback_away": rows["s2_is_comeback_away"],
-            "ht_decisive": rows["s2_ht_decisive"],
-            "seven": rows["s2_total_goals"] >= 7,
+            "is_comeback": priced_df["s2_is_comeback"],
+            "is_comeback_home": priced_df["s2_is_comeback_home"],
+            "is_comeback_away": priced_df["s2_is_comeback_away"],
+            "ht_decisive": priced_df["s2_ht_decisive"],
+            "seven": priced_df["s2_total_goals"] >= 7,
             "is00": (home == 0) & (away == 0),
             "is11": (home == 1) & (away == 1),
-            "goals": rows["s2_total_goals"],
-            "goals_1h": rows["s2_goals_1h"],
-            "goals_2h": rows["s2_goals_2h"],
+            "goals": priced_df["s2_total_goals"],
+            "goals_1h": priced_df["s2_goals_1h"],
+            "goals_2h": priced_df["s2_goals_2h"],
             "goals_home": home,
             "goals_away": away,
-            "goals_home_1h": rows["s1_ht_home_goals"],
-            "goals_away_1h": rows["s1_ht_away_goals"],
+            "goals_home_1h": priced_df["s1_ht_home_goals"],
+            "goals_away_1h": priced_df["s1_ht_away_goals"],
         },
-        index=rows.index,
+        index=priced_df.index,
     ).astype(float)
 
-    out["ht_margin"] = ht_margin
-    return out
+    outcomes_df["ht_margin"] = ht_margin
+    return outcomes_df

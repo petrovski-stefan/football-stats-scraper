@@ -55,8 +55,9 @@ def main() -> None:
 
         print(f"\n== {name} ({column})")
         print(
-            f"pooled {het.pooled:.6f}; Cochran's Q {het.q:.1f} on {het.df} df, "
-            f"p = {het.p:.3g}; tau {het.tau2**0.5:.6f}"
+            f"pooled {het.pooled:.6f}; Cochran's Q {het.cochran_q:.1f} on "
+            f"{het.degrees_of_freedom} df, "
+            f"p = {het.p_value:.3g}; tau {het.tau_squared**0.5:.6f}"
         )
         print(
             f"shrunk league values: min {shrunk.min():.6f}, median {shrunk.median():.6f}, "

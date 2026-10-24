@@ -41,32 +41,32 @@ ODDS_CARD = (
 )
 
 
-def card_frame(matches: pd.DataFrame) -> pd.DataFrame:
+def card_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """One row per match: the outcomes of the card as floats, the league-season and cohort."""
-    margin = matches["s1_ht_home_goals"] - matches["s1_ht_away_goals"]
+    margin = matches_df["s1_ht_home_goals"] - matches_df["s1_ht_away_goals"]
 
-    frame = pd.DataFrame(
+    card_df = pd.DataFrame(
         {
-            "is_comeback": matches["s2_is_comeback"],
-            "is_comeback_home": matches["s2_is_comeback_home"],
-            "is_comeback_away": matches["s2_is_comeback_away"],
-            "ht_decisive": matches["s2_ht_decisive"],
+            "is_comeback": matches_df["s2_is_comeback"],
+            "is_comeback_home": matches_df["s2_is_comeback_home"],
+            "is_comeback_away": matches_df["s2_is_comeback_away"],
+            "ht_decisive": matches_df["s2_ht_decisive"],
             "home_behind": margin < 0,
             "away_behind": margin > 0,
-            "seven": matches["s2_total_goals"] >= 7,
-            "goals": matches["s2_total_goals"],
-            "goals_1h": matches["s2_goals_1h"],
-            "goals_2h": matches["s2_goals_2h"],
+            "seven": matches_df["s2_total_goals"] >= 7,
+            "goals": matches_df["s2_total_goals"],
+            "goals_1h": matches_df["s2_goals_1h"],
+            "goals_2h": matches_df["s2_goals_2h"],
             "ht_deficit": margin.abs(),
         },
-        index=matches.index,
+        index=matches_df.index,
     ).astype(float)
 
-    frame["one"] = 1.0
-    frame["cluster"] = matches["s1_league_id"].astype(str) + " " + matches["s1_season"]
-    frame["season_cohort"] = matches["season_cohort"]
+    card_df["one"] = 1.0
+    card_df["cluster"] = matches_df["s1_league_id"].astype(str) + " " + matches_df["s1_season"]
+    card_df["season_cohort"] = matches_df["season_cohort"]
 
-    return frame
+    return card_df
 
 
 # The columns of `team_rows` that name the unit (a team in one league) and its league.
@@ -75,7 +75,7 @@ TEAM_LEAGUE = "league"
 
 
 def team_rows(
-    matches: pd.DataFrame,
+    matches_df: pd.DataFrame,
     extra: "dict[str, tuple[pd.Series[Any], pd.Series[Any]]] | None" = None,
 ) -> pd.DataFrame:
     """Two rows per match, one for each team: its venue, its two roles and its goals, its unit
@@ -83,15 +83,15 @@ def team_rows(
 
     The roles: the team comes back (behind at half-time, then wins), and the team loses a lead
     (ahead at half-time, then loses). `extra` adds columns, each given as (the value of the
-    home team, the value of the away team) on the index of `matches`.
+    home team, the value of the away team) on the index of `matches_df`.
     """
     sides = []
     for index, (side, other) in enumerate((("home", "away"), ("away", "home"))):
-        ht_for, ht_against = matches[f"s1_ht_{side}_goals"], matches[f"s1_ht_{other}_goals"]
-        ft_for, ft_against = matches[f"s1_ft_{side}_goals"], matches[f"s1_ft_{other}_goals"]
+        ht_for, ht_against = matches_df[f"s1_ht_{side}_goals"], matches_df[f"s1_ht_{other}_goals"]
+        ft_for, ft_against = matches_df[f"s1_ft_{side}_goals"], matches_df[f"s1_ft_{other}_goals"]
         behind, ahead = ht_for < ht_against, ht_for > ht_against
 
-        rows = pd.DataFrame(
+        side_rows_df = pd.DataFrame(
             {
                 "behind": behind,
                 "ahead": ahead,
@@ -100,92 +100,98 @@ def team_rows(
                 "goals_for": ft_for,
                 "goals_against": ft_against,
             },
-            index=matches.index,
+            index=matches_df.index,
         ).astype(float)
 
-        rows["home"] = 1.0 if side == "home" else 0.0
-        rows["team"] = matches[f"s1_{side}_team_id"]
-        rows["team_name"] = matches[f"s1_{side}_team_name"]
-        rows[TEAM_LEAGUE] = matches["s1_league_id"]
-        rows["league_name"] = matches["s1_league_name"]
-        rows["cluster"] = matches["s1_league_id"].astype(str) + " " + matches["s1_season"]
-        rows["season_cohort"] = matches["season_cohort"]
+        side_rows_df["home"] = 1.0 if side == "home" else 0.0
+        side_rows_df["team"] = matches_df[f"s1_{side}_team_id"]
+        side_rows_df["team_name"] = matches_df[f"s1_{side}_team_name"]
+        side_rows_df[TEAM_LEAGUE] = matches_df["s1_league_id"]
+        side_rows_df["league_name"] = matches_df["s1_league_name"]
+        side_rows_df["cluster"] = (
+            matches_df["s1_league_id"].astype(str) + " " + matches_df["s1_season"]
+        )
+        side_rows_df["season_cohort"] = matches_df["season_cohort"]
 
         for name, values in (extra or {}).items():
-            rows[name] = values[index]
+            side_rows_df[name] = values[index]
 
-        sides.append(rows)
+        sides.append(side_rows_df)
 
-    frame = pd.concat(sides, ignore_index=True)
-    frame["away"] = 1.0 - frame["home"]
-    frame["one"] = 1.0
+    team_rows_df = pd.concat(sides, ignore_index=True)
+    team_rows_df["away"] = 1.0 - team_rows_df["home"]
+    team_rows_df["one"] = 1.0
 
     for role in ("comes_back", "loses_lead"):
         for venue in ("home", "away"):
-            frame[f"{role}_{venue}"] = frame[role] * frame[venue]
+            team_rows_df[f"{role}_{venue}"] = team_rows_df[role] * team_rows_df[venue]
 
-    frame[TEAM_UNIT] = frame["team"].astype(str) + " " + frame[TEAM_LEAGUE].astype(str)
-    return frame
+    team_rows_df[TEAM_UNIT] = (
+        team_rows_df["team"].astype(str) + " " + team_rows_df[TEAM_LEAGUE].astype(str)
+    )
+    return team_rows_df
 
 
-def team_yardstick_rows(matches: pd.DataFrame, frame: pd.DataFrame) -> pd.DataFrame:
+def team_yardstick_rows(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """The team rows of the priced matches (`team_rows`), with the chances of the odds
-    yardstick for each team; `frame` is `analysis/methods/yardstick.py:frame` of the same
+    yardstick for each team; `yardstick_df` is `analysis/methods/yardstick.py:frame` of the same
     matches."""
     extra = {
-        "m_comes_back": (frame["m_cb_home"], frame["m_cb_away"]),
-        "m_loses_lead": (frame["m_cb_away"], frame["m_cb_home"]),
-        "m_behind": (frame["m_home_behind"], frame["m_away_behind"]),
-        "m_ahead": (frame["m_away_behind"], frame["m_home_behind"]),
-        "m_completion": (frame["m_completion"], frame["m_completion"]),
-        "m_goals_for": (frame["lam_home"], frame["lam_away"]),
-        "m_goals_against": (frame["lam_away"], frame["lam_home"]),
-        "win_chance": (frame["shin_p_home"], frame["shin_p_away"]),
+        "m_comes_back": (yardstick_df["m_cb_home"], yardstick_df["m_cb_away"]),
+        "m_loses_lead": (yardstick_df["m_cb_away"], yardstick_df["m_cb_home"]),
+        "m_behind": (yardstick_df["m_home_behind"], yardstick_df["m_away_behind"]),
+        "m_ahead": (yardstick_df["m_away_behind"], yardstick_df["m_home_behind"]),
+        "m_completion": (yardstick_df["m_completion"], yardstick_df["m_completion"]),
+        "m_goals_for": (yardstick_df["lam_home"], yardstick_df["lam_away"]),
+        "m_goals_against": (yardstick_df["lam_away"], yardstick_df["lam_home"]),
+        "win_chance": (yardstick_df["shin_p_home"], yardstick_df["shin_p_away"]),
     }
 
-    rows = team_rows(matches.loc[frame.index], extra)
+    team_rows_df = team_rows(matches_df.loc[yardstick_df.index], extra)
 
     # The yardstick's completion is the chance of the team behind, from the half-time score.
-    rows["m_wins_from_behind"] = rows["behind"] * rows["m_completion"]
-    rows["m_loses_from_ahead"] = rows["ahead"] * rows["m_completion"]
+    team_rows_df["m_wins_from_behind"] = team_rows_df["behind"] * team_rows_df["m_completion"]
+    team_rows_df["m_loses_from_ahead"] = team_rows_df["ahead"] * team_rows_df["m_completion"]
 
     for role in ("comes_back", "loses_lead"):
         for venue in ("home", "away"):
-            rows[f"m_{role}_{venue}"] = rows[f"m_{role}"] * rows[venue]
+            team_rows_df[f"m_{role}_{venue}"] = team_rows_df[f"m_{role}"] * team_rows_df[venue]
 
-    return rows
+    return team_rows_df
 
 
-def team_line(rows: pd.DataFrame) -> str:
+def team_line(team_rows_df: pd.DataFrame) -> str:
     """How many team units, leagues, team-matches and teams in two leagues the rows hold."""
-    in_two = int((rows.groupby("team")[TEAM_LEAGUE].nunique() > 1).sum())
+    in_two = int((team_rows_df.groupby("team")[TEAM_LEAGUE].nunique() > 1).sum())
     return (
-        f"{rows[TEAM_UNIT].nunique():,} team units (a team in one league) in "
-        f"{rows[TEAM_LEAGUE].nunique()} leagues; {len(rows):,} team-matches; "
+        f"{team_rows_df[TEAM_UNIT].nunique():,} team units (a team in one league) in "
+        f"{team_rows_df[TEAM_LEAGUE].nunique()} leagues; {len(team_rows_df):,} team-matches; "
         f"{in_two} teams in two leagues or more"
     )
 
 
 def top_teams(
-    rows: pd.DataFrame,
-    values: pd.DataFrame,
+    team_rows_df: pd.DataFrame,
+    unit_values_df: pd.DataFrame,
     top: int,
     names: tuple[str, str, str] = ("events", "of", "rate"),
 ) -> pd.DataFrame:
     """The teams most above their league after shrinkage, then by the raw value, with the
-    comebacks in all their matches. `values` are the team values of
+    comebacks in all their matches. `unit_values_df` holds the team values of
     `analysis/units.py:within_tested`; `names` label their observed, expected and value."""
-    team_names = rows.groupby(TEAM_UNIT)[["team_name", "league_name"]].first()
-    in_matches = rows.groupby(TEAM_UNIT)[["comes_back", "loses_lead"]].sum().sum(axis=1)
+    team_names_df = team_rows_df.groupby(TEAM_UNIT)[["team_name", "league_name"]].first()
+    in_matches = team_rows_df.groupby(TEAM_UNIT)[["comes_back", "loses_lead"]].sum().sum(axis=1)
 
-    table = team_names.join(values[["observed", "expected", "value", "owner_mean", "shrunk"]])
-    table["shrunk - league"] = table["shrunk"] - table["owner_mean"]
-    table["comebacks in its matches"] = in_matches
+    top_teams_df = team_names_df.join(
+        unit_values_df[["observed", "expected", "value", "owner_mean", "shrunk"]]
+    )
+    top_teams_df["shrunk - league"] = top_teams_df["shrunk"] - top_teams_df["owner_mean"]
+    top_teams_df["comebacks in its matches"] = in_matches
 
     observed, expected, value = names
-    table = table.rename(
+    top_teams_df = top_teams_df.rename(
         columns={"observed": observed, "expected": expected, "value": value, "owner_mean": "league"}
     )
 
     order = ["shrunk - league", value, "team_name"]
-    return table.sort_values(order, ascending=[False, False, True]).head(top)
+    return top_teams_df.sort_values(order, ascending=[False, False, True]).head(top)

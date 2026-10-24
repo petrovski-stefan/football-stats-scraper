@@ -56,7 +56,7 @@ def test_unit_values_are_ratios_of_sums(toy_frame: pd.DataFrame) -> None:
     pooled = 13 / 14.5
     assert values["variance"].tolist() == pytest.approx([pooled / 7, pooled / 7.5])
 
-    doubled = units.unit_values(toy_frame, UNIT, "goals", "m_goals", "count", phi=2.0)
+    doubled = units.unit_values(toy_frame, UNIT, "goals", "m_goals", "count", dispersion_factor=2.0)
     assert doubled["variance"].tolist() == pytest.approx((2 * values["variance"]).tolist())
 
 
@@ -67,7 +67,7 @@ def test_equal_units_show_no_spread_and_keep_the_pooled_value() -> None:
 
     values, het, phi = units.tested(frame, UNIT, "hit", "chance", "event")
 
-    assert (het.q, het.tau2) == pytest.approx((0.0, 0.0))
+    assert (het.cochran_q, het.tau_squared) == pytest.approx((0.0, 0.0))
     assert phi == pytest.approx(1.0)
     assert values["shrunk"].tolist() == pytest.approx([1.0, 1.0])
 
@@ -120,7 +120,7 @@ def seasons() -> pd.DataFrame:
 
 def test_within_tested_uses_each_units_value_and_shrinks_toward_it(seasons: pd.DataFrame) -> None:
     result = units.within_tested(seasons, UNIT, "part", "goals", "one", "count")
-    values = result.values
+    values = result.part_values_df
     phi = units.dispersion(seasons, "part", "goals", "one", "count")
 
     # Unit 1 has the value 2 and unit 2 the value 3.25; each part has 2 matches.
@@ -134,7 +134,7 @@ def test_within_tested_uses_each_units_value_and_shrinks_toward_it(seasons: pd.D
         shrunk = float(values.at[part, "shrunk"])
         assert min(raw, mean) - 1e-12 <= shrunk <= max(raw, mean) + 1e-12
 
-    assert result.tau2 >= 0.0
+    assert result.tau_squared >= 0.0
 
 
 def test_cohort_values_against_a_group_and_the_repeat_test() -> None:
@@ -181,7 +181,7 @@ def test_within_row_tests_the_teams_around_their_league(round_robin: pd.DataFram
     assert row["repeat n"] == 8.0
     assert isinstance(row["p"], str)
 
-    against = result.values["shrunk"] - result.values["owner_mean"]
+    against = result.part_values_df["shrunk"] - result.part_values_df["owner_mean"]
     assert float(row["shrunk - league min"]) == pytest.approx(against.min())
 
     luck = units.within_luck_row("goals scored", result)
@@ -224,9 +224,9 @@ def test_within_tested_leaves_out_the_parts_that_tell_nothing() -> None:
 
     result = units.within_tested(frame, UNIT, "part", "won", "behind", "event")
 
-    assert result.values.index.tolist() == ["1a", "1b"]
-    assert result.df == 1
-    assert np.isfinite(result.q)
+    assert result.part_values_df.index.tolist() == ["1a", "1b"]
+    assert result.degrees_of_freedom == 1
+    assert np.isfinite(result.cochran_q)
 
 
 def test_shuffled_parts_stay_inside_their_unit_and_keep_their_size() -> None:
@@ -257,7 +257,7 @@ def test_permuted_qs_fall_below_the_q_of_parts_that_really_differ() -> None:
 
     assert qs.shape == (30,)
 
-    real = units.within_tested(frame, UNIT, "part", "goals", "one", "count").q
+    real = units.within_tested(frame, UNIT, "part", "goals", "one", "count").cochran_q
     assert (qs < real).all()
 
 

@@ -3,7 +3,7 @@
 import pandas as pd
 
 
-def show(title: str, table: pd.DataFrame) -> None:
+def show(title: str, df: pd.DataFrame) -> None:
     """Print one table under a title, floats to 4 decimals."""
     print(f"\n== {title}")
-    print(table.to_string(index=False, float_format=lambda v: f"{v:.4f}"))
+    print(df.to_string(index=False, float_format=lambda value: f"{value:.4f}"))

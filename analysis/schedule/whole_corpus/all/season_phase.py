@@ -126,9 +126,9 @@ def phase_tests(frame: pd.DataFrame, phase: str) -> pd.DataFrame:
                     "quantity": label,
                     "reading": reading,
                     "dispersion": phi,
-                    "Q": het.q,
-                    "df": het.df,
-                    "p": f"{het.p:.3g}",
+                    "Q": het.cochran_q,
+                    "df": het.degrees_of_freedom,
+                    "p": f"{het.p_value:.3g}",
                 }
             )
 

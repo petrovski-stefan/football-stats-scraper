@@ -61,7 +61,7 @@ def main() -> None:
     for label in RANKED:
         report.show(
             f"Teams most above their league: {label}",
-            card.top_teams(rows, results[label].values, TOP),
+            card.top_teams(rows, results[label].part_values_df, TOP),
         )
 
 

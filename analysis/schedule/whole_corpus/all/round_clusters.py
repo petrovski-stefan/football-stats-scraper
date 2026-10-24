@@ -66,7 +66,7 @@ def largest_rounds(
     """The rounds with the largest part of Q against the odds: each round's squared distance
     from its league-season, over its variance (`units.within_tested`)."""
     observed, _, model, _, kind = quantity
-    values = units.within_tested(frame, LEAGUE_SEASON, ROUND, observed, model, kind).values
+    values = units.within_tested(frame, LEAGUE_SEASON, ROUND, observed, model, kind).part_values_df
 
     rounds = frame.groupby(ROUND)
     table = pd.DataFrame(

@@ -32,38 +32,38 @@ def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float
     return p_home, p_draw, p_away, result.z
 
 
-def shin_frame(matches: pd.DataFrame) -> pd.DataFrame:
+def shin_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Shin's probabilities (`PROBS`) and `shin_z`, one row per match, on the same index."""
-    rows = [shin_row(*map(float, prices)) for prices in matches[ODDS].itertuples(index=False)]
-    return pd.DataFrame(rows, columns=[*PROBS, "shin_z"], index=matches.index)
+    rows = [shin_row(*map(float, prices)) for prices in matches_df[ODDS].itertuples(index=False)]
+    return pd.DataFrame(rows, columns=[*PROBS, "shin_z"], index=matches_df.index)
 
 
-def scored(matches: pd.DataFrame) -> pd.DataFrame:
+def scored(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Every match with all three opening 1X2 prices, scored on its full-time result.
 
     Per match: the keys, the prices, both methods' probabilities, z, the bookmaker's margin,
     each method's log loss and Brier score, and Shin's gain over proportional (proportional
     loss minus Shin loss: above 0 means Shin scored better). `cluster` is the league-season.
     """
-    priced = matches.dropna(subset=ODDS)
-    frame = pd.concat([priced[KEYS + ODDS + PROPORTIONAL], shin_frame(priced)], axis=1)
-    frame["margin"] = (1.0 / priced[ODDS]).sum(axis=1) - 1.0
-    frame["outcome"] = corpus.outcome_1x2(priced)
+    priced_df = matches_df.dropna(subset=ODDS)
+    scored_df = pd.concat([priced_df[KEYS + ODDS + PROPORTIONAL], shin_frame(priced_df)], axis=1)
+    scored_df["margin"] = (1.0 / priced_df[ODDS]).sum(axis=1) - 1.0
+    scored_df["outcome"] = corpus.outcome_1x2(priced_df)
 
-    result = frame["outcome"].to_numpy()
+    result = scored_df["outcome"].to_numpy()
     for name, columns in (("prop", PROPORTIONAL), ("shin", PROBS)):
-        probs = frame[columns].to_numpy()
-        frame[f"ll_{name}"] = stats.log_loss_1x2(probs, result)
-        frame[f"brier_{name}"] = stats.brier_1x2(probs, result)
+        probs = scored_df[columns].to_numpy()
+        scored_df[f"ll_{name}"] = stats.log_loss_1x2(probs, result)
+        scored_df[f"brier_{name}"] = stats.brier_1x2(probs, result)
 
-    frame["ll_gain"] = frame["ll_prop"] - frame["ll_shin"]
-    frame["brier_gain"] = frame["brier_prop"] - frame["brier_shin"]
-    frame["cluster"] = priced["s1_league_id"].astype(str) + " " + priced["s1_season"]
+    scored_df["ll_gain"] = scored_df["ll_prop"] - scored_df["ll_shin"]
+    scored_df["brier_gain"] = scored_df["brier_prop"] - scored_df["brier_shin"]
+    scored_df["cluster"] = priced_df["s1_league_id"].astype(str) + " " + priced_df["s1_season"]
 
-    return frame
+    return scored_df
 
 
-def outcome_rows(frame: pd.DataFrame) -> pd.DataFrame:
+def outcome_rows(scored_df: pd.DataFrame) -> pd.DataFrame:
     """Three rows per match of `scored`, one per outcome: its side, its price, both
     probabilities, if it happened, and the league-season."""
     codes = (corpus.HOME, corpus.DRAW, corpus.AWAY)
@@ -71,11 +71,11 @@ def outcome_rows(frame: pd.DataFrame) -> pd.DataFrame:
         pd.DataFrame(
             {
                 "side": side,
-                "price": frame[odds].to_numpy(),
-                "prop": frame[prop].to_numpy(),
-                "shin": frame[shin_p].to_numpy(),
-                "hit": (frame["outcome"] == code).to_numpy(),
-                "cluster": frame["cluster"].to_numpy(),
+                "price": scored_df[odds].to_numpy(),
+                "prop": scored_df[prop].to_numpy(),
+                "shin": scored_df[shin_p].to_numpy(),
+                "hit": (scored_df["outcome"] == code).to_numpy(),
+                "cluster": scored_df["cluster"].to_numpy(),
             }
         )
         for side, code, odds, prop, shin_p in zip(
@@ -86,6 +86,6 @@ def outcome_rows(frame: pd.DataFrame) -> pd.DataFrame:
     return pd.concat(sides, ignore_index=True)
 
 
-def sum_error(frame: pd.DataFrame) -> float:
+def sum_error(scored_df: pd.DataFrame) -> float:
     """Largest distance of a match's Shin probabilities from summing to 1 (a convergence check)."""
-    return float(np.abs(frame[PROBS].sum(axis=1) - 1.0).max())
+    return float(np.abs(scored_df[PROBS].sum(axis=1) - 1.0).max())
