@@ -35,7 +35,7 @@ ORDERED_DF_COLUMNS = [
     "home_team_position",
     "away_team_position",
     "position_gap",
-    # Position in round: 1..matches_in_round by kickoff time. See domain/match.py for
+    # Position in round: 1..matches_in_round by kickoff time. See features/CLAUDE.md §6 for
     # why `match_index_in_round == 1` must not be read as "first match of the round".
     "match_index_in_round",
     "matches_in_round",

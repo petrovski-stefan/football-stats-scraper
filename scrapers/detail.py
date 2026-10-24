@@ -131,7 +131,7 @@ def enrich_league(
             continue
 
         # Append each row immediately so an interrupted run stays resumable;
-        # the lock serializes writes since all workers share one CSV per league.
+        # the lock serialises writes since all workers share one CSV per league.
         with csv_lock:
             append_rows([row], detail_path, DETAIL_ORDERED_COLUMNS)
 

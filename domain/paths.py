@@ -90,7 +90,7 @@ def _stem(base_path: str) -> str:
 def split_league_season(path: str) -> tuple[str, str]:
     """`data/raw/norway_eliteserien_2025.csv` -> `("norway_eliteserien", "2025")`.
 
-    The inverse of the name `scrapers/csv_io.py:league_csv_path` builds. Never do this by
+    The inverse of the `<league>_<season>` part that `schedule_path` builds. Never do this by
     fixed-width slicing: a season label is 9 characters for a cross-year league but 4 for
     a calendar-year one, so a hardcoded width eats into the league name instead —
     `norway_eliteserien_2025` sliced at 9 yields `("norway_elites", "rien_2025")`.
