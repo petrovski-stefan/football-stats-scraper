@@ -49,26 +49,32 @@ FAV_EDGES = (0.0, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 1.0)
 
 
 def banded(
-    frame: pd.DataFrame,
+    yardstick_df: pd.DataFrame,
     column: str,
     edges: tuple[float, ...],
     rows: tuple[tuple[str, str, str], ...],
 ) -> pd.DataFrame:
     """The same rows inside each band of `column`."""
-    bands = pd.cut(frame[column], edges)
+    bands = pd.cut(yardstick_df[column], edges)
     table = [
-        {"band": str(band), "quantity": label, **stats.observed_expected(group, o, e)}
-        for band, group in frame.groupby(bands, observed=True)
-        for o, e, label in rows
+        {
+            "band": str(band),
+            "quantity": label,
+            **stats.observed_expected(band_df, observed_column, expected_column),
+        }
+        for band, band_df in yardstick_df.groupby(bands, observed=True)
+        for observed_column, expected_column, label in rows
     ]
     return pd.DataFrame(table)
 
 
-def trailer_splits(frame: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
+def trailer_splits(yardstick_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     """Masks over the decisive half-times: who is behind, by how much, and where."""
-    margin = frame["ht_margin"]
+    margin = yardstick_df["ht_margin"]
     home_behind, away_behind = margin < 0, margin > 0
-    fav_behind = (home_behind & frame["fav_is_home"]) | (away_behind & ~frame["fav_is_home"])
+    fav_behind = (home_behind & yardstick_df["fav_is_home"]) | (
+        away_behind & ~yardstick_df["fav_is_home"]
+    )
     decisive = home_behind | away_behind
 
     return {
@@ -81,37 +87,43 @@ def trailer_splits(frame: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     }
 
 
-def excess_table(frame: pd.DataFrame) -> pd.DataFrame:
+def excess_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Completions observed against expected from the HT score, per trailer split."""
     table = [
-        {"split": name, **stats.observed_expected(frame[mask], "is_comeback", "m_completion")}
-        for name, mask in trailer_splits(frame).items()
+        {
+            "split": name,
+            **stats.observed_expected(yardstick_df[mask], "is_comeback", "m_completion"),
+        }
+        for name, mask in trailer_splits(yardstick_df).items()
     ]
     return pd.DataFrame(table)
 
 
-def side_goals(frame: pd.DataFrame) -> pd.DataFrame:
+def side_goals(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """The favourite's and the underdog's goals, in each half and in all."""
-    home = frame["fav_is_home"]
+    home = yardstick_df["fav_is_home"]
 
     return pd.DataFrame(
         {
-            "fav_1h": np.where(home, frame["goals_home_1h"], frame["goals_away_1h"]),
-            "fav": np.where(home, frame["goals_home"], frame["goals_away"]),
-            "dog_1h": np.where(home, frame["goals_away_1h"], frame["goals_home_1h"]),
-            "dog": np.where(home, frame["goals_away"], frame["goals_home"]),
-            "cluster": frame["cluster"],
+            "fav_1h": np.where(home, yardstick_df["goals_home_1h"], yardstick_df["goals_away_1h"]),
+            "fav": np.where(home, yardstick_df["goals_home"], yardstick_df["goals_away"]),
+            "dog_1h": np.where(home, yardstick_df["goals_away_1h"], yardstick_df["goals_home_1h"]),
+            "dog": np.where(home, yardstick_df["goals_away"], yardstick_df["goals_home"]),
+            "cluster": yardstick_df["cluster"],
         },
-        index=frame.index,
+        index=yardstick_df.index,
     )
 
 
-def pivot(frame: pd.DataFrame) -> pd.DataFrame:
+def pivot(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Comebacks by the favourite's win chance and the expected goals, both banded."""
-    keys = [pd.cut(frame["fav_p"], FAV_EDGES), pd.cut(frame["m_goals"], yardstick.TOTAL_EDGES)]
-    grouped = frame.groupby(keys, observed=True)
+    keys = [
+        pd.cut(yardstick_df["fav_p"], FAV_EDGES),
+        pd.cut(yardstick_df["m_goals"], yardstick.TOTAL_EDGES),
+    ]
+    grouped = yardstick_df.groupby(keys, observed=True)
 
-    table = pd.DataFrame(
+    pivot_df = pd.DataFrame(
         {
             "n": grouped.size(),
             "observed": grouped["is_comeback"].sum(),
@@ -119,68 +131,79 @@ def pivot(frame: pd.DataFrame) -> pd.DataFrame:
         }
     )
 
-    table["oe"] = table["observed"] / table["expected"]
-    return table.reset_index().rename(columns={"fav_p": "win chance", "m_goals": "expected goals"})
+    pivot_df["oe"] = pivot_df["observed"] / pivot_df["expected"]
+    return pivot_df.reset_index().rename(
+        columns={"fav_p": "win chance", "m_goals": "expected goals"}
+    )
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
     grid = yardstick.build_grid()
-    share = yardstick.first_half_share(yardstick.priced(matches))
-    frame = yardstick.frame(matches, grid, share=share)
-    print(f"Priced: {len(frame):,} of {len(matches):,} matches have both opening markets")
+    share = yardstick.first_half_share(yardstick.priced(matches_df))
+    yardstick_df = yardstick.frame(matches_df, grid, share=share)
+    print(f"Priced: {len(yardstick_df):,} of {len(matches_df):,} matches have both opening markets")
 
-    error = frame["fit_error"].quantile([0.5, 0.9, 0.99, 1.0])
+    error = yardstick_df["fit_error"].quantile([0.5, 0.9, 0.99, 1.0])
     print(
         "fit error (probability distance): "
         + ", ".join(f"q{q:g} {v:.4f}" for q, v in error.items())
     )
 
-    poor = frame[frame["fit_error"] > POOR_FIT].sort_values("fit_error", ascending=False)
-    print(f"fit error above {POOR_FIT}: {len(poor)} matches")
+    poor_fit_df = yardstick_df[yardstick_df["fit_error"] > POOR_FIT].sort_values(
+        "fit_error", ascending=False
+    )
+    print(f"fit error above {POOR_FIT}: {len(poor_fit_df)} matches")
     print(
-        poor[["match_id", "s1_league_name", "s1_season", "fit_error"]]
+        poor_fit_df[["match_id", "s1_league_name", "s1_season", "fit_error"]]
         .head(5)
         .to_string(index=False)
     )
 
     print(f"first-half share of goals: {share:.4f}")
     print(
-        f"observed mean goals per match: {frame['goals'].mean():.4f} (first half "
-        f"{frame['goals_1h'].mean():.4f}, second half {frame['goals_2h'].mean():.4f})"
+        f"observed mean goals per match: {yardstick_df['goals'].mean():.4f} (first half "
+        f"{yardstick_df['goals_1h'].mean():.4f}, second half {yardstick_df['goals_2h'].mean():.4f})"
     )
 
     report.show(
-        "Goals, observed / expected, all matches", stats.observed_expected_table(frame, GOALS)
+        "Goals, observed / expected, all matches",
+        stats.observed_expected_table(yardstick_df, GOALS),
     )
     report.show(
-        "Events, observed / expected, all matches", stats.observed_expected_table(frame, EVENTS)
+        "Events, observed / expected, all matches",
+        stats.observed_expected_table(yardstick_df, EVENTS),
     )
-    for cohort, group in frame.groupby("season_cohort"):
+    for cohort, cohort_df in yardstick_df.groupby("season_cohort"):
         report.show(
-            f"Events, season cohort {cohort} ({len(group):,} matches)",
-            stats.observed_expected_table(group, EVENTS),
+            f"Events, season cohort {cohort} ({len(cohort_df):,} matches)",
+            stats.observed_expected_table(cohort_df, EVENTS),
         )
         report.show(
-            f"Goals, season cohort {cohort}", stats.observed_expected_table(group, GOALS[:1])
+            f"Goals, season cohort {cohort}", stats.observed_expected_table(cohort_df, GOALS[:1])
         )
 
-    report.show("By the favourite's win chance (Shin)", banded(frame, "fav_p", FAV_EDGES, BANDED))
     report.show(
-        "By expected goals per match", banded(frame, "m_goals", yardstick.TOTAL_EDGES, BANDED)
+        "By the favourite's win chance (Shin)", banded(yardstick_df, "fav_p", FAV_EDGES, BANDED)
     )
-    report.show("Where the comeback excess sits (decisive half-times only)", excess_table(frame))
-    report.show("Comebacks by win chance and expected goals", pivot(frame))
+    report.show(
+        "By expected goals per match",
+        banded(yardstick_df, "m_goals", yardstick.TOTAL_EDGES, BANDED),
+    )
+    report.show(
+        "Where the comeback excess sits (decisive half-times only)", excess_table(yardstick_df)
+    )
+    report.show("Comebacks by win chance and expected goals", pivot(yardstick_df))
 
-    sides = side_goals(frame)
+    side_goals_df = side_goals(yardstick_df)
     report.show(
         "First-half share of each side's goals",
         pd.DataFrame(
             [
-                {"side": "favourite", **stats.observed_expected(sides, "fav_1h", "fav")},
-                {"side": "underdog", **stats.observed_expected(sides, "dog_1h", "dog")},
+                {"side": "favourite", **stats.observed_expected(side_goals_df, "fav_1h", "fav")},
+                {"side": "underdog", **stats.observed_expected(side_goals_df, "dog_1h", "dog")},
             ]
         ),
     )
@@ -188,33 +211,33 @@ def main() -> None:
         "First-half share per season cohort",
         pd.DataFrame(
             [
-                {"cohort": cohort, **stats.observed_expected(group, "goals_1h", "goals")}
-                for cohort, group in frame.groupby("season_cohort")
+                {"cohort": cohort, **stats.observed_expected(cohort_df, "goals_1h", "goals")}
+                for cohort, cohort_df in yardstick_df.groupby("season_cohort")
             ]
         ),
     )
 
     rows = []
     for shift in (-SHARE_SHIFT, 0.0, SHARE_SHIFT):
-        model = yardstick.implied(
-            frame["lam_home"].to_numpy(), frame["lam_away"].to_numpy(), share + shift
+        implied_df = yardstick.implied(
+            yardstick_df["lam_home"].to_numpy(), yardstick_df["lam_away"].to_numpy(), share + shift
         )
 
-        expected = float(model["m_cb"].sum())
+        expected = float(implied_df["m_cb"].sum())
         rows.append(
             {
                 "share": share + shift,
                 "expected comebacks": expected,
-                "oe": frame["is_comeback"].sum() / expected,
+                "oe": yardstick_df["is_comeback"].sum() / expected,
             }
         )
 
     report.show("Comebacks under other first-half shares", pd.DataFrame(rows))
 
-    flat = yardstick.frame(matches, grid, share=share, proportional=True)
+    proportional_df = yardstick.frame(matches_df, grid, share=share, proportional=True)
     report.show(
         "Proportional margin removal in place of Shin",
-        stats.observed_expected_table(flat, EVENTS[:1] + EVENTS[5:6]),
+        stats.observed_expected_table(proportional_df, EVENTS[:1] + EVENTS[5:6]),
     )
 
 

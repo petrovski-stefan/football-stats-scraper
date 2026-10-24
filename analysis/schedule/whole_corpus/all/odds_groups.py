@@ -38,25 +38,25 @@ COHORT_FLOOR = 3.0  # the expected events a group needs in each cohort to be car
 TOP_SHARE = 0.2  # the share of groups chosen in one cohort
 
 
-def group_frame(matches: pd.DataFrame, model: pd.DataFrame) -> pd.DataFrame:
+def group_frame(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """The matches of the yardstick's frame that also have an AH market: their outcomes, the
     yardstick's chances, the league-season, cohort and league, the prices that the groupings
     read, and one group id per grouping."""
-    keys = matches.loc[model.index]
-    keys = keys[keys[corpus.AH].notna().all(axis=1)].copy()
-    keys["p_home_band"] = (keys["s2_mkt_p_home"] / BAND).round()
-    keys["p_away_band"] = (keys["s2_mkt_p_away"] / BAND).round()
+    ah_matches_df = matches_df.loc[yardstick_df.index]
+    ah_matches_df = ah_matches_df[ah_matches_df[corpus.AH].notna().all(axis=1)].copy()
+    ah_matches_df["p_home_band"] = (ah_matches_df["s2_mkt_p_home"] / BAND).round()
+    ah_matches_df["p_away_band"] = (ah_matches_df["s2_mkt_p_away"] / BAND).round()
 
     columns = [column for observed, expected, _ in QUANTITIES for column in (observed, expected)]
-    out = model.loc[keys.index, [*columns, "cluster"]].copy()
-    out["season_cohort"] = keys["season_cohort"]
-    out["league"] = keys["s1_league_name"]
-    out[KEY_COLUMNS] = keys[KEY_COLUMNS]
+    grouped_matches_df = yardstick_df.loc[ah_matches_df.index, [*columns, "cluster"]].copy()
+    grouped_matches_df["season_cohort"] = ah_matches_df["season_cohort"]
+    grouped_matches_df["league"] = ah_matches_df["s1_league_name"]
+    grouped_matches_df[KEY_COLUMNS] = ah_matches_df[KEY_COLUMNS]
 
     for name, by in GROUPINGS:
-        out[name] = keys.groupby(by, sort=False, dropna=False).ngroup()
+        grouped_matches_df[name] = ah_matches_df.groupby(by, sort=False, dropna=False).ngroup()
 
-    return out
+    return grouped_matches_df
 
 
 def null_chance(events: "pd.Series[float]", expected: "pd.Series[float]") -> np.ndarray:
@@ -64,11 +64,11 @@ def null_chance(events: "pd.Series[float]", expected: "pd.Series[float]") -> np.
     return np.asarray(expected * events.sum() / expected.sum(), dtype=float)
 
 
-def group_sizes(frame: pd.DataFrame) -> pd.DataFrame:
+def group_sizes(grouped_matches_df: pd.DataFrame) -> pd.DataFrame:
     """Per grouping: how many groups, how many hold 2 or more matches, and their matches."""
     rows = []
     for name, _ in GROUPINGS:
-        sizes = frame[name].value_counts()
+        sizes = grouped_matches_df[name].value_counts()
         shared = sizes[sizes >= 2]
         rows.append(
             {
@@ -108,7 +108,7 @@ def against_null(
     observed = group_stats(groups, events, expected)
 
     rng = np.random.default_rng(seed)
-    null = pd.DataFrame(
+    null_df = pd.DataFrame(
         [
             group_stats(groups, (rng.random(len(chance)) < chance).astype(float), expected)
             for _ in range(draws)
@@ -117,7 +117,7 @@ def against_null(
 
     rows = []
     for statistic, value in observed.items():
-        sims = null[statistic]
+        sims = null_df[statistic]
         extreme = sims <= value if statistic == SMALLEST_TAIL else sims >= value
 
         rows.append(
@@ -135,21 +135,21 @@ def against_null(
 
 
 def group_table(
-    frame: pd.DataFrame, grouping: str, observed: str, chance: np.ndarray
+    grouped_matches_df: pd.DataFrame, grouping: str, observed: str, chance: np.ndarray
 ) -> pd.DataFrame:
     """Per group: its prices, its matches and events, the events that the null expects, the
     Poisson tail p of its count (the chance of at least that many), and its leagues."""
-    grouped = frame.assign(null=chance).groupby(grouping)
-    table = grouped[dict(GROUPINGS)[grouping]].first()
+    grouped = grouped_matches_df.assign(null=chance).groupby(grouping)
+    group_table_df = grouped[dict(GROUPINGS)[grouping]].first()
 
-    table["matches"] = grouped.size()
-    table["events"] = grouped[observed].sum()
-    table["expected"] = grouped["null"].sum()
-    table["tail p"] = poisson.sf(table["events"] - 1, table["expected"])
-    table["leagues"] = grouped["league"].nunique()
-    table["league names"] = grouped["league"].agg(_names)
+    group_table_df["matches"] = grouped.size()
+    group_table_df["events"] = grouped[observed].sum()
+    group_table_df["expected"] = grouped["null"].sum()
+    group_table_df["tail p"] = poisson.sf(group_table_df["events"] - 1, group_table_df["expected"])
+    group_table_df["leagues"] = grouped["league"].nunique()
+    group_table_df["league names"] = grouped["league"].agg(_names)
 
-    return table
+    return group_table_df
 
 
 def _names(leagues: "pd.Series[str]") -> str:
@@ -157,93 +157,99 @@ def _names(leagues: "pd.Series[str]") -> str:
     return ", ".join(sorted(set(leagues)))
 
 
-def large_groups(frame: pd.DataFrame, grouping: str, expected: str) -> pd.DataFrame:
+def large_groups(grouped_matches_df: pd.DataFrame, grouping: str, expected: str) -> pd.DataFrame:
     """The matches of the groups with at least `MIN_EXPECTED` expected events."""
-    sums = frame.groupby(grouping)[expected].transform("sum")
-    return frame[sums >= MIN_EXPECTED]
+    sums = grouped_matches_df.groupby(grouping)[expected].transform("sum")
+    return grouped_matches_df[sums >= MIN_EXPECTED]
 
 
-def carry_over(frame: pd.DataFrame, grouping: str, observed: str, expected: str) -> pd.DataFrame:
+def carry_over(
+    grouped_matches_df: pd.DataFrame, grouping: str, observed: str, expected: str
+) -> pd.DataFrame:
     """The `TOP_SHARE` of groups with the highest O/E in one cohort, read in the other.
 
     Only groups with at least `COHORT_FLOOR` expected events in each cohort count. Each row
     gives the O/E of the chosen groups in both cohorts, and of all counted groups in the
     other cohort, the level to compare with.
     """
-    grouped = frame.groupby([grouping, "season_cohort"])
-    events = grouped[observed].sum().unstack().fillna(0.0)
-    chances = grouped[expected].sum().unstack().fillna(0.0)
+    grouped = grouped_matches_df.groupby([grouping, "season_cohort"])
+    events_df = grouped[observed].sum().unstack().fillna(0.0)
+    chances_df = grouped[expected].sum().unstack().fillna(0.0)
 
-    counted = chances.min(axis=1) >= COHORT_FLOOR
-    events, chances = events[counted], chances[counted]
+    counted = chances_df.min(axis=1) >= COHORT_FLOOR
+    events_df, chances_df = events_df[counted], chances_df[counted]
 
-    cohorts = sorted(frame["season_cohort"].unique())
-    if len(cohorts) != 2 or chances.empty:
+    cohorts = sorted(grouped_matches_df["season_cohort"].unique())
+    if len(cohorts) != 2 or chances_df.empty:
         return pd.DataFrame()
 
     rows = []
     for chosen, other in ((cohorts[0], cohorts[1]), (cohorts[1], cohorts[0])):
-        oe = events[chosen] / chances[chosen]
+        oe = events_df[chosen] / chances_df[chosen]
         top = oe >= oe.quantile(1 - TOP_SHARE)
 
         rows.append(
             {
                 "chosen in": chosen,
-                "groups": len(chances),
+                "groups": len(chances_df),
                 "chosen": int(top.sum()),
-                "O/E where chosen": events[chosen][top].sum() / chances[chosen][top].sum(),
-                "events in the other": events[other][top].sum(),
-                "expected in the other": chances[other][top].sum(),
-                "O/E in the other": events[other][top].sum() / chances[other][top].sum(),
-                "O/E of all in the other": events[other].sum() / chances[other].sum(),
+                "O/E where chosen": events_df[chosen][top].sum() / chances_df[chosen][top].sum(),
+                "events in the other": events_df[other][top].sum(),
+                "expected in the other": chances_df[other][top].sum(),
+                "O/E in the other": events_df[other][top].sum() / chances_df[other][top].sum(),
+                "O/E of all in the other": events_df[other].sum() / chances_df[other].sum(),
             }
         )
 
     return pd.DataFrame(rows)
 
 
-def show_grouping(frame: pd.DataFrame, grouping: str, seed: int) -> None:
+def show_grouping(grouped_matches_df: pd.DataFrame, grouping: str, seed: int) -> None:
     """Every table of one grouping, for each quantity."""
-    groups = frame[grouping].to_numpy()
+    groups = grouped_matches_df[grouping].to_numpy()
     for observed, expected, label in QUANTITIES:
         title = f"{grouping}, {label}"
-        chance = null_chance(frame[observed], frame[expected])
-        events = frame[observed].to_numpy(dtype=float)
+        chance = null_chance(grouped_matches_df[observed], grouped_matches_df[expected])
+        events = grouped_matches_df[observed].to_numpy(dtype=float)
 
         report.show(f"{title}: against the null", against_null(groups, events, chance, seed=seed))
 
-        table = group_table(frame, grouping, observed, chance)
+        group_table_df = group_table(grouped_matches_df, grouping, observed, chance)
         if grouping == LISTED:
-            report.show(f"{title}: the groups of 2+ events", table[table["events"] >= 2])
+            report.show(
+                f"{title}: the groups of 2+ events", group_table_df[group_table_df["events"] >= 2]
+            )
         else:
-            surprising = table.nsmallest(1, "tail p").drop(columns="league names")
-            report.show(f"{title}: the most surprising group", surprising)
+            surprising_df = group_table_df.nsmallest(1, "tail p").drop(columns="league names")
+            report.show(f"{title}: the most surprising group", surprising_df)
 
-        large = large_groups(frame, grouping, expected)
-        if large[grouping].nunique() >= 2:
+        large_df = large_groups(grouped_matches_df, grouping, expected)
+        if large_df[grouping].nunique() >= 2:
             quantity = (observed, expected, f"{label}, O/E", "event")
-            row, _ = units.summary_row(large, grouping, quantity, luck=True)
-            table = pd.DataFrame([row])
-            table.insert(1, "groups", large[grouping].nunique())
-            table.insert(2, "matches", len(large))
-            report.show(f"{title}: one test across the groups of {MIN_EXPECTED:g}+ expected", table)
+            row, _ = units.summary_row(large_df, grouping, quantity, luck=True)
+            group_table_df = pd.DataFrame([row])
+            group_table_df.insert(1, "groups", large_df[grouping].nunique())
+            group_table_df.insert(2, "matches", len(large_df))
+            report.show(
+                f"{title}: one test across the groups of {MIN_EXPECTED:g}+ expected", group_table_df
+            )
 
-        carried = carry_over(frame, grouping, observed, expected)
-        if not carried.empty:
-            report.show(f"{title}: the top groups of one cohort in the other", carried)
+        carried_df = carry_over(grouped_matches_df, grouping, observed, expected)
+        if not carried_df.empty:
+            report.show(f"{title}: the top groups of one cohort in the other", carried_df)
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    model = yardstick.frame(matches, yardstick.build_grid())
-    frame = group_frame(matches, model)
-    print(f"matches with all three opening markets: {len(frame):,}")
+    yardstick_df = yardstick.frame(matches_df, yardstick.build_grid())
+    grouped_matches_df = group_frame(matches_df, yardstick_df)
+    print(f"matches with all three opening markets: {len(grouped_matches_df):,}")
 
-    report.show("The groups", group_sizes(frame))
+    report.show("The groups", group_sizes(grouped_matches_df))
     for seed, (grouping, _) in enumerate(GROUPINGS):
-        show_grouping(frame, grouping, seed)
+        show_grouping(grouped_matches_df, grouping, seed)
 
 
 if __name__ == "__main__":

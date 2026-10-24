@@ -45,12 +45,12 @@ COHORT_LEVELS = ("league", "round", "team-season")  # a league has one season in
 READINGS = ("raw", "odds")
 
 
-def odds_share(frame: pd.DataFrame, observed: str, denominator: str, model: str) -> float:
+def odds_share(df: pd.DataFrame, observed: str, denominator: str, model: str) -> float:
     """The share of a match's variance that the yardstick carries: 1 - SSE / SST, with the
     yardstick's expected values times the pooled O/E as the fit, over the matches that count
     (denominator above 0)."""
-    counted = frame[frame[denominator] > 0]
-    observed_values, expected = counted[observed], counted[model]
+    counted_df = df[df[denominator] > 0]
+    observed_values, expected = counted_df[observed], counted_df[model]
     fitted = expected * observed_values.sum() / expected.sum()
     error = ((observed_values - fitted) ** 2).sum()
     return float(1.0 - error / ((observed_values - observed_values.mean()) ** 2).sum())
@@ -71,12 +71,12 @@ def level_tests(
         if level not in levels:
             continue
 
-        frame = rows[kind_of_rows]
+        level_rows_df = rows[kind_of_rows]
         for observed, denominator, model, label, kind in quantities[kind_of_rows]:
             for reading in readings:
                 expected = denominator if reading == "raw" else model
                 quantity = (observed, expected, label, kind)
-                row = units.level_row(frame, unit, part, quantity, draws)
+                row = units.level_row(level_rows_df, unit, part, quantity, draws)
                 table.append({"level": level, "reading": reading, **row})
 
     return pd.DataFrame(table)
@@ -87,16 +87,16 @@ def odds_shares(rows: dict[str, pd.DataFrame]) -> pd.DataFrame:
     carries, and the variance itself."""
     table = []
     for kind_of_rows, quantities in (("match", card.ODDS_CARD), ("team", TEAM_QUANTITIES)):
-        frame = rows[kind_of_rows]
+        level_rows_df = rows[kind_of_rows]
         for observed, denominator, model, label, _ in quantities:
-            counted = frame.loc[frame[denominator] > 0, observed]
+            counted = level_rows_df.loc[level_rows_df[denominator] > 0, observed]
             table.append(
                 {
                     "rows": kind_of_rows,
                     "quantity": label,
                     "counted": float(len(counted)),
                     "variance": float(np.var(counted.to_numpy(dtype=float), ddof=1)),
-                    "odds share": odds_share(frame, observed, denominator, model),
+                    "odds share": odds_share(level_rows_df, observed, denominator, model),
                 }
             )
 
@@ -104,25 +104,26 @@ def odds_shares(rows: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    frame = yardstick.frame(matches, yardstick.build_grid())
-    frame["one"] = 1.0
-    frame[EVERYTHING] = EVERYTHING
-    frame[LEAGUE] = matches["s1_league_id"]
-    frame[ROUND] = corpus.round_key(matches)
-    frame["season_cohort"] = matches["season_cohort"]
+    yardstick_df = yardstick.frame(matches_df, yardstick.build_grid())
+    yardstick_df["one"] = 1.0
+    yardstick_df[EVERYTHING] = EVERYTHING
+    yardstick_df[LEAGUE] = matches_df["s1_league_id"]
+    yardstick_df[ROUND] = corpus.round_key(matches_df)
+    yardstick_df["season_cohort"] = matches_df["season_cohort"]
 
-    teams = card.team_yardstick_rows(matches, frame)
-    teams[TEAM_SEASON] = teams[LEAGUE_SEASON] + " " + teams["team"].astype(str)
-    rows = {"match": frame, "team": teams}
+    team_rows_df = card.team_yardstick_rows(matches_df, yardstick_df)
+    team_rows_df[TEAM_SEASON] = team_rows_df[LEAGUE_SEASON] + " " + team_rows_df["team"].astype(str)
+    rows = {"match": yardstick_df, "team": team_rows_df}
 
     print(
-        f"priced matches (both opening markets): {len(frame):,}; leagues "
-        f"{frame[LEAGUE].nunique()}; league-seasons {frame[LEAGUE_SEASON].nunique()}; rounds "
-        f"{frame[ROUND].nunique():,}; team-seasons {teams[TEAM_SEASON].nunique():,} "
-        f"({len(teams):,} team-matches)"
+        f"priced matches (both opening markets): {len(yardstick_df):,}; leagues "
+        f"{yardstick_df[LEAGUE].nunique()}; league-seasons "
+        f"{yardstick_df[LEAGUE_SEASON].nunique()}; rounds "
+        f"{yardstick_df[ROUND].nunique():,}; team-seasons {team_rows_df[TEAM_SEASON].nunique():,} "
+        f"({len(team_rows_df):,} team-matches)"
     )
 
     print(f"each p: {units.NULL_DRAWS} shuffles of the parts inside their units")
@@ -131,8 +132,11 @@ def main() -> None:
     every = tuple(level for level, *_ in LEVELS)
     report.show("One test of each level around the level above it", level_tests(rows, every))
 
-    for cohort in sorted(frame["season_cohort"].unique()):
-        in_cohort = {name: part[part["season_cohort"] == cohort] for name, part in rows.items()}
+    for cohort in sorted(yardstick_df["season_cohort"].unique()):
+        in_cohort = {
+            name: kind_rows_df[kind_rows_df["season_cohort"] == cohort]
+            for name, kind_rows_df in rows.items()
+        }
         report.show(
             f"Against the odds: season cohort {cohort} ({len(in_cohort['match']):,} matches)",
             level_tests(in_cohort, COHORT_LEVELS, readings=("odds",)),
