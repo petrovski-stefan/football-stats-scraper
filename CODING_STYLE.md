@@ -140,7 +140,7 @@ def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
 - Add an intermediate variable when its name explains a step. Don't add one that only repeats an obvious expression.
 - No nested conditional expressions (`a if x else b if y else c`): write the branches out.
 - When cases behave differently, give each its own explicit branch.
-- Don't combine unrelated operations in one statement. Split a pandas chain where the table changes meaning (after a filter, a group-by or a join), and name the new table: `priced = matches[matches["s2_has_odds"]]`. A chain of simple steps on the same table can stay one statement.
+- Don't combine unrelated operations in one statement. Split a pandas chain where the table changes meaning (after a filter, a group-by or a join), and name the new table: `priced_df = matches_df[matches_df["s2_has_odds"]]`. A chain of simple steps on the same table can stay one statement.
 - A comprehension is for a plain map or filter: one `for`, at most one `if`, no side effects. Nested loops, several conditions or a long expression go in a normal loop. Never use a comprehension only to fit several lines into one.
 - A `lambda` only as a short argument (`key=lambda match: match.kickoff`). A lambda with logic becomes a named function.
 - A number someone chose or measured (a threshold, a timeout, a time window) gets a named constant at the top of the module, with a comment that says where it comes from. Tests read such numbers from the code, so they need a name. Plain arithmetic and structural numbers (`0`, `1`, `2` halves, `100` for a percentage) stay inline.
@@ -158,7 +158,7 @@ A comment explains what the code alone cannot: why.
 - **Module docstring.** Every module opens with one: what it does and why it exists. A scraper or a stage builder also says what it reads, what it writes and which `notes/FIELDS/` doc defines its fields. An entry point ends with its command: `Run: uv run python -m features.schedule_row`.
 - **Function docstring.** One sentence of plain prose: what the function returns or does, and what `None` or an empty result means (`"""A price or line from the row, None when the page showed none."""`). Add lines only for a rule, a limit or a side effect the reader cannot see. No `Args:` / `Returns:` blocks. A private helper with a clear name needs no docstring.
 - **A comment says why, not what:** why this approach, a domain rule, a trap, why the simpler version is wrong. A comment that repeats the next line in English goes.
-- **A decision a reader could take for a mistake says it is one, with its date,** in the form the code already uses: `(the user's choice, 2026-10-07)`. An ordinary choice needs no such mark.
+- **A decision a reader could take for a mistake says it is one, with its date,** in the form the code already uses: `(the user, 2026-10-13)`. An ordinary choice needs no such mark.
 - **A rule taken from a note cites it,** with the path and the section (`features/CLAUDE.md` §0, `notes/FIELDS/SCHEDULE_2_ROW.md`).
 - **A comment describes the code as it is now.** The history of a change goes to `notes/LOG/MIGRATIONS.md`. A date that describes the data stays, because the reader needs it: "files scraped before 2026-09-22 have no such column".
 - A banner comment (`# --- Market controls ---`) may group the functions of a long module.
@@ -186,7 +186,7 @@ A comment explains what the code alone cannot: why.
 - **A function that reads other rows states which rows:** its time window and the rule behind it. A wrong window leaks a result into a row, and that leak passes every gate (`features/CLAUDE.md` §0).
 - Don't change the meaning of an existing field or flag. A new meaning is a new field (`notes/FIELDS/`).
 - Keep parsing, validation, the domain rule and the writing in separate steps, not in one opaque block.
-- No hidden dependence on the order of calls or on module-level mutable state.
+- No hidden dependence on the order of calls or on module-level mutable state. One exception: a resource that worker threads share, such as the browser pool `_POOL` in `scrapers/detail.py` and `scrapers/goals.py`. It is one module-level object, and the run's entry function opens and closes it with `with`.
 
 ## 10. Errors
 

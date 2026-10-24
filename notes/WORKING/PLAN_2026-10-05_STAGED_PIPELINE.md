@@ -106,4 +106,9 @@ P2 comes before P4, because the docs are the specification for the code.
 - The odds snapshot of the history rows (Initial or Final?): `notes/FIELDS/DETAIL_1_RAW.md` D1.32–34. Settle it in P2.
 - `corners_ht_*` are stored as floats (`3.0`) because of empty cells. Store them as nullable ints.
 - The join: a loader function or a written file. Decide in P5.
+- `CODING_STYLE.md` §9 and §10 breaks in the old-pipeline code (found 2026-10-24). Fix them when P4 and P5 rewrite this code:
+  - `features/engine.py:_vig_free` and `features/chain.py:trailing_states` calculate per-match facts. Use `domain/stats.py`.
+  - `scrapers/goals.py:_stamp` writes UTC time. Use Berlin time from `domain/clock.py`.
+  - `scrapers/detail.py` and `scrapers/goals.py` log a failed match without its traceback, and the run exits 0. Do as `scrapers/schedule.py` does: `logger.exception`, then exit 1.
+  - `features/enrich.py:build_enriched` raises `RuntimeError`, and its message does not name the file.
 - Module names, and their place in the layer table. The steps that change them also update root `CLAUDE.md` (data paths, and the rule "Only `scrapers/` may write to `data/finished/1_raw/`") and `notes/LOG/MIGRATIONS.md`.
