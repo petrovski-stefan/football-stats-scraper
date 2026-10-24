@@ -43,7 +43,7 @@ class Tuned:
     params: dict[str, Any]
     trees: int
     cv_loss: float
-    table: pd.DataFrame
+    settings_df: pd.DataFrame
 
 
 def group_folds(
@@ -57,13 +57,13 @@ def group_folds(
     return [(positions[fold != i], positions[fold == i]) for i in range(fold_count)]
 
 
-def dataset(rows: pd.DataFrame, fields: list[str], target: str) -> lgb.Dataset:
+def dataset(df: pd.DataFrame, fields: list[str], target: str) -> lgb.Dataset:
     """The rows as a LightGBM dataset. A categorical column stays categorical."""
-    return lgb.Dataset(rows[fields], label=rows[target].to_numpy(dtype=float), free_raw_data=False)
+    return lgb.Dataset(df[fields], label=df[target].to_numpy(dtype=float), free_raw_data=False)
 
 
 def tune(
-    rows: pd.DataFrame,
+    df: pd.DataFrame,
     fields: list[str],
     target: str,
     groups: "pd.Series[Any]",
@@ -72,7 +72,7 @@ def tune(
 ) -> Tuned:
     """The setting of `grid` with the lowest log loss over the folds of `groups`, and the
     number of trees where that loss was lowest."""
-    data = dataset(rows, fields, target)
+    data = dataset(df, fields, target)
     folds = group_folds(groups)
 
     tried = []
@@ -88,29 +88,29 @@ def tune(
         losses = cast("list[float]", history[CV_LOSS])
         tried.append({**setting, "trees": len(losses), "cv loss": float(losses[-1])})
 
-    table = pd.DataFrame(tried)
-    best = int(table["cv loss"].idxmin())
+    settings_df = pd.DataFrame(tried)
+    best = int(settings_df["cv loss"].idxmin())
 
     return Tuned(
         params=BASE | grid[best],
-        trees=int(table.at[best, "trees"]),
-        cv_loss=float(table.at[best, "cv loss"]),
-        table=table,
+        trees=int(settings_df.at[best, "trees"]),
+        cv_loss=float(settings_df.at[best, "cv loss"]),
+        settings_df=settings_df,
     )
 
 
-def fit(rows: pd.DataFrame, fields: list[str], target: str, tuned: Tuned) -> lgb.Booster:
+def fit(df: pd.DataFrame, fields: list[str], target: str, tuned: Tuned) -> lgb.Booster:
     """The model of the tuned setting, trained on all the rows."""
-    return lgb.train(tuned.params, dataset(rows, fields, target), num_boost_round=tuned.trees)
+    return lgb.train(tuned.params, dataset(df, fields, target), num_boost_round=tuned.trees)
 
 
-def predict(booster: lgb.Booster, rows: pd.DataFrame, fields: list[str]) -> np.ndarray:
+def predict(booster: lgb.Booster, df: pd.DataFrame, fields: list[str]) -> np.ndarray:
     """The chance of the target in each row."""
-    return np.asarray(booster.predict(rows[fields]), dtype=float)
+    return np.asarray(booster.predict(df[fields]), dtype=float)
 
 
-def contributions(booster: lgb.Booster, rows: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
+def contributions(booster: lgb.Booster, df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
     """The SHAP value of each field in each row, in log odds. With the constant that LightGBM
     adds (left out here), they sum to the log odds of the row's chance."""
-    values = np.asarray(booster.predict(rows[fields], pred_contrib=True), dtype=float)
-    return pd.DataFrame(values[:, :-1], columns=fields, index=rows.index)
+    values = np.asarray(booster.predict(df[fields], pred_contrib=True), dtype=float)
+    return pd.DataFrame(values[:, :-1], columns=fields, index=df.index)

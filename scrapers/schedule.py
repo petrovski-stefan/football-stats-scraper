@@ -410,11 +410,16 @@ def scraped_league_seasons() -> set[tuple[int, str]]:
     """
     done: set[tuple[int, str]] = set()
     for path in paths.schedule_csvs(1):
-        head = pd.read_csv(
+        stage_1_head_df = pd.read_csv(
             path, usecols=["s1_league_id", "s1_season"], dtype={"s1_season": str}, nrows=1
         )
-        if not head.empty:
-            done.add((int(head.at[0, "s1_league_id"]), str(head.at[0, "s1_season"])))
+        if not stage_1_head_df.empty:
+            done.add(
+                (
+                    int(stage_1_head_df.at[0, "s1_league_id"]),
+                    str(stage_1_head_df.at[0, "s1_season"]),
+                )
+            )
 
     return done
 

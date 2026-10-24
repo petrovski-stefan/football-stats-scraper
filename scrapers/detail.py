@@ -104,9 +104,9 @@ def enrich_league(
     league = os.path.splitext(os.path.basename(base_path))[0]
     detail_path = paths.detail_path(base_path)
 
-    base = pd.read_csv(base_path)
-    base["match_id"] = base["match_id"].astype(str)
-    all_ids = list(dict.fromkeys(base["match_id"]))  # preserve order, dedup
+    base_df = pd.read_csv(base_path)
+    base_df["match_id"] = base_df["match_id"].astype(str)
+    all_ids = list(dict.fromkeys(base_df["match_id"]))  # preserve order, dedup
 
     done = _done_ids(detail_path)
     pending = [mid for mid in all_ids if mid not in done]

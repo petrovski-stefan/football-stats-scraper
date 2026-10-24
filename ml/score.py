@@ -122,8 +122,10 @@ def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10)
     """The rows in `bins` groups of equal size by their chance: the mean chance, the observed
     rate and their ratio (O/E) in each."""
     group = pd.qcut(pd.Series(chances).rank(method="first"), bins, labels=False)
-    frame = pd.DataFrame({"group": group, "y": outcomes, "p": chances})
-    table = frame.groupby("group").agg(rows=("y", "size"), chance=("p", "mean"), rate=("y", "mean"))
+    grouped_chances_df = pd.DataFrame({"group": group, "y": outcomes, "p": chances})
+    calibration_df = grouped_chances_df.groupby("group").agg(
+        rows=("y", "size"), chance=("p", "mean"), rate=("y", "mean")
+    )
 
-    table["O/E"] = table["rate"] / table["chance"]
-    return table.reset_index()
+    calibration_df["O/E"] = calibration_df["rate"] / calibration_df["chance"]
+    return calibration_df.reset_index()

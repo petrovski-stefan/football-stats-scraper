@@ -45,7 +45,7 @@ def test_tune_fit_and_predict_find_a_clear_signal(signal_df: pd.DataFrame) -> No
 
     assert tuned.trees > 0
     assert tuned.params["num_leaves"] == 4
-    assert len(tuned.table) == len(SMALL_GRID)
+    assert len(tuned.settings_df) == len(SMALL_GRID)
 
     booster = boosting.fit(signal_df, fields, "y", tuned)
     chance = boosting.predict(booster, signal_df, fields)

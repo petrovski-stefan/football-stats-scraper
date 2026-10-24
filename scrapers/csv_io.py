@@ -27,11 +27,11 @@ def league_slug(country: str, league_name: str) -> str:
 def write_ordered_csv(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -> None:
     """Write rows to csv_path with columns in the given order (missing cols dropped)."""
     os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
-    df = pd.DataFrame(rows)
-    df = df[[c for c in columns if c in df.columns]]
+    ordered_df = pd.DataFrame(rows)
+    ordered_df = ordered_df[[c for c in columns if c in ordered_df.columns]]
 
-    df.to_csv(csv_path, index=False)
-    logger.info("Saved %d rows to %s", len(df), csv_path)
+    ordered_df.to_csv(csv_path, index=False)
+    logger.info("Saved %d rows to %s", len(ordered_df), csv_path)
 
 
 def append_rows(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -> None:
@@ -43,11 +43,11 @@ def append_rows(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -
         return
 
     os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
-    df = pd.DataFrame(rows)
-    df = df[[c for c in columns if c in df.columns]]
+    new_rows_df = pd.DataFrame(rows)
+    new_rows_df = new_rows_df[[c for c in columns if c in new_rows_df.columns]]
 
     write_header = not os.path.exists(csv_path)
-    df.to_csv(csv_path, mode="a", header=write_header, index=False)
+    new_rows_df.to_csv(csv_path, mode="a", header=write_header, index=False)
 
 
 def save_unless_shrinking(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -> bool:

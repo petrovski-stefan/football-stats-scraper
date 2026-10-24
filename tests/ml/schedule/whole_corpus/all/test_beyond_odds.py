@@ -57,7 +57,7 @@ def test_importance_ranks_the_fields_and_marks_the_odds() -> None:
 def test_tuning_table_shows_the_chosen_setting_of_each_model() -> None:
     setting = boosting.GRID[0]
     tuned = boosting.Tuned(
-        params=boosting.BASE | setting, trees=42, cv_loss=0.118, table=pd.DataFrame()
+        params=boosting.BASE | setting, trees=42, cv_loss=0.118, settings_df=pd.DataFrame()
     )
 
     tuning_df = runner.tuning_table({"A": tuned})

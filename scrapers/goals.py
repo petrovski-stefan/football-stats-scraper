@@ -100,8 +100,8 @@ def corpus_ids() -> dict[str, int | None]:
     """Match ids from the base league CSVs, mapped to their league id."""
     found: dict[str, int | None] = {}
     for path in paths.base_league_csvs():
-        frame = pd.read_csv(path, usecols=lambda column: column in {"match_id", "league_id"})
-        for row in frame.itertuples(index=False):
+        base_df = pd.read_csv(path, usecols=lambda column: column in {"match_id", "league_id"})
+        for row in base_df.itertuples(index=False):
             found.setdefault(str(row.match_id), _as_int(getattr(row, "league_id", None)))
 
     return found
@@ -127,29 +127,31 @@ def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
         if not os.path.exists(detail):
             continue
 
-        frame = pd.read_csv(detail, usecols=lambda column: column in wanted, low_memory=False)
+        detail_df = pd.read_csv(detail, usecols=lambda column: column in wanted, low_memory=False)
         for prefix in prefixes:
-            _collect_block_ids(frame, prefix, found)
+            _collect_block_ids(detail_df, prefix, found)
 
     return found
 
 
-def _collect_block_ids(frame: pd.DataFrame, prefix: str, found: dict[str, int | None]) -> None:
+def _collect_block_ids(detail_df: pd.DataFrame, prefix: str, found: dict[str, int | None]) -> None:
     """Fold one `<section>_last<n>_` block's referenced ids into `found`.
 
     First writer wins, so an id already seen keeps its original league id rather than
     being overwritten by a later, equally valid reference to the same match.
     """
     id_col = f"{prefix}match_id"
-    if id_col not in frame.columns:
+    if id_col not in detail_df.columns:
         return
 
-    blank = pd.Series([None] * len(frame), index=frame.index)
-    leagues = frame.get(f"{prefix}league_id", blank)
-    names = frame.get(f"{prefix}league", blank)
-    dates = frame.get(f"{prefix}date", blank)
+    blank = pd.Series([None] * len(detail_df), index=detail_df.index)
+    leagues = detail_df.get(f"{prefix}league_id", blank)
+    names = detail_df.get(f"{prefix}league", blank)
+    dates = detail_df.get(f"{prefix}date", blank)
 
-    for raw_id, raw_league, name, date in zip(frame[id_col], leagues, names, dates, strict=True):
+    for raw_id, raw_league, name, date in zip(
+        detail_df[id_col], leagues, names, dates, strict=True
+    ):
         match_id = _as_id(raw_id)
         # Friendlies carry no timings and pre-2023 pages are truncated, so they are
         # dropped here rather than fetched and discarded later -- see domain/scope.py.
