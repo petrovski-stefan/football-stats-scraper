@@ -47,7 +47,7 @@ def test_cluster_bootstrap_of_a_constant_ratio_is_that_ratio() -> None:
 
 
 @pytest.fixture
-def observed_frame() -> pd.DataFrame:
+def observed_df() -> pd.DataFrame:
     """Four matches in two clusters: observed hits and two expected columns."""
     return pd.DataFrame(
         {
@@ -59,18 +59,18 @@ def observed_frame() -> pd.DataFrame:
     )
 
 
-def test_observed_expected_is_the_ratio_of_the_sums(observed_frame: pd.DataFrame) -> None:
-    row = stats.observed_expected(observed_frame, "hit", "chance")
+def test_observed_expected_is_the_ratio_of_the_sums(observed_df: pd.DataFrame) -> None:
+    row = stats.observed_expected(observed_df, "hit", "chance")
     assert (row["n"], row["observed"], row["expected"]) == (4.0, 2.0, 1.5)
     assert row["oe"] == pytest.approx(2 / 1.5)
     assert row["low"] <= row["oe"] <= row["high"]
 
 
 def test_observed_expected_table_has_one_row_per_comparison(
-    observed_frame: pd.DataFrame,
+    observed_df: pd.DataFrame,
 ) -> None:
     rows = (("hit", "chance", "one"), ("hit", "other", "two"))
-    assert stats.observed_expected_table(observed_frame, rows)["quantity"].tolist() == [
+    assert stats.observed_expected_table(observed_df, rows)["quantity"].tolist() == [
         "one",
         "two",
     ]
@@ -91,10 +91,12 @@ def test_spread_units_show_heterogeneity() -> None:
 
 def test_detectable_tau_matches_the_closed_form_for_equal_variances() -> None:
     # With one variance v for every unit, Q / (1 + tau^2 / v) is chi-square on k - 1 df.
-    v, units = 0.04, 30
-    df = units - 1
-    closed = math.sqrt(v * (chi2.isf(0.05, df) / chi2.isf(0.8, df) - 1))
-    assert stats.detectable_tau(pd.Series([v] * units), draws=4000) == pytest.approx(
+    variance, units = 0.04, 30
+    degrees_of_freedom = units - 1
+    closed = math.sqrt(
+        variance * (chi2.isf(0.05, degrees_of_freedom) / chi2.isf(0.8, degrees_of_freedom) - 1)
+    )
+    assert stats.detectable_tau(pd.Series([variance] * units), draws=4000) == pytest.approx(
         closed, rel=0.05
     )
 
@@ -145,17 +147,23 @@ def _flagged_rows(cells: list[tuple[str, int, int, int, int]]) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def _mh(rows: pd.DataFrame) -> stats.MantelHaenszel:
-    return stats.mantel_haenszel(rows["flag"], rows["event"], rows["stratum"])
+def _mh(flagged_rows_df: pd.DataFrame) -> stats.MantelHaenszel:
+    return stats.mantel_haenszel(
+        flagged_rows_df["flag"], flagged_rows_df["event"], flagged_rows_df["stratum"]
+    )
 
 
 def test_mantel_haenszel_of_one_table_is_its_odds_ratio_with_woolfs_interval() -> None:
-    a, b, c, d = 10, 20, 30, 90
+    flagged_hits, flagged_misses, rest_hits, rest_misses = 10, 20, 30, 90
 
-    result = _mh(_flagged_rows([("s", a, b, c, d)]))
+    result = _mh(_flagged_rows([("s", flagged_hits, flagged_misses, rest_hits, rest_misses)]))
 
-    assert result.odds_ratio == pytest.approx(a * d / (b * c))
-    half = stats.Z95 * math.sqrt(1 / a + 1 / b + 1 / c + 1 / d)
+    assert result.odds_ratio == pytest.approx(
+        flagged_hits * rest_misses / (flagged_misses * rest_hits)
+    )
+    half = stats.Z95 * math.sqrt(
+        1 / flagged_hits + 1 / flagged_misses + 1 / rest_hits + 1 / rest_misses
+    )
     assert result.low == pytest.approx(1.5 * math.exp(-half))
     assert result.high == pytest.approx(1.5 * math.exp(half))
     assert (result.flagged, result.flagged_events, result.rest, result.rest_events) == (
@@ -167,11 +175,22 @@ def test_mantel_haenszel_of_one_table_is_its_odds_ratio_with_woolfs_interval() -
 
 
 def test_the_cmh_test_of_one_table_is_pearsons_scaled_by_n_minus_one() -> None:
-    a, b, c, d = 10, 20, 30, 90
-    n = a + b + c + d
-    pearson = n * (a * d - b * c) ** 2 / ((a + b) * (c + d) * (a + c) * (b + d))
-    result = _mh(_flagged_rows([("s", a, b, c, d)]))
-    assert result.p_value == pytest.approx(float(chi2.sf(pearson * (n - 1) / n, 1)))
+    flagged_hits, flagged_misses, rest_hits, rest_misses = 10, 20, 30, 90
+    stratum_size = flagged_hits + flagged_misses + rest_hits + rest_misses
+    pearson = (
+        stratum_size
+        * (flagged_hits * rest_misses - flagged_misses * rest_hits) ** 2
+        / (
+            (flagged_hits + flagged_misses)
+            * (rest_hits + rest_misses)
+            * (flagged_hits + rest_hits)
+            * (flagged_misses + rest_misses)
+        )
+    )
+    result = _mh(_flagged_rows([("s", flagged_hits, flagged_misses, rest_hits, rest_misses)]))
+    assert result.p_value == pytest.approx(
+        float(chi2.sf(pearson * (stratum_size - 1) / stratum_size, 1))
+    )
 
 
 def test_mantel_haenszel_pools_strata_that_share_one_odds_ratio() -> None:
@@ -182,8 +201,8 @@ def test_mantel_haenszel_pools_strata_that_share_one_odds_ratio() -> None:
 
 
 def test_mantel_haenszel_leaves_out_strata_of_one_row() -> None:
-    with_single = _flagged_rows([("x", 20, 20, 10, 20), ("lone", 1, 0, 0, 0)])
-    assert _mh(with_single).odds_ratio == pytest.approx(2.0)
+    with_single_df = _flagged_rows([("x", 20, 20, 10, 20), ("lone", 1, 0, 0, 0)])
+    assert _mh(with_single_df).odds_ratio == pytest.approx(2.0)
 
 
 def test_mantel_haenszel_without_flagged_events_has_no_interval() -> None:

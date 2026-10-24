@@ -10,12 +10,12 @@ TABLE_STATS = ("rank", "played", "won", "drawn", "lost", "goals_for", "goal_diff
 
 
 @pytest.fixture
-def toy_schedule_df(toy_priced_matches: pd.DataFrame) -> pd.DataFrame:
+def toy_schedule_df(toy_priced_matches_df: pd.DataFrame) -> pd.DataFrame:
     """The five toy matches with the AH market, a kickoff, a round, and every stage-3 column of
     `ml/rows.py`. The home side has played 0, 2, 4, 6 and 8 matches in each table, the away
     side 1, 3, 5, 7 and 9; every other count of a side is its number of matches played, so
     each per-match rate is 1."""
-    schedule_df = toy_priced_matches.copy()
+    schedule_df = toy_priced_matches_df.copy()
     schedule_df["s1_odds_ah_open_line"] = [-1.0, 0.0, -1.5, 0.25, -0.5]
     schedule_df["s1_odds_ah_open_home"] = 1.9
     schedule_df["s1_odds_ah_open_away"] = 1.9

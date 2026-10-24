@@ -13,7 +13,7 @@ from analysis.schedule.whole_corpus.per_league import odds_yardstick as runner
 
 
 @pytest.fixture
-def toy_frame() -> pd.DataFrame:
+def toy_yardstick_df() -> pd.DataFrame:
     """Six matches in two leagues and both cohorts, in the shape `yardstick.frame` gives."""
     return pd.DataFrame(
         {
@@ -29,23 +29,28 @@ def toy_frame() -> pd.DataFrame:
     )
 
 
-def test_with_own_share_uses_each_league_share(toy_frame: pd.DataFrame) -> None:
-    own = runner.with_own_share(toy_frame)
-    league = toy_frame["s1_league_id"] == 1
+def test_with_own_share_uses_each_league_share(toy_yardstick_df: pd.DataFrame) -> None:
+    with_own_share_df = runner.with_own_share(toy_yardstick_df)
+    league = toy_yardstick_df["s1_league_id"] == 1
     share = 2 / 6  # league 1: 2 first-half goals of 6
-    lam_home, lam_away = toy_frame["lam_home"][league], toy_frame["lam_away"][league]
-    model = yardstick.implied(lam_home.to_numpy(), lam_away.to_numpy(), share)
-    assert own["m_cb"][league].to_numpy() == pytest.approx(model["m_cb"].to_numpy())
-    completion = yardstick.completion_given_ht(
-        lam_home.to_numpy(), lam_away.to_numpy(), share, toy_frame["ht_margin"][league].to_numpy()
+    lam_home, lam_away = toy_yardstick_df["lam_home"][league], toy_yardstick_df["lam_away"][league]
+    implied_df = yardstick.implied(lam_home.to_numpy(), lam_away.to_numpy(), share)
+    assert with_own_share_df["m_cb"][league].to_numpy() == pytest.approx(
+        implied_df["m_cb"].to_numpy()
     )
-    assert own["m_completion"][league].to_numpy() == pytest.approx(completion)
+    completion = yardstick.completion_given_ht(
+        lam_home.to_numpy(),
+        lam_away.to_numpy(),
+        share,
+        toy_yardstick_df["ht_margin"][league].to_numpy(),
+    )
+    assert with_own_share_df["m_completion"][league].to_numpy() == pytest.approx(completion)
 
 
-def test_league_table_is_in_the_order_of_the_names(toy_frame: pd.DataFrame) -> None:
+def test_league_table_is_in_the_order_of_the_names(toy_yardstick_df: pd.DataFrame) -> None:
     values = {"x": pd.DataFrame({"value": [0.9, 1.1]}, index=pd.Index([2, 1]))}
-    table = runner.league_table(toy_frame, values, (("x", "value", "x O/E"),))
-    assert table["league"].tolist() == ["A", "B"]
-    assert table["matches"].tolist() == [3, 3]
-    assert table["x O/E"].tolist() == [1.1, 0.9]
-    assert np.all(table.columns == ["league", "matches", "x O/E"])
+    league_table_df = runner.league_table(toy_yardstick_df, values, (("x", "value", "x O/E"),))
+    assert league_table_df["league"].tolist() == ["A", "B"]
+    assert league_table_df["matches"].tolist() == [3, 3]
+    assert league_table_df["x O/E"].tolist() == [1.1, 0.9]
+    assert np.all(league_table_df.columns == ["league", "matches", "x O/E"])

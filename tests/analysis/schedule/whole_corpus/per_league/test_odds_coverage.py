@@ -17,7 +17,7 @@ GAPS = {
 
 
 @pytest.fixture
-def season() -> pd.DataFrame:
+def season_df() -> pd.DataFrame:
     """One league-season of 8 rounds with 3 matches each; six matches lack some markets."""
     rows = []
     for round_number in range(1, 9):
@@ -54,29 +54,29 @@ def season() -> pd.DataFrame:
     return runner.with_markets(pd.DataFrame(rows))
 
 
-def test_with_markets_marks_all_or_none(season: pd.DataFrame) -> None:
-    assert int(season["all_three"].sum()) == 24 - len(GAPS)
-    assert int(season["no_odds"].sum()) == len(GAPS) - 1  # the 1X2-only match has some odds
+def test_with_markets_marks_all_or_none(season_df: pd.DataFrame) -> None:
+    assert int(season_df["all_three"].sum()) == 24 - len(GAPS)
+    assert int(season_df["no_odds"].sum()) == len(GAPS) - 1  # the 1X2-only match has some odds
 
 
-def test_patterns_name_each_combination(season: pd.DataFrame) -> None:
-    table = runner.patterns(season).set_index("markets")["matches"]
+def test_patterns_name_each_combination(season_df: pd.DataFrame) -> None:
+    table = runner.patterns(season_df).set_index("markets")["matches"]
     assert table.to_dict() == {"1X2 O/U AH": 18, "none": 5, "1X2": 1}
 
 
-def test_coverage_counts_each_group(season: pd.DataFrame) -> None:
-    table = runner.coverage(season, ["s1_league_name"])
-    assert table[["matches", "all_three"]].iloc[0].tolist() == [24, 18]
-    assert table["share"].iloc[0] == pytest.approx(18 / 24)
+def test_coverage_counts_each_group(season_df: pd.DataFrame) -> None:
+    coverage_df = runner.coverage(season_df, ["s1_league_name"])
+    assert coverage_df[["matches", "all_three"]].iloc[0].tolist() == [24, 18]
+    assert coverage_df["share"].iloc[0] == pytest.approx(18 / 24)
 
 
 def test_three_nil_is_a_three_goal_shutout() -> None:
-    scores = pd.DataFrame({"s1_ft_home_goals": [3, 0, 3, 4], "s1_ft_away_goals": [0, 3, 1, 0]})
-    assert runner.three_nil(scores).tolist() == [True, True, False, False]
+    scores_df = pd.DataFrame({"s1_ft_home_goals": [3, 0, 3, 4], "s1_ft_away_goals": [0, 3, 1, 0]})
+    assert runner.three_nil(scores_df).tolist() == [True, True, False, False]
 
 
-def test_each_gap_gets_the_first_cause_that_fits(season: pd.DataFrame) -> None:
-    table = runner.gaps(season).set_index("match_id")["cause"]
+def test_each_gap_gets_the_first_cause_that_fits(season_df: pd.DataFrame) -> None:
+    table = runner.gaps(season_df).set_index("match_id")["cause"]
 
     assert table.to_dict() == {
         "m10": "stage start",
@@ -89,7 +89,7 @@ def test_each_gap_gets_the_first_cause_that_fits(season: pd.DataFrame) -> None:
 
 
 def test_award_shapes_split_the_three_nil_results_by_half_time() -> None:
-    frame = runner.with_markets(
+    with_markets_df = runner.with_markets(
         pd.DataFrame(
             {
                 "s1_ht_home_goals": [0, 0, 3, 1, 0],
@@ -103,7 +103,7 @@ def test_award_shapes_split_the_three_nil_results_by_half_time() -> None:
         )
     )
 
-    table = runner.award_shapes(frame).set_index("half-time score").to_dict("index")
+    table = runner.award_shapes(with_markets_df).set_index("half-time score").to_dict("index")
     columns = ("matches", "all three markets", "no odds")
 
     assert table["0-0"] == dict(zip(columns, (2, 1, 1), strict=True))

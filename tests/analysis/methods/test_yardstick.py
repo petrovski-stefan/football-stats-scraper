@@ -51,38 +51,38 @@ def test_fit_recovers_the_rates_that_made_the_market() -> None:
 
 
 def test_equal_rates_give_equal_comeback_chances() -> None:
-    model = yardstick.implied(np.array([1.2]), np.array([1.2]), 0.45)
-    assert model["m_cb_home"][0] == pytest.approx(model["m_cb_away"][0])
-    assert model["m_cb"][0] == pytest.approx(model["m_cb_home"][0] * 2)
+    implied_df = yardstick.implied(np.array([1.2]), np.array([1.2]), 0.45)
+    assert implied_df["m_cb_home"][0] == pytest.approx(implied_df["m_cb_away"][0])
+    assert implied_df["m_cb"][0] == pytest.approx(implied_df["m_cb_home"][0] * 2)
 
 
 def test_a_comeback_needs_a_decisive_half_time() -> None:
-    model = yardstick.implied(np.array([0.6, 1.4, 2.5]), np.array([1.8, 1.1, 0.4]), 0.45)
-    assert np.all((model["m_cb"] > 0) & (model["m_cb"] < model["m_ht_decisive"]))
-    assert np.all(model["m_ht_decisive"] < 1.0)
+    implied_df = yardstick.implied(np.array([0.6, 1.4, 2.5]), np.array([1.8, 1.1, 0.4]), 0.45)
+    assert np.all((implied_df["m_cb"] > 0) & (implied_df["m_cb"] < implied_df["m_ht_decisive"]))
+    assert np.all(implied_df["m_ht_decisive"] < 1.0)
 
 
 def test_each_side_behind_at_half_time_adds_up_to_link_one() -> None:
-    model = yardstick.implied(np.array([1.8, 0.7]), np.array([0.9, 1.6]), 0.45)
-    both = model["m_home_behind"] + model["m_away_behind"]
-    assert both.to_numpy() == pytest.approx(model["m_ht_decisive"].to_numpy())
+    implied_df = yardstick.implied(np.array([1.8, 0.7]), np.array([0.9, 1.6]), 0.45)
+    both = implied_df["m_home_behind"] + implied_df["m_away_behind"]
+    assert both.to_numpy() == pytest.approx(implied_df["m_ht_decisive"].to_numpy())
     # The stronger side is behind less often.
-    assert model["m_home_behind"][0] < model["m_away_behind"][0]
-    assert model["m_home_behind"][1] > model["m_away_behind"][1]
+    assert implied_df["m_home_behind"][0] < implied_df["m_away_behind"][0]
+    assert implied_df["m_home_behind"][1] > implied_df["m_away_behind"][1]
 
 
 def test_almost_no_first_half_goals_leave_almost_no_comebacks() -> None:
-    model = yardstick.implied(np.array([1.5]), np.array([1.2]), 1e-6)
-    assert model["m_cb"][0] < 1e-5
+    implied_df = yardstick.implied(np.array([1.5]), np.array([1.2]), 1e-6)
+    assert implied_df["m_cb"][0] < 1e-5
 
 
 def test_score_and_total_chances_follow_the_poisson_formulas() -> None:
     home, away = np.array([1.3]), np.array([0.9])
-    model = yardstick.implied(home, away, 0.45)
-    assert model["m_00"][0] == pytest.approx(np.exp(-2.2))
-    assert model["m_11"][0] == pytest.approx(1.3 * 0.9 * np.exp(-2.2))
-    assert model["m_seven"][0] == pytest.approx(sps.poisson.sf(6, 2.2))
-    assert model["m_goals_1h"][0] == pytest.approx(0.45 * 2.2)
+    implied_df = yardstick.implied(home, away, 0.45)
+    assert implied_df["m_00"][0] == pytest.approx(np.exp(-2.2))
+    assert implied_df["m_11"][0] == pytest.approx(1.3 * 0.9 * np.exp(-2.2))
+    assert implied_df["m_seven"][0] == pytest.approx(sps.poisson.sf(6, 2.2))
+    assert implied_df["m_goals_1h"][0] == pytest.approx(0.45 * 2.2)
 
 
 def test_completion_from_each_half_time_score() -> None:
@@ -101,20 +101,20 @@ def test_completions_over_every_half_time_score_add_up_to_the_comeback_chance() 
     completion = yardstick.completion_given_ht(
         np.full(len(margins), home), np.full(len(margins), away), share, margins
     )
-    model = yardstick.implied(np.array([home]), np.array([away]), share)
+    implied_df = yardstick.implied(np.array([home]), np.array([away]), share)
 
-    assert (weights * completion).sum() == pytest.approx(model["m_cb"][0])
+    assert (weights * completion).sum() == pytest.approx(implied_df["m_cb"][0])
 
 
 def test_a_share_per_match_gives_each_match_the_chances_of_its_own_share() -> None:
     home, away, shares = np.array([1.4, 1.4]), np.array([1.1, 1.1]), np.array([0.40, 0.50])
-    model = yardstick.implied(home, away, shares)
+    implied_df = yardstick.implied(home, away, shares)
     completion = yardstick.completion_given_ht(home, away, shares, np.array([-1, -1]))
 
     for i, share in enumerate(shares):
         one_home, one_away = home[i : i + 1], away[i : i + 1]
-        alone = yardstick.implied(one_home, one_away, float(share))
-        assert model.iloc[i].to_numpy() == pytest.approx(alone.iloc[0].to_numpy())
+        one_match_df = yardstick.implied(one_home, one_away, float(share))
+        assert implied_df.iloc[i].to_numpy() == pytest.approx(one_match_df.iloc[0].to_numpy())
 
         single = yardstick.completion_given_ht(one_home, one_away, float(share), np.array([-1]))
         assert completion[i] == pytest.approx(single[0])
@@ -125,47 +125,57 @@ def test_result_code_of_a_margin() -> None:
 
 
 def test_the_nine_htft_chances_add_up_to_one() -> None:
-    cells = yardstick.htft_cells(np.array([1.6, 0.9]), np.array([1.0, 1.7]), 0.45)
-    assert list(cells.columns) == [f"m_{cell}" for cell in yardstick.HTFT]
-    assert cells.sum(axis=1).to_numpy() == pytest.approx([1.0, 1.0], abs=1e-6)
+    htft_cells_df = yardstick.htft_cells(np.array([1.6, 0.9]), np.array([1.0, 1.7]), 0.45)
+    assert list(htft_cells_df.columns) == [f"m_{cell}" for cell in yardstick.HTFT]
+    assert htft_cells_df.sum(axis=1).to_numpy() == pytest.approx([1.0, 1.0], abs=1e-6)
 
 
 def test_the_comeback_cells_are_the_comeback_chances() -> None:
     home, away = np.array([1.6, 0.9]), np.array([1.0, 1.7])
-    cells = yardstick.htft_cells(home, away, 0.45)
-    model = yardstick.implied(home, away, 0.45)
-    assert cells["m_2/1"].to_numpy() == pytest.approx(model["m_cb_home"].to_numpy(), abs=1e-7)
-    assert cells["m_1/2"].to_numpy() == pytest.approx(model["m_cb_away"].to_numpy(), abs=1e-7)
+    htft_cells_df = yardstick.htft_cells(home, away, 0.45)
+    implied_df = yardstick.implied(home, away, 0.45)
+    assert htft_cells_df["m_2/1"].to_numpy() == pytest.approx(
+        implied_df["m_cb_home"].to_numpy(), abs=1e-7
+    )
+    assert htft_cells_df["m_1/2"].to_numpy() == pytest.approx(
+        implied_df["m_cb_away"].to_numpy(), abs=1e-7
+    )
 
 
 def test_one_share_gives_both_leads_the_same_chance_to_end_level() -> None:
-    cells = yardstick.htft_cells(np.array([1.9]), np.array([0.8]), 0.45)
-    assert cells["m_1/X"][0] == pytest.approx(cells["m_2/X"][0])
+    htft_cells_df = yardstick.htft_cells(np.array([1.9]), np.array([0.8]), 0.45)
+    assert htft_cells_df["m_1/X"][0] == pytest.approx(htft_cells_df["m_2/X"][0])
 
 
-def test_priced_keeps_the_matches_with_both_markets(toy_priced_matches: pd.DataFrame) -> None:
-    assert yardstick.priced(toy_priced_matches)["match_id"].tolist() == ["m1", "m2", "m3", "m4"]
+def test_priced_keeps_the_matches_with_both_markets(toy_priced_matches_df: pd.DataFrame) -> None:
+    assert yardstick.priced(toy_priced_matches_df)["match_id"].tolist() == ["m1", "m2", "m3", "m4"]
 
 
-def test_first_half_share_is_one_number(toy_priced_matches: pd.DataFrame) -> None:
-    assert yardstick.first_half_share(toy_priced_matches) == pytest.approx(3 / 8)
+def test_first_half_share_is_one_number(toy_priced_matches_df: pd.DataFrame) -> None:
+    assert yardstick.first_half_share(toy_priced_matches_df) == pytest.approx(3 / 8)
 
 
-def test_frame_scores_every_priced_match(toy_priced_matches: pd.DataFrame) -> None:
-    out = yardstick.frame(toy_priced_matches, yardstick.build_grid(COARSE))
+def test_frame_scores_every_priced_match(toy_priced_matches_df: pd.DataFrame) -> None:
+    yardstick_df = yardstick.frame(toy_priced_matches_df, yardstick.build_grid(COARSE))
 
-    assert out["match_id"].tolist() == ["m1", "m2", "m3", "m4"]
-    assert out["cluster"].tolist() == ["1 2024", "1 2025", "2 2024-2025", "2 2025-2026"]
-    assert out["m_goals_1h"].to_numpy() == pytest.approx((2 / 6) * out["m_goals"].to_numpy())
-    assert out.loc[out["ht_margin"] == 0, "m_completion"].tolist() == [0.0, 0.0]
-    assert out["is_comeback"].tolist() == [0.0, 0.0, 0.0, 1.0]
-    assert out["fav_p"].to_numpy() == pytest.approx(
-        out[["shin_p_home", "shin_p_away"]].max(axis=1).to_numpy()
+    assert yardstick_df["match_id"].tolist() == ["m1", "m2", "m3", "m4"]
+    assert yardstick_df["cluster"].tolist() == ["1 2024", "1 2025", "2 2024-2025", "2 2025-2026"]
+    assert yardstick_df["m_goals_1h"].to_numpy() == pytest.approx(
+        (2 / 6) * yardstick_df["m_goals"].to_numpy()
     )
-    assert out["fav_is_home"].tolist() == [True, False, True, False]
+    assert yardstick_df.loc[yardstick_df["ht_margin"] == 0, "m_completion"].tolist() == [0.0, 0.0]
+    assert yardstick_df["is_comeback"].tolist() == [0.0, 0.0, 0.0, 1.0]
+    assert yardstick_df["fav_p"].to_numpy() == pytest.approx(
+        yardstick_df[["shin_p_home", "shin_p_away"]].max(axis=1).to_numpy()
+    )
+    assert yardstick_df["fav_is_home"].tolist() == [True, False, True, False]
 
 
-def test_frame_can_remove_the_margin_proportionally(toy_priced_matches: pd.DataFrame) -> None:
-    out = yardstick.frame(toy_priced_matches, yardstick.build_grid(COARSE), proportional=True)
-    priced = yardstick.priced(toy_priced_matches)
-    assert out["shin_p_home"].to_numpy() == pytest.approx(priced["s2_mkt_p_home"].to_numpy())
+def test_frame_can_remove_the_margin_proportionally(toy_priced_matches_df: pd.DataFrame) -> None:
+    yardstick_df = yardstick.frame(
+        toy_priced_matches_df, yardstick.build_grid(COARSE), proportional=True
+    )
+    priced_df = yardstick.priced(toy_priced_matches_df)
+    assert yardstick_df["shin_p_home"].to_numpy() == pytest.approx(
+        priced_df["s2_mkt_p_home"].to_numpy()
+    )

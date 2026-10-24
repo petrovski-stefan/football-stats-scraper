@@ -7,7 +7,7 @@ from analysis.schedule.whole_corpus.per_league import rates as runner
 
 
 @pytest.fixture
-def frame() -> pd.DataFrame:
+def card_df() -> pd.DataFrame:
     """Eight matches of two leagues, each with two league-seasons, in the card's shape.
 
     League 1 keeps two stages; Apertura-B is a part of its Apertura. League 2 keeps one.
@@ -32,21 +32,21 @@ def test_quantity_finds_the_card_row() -> None:
         runner.quantity("no such row")
 
 
-def test_season_tests_give_one_row_per_sliced_quantity(frame: pd.DataFrame) -> None:
-    table = runner.season_tests(frame)
-    assert table["quantity"].tolist() == list(runner.SLICED)
-    assert table["df"].tolist() == [2.0, 2.0, 2.0]  # two leagues of two seasons each
+def test_season_tests_give_one_row_per_sliced_quantity(card_df: pd.DataFrame) -> None:
+    season_tests_df = runner.season_tests(card_df)
+    assert season_tests_df["quantity"].tolist() == list(runner.SLICED)
+    assert season_tests_df["df"].tolist() == [2.0, 2.0, 2.0]  # two leagues of two seasons each
 
 
-def test_stage_table_puts_apertura_b_into_the_apertura(frame: pd.DataFrame) -> None:
-    stages = frame[frame["stage"].isin(runner.STAGES)]
-    table = runner.stage_table(stages).set_index(["stage", "quantity"])
-    assert table.loc[("Apertura", "comeback"), "matches"] == 2.0
-    assert table.loc[("Apertura", "7+ goals"), "value"] == pytest.approx(1 / 2)
-    assert table.loc[("Clausura", "goals per match"), "value"] == pytest.approx(4 / 2)
+def test_stage_table_puts_apertura_b_into_the_apertura(card_df: pd.DataFrame) -> None:
+    with_stage_df = card_df[card_df["stage"].isin(runner.STAGES)]
+    stage_table_df = runner.stage_table(with_stage_df).set_index(["stage", "quantity"])
+    assert stage_table_df.loc[("Apertura", "comeback"), "matches"] == 2.0
+    assert stage_table_df.loc[("Apertura", "7+ goals"), "value"] == pytest.approx(1 / 2)
+    assert stage_table_df.loc[("Clausura", "goals per match"), "value"] == pytest.approx(4 / 2)
 
 
-def test_league_table_ranks_by_the_shrunk_comeback_rate(frame: pd.DataFrame) -> None:
+def test_league_table_ranks_by_the_shrunk_comeback_rate(card_df: pd.DataFrame) -> None:
     def values(shrunk: list[float]) -> pd.DataFrame:
         return pd.DataFrame(
             {"observed": [1.0, 2.0], "value": [0.25, 0.5], "shrunk": shrunk},
@@ -56,8 +56,8 @@ def test_league_table_ranks_by_the_shrunk_comeback_rate(frame: pd.DataFrame) -> 
     by_label = {label: values([0.3, 0.4]) for label, _, _ in runner.TABLE_COLUMNS}
     by_label["comeback"] = values([0.2, 0.6])
 
-    table = runner.league_table(frame, by_label)
+    league_table_df = runner.league_table(card_df, by_label)
 
-    assert table["league"].tolist() == ["b", "a"]
-    assert table["shrunk"].tolist() == [0.6, 0.2]
-    assert table["matches"].tolist() == [4, 4]
+    assert league_table_df["league"].tolist() == ["b", "a"]
+    assert league_table_df["shrunk"].tolist() == [0.6, 0.2]
+    assert league_table_df["matches"].tolist() == [4, 4]
