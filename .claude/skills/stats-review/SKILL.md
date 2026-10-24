@@ -1,6 +1,6 @@
 ---
 name: stats-review
-description: Run the stats-reviewer agent on the current diff when it touches features/, analysis/, ml/, notes/ or the leak tests (tests/features, tests/analysis, tests/ml). Use once per finished change, before committing — when /check reports `stats review DUE` — or when the user asks for a statistical review.
+description: Run the stats-reviewer agent on the current diff when it touches features/, analysis/, ml/, notes/ (not notes/LOG/) or the leak tests (tests/features, tests/analysis, tests/ml). Use once per finished change, before committing — when /check reports `stats review DUE` — or when the user asks for a statistical review.
 allowed-tools: Bash(git diff *) Bash(git ls-files *) Bash(git log *) Bash(git status *) Bash(uv run python -m features.engine --self-check) Agent Grep Read
 ---
 
@@ -18,10 +18,11 @@ reports.
 
 ## 1. Scope
 
-1. `git diff HEAD --name-only -- features analysis ml notes tests/features tests/analysis tests/ml`
-2. `git ls-files --others --exclude-standard -- features analysis ml notes tests/features tests/analysis tests/ml`
+1. `git diff HEAD --name-only -- features analysis ml notes ':!notes/LOG' tests/features tests/analysis tests/ml`
+2. `git ls-files --others --exclude-standard -- features analysis ml notes ':!notes/LOG' tests/features tests/analysis tests/ml`
 
-If both are empty: `stats review n/a`, and stop. The leak tests are in scope because a change
+If both are empty: `stats review n/a`, and stop. `notes/LOG/` is out of scope: it records
+changes and holds no claim to review. The leak tests are in scope because a change
 there can weaken the guard without touching the code it guards (2026-10-22: generated cases
 whose gaps could not show a leak, found by the reviewer).
 
@@ -34,7 +35,7 @@ Capture the exit code and the last ~20 lines. Otherwise the result is `not run: 
 ## 3. The review
 
 1. Spawn the `stats-reviewer` agent with: the full
-   `git diff HEAD -- features analysis ml notes tests/features tests/analysis tests/ml`, the
+   `git diff HEAD -- features analysis ml notes ':!notes/LOG' tests/features tests/analysis tests/ml`, the
    untracked file list, `git log --oneline -15`, and the self-check's exit code and output
    (or `not run: unchanged`).
 2. Relay its report verbatim. Do not re-judge its findings.

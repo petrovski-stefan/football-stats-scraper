@@ -107,8 +107,9 @@ Scope: the source lines the diff adds in the six packages (not `tests/`), agains
 
 ## 4. Is a stats review due?
 
-1. `git diff HEAD --name-only -- features analysis ml notes tests/features tests/analysis tests/ml`
-   and `git ls-files --others --exclude-standard -- <the same paths>`.
+1. `git diff HEAD --name-only -- features analysis ml notes ':!notes/LOG' tests/features tests/analysis tests/ml`
+   and `git ls-files --others --exclude-standard -- <the same paths>`. `notes/LOG/` is out of
+   scope: it records changes and holds no claim to review.
 2. Any file listed: `stats review DUE` — run `/stats-review` before committing. There is no
    commit while a review is due or says BLOCK (root `CLAUDE.md`, "Conventions"). No file:
    `n/a`. Do not start the `stats-reviewer` agent here.

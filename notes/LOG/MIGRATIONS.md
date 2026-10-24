@@ -331,3 +331,4 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 ## 2026-10-24
 
 - **`scripts/` deleted** (the user: "I didnt use a single time"). It held only `scripts/pipeline.sh`, a wrapper for schedule, detail, goals and enrich. The `README.md` lines about it went too. Run each stage with `uv run python -m <package>.<module>`, as root `CLAUDE.md` gives.
+- **The statistical review does not cover `notes/LOG/`** (the user: "Not running the stats-review for a LOG/MIGRATION change"). A Log entry records a change and holds no claim. The scope of 2026-10-22 had all of `notes/`. The pathspec `':!notes/LOG'` removes it in root `CLAUDE.md`, the `check` and `stats-review` skills and the `stats-reviewer` agent.
