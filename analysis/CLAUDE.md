@@ -12,31 +12,9 @@ A runner prints what it measured and **never writes a file**: no CSV, no transcr
 
 ## 3. The tree mirrors `notes/ANALYSIS/`
 
-One runner per doc, at the same path in lowercase. The first folder is the source of the fields the runner uses: `schedule/`, `schedule_detail/`, `schedule_live/`, `schedule_detail_live/`, and `detail/`, `live/`, `detail_live/` without the schedule (rules: `notes/ANALYSIS/CLAUDE.md` §2):
+One runner per doc, at the same path in lowercase: `analysis/schedule/whole_corpus/all/shin.py` is the runner of `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`. The first folder is the source of the fields the runner uses: `schedule/`, `schedule_detail/`, `schedule_live/`, `schedule_detail_live/`, and `detail/`, `live/`, `detail_live/` without the schedule (rules: `notes/ANALYSIS/CLAUDE.md` §2). List the tree to see every runner.
 
-| runner                                                        | doc                                                                 |
-| ------------------------------------------------------------- | ------------------------------------------------------------------- |
-| `analysis/schedule/whole_corpus/all/shin.py`                  | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SHIN.md`                  |
-| `analysis/schedule/whole_corpus/per_league/shin.py`           | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/SHIN.md`           |
-| `analysis/schedule/whole_corpus/all/odds_yardstick.py`        | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ODDS_YARDSTICK.md`        |
-| `analysis/schedule/whole_corpus/all/score_effects.py`         | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SCORE_EFFECTS.md`         |
-| `analysis/schedule/whole_corpus/all/htft.py`                  | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/HTFT.md`                  |
-| `analysis/schedule/whole_corpus/per_league/odds_yardstick.py` | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/ODDS_YARDSTICK.md` |
-| `analysis/schedule/whole_corpus/per_league/odds_coverage.py`  | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/ODDS_COVERAGE.md`  |
-| `analysis/schedule/whole_corpus/all/rates.py`                 | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/RATES.md`                 |
-| `analysis/schedule/whole_corpus/per_league/rates.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_LEAGUE/RATES.md`          |
-| `analysis/schedule/whole_corpus/all/prices.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/PRICES.md`                |
-| `analysis/schedule/whole_corpus/per_team/rates.py`            | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_TEAM/RATES.md`            |
-| `analysis/schedule/whole_corpus/per_team/odds_yardstick.py`   | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/PER_TEAM/ODDS_YARDSTICK.md`   |
-| `analysis/schedule/whole_corpus/all/season_phase.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/SEASON_PHASE.md`          |
-| `analysis/schedule/whole_corpus/all/odds_groups.py`           | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ODDS_GROUPS.md`           |
-| `analysis/schedule/whole_corpus/all/stakes.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/STAKES.md`                |
-| `analysis/schedule/whole_corpus/all/round_fields.py`          | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ROUND_FIELDS.md`          |
-| `analysis/schedule/whole_corpus/all/prematch_screen.py`       | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/PREMATCH_SCREEN.md`       |
-| `analysis/schedule/whole_corpus/all/round_clusters.py`        | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ROUND_CLUSTERS.md`        |
-| `analysis/schedule/whole_corpus/all/levels.py`                | `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/LEVELS.md`                |
-
-Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or level folder (`per_team/`) appears with its first runner, beside its notes folder.
+Run one as `uv run python -m analysis.schedule.whole_corpus.all.shin`. A new source folder (`schedule_live/`, …) or level folder appears with its first runner, beside its notes folder.
 
 Shared code sits at the top of the package and has no notes counterpart:
 

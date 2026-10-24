@@ -24,11 +24,7 @@ As in `analysis/` (§2 there): a runner prints what it measured and **never writ
 
 ## 4. The tree mirrors `notes/ML/`
 
-One runner per doc, at the same path in lowercase, as in `analysis/` (§3 there):
-
-| runner                                        | doc                                                 |
-| --------------------------------------------- | --------------------------------------------------- |
-| `ml/schedule/whole_corpus/all/beyond_odds.py` | `notes/ML/SCHEDULE/WHOLE_CORPUS/ALL/BEYOND_ODDS.md` |
+One runner per doc, at the same path in lowercase, as in `analysis/` (§3 there): `ml/schedule/whole_corpus/all/beyond_odds.py` is the runner of `notes/ML/SCHEDULE/WHOLE_CORPUS/ALL/BEYOND_ODDS.md`.
 
 Run one as `uv run python -m ml.schedule.whole_corpus.all.beyond_odds`.
 
