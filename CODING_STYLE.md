@@ -26,6 +26,7 @@ Write for the next person who has to understand, debug or change the code. That 
 - Prefer a few named steps to one dense expression when the steps are distinct operations.
 - Make important assumptions visible in the code, not hidden in its behaviour.
 - Keep complexity in proportion to the problem. No framework for one use case. No inheritance, metaprogramming, custom decorators or dynamic dispatch unless the problem needs them; the library decorators the project already uses (pytest, Hypothesis, pydantic, `dataclass`) are fine.
+- Build for the callers that exist now. No parameter, option, callback or extension point that no caller or command uses yet; add it in the change that first needs it.
 - The goal is not the fewest lines, the most abstraction or zero repetition. It is the least effort to understand the code and to change it safely.
 
 ## 3. Names
@@ -111,7 +112,8 @@ Blank lines show the structure of a function. They separate phases; they don't d
 - A comment that introduces a phase gets a blank line above it, and none below.
 - One blank line, never two. None directly after a `def`, `if` or `for` line (the formatter removes it anyway).
 - Not after every statement: a blank line marks the end of a phase.
-  Before you finish a function, look at it as a whole and add the missing breaks. A heuristic, not a rule: a function of about six lines or fewer rarely needs one.
+
+Before you finish a function, look at it as a whole and add the missing breaks. A heuristic, not a rule: a function of about six lines or fewer rarely needs one.
 
 From `features/engine.py`, with descriptive names (docstring shortened):
 
@@ -158,7 +160,7 @@ A comment explains what the code alone cannot: why.
 - **Module docstring.** Every module opens with one: what it does and why it exists. A scraper or a stage builder also says what it reads, what it writes and which `notes/FIELDS/` doc defines its fields. An entry point ends with its command: `Run: uv run python -m features.schedule_row`.
 - **Function docstring.** One sentence of plain prose: what the function returns or does, and what `None` or an empty result means (`"""A price or line from the row, None when the page showed none."""`). Add lines only for a rule, a limit or a side effect the reader cannot see. No `Args:` / `Returns:` blocks. A private helper with a clear name needs no docstring.
 - **A comment says why, not what:** why this approach, a domain rule, a trap, why the simpler version is wrong. A comment that repeats the next line in English goes.
-- **A decision a reader could take for a mistake says it is one, with its date,** in the form the code already uses: `(the user, 2026-10-13)`. An ordinary choice needs no such mark.
+- **A decision a reader could take for a mistake says it is one, with its date,** in the form the code already uses: `(the user, 2026-10-13)`. **It also names the assumption that makes it right,** so a reader can tell when it stops being right: "kicked off at least 2 h 30 min before this one, so it had surely finished". An ordinary choice needs no such mark.
 - **A rule taken from a note cites it,** with the path and the section (`features/CLAUDE.md` §0, `notes/FIELDS/SCHEDULE_2_ROW.md`).
 - **A comment describes the code as it is now.** The history of a change goes to `notes/LOG/MIGRATIONS.md`. A date that describes the data stays, because the reader needs it: "files scraped before 2026-09-22 have no such column".
 - A banner comment (`# --- Market controls ---`) may group the functions of a long module.
@@ -214,6 +216,7 @@ Tests follow every rule above. What a test may and may not do is in root `CLAUDE
 - Small, explicit test data: a builder with overrides (`_row(ht, ft, **overrides)`), not a chain of fixtures the reader has to trace.
 - A value that matters says why: `"2026-01-31 18:30+01:00",  # a Saturday in Berlin`. A constant the project chose is read from the code, not restated.
 - Work the expected value out by hand or from an independent rule, never by running the code under test again.
+- **Test the edges no gate sees:** a time window at its exact cut-off and just past it (`tests/domain/test_scope.py`), and a value that can be missing, with it missing (`None`, or NaN in a DataFrame). A wrong edge leaks a result into a row; a wrong fill breaks §9. The window is read from the code, like any project constant.
 - In a loop over cases, the assert message names the case: `assert ..., (ht, ft)`.
 - Hypothesis: keep the strategies small and named at the top of the module (`_PRICES`). Never weaken a property to make it pass.
 
