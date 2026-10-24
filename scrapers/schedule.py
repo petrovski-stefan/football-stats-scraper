@@ -187,6 +187,7 @@ def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: s
     missing = sorted(set(keep) - {name for _, name in tabs})
     if missing:
         logger.warning("%s: kept stages %s are not on the page", label, missing)
+
     return [_Stage(stage_id, name) for stage_id, name in tabs if name in keep]
 
 
@@ -211,6 +212,7 @@ def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[st
 
     lines = parse_final_table(BeautifulSoup(driver.page_source, "html.parser"))
     context = {"season": ctx.season, "league_id": ctx.league_id, "stage": stage.name}
+
     return [{**context, **line} for line in lines]
 
 
@@ -228,6 +230,7 @@ def _scrape_stage(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, A
     matches: list[dict[str, Any]] = []
     for round_number in rounds:
         matches.extend(_scrape_round(driver, round_number, ctx))
+
     return matches
 
 
@@ -266,6 +269,7 @@ def _scrape_round(
     logger.info("  %s: %d finished / %d rows", label, len(round_matches), len(rows))
     if stale:
         logger.info("  %s: %d rows showed a market they do not carry; emptied", label, stale)
+
     return round_matches
 
 
@@ -311,6 +315,7 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
     missing = _MISSING_BY_REPEATS.get(repeats, [])
     for market in missing:
         row.update(dict.fromkeys(_MARKETS[market]))
+
     return list(missing)
 
 
@@ -340,6 +345,7 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
 
     switch_odds_type(driver, "1x2")
     wait_for_odds(driver)
+
     return out
 
 
@@ -350,6 +356,7 @@ def _read_league_name(driver: webdriver.Chrome, season: str) -> str:
     # Drop the leading season, e.g. "2025-2026 English Premier League" -> "English Premier League"
     if name.startswith(season):
         name = name[len(season) :].strip()
+
     return name.lower().replace(" ", "_")
 
 
@@ -380,6 +387,7 @@ def _read_rounds(driver: webdriver.Chrome, stage_id: str | None) -> list[int]:
     numbers.sort()
     if current is not None:
         numbers = [n for n in numbers if n <= current]
+
     return numbers
 
 
@@ -471,6 +479,7 @@ def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
         len(table),
         dropped,
     )
+
     return Outcome(job, matches=len(matches), dropped=dropped)
 
 
@@ -497,6 +506,7 @@ def summarise(outcomes: list[Outcome], on_disk: list[LeagueSeason]) -> int:
         print(f"  FAILED {outcome.job.code} {outcome.job.season}: {outcome.error}")
     if failed:
         print("  Re-run the same command: what is already on disk is skipped.")
+
     return len(failed)
 
 
@@ -525,6 +535,7 @@ def scrape_all(
             pending = wait(pending, timeout=1).not_done
     finally:
         pool.shutdown(cancel_futures=True)
+
     return summarise([future.result() for future in futures], on_disk)
 
 
@@ -536,6 +547,7 @@ def _start(number: int, total: int, job: LeagueSeason) -> Outcome:
         time.sleep(PAUSE_BETWEEN_JOBS)
 
     logger.info("[%d/%d] Scraping %s", number, total, job.url)
+
     return _run_job(job)
 
 

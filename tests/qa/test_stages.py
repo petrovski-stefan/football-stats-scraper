@@ -38,6 +38,7 @@ def _raw() -> pd.DataFrame:
 def _carried_issues(later_df: pd.DataFrame) -> list[str]:
     report = Report("test")
     check_carried(report, _raw(), later_df, _CARRIED, "stage 1")
+
     return report.issues
 
 
@@ -100,12 +101,14 @@ def _stage_two_row(**overrides: object) -> dict[str, object]:
     }
 
     row.update(overrides)
+
     return row
 
 
 def _odds_issues(*rows: dict[str, object]) -> list[str]:
     report = Report("test")
     check_odds_fields(report, pd.DataFrame(list(rows)))
+
     return report.issues
 
 
@@ -195,12 +198,14 @@ def _round_row(**overrides: object) -> dict[str, object]:
     }
 
     row.update(overrides)
+
     return row
 
 
 def _round_issues(*rows: dict[str, object]) -> list[str]:
     report = Report("test")
     check_round_fields(report, pd.DataFrame(list(rows)))
+
     return report.issues
 
 

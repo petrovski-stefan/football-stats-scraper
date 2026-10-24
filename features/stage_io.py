@@ -22,6 +22,7 @@ def read_stage_csv(path: str) -> pd.DataFrame:
     stage_file_df = pd.read_csv(
         path, dtype=dict.fromkeys(text, str), keep_default_na=False, na_values=[""]
     )
+
     return stage_file_df.fillna(dict.fromkeys(text, ""))
 
 

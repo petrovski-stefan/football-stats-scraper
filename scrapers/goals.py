@@ -168,6 +168,7 @@ def done_ids(path: str) -> set[str]:
 
     if not os.path.exists(path):
         return set()
+
     return set(pd.read_csv(path, usecols=["match_id"])["match_id"].astype(str))
 
 
@@ -198,6 +199,7 @@ def build_work_list(sections: tuple[str, ...], depth: int) -> dict[str, int | No
 
     if history and not any(k not in corpus for k in history):
         logger.warning("no history ids outside the corpus — are the detail files stale?")
+
     return pending
 
 
@@ -215,6 +217,7 @@ def _as_id(value: Any) -> str:
         return ""
 
     text = str(value).strip()
+
     return text[:-2] if text.endswith(".0") else text
 
 

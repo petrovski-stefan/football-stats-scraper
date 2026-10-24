@@ -23,6 +23,7 @@ def brier_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
 
     hits = np.zeros_like(probs)
     hits[np.arange(len(outcome)), outcome] = 1.0
+
     return np.asarray(((probs - hits) ** 2).sum(axis=1))
 
 
@@ -32,6 +33,7 @@ def wilson_ci(successes: int, trials: int) -> tuple[float, float]:
     if trials == 0:
         return (0.0, 0.0)
     ci = binomtest(successes, trials).proportion_ci(confidence_level=0.95, method="wilson")
+
     return float(ci.low), float(ci.high)
 
 
@@ -45,6 +47,7 @@ def cluster_bootstrap_ci(
     """
 
     counted = values.notna().astype(float)
+
     return cluster_bootstrap_ratio_ci(values, counted, clusters, n_boot=n_boot, seed=seed)
 
 
@@ -66,6 +69,7 @@ def cluster_bootstrap_ratio_ci(
     picks = np.random.default_rng(seed).integers(0, len(tops), size=(n_boot, len(tops)))
     ratios = tops[picks].sum(axis=1) / bottoms[picks].sum(axis=1)
     low, high = np.quantile(ratios, [0.025, 0.975])
+
     return float(low), float(high)
 
 
@@ -155,6 +159,7 @@ def detectable_tau(
         values = normal_draws * np.sqrt(unit_variances + between_unit_sd**2)
         means = ((values * weights) @ member) / (weights @ member)
         cochran_q = (weights * (values - means[:, codes]) ** 2).sum(axis=1)
+
         return float((cochran_q > critical).mean())
 
     low, high = 0.0, 10 * float(np.sqrt(unit_variances.max()))
@@ -176,6 +181,7 @@ def shrink(
     """
 
     keep = het.tau_squared / (het.tau_squared + variances)
+
     return het.pooled + keep * (means - het.pooled)
 
 
@@ -282,6 +288,7 @@ def _rgb(
         float(np.log(or_numerator_sum / or_denominator_sum)),
         Z95 * float(np.sqrt(variance)),
     )
+
     return (
         or_numerator_sum / or_denominator_sum,
         float(np.exp(log_or - half)),

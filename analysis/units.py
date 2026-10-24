@@ -52,6 +52,7 @@ def dispersion(df: pd.DataFrame, unit: str, observed: str, expected: str, kind: 
     sums_df = df.groupby(unit)[[observed, expected]].transform("sum")
     own = sums_df[observed] / sums_df[expected]
     residual = df[observed] - own * df[expected]
+
     return float((residual**2).sum() / match_variance(kind, own, df[expected]).sum())
 
 
@@ -103,6 +104,7 @@ def tested(
     unit_values_df["shrunk"] = stats.shrink(
         unit_values_df["value"], unit_values_df["variance"], het
     )
+
     return unit_values_df, het, dispersion_factor
 
 
@@ -118,6 +120,7 @@ def luck_line(
     means = pooled * expected.to_numpy(dtype=float)
     counts = np.random.default_rng(seed).poisson(means, size=(draws, len(means)))
     ratios = counts / expected.to_numpy(dtype=float)
+
     return float(np.median(ratios.min(axis=1))), float(np.median(ratios.max(axis=1)))
 
 
@@ -150,6 +153,7 @@ def cohort_agreement(
     """Spearman correlation of the unit values between the two season cohorts, and its n."""
 
     cohort_values_df = cohort_values(df, unit, observed, expected)
+
     return float(
         cohort_values_df.iloc[:, 0].corr(cohort_values_df.iloc[:, 1], method="spearman")
     ), len(cohort_values_df)
@@ -163,6 +167,7 @@ def repeat_test(
 
     cohort_values_df = cohort_values(df, unit, observed, expected, against)
     result = spearmanr(cohort_values_df.iloc[:, 0], cohort_values_df.iloc[:, 1])
+
     return float(result.statistic), len(cohort_values_df), float(result.pvalue)
 
 
@@ -275,6 +280,7 @@ def within_test(
     """`within_tested`, as Q, its df and p only."""
 
     result = within_tested(df, unit, part, observed, expected, kind)
+
     return result.cochran_q, result.degrees_of_freedom, result.p_value
 
 
@@ -433,6 +439,7 @@ def variance_share(df: pd.DataFrame, observed: str, expected: str, tau_squared: 
 
     counted_df = df[df[expected] > 0]
     spread = float(np.var(counted_df[observed].to_numpy(dtype=float), ddof=1))
+
     return float(tau_squared * (counted_df[expected] ** 2).mean() / spread)
 
 

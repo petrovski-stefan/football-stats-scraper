@@ -103,6 +103,7 @@ def split_league_season(path: str) -> tuple[str, str]:
     match = _STEM_RE.match(stem)
     if match is None:
         return stem, ""
+
     return match.group("league"), match.group("season")
 
 
@@ -215,6 +216,7 @@ def split_schedule_name(path: str) -> tuple[str, str]:
     name = os.path.basename(path)
     if not name.endswith(SCHEDULE_SUFFIX):
         return _stem(path), ""
+
     return split_league_season(name.removesuffix(SCHEDULE_SUFFIX) + ".csv")
 
 
@@ -224,4 +226,5 @@ def schedule_at_stage(path: str, stage: int) -> str:
     league, season = split_schedule_name(path)
     if not season:
         raise ValueError(f"not a staged schedule file: {path}")
+
     return schedule_path(stage, league, season)

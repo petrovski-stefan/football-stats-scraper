@@ -75,6 +75,7 @@ def goal_totals(card_df: pd.DataFrame) -> pd.DataFrame:
     goal_totals_df["goals"] = [
         f"{total}+" if total == MANY_GOALS else str(total) for total in goal_totals_df["goals"]
     ]
+
     return goal_totals_df
 
 

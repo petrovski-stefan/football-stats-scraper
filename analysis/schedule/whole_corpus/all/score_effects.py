@@ -72,6 +72,7 @@ def by_state(team_halves_df: pd.DataFrame) -> pd.DataFrame:
         for state in STATES
         if len(state_df := team_halves_df[team_halves_df["state"] == state])
     ]
+
     return pd.DataFrame(table)
 
 
@@ -86,6 +87,7 @@ def by_state_and_side(team_halves_df: pd.DataFrame) -> pd.DataFrame:
         side_states_df = by_state(team_halves_df[mask])
         side_states_df.insert(0, "side", name)
         parts.append(side_states_df)
+
     return pd.concat(parts, ignore_index=True)
 
 
@@ -129,6 +131,7 @@ def by_first_half_goals(yardstick_df: pd.DataFrame) -> pd.DataFrame:
         }
         for goals, first_half_df in yardstick_df.groupby(groups)
     ]
+
     return pd.DataFrame(table)
 
 

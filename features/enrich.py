@@ -86,6 +86,7 @@ def build_enriched(base_path: str) -> str | None:
 
     matched = enriched_df["odds_bookmaker"].notna().sum() if "odds_bookmaker" in enriched_df else 0
     logger.info("Saved %d rows (%d with detail) to %s", len(enriched_df), matched, enriched_path)
+
     return enriched_path
 
 

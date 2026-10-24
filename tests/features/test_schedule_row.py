@@ -28,6 +28,7 @@ def _row(ht: tuple[int, int], ft: tuple[int, int], **overrides: Any) -> dict[str
     }
 
     row.update(overrides)
+
     return row
 
 

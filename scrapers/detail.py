@@ -83,6 +83,7 @@ def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, An
 def _done_ids(detail_path: str) -> set[str]:
     if not os.path.exists(detail_path):
         return set()
+
     return set(pd.read_csv(detail_path, usecols=["match_id"])["match_id"].astype(str))
 
 
@@ -157,6 +158,7 @@ def enrich_finished(limit: int | None = None) -> None:
 def _parse_limit(argv: list[str]) -> int | None:
     if "--limit" in argv:
         return int(argv[argv.index("--limit") + 1])
+
     return None
 
 

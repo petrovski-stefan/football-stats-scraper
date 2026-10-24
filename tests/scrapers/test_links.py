@@ -52,6 +52,7 @@ def _league(**overrides: Any) -> dict[str, Any]:
     }
 
     entry.update(overrides)
+
     return entry
 
 
@@ -102,6 +103,7 @@ def _config(tmp_path: Path) -> str:
 
     path = tmp_path / "leagues.json"
     path.write_text(json.dumps([_league(), other]), encoding="utf-8")
+
     return str(path)
 
 

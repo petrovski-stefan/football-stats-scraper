@@ -46,6 +46,7 @@ def yardstick_chance(train_df: pd.DataFrame, test_df: pd.DataFrame) -> np.ndarra
     it is calibrated as a whole, like the two models."""
 
     scale = train_df[rows.TARGET].sum() / train_df[YARDSTICK].sum()
+
     return np.asarray(test_df[YARDSTICK].to_numpy(dtype=float) * scale)
 
 

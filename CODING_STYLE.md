@@ -10,7 +10,7 @@ Adopted 2026-10-22.
 - **A function you change follows the guide as a whole:** fix its one-letter names, its missing blank lines and any other clear readability problem inside it. Leave names that are already clear, and leave everything outside the function. A half-renamed function reads worse than either version.
 - Code that nobody changes stays as it is. A clean-up pass over a whole package is a change of its own, never part of a feature.
 - **Two kinds of rule.**
-  - **Must:** §3.2 (one-letter names, the `_df` suffix), §5 (blank lines, the one after a docstring included), the 3-line limit of §7, the whole-function scope above, §9 (data, domain rules, missing values), §10 (errors) and the `_private` rule of §11. A Must holds in every case; to change one, change this guide.
+  - **Must:** §3.2 (one-letter names, the `_df` suffix), §5 (blank lines, those after a docstring and before a final `return` included), the 3-line limit of §7, the whole-function scope above, §9 (data, domain rules, missing values), §10 (errors) and the `_private` rule of §11. A Must holds in every case; to change one, change this guide.
   - **Default:** everything else. Follow it unless the result clearly reads worse; then break it, with a comment that says why when the reason is not obvious. In a Default, words like "never" and "only" describe the usual case, not a ban.
 - Rules that are not about readability are written once, elsewhere:
   - layers, imports, data paths, dependencies, commits: root `CLAUDE.md`;
@@ -106,6 +106,7 @@ Blank lines show the structure of a function. They separate phases; they don't d
 
 - One blank line between two phases of a function.
 - **One blank line after a function's docstring,** before its first line of code, in every function, short ones included. The formatter keeps this line but does not add it (for a class it does); never turn on Ruff's `D202`, which forbids it.
+- **One blank line before a function's final `return`** when other statements come before it, short functions included. This is the `return` at the function's own level; one inside an `if`, a loop, a `with` or a `try` follows the other rules.
 - Keep the lines of one phase together: several fields read from one row, counters set together.
 - A blank line after a guard block (`if not ids: return`), before the work it guards.
 - A blank line before and after a loop, `with` or `if` block that is a phase of its own.
@@ -114,7 +115,7 @@ Blank lines show the structure of a function. They separate phases; they don't d
 - One blank line, never two. None directly after a `def`, `if` or `for` line (the formatter removes it anyway).
 - Not after every statement: a blank line marks the end of a phase.
 
-Before you finish a function, look at it as a whole and add the missing breaks. A heuristic, not a rule: a function of about six lines or fewer rarely needs one.
+Before you finish a function, look at it as a whole and add the missing breaks. A heuristic, not a rule: a function of about six lines or fewer rarely needs one, apart from the blank lines after its docstring and before its final `return`.
 
 From `features/engine.py`, with descriptive names (docstring shortened):
 
@@ -135,6 +136,7 @@ def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     avg: pd.Series[Any] = pd.Series(
         np.where(seen > 0, total / seen, np.nan), index=matches_df.index
     )
+
     return avg
 ```
 
@@ -264,7 +266,7 @@ After:
 ## 14. Checklist
 
 - [ ] Names say what the data is, in the project's words. One-letter names only `i`, `_` and a one-line comprehension; a DataFrame's name ends in `_df` (`df` alone only in an any-table helper).
-- [ ] Each function has one job, its guards first, its phases separated by one blank line.
+- [ ] Each function has one job, its guards first, its phases separated by one blank line, and one before its final `return`.
 - [ ] No dense expression where named steps read better.
 - [ ] Every function and class has a docstring: an opening sentence, at most 3 lines of prose, `Args:` / `Returns:` only for what names and types cannot say, a blank line below it.
 - [ ] `#` comments only for a why of one line or block; none is stale.

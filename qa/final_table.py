@@ -45,6 +45,7 @@ def _rebuild(matches_df: pd.DataFrame) -> Standings:
     table = Standings(set(columns[0]) | set(columns[1]))
     for home, away, home_goals, away_goals in zip(*columns, strict=True):
         table.add(home, away, home_goals, away_goals)
+
     return table
 
 

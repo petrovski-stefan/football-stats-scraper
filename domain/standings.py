@@ -84,6 +84,7 @@ class Standings:
         if not any(line.played for line in lines.values()):
             return {}
         keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
+
         return {team: 1 + sum(other > key for other in keys.values()) for team, key in keys.items()}
 
     def points_gaps(self, venue: str, team: int) -> tuple[int | None, int | None]:
@@ -98,6 +99,7 @@ class Standings:
         own = self._lines[venue][team].points
         above = [line.points - own for line in lines if line.points > own]
         below = [own - line.points for line in lines if line.points < own]
+
         return min(above, default=None), min(below, default=None)
 
 

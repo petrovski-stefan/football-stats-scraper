@@ -56,6 +56,7 @@ _PAGE = [
 def _run(schedule_df: pd.DataFrame, page: list[dict[str, object]]) -> Report:
     report = Report("test")
     check(report, schedule_df, pd.DataFrame(page))
+
     return report
 
 

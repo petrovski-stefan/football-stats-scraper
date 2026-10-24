@@ -58,6 +58,7 @@ def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
                 "p": f"{p_value:.3g}",
             }
         )
+
     return pd.DataFrame(rows)
 
 
@@ -92,6 +93,7 @@ def league_table(card_df: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.D
     league_table_df = pd.DataFrame({"league": grouped["league"].first(), "matches": grouped.size()})
     for label, column, header in TABLE_COLUMNS:
         league_table_df[header] = values[label][column]
+
     return league_table_df.sort_values(["shrunk", "league"], ascending=[False, True])
 
 

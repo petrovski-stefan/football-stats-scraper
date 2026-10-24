@@ -30,6 +30,7 @@ def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float
         return (math.nan, math.nan, math.nan, math.nan)
     result = calculate_implied_probabilities(odds, full_output=True)
     p_home, p_draw, p_away = result.implied_probabilities
+
     return p_home, p_draw, p_away, result.z
 
 
@@ -37,6 +38,7 @@ def shin_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Shin's probabilities (`PROBS`) and `shin_z`, one row per match, on the same index."""
 
     rows = [shin_row(*map(float, prices)) for prices in matches_df[ODDS].itertuples(index=False)]
+
     return pd.DataFrame(rows, columns=[*PROBS, "shin_z"], index=matches_df.index)
 
 

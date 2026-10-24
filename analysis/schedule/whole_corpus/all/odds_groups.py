@@ -96,6 +96,7 @@ def group_stats(groups: np.ndarray, events: np.ndarray, expected: np.ndarray) ->
     hit = counts >= 1
     tails = poisson.sf(counts[hit] - 1, expected[hit])
     out[SMALLEST_TAIL] = float(tails.min()) if hit.any() else 1.0
+
     return out
 
 
@@ -168,6 +169,7 @@ def large_groups(grouped_matches_df: pd.DataFrame, grouping: str, expected: str)
     """The matches of the groups with at least `MIN_EXPECTED` expected events."""
 
     sums = grouped_matches_df.groupby(grouping)[expected].transform("sum")
+
     return grouped_matches_df[sums >= MIN_EXPECTED]
 
 

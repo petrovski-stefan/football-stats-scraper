@@ -55,6 +55,7 @@ def group_folds(
     codes, names = pd.factorize(groups, sort=True)
     fold = (np.arange(len(names)) % fold_count)[codes]
     positions = np.arange(len(groups))
+
     return [(positions[fold != i], positions[fold == i]) for i in range(fold_count)]
 
 
@@ -119,4 +120,5 @@ def contributions(booster: lgb.Booster, df: pd.DataFrame, fields: list[str]) -> 
     adds (left out here), they sum to the log odds of the row's chance."""
 
     values = np.asarray(booster.predict(df[fields], pred_contrib=True), dtype=float)
+
     return pd.DataFrame(values[:, :-1], columns=fields, index=df.index)

@@ -66,6 +66,7 @@ def banded(
         for band, band_df in yardstick_df.groupby(bands, observed=True)
         for observed_column, expected_column, label in rows
     ]
+
     return pd.DataFrame(table)
 
 
@@ -99,6 +100,7 @@ def excess_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
         }
         for name, mask in trailer_splits(yardstick_df).items()
     ]
+
     return pd.DataFrame(table)
 
 
@@ -137,6 +139,7 @@ def pivot(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     pivot_df["oe"] = pivot_df["observed"] / pivot_df["expected"]
+
     return pivot_df.reset_index().rename(
         columns={"fav_p": "win chance", "m_goals": "expected goals"}
     )

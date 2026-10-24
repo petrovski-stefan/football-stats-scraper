@@ -24,6 +24,7 @@ def with_markets(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The matches with `all_three` (every market present) and `no_odds` (none present)."""
 
     market_flags_df = matches_df[list(MARKETS.values())].astype(bool)
+
     return matches_df.assign(
         all_three=market_flags_df.all(axis=1), no_odds=~market_flags_df.any(axis=1)
     )
@@ -36,6 +37,7 @@ def patterns(matches_df: pd.DataFrame) -> pd.DataFrame:
     for market, flag in MARKETS.items():
         names = names + np.where(matches_df[flag].astype(bool), f" {market}", "")
     names = names.str.strip().replace("", "none")
+
     return names.value_counts().rename_axis("markets").reset_index(name="matches")
 
 
@@ -46,6 +48,7 @@ def coverage(matches_df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
         matches=("all_three", "size"), all_three=("all_three", "sum")
     )
     coverage_df["share"] = coverage_df["all_three"] / coverage_df["matches"]
+
     return coverage_df.reset_index()
 
 
@@ -53,6 +56,7 @@ def three_nil(matches_df: pd.DataFrame) -> "pd.Series[bool]":
     """The matches that end 3-0 or 0-3: the score of an awarded match."""
 
     home, away = matches_df["s1_ft_home_goals"], matches_df["s1_ft_away_goals"]
+
     return ((home == 3) & (away == 0)) | ((home == 0) & (away == 3))
 
 
@@ -64,6 +68,7 @@ def half_time(matches_df: pd.DataFrame) -> tuple["pd.Series[bool]", "pd.Series[b
     final = (ht_home == matches_df["s1_ft_home_goals"]) & (
         ht_away == matches_df["s1_ft_away_goals"]
     )
+
     return level, final
 
 

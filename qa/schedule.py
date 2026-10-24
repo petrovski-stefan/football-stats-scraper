@@ -53,6 +53,7 @@ def read_staged(path: str, columns: list[str] | None = None) -> pd.DataFrame:
     head = pd.read_csv(path, nrows=0).columns
     text = [c for c in _TEXT_COLUMNS if c in head and (columns is None or c in columns)]
     staged_df = pd.read_csv(path, usecols=columns, dtype=dict.fromkeys(text, str))
+
     return staged_df.fillna(dict.fromkeys(text, ""))
 
 

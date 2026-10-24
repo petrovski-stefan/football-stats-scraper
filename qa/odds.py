@@ -77,6 +77,7 @@ def _present(df: pd.DataFrame, *columns: str) -> pd.DataFrame:
 
     if not set(columns) <= set(df.columns):
         return df.iloc[0:0]
+
     return df[df[list(columns)].notna().all(axis=1)]
 
 

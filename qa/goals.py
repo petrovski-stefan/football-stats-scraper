@@ -211,6 +211,7 @@ def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, tuple[int, int, int, 
     totals_df = goal_counts_df.groupby("match_id")[
         ["ft_home", "ft_away", "ht_home", "ht_away"]
     ].sum()
+
     return {
         str(match_id): (int(row[0]), int(row[1]), int(row[2]), int(row[3]))
         for match_id, row in zip(totals_df.index, totals_df.to_numpy(), strict=True)
@@ -226,6 +227,7 @@ def second_half_share(goals_df: pd.DataFrame) -> float | None:
 
     if goals_df.empty:
         return None
+
     return float((~goals_df["minute"].le(HALF_TIME)).mean())
 
 

@@ -25,6 +25,7 @@ def _rounds(teams: int) -> list[list[tuple[int, int]]]:
     for _ in range(teams - 1):
         rounds.append([(ids[i], ids[-1 - i]) for i in range(teams // 2)])
         ids = [ids[0], ids[-1], *ids[1:-1]]
+
     return rounds
 
 
@@ -72,6 +73,7 @@ def test_the_test_season_is_a_real_round_robin() -> None:
 def _issues(schedule_df: pd.DataFrame) -> list[str]:
     report = Report("test")
     validate(report, schedule_df)
+
     return report.issues
 
 

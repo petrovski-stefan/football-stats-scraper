@@ -105,6 +105,7 @@ def _page_line(quarters: int) -> str:
     if size % 2 == 0:
         return f"{sign}{size / 4:g}"
     low, high = (size - 1) / 4, (size + 1) / 4
+
     return f"0/{sign}{high:g}" if low == 0 else f"{sign}{low:g}/{high:g}"
 
 
@@ -193,6 +194,7 @@ def _odds_row(*cells: str) -> Tag:
     html = f'<div class="schedulis"><span class="odds">{spans}</span></div>'
     row = BeautifulSoup(html, "html.parser").select_one("div")
     assert row is not None
+
     return row
 
 
@@ -222,6 +224,7 @@ _TITLE = (
 
 def _standing(rank: int, team: int, name: str, counts: tuple[int, ...]) -> str:
     played, won, drawn, lost, goal_diff, points = counts
+
     return (
         f'<li class="standlis"><span class="rank"><em>{rank}</em></span>'
         f'<span class="team" onclick="toTeam({team})"><span class="name">{name}</span></span>'
@@ -233,6 +236,7 @@ def _standing(rank: int, team: int, name: str, counts: tuple[int, ...]) -> str:
 
 def _table(*rows: str, title: str = _TITLE) -> BeautifulSoup:
     html = f'<div id="standingPlates"><ul id="standingList">{title}{"".join(rows)}</ul></div>'
+
     return BeautifulSoup(html, "html.parser")
 
 

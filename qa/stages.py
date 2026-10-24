@@ -139,6 +139,7 @@ def _same(old: "pd.Series[Any]", new: "pd.Series[Any]") -> "pd.Series[bool]":
     if pd.api.types.is_float_dtype(old) and pd.api.types.is_float_dtype(new):
         close = np.isclose(old.to_numpy(), new.to_numpy(), rtol=TOLERANCE, atol=0.0)
         return pd.Series(close, index=old.index) | both_empty
+
     return (old == new) | both_empty
 
 

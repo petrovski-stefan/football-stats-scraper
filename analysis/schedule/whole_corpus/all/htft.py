@@ -51,6 +51,7 @@ def cell_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
         columns={"quantity": "HT/FT"}
     )
     cell_table_df["observed share"] = cell_table_df["observed"] / len(yardstick_df)
+
     return cell_table_df
 
 

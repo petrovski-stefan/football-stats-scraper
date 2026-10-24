@@ -154,6 +154,7 @@ def round_so_far(schedule_df: pd.DataFrame) -> pd.DataFrame:
     parts = [
         _round_counts(round_df) for _, round_df in with_kickoff_df.groupby(_ROUND_KEY, sort=False)
     ]
+
     return pd.concat(parts).reindex(schedule_df.index)
 
 
@@ -200,6 +201,7 @@ def _matches_by_kickoff(league_stage_df: pd.DataFrame) -> list[_Match]:
     by_kickoff_df = league_stage_df.assign(
         _kickoff=league_stage_df["s1_date"].map(parse_instant)
     ).sort_values("_kickoff")
+
     return [
         _Match(
             index,
@@ -270,6 +272,7 @@ def _finished_by(matches: list[_Match], start: int, instant: Any) -> int:
     end = start
     while end < len(matches) and matches[end].kickoff <= instant - FINISHED_AFTER:
         end += 1
+
     return end
 
 
@@ -337,6 +340,7 @@ def pre_kickoff_tables(schedule_df: pd.DataFrame) -> pd.DataFrame:
     gap = (
         pre_kickoff_df["s3_home_pre_ft_total_rank"] - pre_kickoff_df["s3_away_pre_ft_total_rank"]
     ).abs()
+
     return pre_kickoff_df.assign(s3_pre_rank_gap=gap).astype("Int64")
 
 
@@ -367,6 +371,7 @@ def build(row_path: str) -> str:
     write_stage_csv(stage_3_df, out_path, columns)
 
     logger.info("%s: %d rows -> %s", row_path, len(stage_2_df), out_path)
+
     return out_path
 
 

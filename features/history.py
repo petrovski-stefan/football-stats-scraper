@@ -37,6 +37,7 @@ def cell(detail_df: pd.DataFrame, column: str, row: int) -> str:
         return ""
 
     text = str(value).strip()
+
     return text[:-2] if text.endswith(".0") else text
 
 
@@ -51,6 +52,7 @@ def subject_is_home(detail_df: pd.DataFrame, prefix: str, row: int) -> bool | No
     raw = cell(detail_df, f"{prefix}is_home", row)
     if raw == "":
         return None
+
     return raw.lower() in _TRUTHY
 
 
@@ -69,6 +71,7 @@ def match_key(detail_df: pd.DataFrame, prefix: str, row: int) -> str | None:
         cell(detail_df, f"{prefix}league", row), cell(detail_df, f"{prefix}date", row)
     ):
         return None
+
     return match_id
 
 
@@ -87,6 +90,7 @@ def score_matches(detail_df: pd.DataFrame, prefix: str, row: int, home: int, awa
     stored_away = cell(detail_df, f"{prefix}ft_away_goals", row)
     if stored_home == "" or stored_away == "":
         return True
+
     return (home, away) == (int(stored_home), int(stored_away))
 
 

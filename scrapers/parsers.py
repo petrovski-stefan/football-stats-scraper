@@ -32,6 +32,7 @@ def parse_score(raw: str | None) -> tuple[int, int] | None:
     match = _SCORE_RE.match(raw)
     if match is None:
         return None
+
     return int(match.group(1)), int(match.group(2))
 
 
@@ -52,6 +53,7 @@ def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
     cells = row.select(ROW_ODDS_CELLS)
     if len(cells) < 3:
         return None
+
     return tag_text(cells[0]), tag_text(cells[1]), tag_text(cells[2])
 
 
@@ -65,6 +67,7 @@ def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     cells = _odds_cells(row)
     if cells is None:
         return None, None, None
+
     return parse_float(cells[0]), parse_float(cells[1]), parse_float(cells[2])
 
 
@@ -95,6 +98,7 @@ def parse_line(raw: str) -> float | None:
         return None
 
     magnitude = sum(parts) / len(parts)
+
     return -magnitude if negative else magnitude
 
 
@@ -108,6 +112,7 @@ def parse_ou_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     cells = _odds_cells(row)
     if cells is None:
         return None, None, None
+
     return parse_float(cells[0]), parse_line(cells[1]), parse_float(cells[2])
 
 
@@ -121,6 +126,7 @@ def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     cells = _odds_cells(row)
     if cells is None:
         return None, None, None
+
     return parse_float(cells[0]), parse_line(cells[1]), parse_float(cells[2])
 
 
@@ -130,6 +136,7 @@ def attr(tag: Tag | None, name: str) -> str | None:
     if tag is None:
         return None
     value = tag.get(name)
+
     return value if isinstance(value, str) else None
 
 
@@ -138,6 +145,7 @@ def _team_id_from_onclick(tag: Tag | None) -> int | None:
     if onclick is None:
         return None
     match = _TEAM_ID_RE.search(onclick)
+
     return int(match.group(1)) if match else None
 
 
@@ -214,6 +222,7 @@ def parse_kickoff(raw: str | None) -> str | None:
         except ValueError:
             continue
         return to_berlin(naive.replace(tzinfo=LEAGUE_PAGE_CLOCK))
+
     return None
 
 

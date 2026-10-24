@@ -32,6 +32,7 @@ def _number(row: Mapping[str, Any], column: str) -> float | None:
     value = row.get(column)
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return None
+
     return float(value)
 
 
@@ -106,6 +107,7 @@ def build(raw_path: str) -> str:
     )
 
     logger.info("%s: %d rows -> %s", raw_path, len(stage_1_df), out_path)
+
     return out_path
 
 

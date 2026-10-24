@@ -137,6 +137,7 @@ def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) ->
         return picked
 
     start = season_start_year(season.season)
+
     return start is not None and start < selection.before_year
 
 

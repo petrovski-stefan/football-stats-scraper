@@ -69,6 +69,7 @@ class LiveRow:
             return None
 
         cell = cells[0] if self.side == "home" else cells[-1]
+
         return cell if isinstance(cell, Tag) else None
 
 
@@ -103,6 +104,7 @@ def _minute_index(cells: list[Tag]) -> int | None:
     for i, cell in enumerate(cells):
         if cell.select_one(LIVE_EVENT_MINUTE) is not None:
             return i
+
     return None
 
 
@@ -117,6 +119,7 @@ def _side_of(cells: list[Tag]) -> str | None:
     away = _populated(cells[index + 1 :])
     if home == away:  # neither side, or both — not attributable
         return None
+
     return "home" if home else "away"
 
 
@@ -139,4 +142,5 @@ def _kind(cells: list[Tag], side: str | None) -> str:
         alt = icon.get("alt")
         if isinstance(alt, str) and alt.strip():
             return alt.strip()
+
     return ""

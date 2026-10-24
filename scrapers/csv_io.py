@@ -22,6 +22,7 @@ def league_slug(country: str, league_name: str) -> str:
 
     if league == prefix or league.startswith(f"{prefix}_"):
         return league
+
     return f"{prefix}_{league}"
 
 
@@ -69,4 +70,5 @@ def save_unless_shrinking(rows: list[dict[str, Any]], csv_path: str, columns: li
             return False
 
     write_ordered_csv(rows, csv_path, columns)
+
     return True

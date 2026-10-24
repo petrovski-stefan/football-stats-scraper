@@ -54,6 +54,7 @@ def odds_share(df: pd.DataFrame, observed: str, denominator: str, model: str) ->
     observed_values, expected = counted_df[observed], counted_df[model]
     fitted = expected * observed_values.sum() / expected.sum()
     error = ((observed_values - fitted) ** 2).sum()
+
     return float(1.0 - error / ((observed_values - observed_values.mean()) ** 2).sum())
 
 

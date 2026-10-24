@@ -214,6 +214,7 @@ def _with_ht(match: dict[str, object], ht: tuple[int, int]) -> dict[str, object]
 
 def _season() -> pd.DataFrame:
     week = timedelta(days=7)
+
     return _frame(
         _with_ht(_match("a", _START, (1, 2), (3, 2)), (0, 2)),  # 1 comes back, 2 blows a lead
         _with_ht(_match("b", _START, (3, 4), (1, 1)), (1, 0)),
@@ -248,6 +249,7 @@ def _cells(
     """The sum of some HT/FT cells, row by row."""
 
     names = [f"s3_{side}_pre_htft_{venue}_{ht}_{ft}" for ht in ht_results for ft in ft_results]
+
     return pre_kickoff_df[names].sum(axis=1)
 
 
@@ -362,6 +364,7 @@ def _counts(round_so_far_df: pd.DataFrame, match_id: str) -> list[int]:
     """Finished, comebacks, 7+ goals and rare events, in that order."""
 
     names = ("finished", "comebacks", "seven_plus", "rare_events")
+
     return [int(round_so_far_df.at[match_id, f"s3_round_pre_{name}"]) for name in names]
 
 

@@ -61,6 +61,7 @@ def roi(bets_df: pd.DataFrame, profit: str) -> dict[str, float]:
     """The return per unit stake (the mean profit), with its interval over league-seasons."""
 
     low, high = stats.cluster_bootstrap_ci(bets_df[profit], bets_df["cluster"])
+
     return {
         "bets": float(len(bets_df)),
         "roi": float(bets_df[profit].mean()),
@@ -172,6 +173,7 @@ def ou_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     lines = sorted(counts[counts >= MIN_LINE_MATCHES].index)
     groups = {f"{line:g}": bets_df["ou_line"] == line for line in lines}
     groups["all lines"] = pd.Series(True, index=bets_df.index)
+
     return groups
 
 
@@ -182,6 +184,7 @@ def ah_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
         name: bets_df["ah_line"].between(lowest, highest) for name, lowest, highest in AH_BANDS
     }
     groups["all lines"] = pd.Series(True, index=bets_df.index)
+
     return groups
 
 
@@ -211,6 +214,7 @@ def line_shares(line: "pd.Series[float]") -> pd.DataFrame:
     """The share of matches at each line."""
 
     counts = line.value_counts().sort_index()
+
     return pd.DataFrame(
         {"line": counts.index, "matches": counts.to_numpy(), "share": counts.to_numpy() / len(line)}
     )
@@ -228,6 +232,7 @@ def calibrated_totals(yardstick_df: pd.DataFrame) -> "pd.Series[float]":
     bands = pd.cut(yardstick_df["m_goals"], yardstick.TOTAL_EDGES)
     grouped = yardstick_df.groupby(bands, observed=True)
     ratio = grouped["goals"].transform("mean") / grouped["m_goals"].transform("mean")
+
     return yardstick_df["m_goals"] * ratio
 
 
@@ -248,6 +253,7 @@ def tail_bands(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     )
 
     tail_bands_df["observed / model"] = tail_bands_df["observed mean"] / tail_bands_df["model mean"]
+
     return tail_bands_df.reset_index().rename(columns={"m_goals": "expected goals"})
 
 
@@ -256,6 +262,7 @@ def tail_counts(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     and on the band-calibrated totals."""
 
     calibrated = calibrated_totals(yardstick_df)
+
     return pd.DataFrame(
         [
             {

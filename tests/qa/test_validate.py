@@ -18,6 +18,7 @@ def _schedule(stage: int, league: str, season: str, ids: list[str], league_id: i
     path = paths.schedule_path(stage, league, season)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     pd.DataFrame({"match_id": ids, "s1_league_id": league_id}).to_csv(path, index=False)
+
     return path
 
 

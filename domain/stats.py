@@ -10,6 +10,7 @@ def one_x_two(home_goals: int, away_goals: int) -> str:
         return "1"
     if home_goals < away_goals:
         return "2"
+
     return "X"
 
 
@@ -18,6 +19,7 @@ def team_result(goals_for: int, goals_against: int) -> str:
 
     if goals_for > goals_against:
         return "W"
+
     return "D" if goals_for == goals_against else "L"
 
 
@@ -60,6 +62,7 @@ def points(goals_for: int, goals_against: int) -> int:
         return 3
     if goals_for == goals_against:
         return 1
+
     return 0
 
 
@@ -82,6 +85,7 @@ def vig_free_1x2(
         return None
     inverse = (1 / home, 1 / draw, 1 / away)
     total = sum(inverse)
+
     return inverse[0] / total, inverse[1] / total, inverse[2] / total
 
 
@@ -95,4 +99,5 @@ def two_way_prob(odds_for: float | None, odds_against: float | None) -> float | 
     if not odds_for or not odds_against:
         return None
     implied_for, implied_against = 1 / odds_for, 1 / odds_against
+
     return implied_for / (implied_for + implied_against)

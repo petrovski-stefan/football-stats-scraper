@@ -96,6 +96,7 @@ def _row_league_id(row: Tag) -> int | None:
     """The competition id carried on a history row (36 = EPL, 90 = FA Cup)."""
 
     raw = attr(row, HIST_LEAGUE_ID_ATTR)
+
     return int(raw) if raw and raw.isdigit() else None
 
 
@@ -106,11 +107,13 @@ def _parse_pair_cell(
 
     ft_part = text.split("(")[0]
     ht_part = text[text.find("(") + 1 : text.find(")")] if "(" in text else ""
+
     return parse_score(ft_part), parse_score(ht_part)
 
 
 def rows_to_records(rows: list[Tag]) -> list[dict[str, Any]]:
     records = [parse_history_row(r) for r in rows]
+
     return [r for r in records if r is not None]
 
 
@@ -200,6 +203,7 @@ def aggregate_recent(
     out = {f"{side}_recent_{k}": v for k, v in agg.items()}
     out[f"{side}_recent_venue_ppg"] = venue_agg["ppg"]
     out[f"{side}_recent_venue_over25_rate"] = venue_agg["over25_rate"]
+
     return out
 
 
@@ -261,6 +265,7 @@ def flatten_history(
     for i in range(1, MATCHES_PER_SECTION + 1):
         record = records[i - 1] if i - 1 < len(records) else None
         out.update(_flatten_one(record, subject_id, f"{section}_last{i}_"))
+
     return out
 
 
@@ -365,6 +370,7 @@ def _find_odds_table(soup: BeautifulSoup) -> Tag | None:
         text = table.get_text()
         if "1X2" in text and "Company" in text:
             return table
+
     return None
 
 
@@ -390,6 +396,7 @@ def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
         return None, None, None
 
     vals = [parse_float(attr(c, "data-o") or tag_text(c)) for c in cells[:3]]
+
     return vals[0], vals[1], vals[2]
 
 
@@ -466,4 +473,5 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
 
 def _team_id(tag: Tag) -> int | None:
     found = _TEAM_ID_RE.search(attr(tag, "onclick") or "")
+
     return int(found.group(1)) if found else None

@@ -119,6 +119,7 @@ def _players(row: live_rows.LiveRow) -> tuple[str, str]:
     on, off = _by_marker(cell)
     if on or off:
         return on, off
+
     return (names[0] if names else ""), (names[1] if len(names) > 1 else "")
 
 

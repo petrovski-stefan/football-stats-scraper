@@ -85,6 +85,7 @@ def league_table(
     )
     for label, column, header in columns:
         league_table_df[header] = values[label][column]
+
     return league_table_df.sort_values("league")
 
 

@@ -35,6 +35,7 @@ def fifth_cuts(matches_df: pd.DataFrame) -> np.ndarray:
     chances = np.concatenate(
         [priced_df["s2_mkt_p_home"].to_numpy(float), priced_df["s2_mkt_p_away"].to_numpy(float)]
     )
+
     return np.asarray(np.quantile(chances, FIFTHS))
 
 
@@ -72,6 +73,7 @@ def trailing_states(matches_df: pd.DataFrame, cuts: np.ndarray) -> pd.DataFrame:
     states_df["stratum"] = (
         states_df["cluster"] + "|" + fifth.astype(str) + "|" + states_df["deficit"]
     )
+
     return states_df
 
 
@@ -87,6 +89,7 @@ def fell_since_open(states_df: pd.DataFrame) -> pd.DataFrame:
     first rounds) is left out."""
 
     with_change_df = states_df.dropna(subset=["change"])
+
     return with_change_df.assign(flag=with_change_df["change"] >= FELL)
 
 
@@ -124,6 +127,7 @@ def mh_table(states_df: pd.DataFrame) -> pd.DataFrame:
         mh_row(str(cohort), cohort_states_df)
         for cohort, cohort_states_df in states_df.groupby("season_cohort")
     ]
+
     return pd.DataFrame([*rows, mh_row("pooled", states_df)])
 
 

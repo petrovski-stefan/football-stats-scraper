@@ -15,6 +15,7 @@ from scrapers.schedule import Outcome, plan_jobs, scraped_league_seasons, summar
 
 def _job(league_id: int, season: str, code: str = "TST") -> LeagueSeason:
     url = f"https://example.com/league/{season}/{league_id}"
+
     return LeagueSeason(url, season, league_id, (), code, "Test League", "Testland")
 
 
@@ -72,6 +73,7 @@ def _fake_run(
     def run_job(job: LeagueSeason) -> Outcome:
         with lock:
             names.append(threading.current_thread().name)
+
         return Outcome(job, error="boom") if job.code == "BAD" else Outcome(job, matches=1)
 
     monkeypatch.setattr(schedule, "get_league_seasons", lambda selection: jobs)

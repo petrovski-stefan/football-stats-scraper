@@ -42,6 +42,7 @@ def cohort_stability(scored_df: pd.DataFrame, column: str) -> tuple[float, int]:
     league_means_df = (
         scored_df.groupby(["s1_league_id", "season_cohort"])[column].mean().unstack().dropna()
     )
+
     return float(
         league_means_df.iloc[:, 0].corr(league_means_df.iloc[:, 1], method="spearman")
     ), len(league_means_df)

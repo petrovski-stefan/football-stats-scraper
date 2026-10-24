@@ -106,6 +106,7 @@ def validate_league_season(base_path: str) -> bool:
     # Flush every report before deciding — `all()` over a generator would short-circuit
     # on the first failure and swallow the remaining subjects' output.
     verdicts = [report.flush() for report in reports]
+
     return all(verdicts)
 
 
@@ -130,6 +131,7 @@ def validate_goals() -> bool | None:
 
     report = Report("goal timings (global store)")
     goal_checks.validate(report, goals_df, attempt_log_df, _goal_truth())
+
     return report.flush()
 
 
@@ -154,6 +156,7 @@ def validate_events() -> bool | None:
 
     report = Report("cards and substitutions (global store)")
     event_checks.validate(report, events_df, attempt_log_df)
+
     return report.flush()
 
 
@@ -187,6 +190,7 @@ def _goal_truth() -> pd.DataFrame:
         return pd.DataFrame(columns=SCORE_COLUMNS)
 
     truth_df = pd.concat(frames, ignore_index=True).dropna(subset=["match_id"])
+
     return truth_df.drop_duplicates("match_id", keep="first")
 
 
@@ -239,6 +243,7 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     # A list, not a generator: `all()` would stop at the first failure and leave the
     # remaining reports unprinted.
     verdicts = [report.flush() for report in reports]
+
     return all(verdicts)
 
 
@@ -320,6 +325,7 @@ def validate_staged() -> bool:
     corpus = validate_corpus(schedule_paths)
 
     print(f"{staged.count(True)}/{len(staged)} staged league-seasons passed")
+
     return all(staged) and corpus
 
 

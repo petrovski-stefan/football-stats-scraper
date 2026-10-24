@@ -81,6 +81,7 @@ def robots_refusal(url: str) -> str | None:
     blocked = next((rule for rule in rules if parts.path.startswith(rule)), None)
     if blocked is not None:
         return f"robots.txt disallows {blocked!r} on {parts.netloc}"
+
     return None
 
 
@@ -200,6 +201,7 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
             cells = row.find_elements(By.CSS_SELECTOR, ROW_ODDS_CELLS)
             if cells and _is_number(cells[0].text):
                 return True
+
         return False
 
     try:
@@ -208,6 +210,7 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
         return False
 
     time.sleep(0.3)
+
     return True
 
 
@@ -245,6 +248,7 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
             lambda browser: _first_row_odds(browser) not in (before, [])
         )
     time.sleep(0.3)
+
     return switched
 
 
@@ -272,6 +276,7 @@ def sync_standings_to_stage(
 
     if _standing_sub(driver) == stage_id:
         return True
+
     return _select_standings(
         driver,
         (By.CSS_SELECTOR, SUB_STANDING_ITEM.format(stage=stage_id)),
@@ -311,6 +316,7 @@ def show_total_standings(driver: webdriver.Chrome, timeout: int = DEFAULT_TIMEOU
 
     if _standing_label(driver) == STANDING_TOTAL_LABEL:
         return True
+
     return _select_standings(
         driver,
         (By.XPATH, STANDING_TOTAL_ITEM),
@@ -381,6 +387,7 @@ def _select_standings(
         ok = False
 
     time.sleep(0.3)
+
     return ok
 
 
@@ -390,11 +397,13 @@ def _first_row_odds(driver: webdriver.Chrome) -> list[str]:
     rows = driver.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS)
     if not rows:
         return []
+
     return [c.text.strip() for c in rows[0].find_elements(By.CSS_SELECTOR, ROW_ODDS_CELLS)]
 
 
 def _first_row_match_id(driver: webdriver.Chrome) -> str | None:
     rows = driver.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS)
+
     return rows[0].get_attribute("matchid") if rows else None
 
 
@@ -406,16 +415,19 @@ def _standing_sub(driver: webdriver.Chrome) -> str | None:
     """Stage id of the standings sub-table on screen; None on pages without stages."""
 
     boxes = driver.find_elements(By.CSS_SELECTOR, STANDING_BOX)
+
     return boxes[0].get_attribute("data-st-sub") if boxes else None
 
 
 def _standing_label(driver: webdriver.Chrome) -> str:
     elements = driver.find_elements(By.CSS_SELECTOR, STANDING_BOX_LABEL)
+
     return elements[0].text.strip() if elements else ""
 
 
 def _odds_label(driver: webdriver.Chrome) -> str:
     elements = driver.find_elements(By.CSS_SELECTOR, ODDS_LABEL)
+
     return elements[0].text.strip() if elements else ""
 
 

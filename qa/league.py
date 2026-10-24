@@ -45,6 +45,7 @@ def _rounds(base_df: pd.DataFrame) -> "DataFrameGroupBy[Any, Any]":
     is not a key; `stage` is "" on pages without stage tabs."""
 
     keys = [c for c in ("stage", "round") if c in base_df.columns]
+
     return base_df.groupby(keys, dropna=False)
 
 
@@ -54,6 +55,7 @@ def _round_label(key: Any) -> str:
     parts = key if isinstance(key, tuple) else (key,)
     stage, number = (parts[0], parts[-1]) if len(parts) > 1 else ("", parts[0])
     prefix = "" if pd.isna(stage) or not str(stage).strip() else f"{stage} "
+
     return f"{prefix}round {number}"
 
 
@@ -126,6 +128,7 @@ def _round_size(report: Report, label: str, round_df: pd.DataFrame) -> int | Non
     if len(sizes) != 1:
         report.check(False, f"{label}: matches_in_round is not constant ({sizes.tolist()})")
         return None
+
     return int(sizes[0])
 
 

@@ -28,6 +28,7 @@ class _FakeDriver:
 def fake(monkeypatch: pytest.MonkeyPatch) -> _FakeDriver:
     rules = {"example.com": ("/private/", "/en/"), "new.example.com": ("/private/",)}
     monkeypatch.setattr(driver, "ROBOTS_DISALLOW", rules)
+
     return _FakeDriver()
 
 

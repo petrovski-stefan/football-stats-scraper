@@ -54,6 +54,7 @@ def f11_completion(
         + F11_DEFICIT * deficit
         + F11_VENUE * trailer_is_home
     )
+
     return np.asarray(1.0 / (1.0 + np.exp(-linear)), dtype=float)
 
 
@@ -67,6 +68,7 @@ def recover_intercept() -> float:
 
     def sse(intercept: float) -> float:
         predicted = 1 / (1 + np.exp(-(intercept - 1.72 * np.log(odds) - 1.27)))
+
         return float(np.sum(weights * (predicted - observed) ** 2))
 
     return float(grid[int(np.argmin([sse(b) for b in grid]))])
@@ -132,6 +134,7 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
 
     ok = ok_published and monotone
     print(f"\n  IMPORT {'VALID' if ok else 'INVALID — the plan pauses here'}")
+
     return ok
 
 

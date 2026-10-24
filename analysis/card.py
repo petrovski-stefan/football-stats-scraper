@@ -131,6 +131,7 @@ def team_rows(
     team_rows_df[TEAM_UNIT] = (
         team_rows_df["team"].astype(str) + " " + team_rows_df[TEAM_LEAGUE].astype(str)
     )
+
     return team_rows_df
 
 
@@ -167,6 +168,7 @@ def team_line(team_rows_df: pd.DataFrame) -> str:
     """How many team units, leagues, team-matches and teams in two leagues the rows hold."""
 
     in_two = int((team_rows_df.groupby("team")[TEAM_LEAGUE].nunique() > 1).sum())
+
     return (
         f"{team_rows_df[TEAM_UNIT].nunique():,} team units (a team in one league) in "
         f"{team_rows_df[TEAM_LEAGUE].nunique()} leagues; {len(team_rows_df):,} team-matches; "
@@ -199,4 +201,5 @@ def top_teams(
     )
 
     order = ["shrunk - league", value, "team_name"]
+
     return top_teams_df.sort_values(order, ascending=[False, False, True]).head(top)

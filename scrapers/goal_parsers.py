@@ -127,4 +127,5 @@ def _side_that_scored(home: int, away: int, new_home: int, new_away: int) -> str
         return "home"
     if new_away == away + 1 and new_home == home:
         return "away"
+
     return None

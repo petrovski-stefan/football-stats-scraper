@@ -31,6 +31,7 @@ def season_start_year(season: str) -> int | None:
     """
 
     match = _SEASON_RE.match(season.strip())
+
     return int(match.group("start")) if match else None
 
 
@@ -73,6 +74,7 @@ class ScheduleRow(BaseModel):
     @classmethod
     def _has_offset(cls, value: str) -> str:
         parse_berlin(value)  # raises on a value with no offset
+
         return value
 
 

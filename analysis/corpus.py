@@ -35,6 +35,7 @@ def load() -> pd.DataFrame:
 
     corpus_df = pd.concat(frames, ignore_index=True)
     corpus_df["season_cohort"] = corpus_df["s1_season"].map(season_start_year)
+
     return corpus_df
 
 
@@ -43,6 +44,7 @@ def corpus_line(corpus_df: pd.DataFrame, day: date | None = None) -> str:
 
     league_seasons = corpus_df.groupby(LEAGUE_SEASON).ngroups
     when = (day or date.today()).isoformat()
+
     return f"Corpus {when}: {league_seasons} league-seasons, {len(corpus_df):,} matches"
 
 
@@ -64,4 +66,5 @@ def outcome_1x2(matches_df: pd.DataFrame) -> np.ndarray:
     """`HOME`, `DRAW` or `AWAY` per match, from the full-time goals."""
 
     diff = matches_df["s1_ft_home_goals"].to_numpy() - matches_df["s1_ft_away_goals"].to_numpy()
+
     return np.where(diff > 0, HOME, np.where(diff == 0, DRAW, AWAY))

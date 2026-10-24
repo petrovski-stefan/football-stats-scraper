@@ -30,4 +30,5 @@ class Report:
         print(f"[{status}] {self.label}")
         for issue in self.issues:
             print(f"    - {issue}")
+
         return self.ok

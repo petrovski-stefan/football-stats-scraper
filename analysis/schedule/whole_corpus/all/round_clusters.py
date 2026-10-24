@@ -37,6 +37,7 @@ def readings(quantity: tuple[str, str, str, str, str]) -> tuple[tuple[str, str, 
     """(reading, unit, expected column) of each way to read a quantity of `card.ODDS_CARD`."""
 
     _, denominator, model, _, _ = quantity
+
     return (
         ("raw, around all matches", EVERYTHING, denominator),
         (RAW_READING, LEAGUE_SEASON, denominator),
@@ -98,6 +99,7 @@ def days_from_round(
     """How many days each match kicked off from the median kickoff of its round."""
 
     days = (kickoff - pd.Timestamp(0, tz="UTC")) / pd.Timedelta(days=1)
+
     return (days - days.groupby(rounds).transform("median")).abs()
 
 
@@ -107,6 +109,7 @@ def league_season_chance(
     """Each match's chance of the event from the odds, times the O/E of its league-season."""
 
     sums_df = yardstick_df.groupby(LEAGUE_SEASON)[[observed, model]].transform("sum")
+
     return (yardstick_df[model] * sums_df[observed] / sums_df[model]).clip(0.0, 1.0)
 
 
@@ -127,6 +130,7 @@ def count_table(
         expected[MOST] += distribution[MOST:].sum()
 
     counts = events.groupby(rounds).sum().clip(upper=MOST).astype(int).to_numpy()
+
     return pd.DataFrame(
         {
             "events": [*(str(count) for count in range(MOST)), f"{MOST}+"],

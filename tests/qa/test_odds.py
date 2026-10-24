@@ -22,6 +22,7 @@ def _row(**overrides: float | None) -> dict[str, float | None]:
     }  # fmt: skip
 
     row.update(overrides)
+
     return row
 
 
@@ -34,6 +35,7 @@ def _issues_of(
 ) -> list[str]:
     report = Report("test")
     check(report, pd.DataFrame(list(rows)), _COLUMNS)
+
     return report.issues
 
 

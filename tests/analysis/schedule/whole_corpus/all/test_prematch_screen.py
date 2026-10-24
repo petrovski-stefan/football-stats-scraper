@@ -340,6 +340,7 @@ def test_split_rows_take_the_share_of_the_training_cohort(
 
     def frame(matches_df: pd.DataFrame, grid: object, share: float | None = None) -> pd.DataFrame:
         seen["share"] = share
+
         return matches_df
 
     monkeypatch.setattr(yardstick, "frame", frame)

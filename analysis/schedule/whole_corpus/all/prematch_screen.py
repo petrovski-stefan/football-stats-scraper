@@ -110,6 +110,7 @@ def odds_columns(yardstick_df: pd.DataFrame, side: str) -> pd.DataFrame:
     )
 
     odds_df["m_compl"] = odds_df["m_cb"] / odds_df["m_trail"]
+
     return odds_df
 
 
@@ -278,6 +279,7 @@ def round_so_far(matches_df: pd.DataFrame) -> pd.DataFrame:
     comebacks (S3.15 / S3.14), and their goals against their opening lines (S3.19 - S3.20)."""
 
     finished = matches_df["s3_round_pre_finished"].astype(float).replace(0, np.nan)
+
     return pd.DataFrame(
         {
             "rnd_cb_share": matches_df["s3_round_pre_comebacks"] / finished,
@@ -317,6 +319,7 @@ def screen_rows(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.Data
         side_fields(priced_df, yardstick_df, side) for side in ("home", "away")
     )
     extra = {name: (home_fields_df[name], away_fields_df[name]) for name in home_fields_df.columns}
+
     return last_season(card.team_rows(priced_df, extra))
 
 
@@ -365,6 +368,7 @@ def logit(values: "pd.Series[float] | np.ndarray") -> np.ndarray:
     """The log odds, with the chance kept inside (1e-6, 1 - 1e-6)."""
 
     clipped = np.clip(np.asarray(values, dtype=float), 1e-6, 1 - 1e-6)
+
     return np.asarray(np.log(clipped / (1 - clipped)))
 
 
@@ -374,6 +378,7 @@ def baseline(screen_rows_df: pd.DataFrame, key: str) -> np.ndarray:
     the venue."""
 
     p_win = logit(screen_rows_df["p_T"])
+
     return np.column_stack(
         [
             np.ones(len(screen_rows_df)),
@@ -390,6 +395,7 @@ def standardised(values: "pd.Series[float]", binary: bool) -> np.ndarray:
     """A field as one column: a 0/1 field as it is, any other in standard deviations."""
 
     numbers = values.to_numpy(dtype=float)
+
     return numbers if binary else (numbers - numbers.mean()) / numbers.std()
 
 
@@ -398,6 +404,7 @@ def fit_logit(outcomes: np.ndarray, design: np.ndarray, clusters: "pd.Series[Any
 
     groups = pd.factorize(clusters)[0]
     model = sm.Logit(outcomes, design)
+
     return model.fit(disp=0, cov_type="cluster", cov_kwds={"groups": groups})
 
 
@@ -484,6 +491,7 @@ def joint_design(
 
     field_values_df = screen_rows_df[fields].fillna(train_df[fields].median())
     centre, spread = train_df[fields].mean(), train_df[fields].std()
+
     return np.column_stack(
         [baseline(screen_rows_df, "m_cb"), ((field_values_df - centre) / spread).to_numpy(float)]
     )
@@ -511,6 +519,7 @@ def log_loss(outcomes: np.ndarray, chances: np.ndarray) -> float:
     """The mean log loss of a chance for a 0/1 outcome."""
 
     clipped = np.clip(chances, 1e-12, 1 - 1e-12)
+
     return float(-np.mean(outcomes * np.log(clipped) + (1 - outcomes) * np.log(1 - clipped)))
 
 
@@ -520,6 +529,7 @@ def auc(outcomes: np.ndarray, score: np.ndarray) -> float:
     ranks = sps.rankdata(score)
     events = outcomes == 1
     n_events, n_rest = int(events.sum()), int((~events).sum())
+
     return float((ranks[events].sum() - n_events * (n_events + 1) / 2) / (n_events * n_rest))
 
 
@@ -527,6 +537,7 @@ def top_hits(outcomes: np.ndarray, score: np.ndarray, top_count: int) -> int:
     """The events among the `top_count` rows with the highest scores."""
 
     order = np.argsort(-score, kind="stable")
+
     return int(outcomes[order[:top_count]].sum())
 
 
@@ -569,6 +580,7 @@ def split_rows(
     screen_rows_df = eligible(
         screen_rows(matches_df, yardstick.frame(matches_df, grid, share=share))
     )
+
     return screen_rows_df, share
 
 

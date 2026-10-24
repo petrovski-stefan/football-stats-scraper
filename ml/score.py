@@ -17,6 +17,7 @@ def top_mask(score: np.ndarray, top_n: int) -> np.ndarray:
 
     mask = np.zeros(len(score), dtype=bool)
     mask[np.argsort(-score, kind="stable")[:top_n]] = True
+
     return mask
 
 
@@ -31,6 +32,7 @@ def resampled_sums(
     np.add.at(per_cluster, codes, values)
 
     picks = np.random.default_rng(seed).integers(0, len(per_cluster), (draws, len(per_cluster)))
+
     return np.asarray(per_cluster[picks].sum(axis=1))
 
 
@@ -38,6 +40,7 @@ def interval(values: np.ndarray) -> tuple[float, float]:
     """The 95% interval of resampled values."""
 
     low, high = np.nanquantile(values, [0.025, 0.975])
+
     return float(low), float(high)
 
 
@@ -88,6 +91,7 @@ def log_loss_rows(outcomes: np.ndarray, chances: np.ndarray) -> np.ndarray:
     """The log loss of each row's chance, with the chance kept inside (1e-12, 1 - 1e-12)."""
 
     clipped = np.clip(chances, EPSILON, 1.0 - EPSILON)
+
     return np.asarray(-(outcomes * np.log(clipped) + (1.0 - outcomes) * np.log(1.0 - clipped)))
 
 
@@ -135,4 +139,5 @@ def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10)
     )
 
     calibration_df["O/E"] = calibration_df["rate"] / calibration_df["chance"]
+
     return calibration_df.reset_index()

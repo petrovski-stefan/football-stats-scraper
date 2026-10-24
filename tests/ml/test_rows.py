@@ -17,6 +17,7 @@ def built(toy_schedule_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str], pd.Da
 
     yardstick_df = yardstick.frame(toy_schedule_df, yardstick.build_grid(COARSE))
     side_rows_df, fields = rows.side_rows(toy_schedule_df, yardstick_df)
+
     return side_rows_df, fields, yardstick_df
 
 

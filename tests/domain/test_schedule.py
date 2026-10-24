@@ -30,6 +30,7 @@ def _row(**overrides: Any) -> dict[str, Any]:
     }
 
     row.update(overrides)
+
     return row
 
 

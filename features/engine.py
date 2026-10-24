@@ -199,6 +199,7 @@ def round_position(matches_df: pd.DataFrame) -> pd.DataFrame:
 
     dates = pd.to_datetime(matches_df["date"], errors="coerce")
     group = dates.groupby([matches_df[c] for c in ROUND_GROUP], dropna=False)
+
     return pd.DataFrame(
         {
             "earlier": group.rank(method="min").astype("Int64") - 1,
@@ -231,6 +232,7 @@ def load_enriched() -> pd.DataFrame:
     )
 
     _warn_unassigned(matches_df)
+
     return matches_df
 
 
@@ -359,6 +361,7 @@ def _block(matches_df: pd.DataFrame, section: str, slot: int, field: str) -> "pd
     col = f"{section}_last{slot}_{field}"
     if col in matches_df.columns:
         return matches_df[col]
+
     return pd.Series(np.nan, index=matches_df.index)
 
 
@@ -394,6 +397,7 @@ def _corner_goal_share_gap(matches_df: pd.DataFrame, section: str) -> "pd.Series
     corner_share = np.where(tot_c > 0, subj_c / tot_c, np.nan)
     goal_share = np.where(tot_g > 0, subj_g / tot_g, np.nan)
     gap: pd.Series[Any] = pd.Series(corner_share - goal_share, index=matches_df.index)
+
     return gap
 
 
@@ -420,6 +424,7 @@ def _congestion(
         most_recent = most_recent.where(most_recent.notna() | when.isna(), when)
 
     days_since = (matches_df["date"] - most_recent).dt.total_seconds() / 86400.0
+
     return played.astype(float), days_since
 
 
@@ -444,6 +449,7 @@ def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     avg: pd.Series[Any] = pd.Series(
         np.where(seen > 0, total / seen, np.nan), index=matches_df.index
     )
+
     return avg
 
 
@@ -489,6 +495,7 @@ def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
         )
 
     ah_line = col("ah_line")
+
     return {
         "ou_line": col("ou_line"),
         "implied_over": col("implied_over"),
@@ -605,6 +612,7 @@ def build_features(matches_df: pd.DataFrame | None = None) -> pd.DataFrame:
 
     keep_raw = [c for c in wanted if c not in engineered_df.columns]
     matrix_df = pd.concat([matches_df[keep_raw], engineered_df], axis=1)
+
     return matrix_df[wanted].copy()
 
 
@@ -678,6 +686,7 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
     print(f"as-of-round self-check: {checks} comparisons, {failures} mismatches")
     if failures == 0:
         print("  PASS — no rolling feature uses data from the target round or later")
+
     return failures
 
 

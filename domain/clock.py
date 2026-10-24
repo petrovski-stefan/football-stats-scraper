@@ -24,6 +24,7 @@ def to_berlin(moment: datetime) -> str:
 
     if moment.tzinfo is None:
         raise ValueError(f"naive datetime has no clock: {moment!r}")
+
     return moment.astimezone(BERLIN).isoformat(sep=" ", timespec="minutes")
 
 
@@ -49,4 +50,5 @@ def _parse(text: str) -> datetime:
     moment = datetime.fromisoformat(text.strip())
     if moment.tzinfo is None:
         raise ValueError(f"stored time has no offset: {text!r}")
+
     return moment

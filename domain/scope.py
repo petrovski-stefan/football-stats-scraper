@@ -48,6 +48,7 @@ def match_year(date_text: str | None) -> int | None:
     """
 
     found = _YEAR_RE.match(str(date_text or ""))
+
     return int(found.group(1)) if found else None
 
 
@@ -63,4 +64,5 @@ def in_scope(league_name: str | None, date_text: str | None) -> bool:
     if is_friendly(league_name):
         return False
     year = match_year(date_text)
+
     return year is None or year >= HISTORY_FROM_YEAR

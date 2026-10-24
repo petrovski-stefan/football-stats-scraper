@@ -207,4 +207,5 @@ def _share(minutes: list[int], predicate: Any) -> float:
 
     if not minutes:
         return float("nan")
+
     return float(sum(1 for m in minutes if predicate(m)) / len(minutes))

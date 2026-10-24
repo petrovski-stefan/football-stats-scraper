@@ -33,6 +33,7 @@ def ranked() -> tuple[np.ndarray, dict[str, np.ndarray], "pd.Series[str]"]:
     outcomes = np.array([1, 0, 0, 1, 0, 0, 1, 0, 0, 0], dtype=float)
     scores = {"flat": -np.arange(10, dtype=float), "perfect": outcomes + np.linspace(0, 0.1, 10)}
     clusters = pd.Series(np.repeat(["a", "b", "c", "d", "e"], 2))
+
     return outcomes, scores, clusters
 
 

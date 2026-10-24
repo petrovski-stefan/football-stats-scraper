@@ -75,6 +75,7 @@ def with_league_season(phased_df: pd.DataFrame) -> pd.DataFrame:
         with_league_season_df[league_season_column(label)] = (
             phased_df[denominator] * sums_df[observed] / sums_df[denominator]
         )
+
     return with_league_season_df
 
 
@@ -83,6 +84,7 @@ def readings(quantity: tuple[str, str, str, str, str]) -> tuple[tuple[str, str],
     league-season, and against the odds."""
 
     _, denominator, model, label, _ = quantity
+
     return (
         ("raw", denominator),
         ("league-season", league_season_column(label)),
@@ -149,6 +151,7 @@ def common_rounds(phased_df: pd.DataFrame) -> pd.DataFrame:
     """The matches of the round numbers played in at least `MIN_ROUND_MATCHES` matches."""
 
     sizes = phased_df.groupby("round")["one"].transform("sum")
+
     return phased_df[sizes >= MIN_ROUND_MATCHES]
 
 

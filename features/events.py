@@ -187,6 +187,7 @@ def _usable_events(
         return None
 
     line = _score_line(detail_df, goal_store, prefix, row, match_id, is_home)
+
     return [
         TimedEvent(
             minute,
@@ -267,6 +268,7 @@ def _timeline(events: Events | None, kind: str) -> str:
         for event in events
         if event.kind == kind
     ]
+
     return ";".join(parts) if parts else UNEVENTFUL
 
 
@@ -327,6 +329,7 @@ def _while_leading(usable: list[Events]) -> float:
         and event.state is not None
         and event.state > 0
     )
+
     return float(hits / len(known))
 
 
@@ -347,6 +350,7 @@ def _share(minutes: list[int], cutoff: int) -> float:
 
     if not minutes:
         return float("nan")
+
     return float(sum(1 for m in minutes if m >= cutoff) / len(minutes))
 
 
@@ -358,4 +362,5 @@ def _match_share(usable: list[Events], kind: str, tag: str) -> float:
     """Share of usable matches containing at least one such event."""
 
     hits = sum(1 for b in usable if any(e.kind == kind and e.tag == tag for e in b))
+
     return float(hits / len(usable))

@@ -129,6 +129,7 @@ def implied(
         )
 
     total = lam_home + lam_away
+
     return pd.DataFrame(
         {
             "m_cb_home": cb_home,
@@ -296,4 +297,5 @@ def _outcomes(priced_df: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
     ).astype(float)
 
     outcomes_df["ht_margin"] = ht_margin
+
     return outcomes_df
