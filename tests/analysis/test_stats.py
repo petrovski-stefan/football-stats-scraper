@@ -49,6 +49,7 @@ def test_cluster_bootstrap_of_a_constant_ratio_is_that_ratio() -> None:
 @pytest.fixture
 def observed_df() -> pd.DataFrame:
     """Four matches in two clusters: observed hits and two expected columns."""
+
     return pd.DataFrame(
         {
             "cluster": ["a", "a", "b", "b"],
@@ -136,6 +137,7 @@ def test_shrink_keeps_a_precise_unit_near_its_own_mean() -> None:
 def _flagged_rows(cells: list[tuple[str, int, int, int, int]]) -> pd.DataFrame:
     """Rows for (stratum, a, b, c, d): flagged with the event, flagged without, unflagged
     with, unflagged without."""
+
     kinds = ((True, True), (True, False), (False, True), (False, False))
     rows = [
         {"stratum": stratum, "flag": flag, "event": event}

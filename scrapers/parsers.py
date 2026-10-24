@@ -26,6 +26,7 @@ def clean_string(string: str) -> str:
 
 def parse_score(raw: str | None) -> tuple[int, int] | None:
     """Parse a score like '0 - 3' or '0-2' into (home, away). None if not a real score."""
+
     if not raw:
         return None
     match = _SCORE_RE.match(raw)
@@ -36,6 +37,7 @@ def parse_score(raw: str | None) -> tuple[int, int] | None:
 
 def parse_float(raw: str | None) -> float | None:
     """Parse an odds cell to float; None for blanks/dashes/non-numeric text."""
+
     if not raw:
         return None
     try:
@@ -46,6 +48,7 @@ def parse_float(raw: str | None) -> float | None:
 
 def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
     """The row's three raw odds-cell strings, whichever odds type is displayed."""
+
     cells = row.select(ROW_ODDS_CELLS)
     if len(cells) < 3:
         return None
@@ -58,6 +61,7 @@ def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     Assumes the schedule odds display has already been switched to 1X2, whose
     three cells are always ordered home / draw / away.
     """
+
     cells = _odds_cells(row)
     if cells is None:
         return None, None, None
@@ -77,6 +81,7 @@ def parse_line(raw: str) -> float | None:
     Verified against a full round of live rows on 2026-09-22: every observed string
     (`-0.5`, `-1/1.5`, `0`, `0.5/1`, `0/-0.5`, `0/0.5`, `1.5`) round-trips under this rule.
     """
+
     text = (raw or "").strip()
     if not text:
         return None
@@ -99,6 +104,7 @@ def parse_ou_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     The goal line is Asian and variable — nowgoal moves the line and holds both prices
     near 1.90, so the *line* is the forecast and the prices only carry a sub-quarter tilt.
     """
+
     cells = _odds_cells(row)
     if cells is None:
         return None, None, None
@@ -111,6 +117,7 @@ def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
     Sign convention, verified 10/10 against the 1X2 favourite on live rows:
     **positive means the home side is favoured** and gives the handicap.
     """
+
     cells = _odds_cells(row)
     if cells is None:
         return None, None, None
@@ -119,6 +126,7 @@ def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
 
 def attr(tag: Tag | None, name: str) -> str | None:
     """Return a single-valued attribute as a str (bs4 attrs can be list-typed)."""
+
     if tag is None:
         return None
     value = tag.get(name)
@@ -153,6 +161,7 @@ def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
     read by its text. A row that does not parse is skipped; the caller compares the table
     with the one rebuilt from our own results, so a missing team shows up there.
     """
+
     title = soup.select_one(STANDING_TITLE_ROW)
     header = tuple(tag_text(s) for s in title.find_all("span", recursive=False)) if title else ()
     if header != _FINAL_TABLE_HEADER:
@@ -197,6 +206,7 @@ def parse_kickoff(raw: str | None) -> str | None:
     before the staged pipeline stored that text unconverted (`notes/FIELDS/SCHEDULE_1_RAW.md`
     S1.07).
     """
+
     text = (raw or "").strip()
     for fmt in _KICKOFF_FORMATS:
         try:
@@ -214,6 +224,7 @@ def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
     caller adds the league context and the O/U and AH prices, read with the header switched).
     Nothing is computed here: `notes/FIELDS/SCHEDULE_1_RAW.md`.
     """
+
     ft = parse_score(attr(row, "score") or tag_text(row.select_one("span.score")))
     ht = parse_score(tag_text(row.select_one("span.ht")))
     if ft is None or ht is None:

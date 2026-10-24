@@ -246,6 +246,7 @@ def _cells(
     ft_results: tuple[str, ...],
 ) -> "pd.Series[Any]":
     """The sum of some HT/FT cells, row by row."""
+
     names = [f"s3_{side}_pre_htft_{venue}_{ht}_{ft}" for ht in ht_results for ft in ft_results]
     return pre_kickoff_df[names].sum(axis=1)
 
@@ -359,6 +360,7 @@ def _with_events(
 
 def _counts(round_so_far_df: pd.DataFrame, match_id: str) -> list[int]:
     """Finished, comebacks, 7+ goals and rare events, in that order."""
+
     names = ("finished", "comebacks", "seven_plus", "rare_events")
     return [int(round_so_far_df.at[match_id, f"s3_round_pre_{name}"]) for name in names]
 
@@ -462,6 +464,7 @@ def test_round_so_far_keeps_each_stages_round_apart() -> None:
 
 def _results_and_odds(rng: random.Random) -> dict[str, object]:
     """A made-up score and opening odds for one match."""
+
     ht = (rng.randint(0, 2), rng.randint(0, 2))
     ft = (ht[0] + rng.randint(0, 3), ht[1] + rng.randint(0, 3))
     p_home, p_draw = rng.uniform(0.2, 0.6), rng.uniform(0.2, 0.3)
@@ -488,6 +491,7 @@ def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
     and a third that starts exactly FINISHED_AFTER later, a minute less, 1 h or 4 h later; one
     match is played 10 days late and one a month early. The minute-less gap is what catches a
     window that counts a match too soon."""
+
     rng = random.Random(seed)
     teams = list(range(1, 7))
     single = []
@@ -531,6 +535,7 @@ def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
 
 def _stage_2(rows: list[dict[str, object]]) -> pd.DataFrame:
     """The rows with their stage-2 fields, as `features.schedule_row` would write them."""
+
     return pd.DataFrame([{**row, **derive_row(row)} for row in rows]).set_index(
         "match_id", drop=False
     )
@@ -542,6 +547,7 @@ def _kickoff(row: dict[str, object]) -> datetime:
 
 def _differing(before_df: pd.DataFrame, after_df: pd.DataFrame, match_id: str) -> list[str]:
     """The stage-3 columns whose value for one match differs between two builds."""
+
     columns = []
     for column in before_df.columns:
         before_value, after_value = before_df.at[match_id, column], after_df.at[match_id, column]
@@ -559,6 +565,7 @@ def _leaks(rows: list[dict[str, object]], rng: random.Random) -> dict[str, list[
     FINISHED_AFTER before it, or later, the match itself included, and keep the stage-3
     columns of the match that moved. Only those matches' fixtures (teams, kickoff, round) may
     be read, so nothing may move."""
+
     before_df = derive(_stage_2(rows))
 
     leaks: dict[str, list[str]] = {}

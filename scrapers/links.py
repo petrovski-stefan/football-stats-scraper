@@ -90,6 +90,7 @@ def load_leagues(path: str = LEAGUES_FILE) -> list[LeagueConfig]:
     Failing the run beats skipping a bad entry: a typo in `keep` would otherwise scrape
     the wrong stage, or none, without anyone noticing.
     """
+
     with open(path, encoding="utf-8") as leagues_file:
         return [LeagueConfig.model_validate(entry) for entry in json.load(leagues_file)]
 
@@ -102,6 +103,7 @@ def get_league_seasons(
     The file is the record of which league-seasons the corpus is meant to contain;
     `enabled` parks a season without deleting it.
     """
+
     chosen = selection or Selection()
     leagues = load_leagues(path)
 
@@ -140,6 +142,7 @@ def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) ->
 
 def parse_league_url(url: str) -> tuple[str, int]:
     """Extract (season, league_id) from a nowgoal league URL, on any host."""
+
     match = _LEAGUE_URL_RE.search(url)
     if match is None:
         raise ValueError(f"Cannot parse season/league id from URL: {url!r}")

@@ -16,6 +16,7 @@ _TEXT_COLUMNS = ("match_id", "s1_season", "s1_stage", "s1_date", "season", "stag
 
 def read_stage_csv(path: str) -> pd.DataFrame:
     """A stage file as written: text columns stay text, empty text stays `""`."""
+
     head = pd.read_csv(path, nrows=0).columns
     text = [c for c in _TEXT_COLUMNS if c in head]
     stage_file_df = pd.read_csv(
@@ -26,6 +27,7 @@ def read_stage_csv(path: str) -> pd.DataFrame:
 
 def write_stage_csv(stage_file_df: pd.DataFrame, path: str, columns: list[str]) -> None:
     """Write `stage_file_df` with exactly `columns`, in that order; a missing column is an error."""
+
     missing = [c for c in columns if c not in stage_file_df.columns]
     if missing:
         raise KeyError(f"columns missing before writing {path}: {missing[:5]}")

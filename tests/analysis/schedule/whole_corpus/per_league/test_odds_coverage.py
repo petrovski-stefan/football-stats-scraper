@@ -19,6 +19,7 @@ GAPS = {
 @pytest.fixture
 def season_df() -> pd.DataFrame:
     """One league-season of 8 rounds with 3 matches each; six matches lack some markets."""
+
     rows = []
     for round_number in range(1, 9):
         for match in range(3):

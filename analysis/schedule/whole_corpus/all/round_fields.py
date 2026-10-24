@@ -33,6 +33,7 @@ MIN_LINE_MATCHES = 500  # an opening line with fewer matches gets no row of its 
 def count_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Per count: the share of matches at 0 and at each of `LEVELS` or more, the mean, the
     largest value."""
+
     rows = []
     for column, label in COUNTS:
         values = matches_df[column]
@@ -47,6 +48,7 @@ def count_table(matches_df: pd.DataFrame) -> pd.DataFrame:
 def average_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     """S3.19, S3.20 and S3.19 - S3.20: the matches with a value and their share, the mean and
     the quartiles."""
+
     columns = {
         "S3.19 average goals": matches_df[GOALS],
         "S3.20 average O/U line": matches_df[LINE],
@@ -73,12 +75,14 @@ def average_table(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def finished_without_line(matches_df: pd.DataFrame) -> int:
     """Rows with a finished round-mate whose averages are empty: no round-mate had a line."""
+
     return int((matches_df[GOALS].isna() & (matches_df["s3_round_pre_finished"] > 0)).sum())
 
 
 def goals_over_line(matches_df: pd.DataFrame) -> pd.DataFrame:
     """A match's goals minus its opening O/U line: over all matches with a line, then per
     line with at least `MIN_LINE_MATCHES` matches."""
+
     with_line_df = matches_df.dropna(subset=[OPENING_LINE])
     excess = with_line_df["s2_total_goals"] - with_line_df[OPENING_LINE]
     by_line_df = excess.groupby(with_line_df[OPENING_LINE]).agg(["size", "mean"])
@@ -96,6 +100,7 @@ def goals_over_line(matches_df: pd.DataFrame) -> pd.DataFrame:
 def line_against_model(yardstick_df: pd.DataFrame) -> dict[str, float]:
     """The opening O/U line against the yardstick's expected goals: their correlation, and
     the mean of the expected goals minus the line."""
+
     return {
         "matches": float(len(yardstick_df)),
         "correlation": float(yardstick_df["line"].corr(yardstick_df["m_goals"])),

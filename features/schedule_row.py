@@ -28,6 +28,7 @@ logger = logging.getLogger(__name__)
 
 def _number(row: Mapping[str, Any], column: str) -> float | None:
     """A price or line from the row, None when the page showed none."""
+
     value = row.get(column)
     if value is None or (isinstance(value, float) and math.isnan(value)):
         return None
@@ -79,6 +80,7 @@ def _comeback_fields(ht: tuple[int, int], ft: tuple[int, int]) -> dict[str, Any]
 
 def derive(row: Mapping[str, Any]) -> dict[str, Any]:
     """The `s2_` fields of one stage-1 row."""
+
     ht = (int(row["s1_ht_home_goals"]), int(row["s1_ht_away_goals"]))
     ft = (int(row["s1_ft_home_goals"]), int(row["s1_ft_away_goals"]))
 
@@ -91,6 +93,7 @@ def derive(row: Mapping[str, Any]) -> dict[str, Any]:
 
 def build(raw_path: str) -> str:
     """Write the stage-2 file for one stage-1 schedule file; return its path."""
+
     stage_1_df = read_stage_csv(raw_path)
     records = [{str(k): v for k, v in row.items()} for row in stage_1_df.to_dict("records")]
     derived_df = pd.DataFrame([derive(row) for row in records], index=stage_1_df.index)

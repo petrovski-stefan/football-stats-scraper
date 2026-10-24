@@ -133,6 +133,7 @@ def scrape_league(job: LeagueSeason) -> _Scrape:
     Only finished matches (with HT + FT scores) are returned; unplayed/live rows are
     skipped by the parser.
     """
+
     driver = get_driver()
     try:
         open_page(driver, job.url)
@@ -156,6 +157,7 @@ def scrape_league(job: LeagueSeason) -> _Scrape:
 
 def _read_stages(driver: webdriver.Chrome) -> list[tuple[str, str]]:
     """The page's stage tabs as (stage id, name), in page order. Empty without tabs."""
+
     return [
         (span.get_attribute("stage") or "", (span.get_attribute("textContent") or "").strip())
         for span in driver.find_elements(By.CSS_SELECTOR, STAGE_SPANS)
@@ -170,6 +172,7 @@ def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: s
     season may not have reached it yet. A config whose shape does not match the page at
     all scrapes nothing: any guess would be a stage nobody chose.
     """
+
     if not tabs:
         if keep:
             logger.error("%s: config keeps %s but the page has no stage tabs", label, list(keep))
@@ -194,6 +197,7 @@ def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[st
     sub-table picker that ignores the stage tabs, so a stage page points it at its own
     sub-table first; a stage whose table cannot be shown gets none, never another's.
     """
+
     stage = ctx.stage
     if stage.stage_id is not None:
         click_stage(driver, stage.stage_id)
@@ -212,6 +216,7 @@ def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[st
 
 def _scrape_stage(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, Any]]:
     """Scrape one stage pass round by round."""
+
     if ctx.stage.stage_id is not None:
         click_stage(driver, ctx.stage.stage_id)
 
@@ -295,6 +300,7 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
     draw price, an O/U or AH middle cell a line. Which repeat means which market is
     missing is `_MISSING_BY_REPEATS`.
     """
+
     cells = {market: tuple(row.get(f) for f in fields) for market, fields in _MARKETS.items()}
     repeats = frozenset(
         (market_a, market_b)
@@ -318,6 +324,7 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
     A league that does not carry a type is skipped rather than raised on, so its rows
     simply come out with empty columns for it.
     """
+
     out: dict[str, dict[str, float | None]] = {}
     for kind, parse, fields in _SECONDARY_ODDS:
         if not switch_odds_type(driver, kind):
@@ -354,6 +361,7 @@ def _read_rounds(driver: webdriver.Chrome, stage_id: str | None) -> list[int]:
     buttons are in the DOM at once, each set with its own 'current', so the read is
     scoped to `stage_id` (None on pages without stage tabs).
     """
+
     selector = ROUND_SPANS if stage_id is None else STAGE_ROUND_SPANS.format(stage=stage_id)
     spans = driver.find_elements(By.CSS_SELECTOR, selector)
 
@@ -382,6 +390,7 @@ def _validate(
     rows: list[dict[str, Any]], model: type[BaseModel], what: str
 ) -> list[dict[str, Any]]:
     """Validate scraped rows through a stage-1 model, dropping invalid ones."""
+
     valid: list[dict[str, Any]] = []
     for row in rows:
         try:
@@ -408,6 +417,7 @@ def scraped_league_seasons() -> set[tuple[int, str]]:
     Read from inside the files rather than from their names: a file is named after the
     page's title, which need not match the config's name.
     """
+
     done: set[tuple[int, str]] = set()
     for path in paths.schedule_csvs(1):
         stage_1_head_df = pd.read_csv(
@@ -428,6 +438,7 @@ def plan_jobs(
     jobs: Iterable[LeagueSeason], done: set[tuple[int, str]], force: bool
 ) -> tuple[list[LeagueSeason], list[LeagueSeason]]:
     """Split the chosen jobs into (to scrape, already on disk). `force` scrapes them all."""
+
     to_scrape: list[LeagueSeason] = []
     on_disk: list[LeagueSeason] = []
     for job in jobs:
@@ -465,6 +476,7 @@ def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
 
 def _run_job(job: LeagueSeason) -> Outcome:
     """Scrape and save one league-season. A failure is logged and returned, never raised."""
+
     try:
         return _save(job, scrape_league(job))
     except Exception as exc:  # one league must not end a run of many
@@ -474,6 +486,7 @@ def _run_job(job: LeagueSeason) -> Outcome:
 
 def summarise(outcomes: list[Outcome], on_disk: list[LeagueSeason]) -> int:
     """Print the run's summary; return how many jobs failed."""
+
     failed = [o for o in outcomes if o.error]
     print(
         f"\n{len(outcomes) - len(failed)} scraped, {len(on_disk)} already on disk, "
@@ -491,6 +504,7 @@ def scrape_all(
     selection: Selection | None = None, *, force: bool = False, list_only: bool = False
 ) -> int:
     """Scrape the chosen league-seasons into their stage-1 files; return the failure count."""
+
     to_scrape, on_disk = plan_jobs(get_league_seasons(selection), scraped_league_seasons(), force)
 
     for job in on_disk:
@@ -516,6 +530,7 @@ def scrape_all(
 
 def _start(number: int, total: int, job: LeagueSeason) -> Outcome:
     """One worker's job: named after its league-season, paused unless it is among the first."""
+
     threading.current_thread().name = f"{job.code} {job.season}"
     if number > WORKERS:
         time.sleep(PAUSE_BETWEEN_JOBS)

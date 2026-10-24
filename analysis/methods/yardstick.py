@@ -45,6 +45,7 @@ class Grid:
 
 def build_grid(rates: np.ndarray = RATES) -> Grid:
     """The rate pairs and their win chances under independent Poisson goals."""
+
     home, away = (axis.ravel() for axis in np.meshgrid(rates, rates, indexing="ij"))
 
     goals = np.arange(MAX_GOALS)
@@ -67,6 +68,7 @@ def fair_over(total: np.ndarray, line: float) -> np.ndarray:
     A quarter line (2.25) splits the stake between its two neighbours (2.0 and 2.5). An
     integer line returns the stake when the total equals it, so the push drops out.
     """
+
     parts = (line - 0.25, line + 0.25) if round(line * 4) % 2 == 1 else (line,)
 
     win = np.zeros(np.shape(total))
@@ -88,6 +90,7 @@ def fit_rates(
     Returns the two rates and the fit error: the Euclidean distance, in probability, from
     (P(home), P(away), fair over) of the market to the same three numbers of the model.
     """
+
     lam_home, lam_away, error = (np.full(len(lines), np.nan) for _ in range(3))
     total = grid.home + grid.away
     for line in np.unique(lines):
@@ -111,6 +114,7 @@ def implied(
     times P(win the second half by more than d); `m_cb_away` mirrors it. The share is one
     number for every match, or one per match.
     """
+
     home_rate_1h, away_rate_1h = share * lam_home, share * lam_away
     home_rate_2h, away_rate_2h = (1 - share) * lam_home, (1 - share) * lam_away
 
@@ -157,6 +161,7 @@ def completion_given_ht(
     is behind, so no comeback can happen. `home_factor` and `away_factor` scale each side's
     second-half rate; 1 is the basic model. The share is one number, or one per match.
     """
+
     home_rate_2h = (1 - share) * lam_home * home_factor
     away_rate_2h = (1 - share) * lam_away * away_factor
 
@@ -171,6 +176,7 @@ def completion_given_ht(
 
 def result_code(margin: np.ndarray) -> np.ndarray:
     """The 1X2 code of a goal margin (home minus away): 1 home ahead, X level, 2 away ahead."""
+
     return np.asarray(np.where(margin > 0, "1", np.where(margin < 0, "2", "X")))
 
 
@@ -180,6 +186,7 @@ def htft_cells(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.D
     The half-time margin and the second-half margin are independent Skellam counts; the
     full-time margin is their sum. `m_2/1` is the home comeback and `m_1/2` the away one.
     """
+
     home_rate_1h, away_rate_1h = share * lam_home, share * lam_away
     home_rate_2h, away_rate_2h = (1 - share) * lam_home, (1 - share) * lam_away
 
@@ -200,11 +207,13 @@ def htft_cells(lam_home: np.ndarray, lam_away: np.ndarray, share: float) -> pd.D
 
 def first_half_share(matches_df: pd.DataFrame) -> float:
     """The share of all goals that came in the first half: one number for every match."""
+
     return float(matches_df["s2_goals_1h"].sum() / matches_df["s2_total_goals"].sum())
 
 
 def priced(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The matches that have all three opening 1X2 prices and the opening O/U market."""
+
     return matches_df.dropna(subset=[*shin.ODDS, *OU])
 
 
@@ -221,6 +230,7 @@ def frame(
     floats, so an observed count and an expected count add up the same way. `cluster` is
     the league-season.
     """
+
     priced_df = priced(matches_df)
     if proportional:
         probabilities_df = priced_df[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
@@ -263,6 +273,7 @@ def frame(
 
 def _outcomes(priced_df: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
     """The observed side of each comparison, as floats on the priced index."""
+
     home, away = priced_df["s1_ft_home_goals"], priced_df["s1_ft_away_goals"]
     outcomes_df = pd.DataFrame(
         {

@@ -43,6 +43,7 @@ _DAYS_RE = re.compile(r"(\d+)\s*Day")
 # --- history rows (recent form / H2H) ----------------------------------------
 def parse_history_row(row: Tag) -> dict[str, Any] | None:
     """Parse one v1/v2/v3 table row into a mini match-record. None if not a played match."""
+
     ft_raw = tag_text(row.select_one(HIST_FT_SCORE))
     ht_raw = tag_text(row.select_one(HIST_HT_SCORE)).strip("()")
     ft = parse_score(ft_raw)
@@ -93,6 +94,7 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
 
 def _row_league_id(row: Tag) -> int | None:
     """The competition id carried on a history row (36 = EPL, 90 = FA Cup)."""
+
     raw = attr(row, HIST_LEAGUE_ID_ATTR)
     return int(raw) if raw and raw.isdigit() else None
 
@@ -101,6 +103,7 @@ def _parse_pair_cell(
     text: str,
 ) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
     """Parse a 'FT (HT)' cell like '5-2 (2-0)' into ((5,2),(2,0))."""
+
     ft_part = text.split("(")[0]
     ht_part = text[text.find("(") + 1 : text.find(")")] if "(" in text else ""
     return parse_score(ft_part), parse_score(ht_part)
@@ -113,6 +116,7 @@ def rows_to_records(rows: list[Tag]) -> list[dict[str, Any]]:
 
 def subject_team_id(records: list[dict[str, Any]]) -> int | None:
     """The team common to (most of) the rows — the one whose form the table shows."""
+
     if not records:
         return None
 
@@ -128,6 +132,7 @@ def aggregate_form(
     records: list[dict[str, Any]], subject_id: int | None, window: int | None = None
 ) -> dict[str, Any]:
     """Aggregate a subject team's mini-records (most-recent-first) into features."""
+
     recs = records[:window] if window else records
     played = len(recs)
     if played == 0 or subject_id is None:
@@ -186,6 +191,7 @@ def aggregate_recent(
     records: list[dict[str, Any]], subject_id: int | None, side: str
 ) -> dict[str, Any]:
     """Recent-form aggregate features for one side ('home'/'away')."""
+
     venue_is_home = side == "home"
     venue_recs = [r for r in records if (r["home_id"] == subject_id) == venue_is_home]
 
@@ -199,6 +205,7 @@ def aggregate_recent(
 
 def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict[str, Any]:
     """Head-to-head aggregate features, oriented to the current home team."""
+
     subject = subject_id if subject_id is not None else subject_team_id(records)
     played = len(records)
     if played == 0 or subject is None:
@@ -249,6 +256,7 @@ def flatten_history(
     `section` is one of 'home'/'away'/'h2h'; index 1 = most recent. Missing matches
     (fewer than the fixed count) produce an all-None block for a stable schema.
     """
+
     out: dict[str, Any] = {}
     for i in range(1, MATCHES_PER_SECTION + 1):
         record = records[i - 1] if i - 1 < len(records) else None
@@ -258,6 +266,7 @@ def flatten_history(
 
 def _side_of(pair: tuple[int, int] | None, index: int) -> int | None:
     """One side of a parsed `ft (ht)` corner cell, or None when the cell was absent."""
+
     return pair[index] if pair else None
 
 
@@ -312,6 +321,7 @@ def _flatten_one(
 # --- odds comparison ----------------------------------------------------------
 def parse_odds_1x2(soup: BeautifulSoup) -> dict[str, Any]:
     """1X2 initial + live odds from the preferred bookmaker (else first listed)."""
+
     table = _find_odds_table(soup)
     empty = {
         "odds_bookmaker": None,
@@ -360,6 +370,7 @@ def _find_odds_table(soup: BeautifulSoup) -> Tag | None:
 
 def _bookmaker_initial_rows(table: Tag) -> list[tuple[str, Tag]]:
     """(company_name, initial_row) for each bookmaker block in the odds table."""
+
     out: list[tuple[str, Tag]] = []
     for tr in table.select("tr"):
         if not tr.select(DETAIL_ODDS_1X2_CELLS):
@@ -385,6 +396,7 @@ def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
 # --- analysis blocks (best-effort) -------------------------------------------
 def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
     """Strength split (home vs away) and H2H-comparison percentages."""
+
     out: dict[str, Any] = {
         "strength_home": None,
         "strength_away": None,
@@ -411,6 +423,7 @@ def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
 
 def parse_guess(soup: BeautifulSoup) -> dict[str, Any]:
     """Crowd 'Who will win?' percentages (home / away)."""
+
     out: dict[str, Any] = {"guess_home_pct": None, "guess_away_pct": None}
 
     box = soup.select_one(DETAIL_GUESS_BOX)
@@ -435,6 +448,7 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
     approach picked a non-fixture block for home (always None) and mislabeled the home
     team's countdown as the away value.
     """
+
     out: dict[str, Any] = {"home_next_fixture_days": None, "away_next_fixture_days": None}
 
     for key, selector in (

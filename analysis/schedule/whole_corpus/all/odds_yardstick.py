@@ -55,6 +55,7 @@ def banded(
     rows: tuple[tuple[str, str, str], ...],
 ) -> pd.DataFrame:
     """The same rows inside each band of `column`."""
+
     bands = pd.cut(yardstick_df[column], edges)
     table = [
         {
@@ -70,6 +71,7 @@ def banded(
 
 def trailer_splits(yardstick_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     """Masks over the decisive half-times: who is behind, by how much, and where."""
+
     margin = yardstick_df["ht_margin"]
     home_behind, away_behind = margin < 0, margin > 0
     fav_behind = (home_behind & yardstick_df["fav_is_home"]) | (
@@ -89,6 +91,7 @@ def trailer_splits(yardstick_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
 
 def excess_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Completions observed against expected from the HT score, per trailer split."""
+
     table = [
         {
             "split": name,
@@ -101,6 +104,7 @@ def excess_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 
 def side_goals(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """The favourite's and the underdog's goals, in each half and in all."""
+
     home = yardstick_df["fav_is_home"]
 
     return pd.DataFrame(
@@ -117,6 +121,7 @@ def side_goals(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 
 def pivot(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Comebacks by the favourite's win chance and the expected goals, both banded."""
+
     keys = [
         pd.cut(yardstick_df["fav_p"], FAV_EDGES),
         pd.cut(yardstick_df["m_goals"], yardstick.TOTAL_EDGES),

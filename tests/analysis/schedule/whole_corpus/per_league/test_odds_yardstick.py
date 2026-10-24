@@ -15,6 +15,7 @@ from analysis.schedule.whole_corpus.per_league import odds_yardstick as runner
 @pytest.fixture
 def toy_yardstick_df() -> pd.DataFrame:
     """Six matches in two leagues and both cohorts, in the shape `yardstick.frame` gives."""
+
     return pd.DataFrame(
         {
             "s1_league_id": [1, 1, 1, 2, 2, 2],

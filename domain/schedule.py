@@ -29,6 +29,7 @@ def season_start_year(season: str) -> int | None:
     `groupby("season")` splits them and an `isin([...])` season list silently matches
     neither. Anything asking "which seasons are contemporaneous?" must compare this.
     """
+
     match = _SEASON_RE.match(season.strip())
     return int(match.group("start")) if match else None
 

@@ -16,6 +16,7 @@ PREFIX = "home_last1_"
 
 def _block(**cells: object) -> pd.DataFrame:
     """A one-fixture frame holding a single history block's cells."""
+
     return pd.DataFrame({f"{PREFIX}{name}": [value] for name, value in cells.items()})
 
 

@@ -14,11 +14,13 @@ Z95 = float(norm.ppf(0.975))
 
 def log_loss_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
     """Per-match log loss of a three-way forecast: minus the log of the result's probability."""
+
     return np.asarray(-np.log(probs[np.arange(len(outcome)), outcome]))
 
 
 def brier_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
     """Per-match Brier score of a three-way forecast: sum of (p - hit)^2, from 0 to 2."""
+
     hits = np.zeros_like(probs)
     hits[np.arange(len(outcome)), outcome] = 1.0
     return np.asarray(((probs - hits) ** 2).sum(axis=1))
@@ -26,6 +28,7 @@ def brier_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
 
 def wilson_ci(successes: int, trials: int) -> tuple[float, float]:
     """95% Wilson score interval (scipy's), safe at small n and for rare events."""
+
     if trials == 0:
         return (0.0, 0.0)
     ci = binomtest(successes, trials).proportion_ci(confidence_level=0.95, method="wilson")
@@ -40,6 +43,7 @@ def cluster_bootstrap_ci(
     The matches of one league-season share teams and one pricing desk, so they are not
     independent. Resampling league-seasons, not matches, keeps the interval honest.
     """
+
     counted = values.notna().astype(float)
     return cluster_bootstrap_ratio_ci(values, counted, clusters, n_boot=n_boot, seed=seed)
 
@@ -56,6 +60,7 @@ def cluster_bootstrap_ratio_ci(
     The ratio of an observed count to the count that a model expects (O/E) is one such
     ratio; a mean is another, with a denominator of ones.
     """
+
     tops = numerator.groupby(clusters).sum().to_numpy()
     bottoms = denominator.groupby(clusters).sum().to_numpy()
     picks = np.random.default_rng(seed).integers(0, len(tops), size=(n_boot, len(tops)))
@@ -66,6 +71,7 @@ def cluster_bootstrap_ratio_ci(
 
 def observed_expected(df: pd.DataFrame, observed: str, expected: str) -> dict[str, float]:
     """Observed and expected sums, their ratio (O/E), and its interval over `frame.cluster`."""
+
     obs, exp = float(df[observed].sum()), float(df[expected].sum())
     low, high = cluster_bootstrap_ratio_ci(df[observed], df[expected], df["cluster"])
 
@@ -83,6 +89,7 @@ def observed_expected_table(
     df: pd.DataFrame, rows: tuple[tuple[str, str, str], ...]
 ) -> pd.DataFrame:
     """One O/E row per (observed column, expected column, label)."""
+
     return pd.DataFrame(
         [{"quantity": label, **observed_expected(df, o, e)} for o, e, label in rows]
     )
@@ -101,6 +108,7 @@ class Heterogeneity:
 
 def heterogeneity(means: "pd.Series[float]", variances: "pd.Series[float]") -> Heterogeneity:
     """One test of "do the units differ beyond noise?", in place of one test per unit."""
+
     weights = 1.0 / variances
     pooled = float((weights * means).sum() / weights.sum())
     cochran_q = float((weights * (means - pooled) ** 2).sum())
@@ -133,6 +141,7 @@ def detectable_tau(
     (such as the league of each team), Q sums each group's units around the group's own
     mean, as in `analysis/units.py:within_tested`.
     """
+
     unit_variances = variances.to_numpy(dtype=float)
     weights = 1.0 / unit_variances
     codes = np.zeros(len(unit_variances), dtype=int) if groups is None else pd.factorize(groups)[0]
@@ -165,6 +174,7 @@ def shrink(
     `notes/REFERENCE/STATS_PRIMER.md` §1: a unit keeps the share tau^2 / (tau^2 + its
     variance) of its own deviation. With tau^2 = 0 every unit gets the pooled mean.
     """
+
     keep = het.tau_squared / (het.tau_squared + variances)
     return het.pooled + keep * (means - het.pooled)
 
@@ -191,6 +201,7 @@ def mantel_haenszel(
     and the CMH test. The Binding rules of `notes/ANALYSIS/CLAUDE.md` §6 ask for it: pool
     over league-season strata, never test per league. A stratum of one row tells nothing and
     is left out."""
+
     flagged, hit = flag.to_numpy(dtype=bool), event.to_numpy(dtype=bool)
     cells_df = (
         pd.DataFrame(
@@ -242,6 +253,7 @@ def _rgb(
 ) -> tuple[float, float, float]:
     """The Mantel-Haenszel odds ratio and its Robins-Breslow-Greenland 95% interval; not a
     number where a sum in it is 0."""
+
     or_numerator, or_denominator = (
         flagged_hits * rest_misses / stratum_size,
         flagged_misses * rest_hits / stratum_size,
@@ -279,6 +291,7 @@ def _rgb(
 
 def holm(p_values: Sequence[float]) -> list[float]:
     """Holm-adjusted p-values, in the order given."""
+
     order = sorted(range(len(p_values)), key=lambda i: p_values[i])
     adjusted = [0.0] * len(p_values)
     running = 0.0

@@ -51,6 +51,7 @@ def group_folds(
 ) -> list[tuple[np.ndarray, np.ndarray]]:
     """`fold_count` folds of whole groups (league-seasons). The groups go to the folds in turn,
     in the order of their names, so each group is in the test part of exactly one fold."""
+
     codes, names = pd.factorize(groups, sort=True)
     fold = (np.arange(len(names)) % fold_count)[codes]
     positions = np.arange(len(groups))
@@ -59,6 +60,7 @@ def group_folds(
 
 def dataset(df: pd.DataFrame, fields: list[str], target: str) -> lgb.Dataset:
     """The rows as a LightGBM dataset. A categorical column stays categorical."""
+
     return lgb.Dataset(df[fields], label=df[target].to_numpy(dtype=float), free_raw_data=False)
 
 
@@ -72,6 +74,7 @@ def tune(
 ) -> Tuned:
     """The setting of `grid` with the lowest log loss over the folds of `groups`, and the
     number of trees where that loss was lowest."""
+
     data = dataset(df, fields, target)
     folds = group_folds(groups)
 
@@ -101,16 +104,19 @@ def tune(
 
 def fit(df: pd.DataFrame, fields: list[str], target: str, tuned: Tuned) -> lgb.Booster:
     """The model of the tuned setting, trained on all the rows."""
+
     return lgb.train(tuned.params, dataset(df, fields, target), num_boost_round=tuned.trees)
 
 
 def predict(booster: lgb.Booster, df: pd.DataFrame, fields: list[str]) -> np.ndarray:
     """The chance of the target in each row."""
+
     return np.asarray(booster.predict(df[fields]), dtype=float)
 
 
 def contributions(booster: lgb.Booster, df: pd.DataFrame, fields: list[str]) -> pd.DataFrame:
     """The SHAP value of each field in each row, in log odds. With the constant that LightGBM
     adds (left out here), they sum to the log odds of the row's chance."""
+
     values = np.asarray(booster.predict(df[fields], pred_contrib=True), dtype=float)
     return pd.DataFrame(values[:, :-1], columns=fields, index=df.index)

@@ -10,7 +10,7 @@ Adopted 2026-10-22.
 - **A function you change follows the guide as a whole:** fix its one-letter names, its missing blank lines and any other clear readability problem inside it. Leave names that are already clear, and leave everything outside the function. A half-renamed function reads worse than either version.
 - Code that nobody changes stays as it is. A clean-up pass over a whole package is a change of its own, never part of a feature.
 - **Two kinds of rule.**
-  - **Must:** §3.2 (one-letter names, the `_df` suffix), §5 (blank lines), the whole-function scope above, §9 (data, domain rules, missing values), §10 (errors) and the `_private` rule of §11. A Must holds in every case; to change one, change this guide.
+  - **Must:** §3.2 (one-letter names, the `_df` suffix), §5 (blank lines, the one after a docstring included), the 3-line limit of §7, the whole-function scope above, §9 (data, domain rules, missing values), §10 (errors) and the `_private` rule of §11. A Must holds in every case; to change one, change this guide.
   - **Default:** everything else. Follow it unless the result clearly reads worse; then break it, with a comment that says why when the reason is not obvious. In a Default, words like "never" and "only" describe the usual case, not a ban.
 - Rules that are not about readability are written once, elsewhere:
   - layers, imports, data paths, dependencies, commits: root `CLAUDE.md`;
@@ -105,11 +105,12 @@ The usual phases per package:
 Blank lines show the structure of a function. They separate phases; they don't decorate.
 
 - One blank line between two phases of a function.
+- **One blank line after a function's docstring,** before its first line of code, in every function, short ones included. The formatter keeps this line but does not add it (for a class it does); never turn on Ruff's `D202`, which forbids it.
 - Keep the lines of one phase together: several fields read from one row, counters set together.
 - A blank line after a guard block (`if not ids: return`), before the work it guards.
 - A blank line before and after a loop, `with` or `if` block that is a phase of its own.
 - An accumulator stays attached to its loop: no blank line between `total = ...` and the `for` that fills it.
-- A comment that introduces a phase gets a blank line above it, and none below.
+- A `#` comment above a block (§7) gets a blank line above it, and none below.
 - One blank line, never two. None directly after a `def`, `if` or `for` line (the formatter removes it anyway).
 - Not after every statement: a blank line marks the end of a phase.
 
@@ -120,6 +121,7 @@ From `features/engine.py`, with descriptive names (docstring shortened):
 ```python
 def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     """Mean total half-time goals in past meetings of this fixture."""
+
     total = pd.Series(0.0, index=matches_df.index)
     seen = pd.Series(0.0, index=matches_df.index)
     for slot in range(1, MATCHES_PER_SECTION + 1):
@@ -153,18 +155,39 @@ def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
 FIRST_LOAD_TIMEOUT = 45
 ```
 
-## 7. Comments and docstrings
+## 7. Docstrings and comments
 
-A comment explains what the code alone cannot: why.
+The docstring carries the documentation; a `#` comment is the exception. Both say what the code alone cannot.
 
+- **Every function and class has a docstring,** private and nested ones included. A `test_*` function needs none: its name is the sentence (§12).
 - **Module docstring.** Every module opens with one: what it does and why it exists. A scraper or a stage builder also says what it reads, what it writes and which `notes/FIELDS/` doc defines its fields. An entry point ends with its command: `Run: uv run python -m features.schedule_row`.
-- **Function docstring.** One sentence of plain prose: what the function returns or does, and what `None` or an empty result means (`"""A price or line from the row, None when the page showed none."""`). Add lines only for a rule, a limit or a side effect the reader cannot see. No `Args:` / `Returns:` blocks. A private helper with a clear name needs no docstring.
-- **A comment says why, not what:** why this approach, a domain rule, a trap, why the simpler version is wrong. A comment that repeats the next line in English goes.
+- **Function docstring.** It opens with one sentence of plain prose: what the function returns or does, and what `None` or an empty result means (`"""A price or line from the row, None when the page showed none."""`). In the rare case one sentence cannot say it, use up to 3. Add prose only for a rule, a limit or a side effect the reader cannot see.
+- **At most 3 lines of prose** in a function or class docstring, the opening sentences included; blank lines and `Args:` / `Returns:` entries do not count. A longer explanation goes to its field doc (`notes/FIELDS/`) or note, and the docstring cites it.
+- **`Args:` and `Returns:` only for what the name and the type cannot say:** a DataFrame's columns, a unit, the allowed values, what `None` means when the opening sentence has no room for it. List only those parameters, one line each, in Google style.
+
+`round_offsets` from `features/schedule_multi.py`, written to this rule:
+
+```python
+def round_offsets(schedule_df: pd.DataFrame) -> pd.DataFrame:
+    """How far each match was played from its round, from kickoff times only.
+
+    Args:
+        schedule_df: reads `s1_date`, `s1_stage` and `s1_round`.
+
+    Returns:
+        `s3_days_off_round` (days after the round's median kickoff) and `s3_is_rescheduled`.
+    """
+
+    kickoff = pd.to_datetime(schedule_df["s1_date"].map(parse_instant), utc=True)
+```
+
+- **A `#` comment inside a function only for a why that belongs to one line or block:** a trap, a workaround, why the simpler version is wrong. Never a label for a phase (`# Load the files`): blank lines show the phases (§5). Anything about the whole function goes in its docstring. A comment that repeats the next line in English goes.
+- **Above a module-level constant, the comment that says where its value comes from stays** (§6): a constant has no docstring.
 - **A decision a reader could take for a mistake says it is one, with its date,** in the form the code already uses: `(the user, 2026-10-13)`. **It also names the assumption that makes it right,** so a reader can tell when it stops being right: "kicked off at least 2 h 30 min before this one, so it had surely finished". An ordinary choice needs no such mark.
 - **A rule taken from a note cites it,** with the path and the section (`features/CLAUDE.md` §0, `notes/FIELDS/SCHEDULE_2_ROW.md`).
-- **A comment describes the code as it is now.** The history of a change goes to `notes/LOG/MIGRATIONS.md`. A date that describes the data stays, because the reader needs it: "files scraped before 2026-09-22 have no such column".
+- **A docstring or comment describes the code as it is now.** The history of a change goes to `notes/LOG/MIGRATIONS.md`. A date that describes the data stays, because the reader needs it: "files scraped before 2026-09-22 have no such column".
 - A banner comment (`# --- Market controls ---`) may group the functions of a long module.
-- Change a comment or a docstring in the same change as its code. A wrong comment is worse than none.
+- Change a docstring or comment in the same change as its code. A wrong one is worse than none.
 
 ## 8. Types and data contracts
 
@@ -243,7 +266,8 @@ After:
 - [ ] Names say what the data is, in the project's words. One-letter names only `i`, `_` and a one-line comprehension; a DataFrame's name ends in `_df` (`df` alone only in an any-table helper).
 - [ ] Each function has one job, its guards first, its phases separated by one blank line.
 - [ ] No dense expression where named steps read better.
-- [ ] Comments say why; docstrings say what comes back and what `None` means; none is stale.
+- [ ] Every function and class has a docstring: an opening sentence, at most 3 lines of prose, `Args:` / `Returns:` only for what names and types cannot say, a blank line below it.
+- [ ] `#` comments only for a why of one line or block; none is stale.
 - [ ] Each rule comes from its home (§9); missing values and failures are handled on purpose.
 - [ ] Errors are specific and name the input; no broad `except` outside the two cases of §10.
 - [ ] Tests read as sentences, follow arrange / act / assert, and work out their expected values independently.

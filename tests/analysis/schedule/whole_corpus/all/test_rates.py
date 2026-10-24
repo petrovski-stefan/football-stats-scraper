@@ -15,6 +15,7 @@ def card_df() -> pd.DataFrame:
     2-0 to 2-3 (away comeback) and 0-0 to 4-3. Each league-season has a home team and an
     away team behind at half-time.
     """
+
     six_matches_df = pd.DataFrame(
         {
             "is_comeback": [1, 0, 0, 0, 1, 0],

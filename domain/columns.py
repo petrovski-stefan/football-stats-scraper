@@ -195,6 +195,7 @@ PER_MATCH_FIELDS = [
 
 def per_match_columns() -> list[str]:
     """All flattened per-match column names, in section/index/field order."""
+
     return [
         f"{section}_last{slot}_{field}"
         for section in PER_MATCH_SECTIONS
@@ -347,6 +348,7 @@ STANDING_STATS = (
 
 def pre_kickoff_columns() -> list[str]:
     """`s3_<side>_pre_<half>_<venue>_<stat>`, in side/half/venue/stat order: 96 names."""
+
     return [
         f"s3_{side}_pre_{half}_{venue}_{stat}"
         for side in STANDING_SIDES
@@ -364,6 +366,7 @@ HTFT_RESULTS = ("w", "d", "l")
 
 def pre_htft_columns() -> list[str]:
     """`s3_<side>_pre_htft_<venue>_<ht>_<ft>`, in side/venue/ht/ft order: 54 names."""
+
     return [
         f"s3_{side}_pre_htft_{venue}_{ht}_{ft}"
         for side in STANDING_SIDES
@@ -386,6 +389,7 @@ STAKE_FIELDS = (
 
 def stake_columns() -> list[str]:
     """`s3_<side>_<field>`, in side/field order: 8 names."""
+
     return [f"s3_{side}_{field}" for side in STANDING_SIDES for field in STAKE_FIELDS]
 
 

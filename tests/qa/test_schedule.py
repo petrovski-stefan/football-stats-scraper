@@ -19,6 +19,7 @@ _ODDS = dict(
 
 def _rounds(teams: int) -> list[list[tuple[int, int]]]:
     """A single round robin by the circle method: each team plays once per round."""
+
     ids = list(range(1, teams + 1))
     rounds = []
     for _ in range(teams - 1):
@@ -29,6 +30,7 @@ def _rounds(teams: int) -> list[list[tuple[int, int]]]:
 
 def _season(teams: int = 4, legs: int = 2) -> pd.DataFrame:
     """A clean k-fold round robin: every pair meets `legs` times, one round per week."""
+
     rows: list[dict[str, object]] = []
     single = _rounds(teams)
     for leg in range(legs):

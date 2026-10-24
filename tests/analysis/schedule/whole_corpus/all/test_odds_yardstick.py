@@ -9,6 +9,7 @@ from analysis.schedule.whole_corpus.all import odds_yardstick as runner
 @pytest.fixture
 def toy_yardstick_df() -> pd.DataFrame:
     """Four matches in two league-seasons, in the shape `yardstick.frame` gives."""
+
     return pd.DataFrame(
         {
             "cluster": ["a", "a", "b", "b"],

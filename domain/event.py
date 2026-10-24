@@ -59,6 +59,7 @@ class Event(BaseModel):
     @property
     def is_first_half(self) -> bool:
         """True for "45'" and "45+3'" alike; false from "46'" on."""
+
         return self.minute <= 45
 
     @property

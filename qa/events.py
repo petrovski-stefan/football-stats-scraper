@@ -53,6 +53,7 @@ MIN_SUBS_FOR_SIDE_CHECK = 500
 
 def validate(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.DataFrame) -> None:
     """Run every event-store check."""
+
     universal.check_attempt_log(report, events_df, attempt_log_df, "n_events")
     _check_columns(report, events_df)
     _check_sequences(report, events_df)
@@ -62,6 +63,7 @@ def validate(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.DataFra
 
 def _check_columns(report: Report, events_df: pd.DataFrame) -> None:
     """Per-row ranges, independent of any match context."""
+
     if events_df.empty:
         return
 
@@ -88,6 +90,7 @@ def _check_columns(report: Report, events_df: pd.DataFrame) -> None:
 
 def _check_sequences(report: Report, events_df: pd.DataFrame) -> None:
     """Per-match invariants."""
+
     if events_df.empty:
         return
 
@@ -118,6 +121,7 @@ def _inspect_match(
     match_id: str, match_events_df: pd.DataFrame, offenders: dict[str, list[str]]
 ) -> None:
     """Order, index contiguity, and the per-side substitution cap within one match."""
+
     ordered_df = match_events_df.sort_values("event_index")
     keys = list(
         zip(
@@ -141,6 +145,7 @@ def _inspect_match(
 
 def _check_rates(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.DataFrame) -> None:
     """Corpus-level plausibility. Reports below the threshold rather than judging."""
+
     matches = len(attempt_log_df)
     if matches == 0:
         return
@@ -168,6 +173,7 @@ def _check_rates(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.Dat
 
 def _check_sub_side_balance(report: Report, events_df: pd.DataFrame) -> None:
     """Substitutions must split ~50/50 between home and away — see SUB_SIDE_TOLERANCE."""
+
     subs_df = events_df[events_df["kind"] == SUBSTITUTION]
     if len(subs_df) < MIN_SUBS_FOR_SIDE_CHECK:
         return

@@ -78,6 +78,7 @@ def test_team_rows_add_extra_columns_by_side(toy_priced_matches_df: pd.DataFrame
 @pytest.fixture
 def team_yardstick(toy_priced_matches_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """The team rows of the four priced toy matches, and the yardstick frame they come from."""
+
     yardstick_df = yardstick.frame(toy_priced_matches_df, yardstick.build_grid(COARSE))
     return card.team_yardstick_rows(toy_priced_matches_df, yardstick_df), yardstick_df
 

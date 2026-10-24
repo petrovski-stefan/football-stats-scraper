@@ -44,6 +44,7 @@ def parse_goal_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
     match *or* a page whose events never rendered — the caller distinguishes those by
     reconciling against the stored score.
     """
+
     events = _dedupe(_score_rows(soup))
 
     goals: list[dict[str, Any]] = []
@@ -87,6 +88,7 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     the fold in `parse_goal_events` stops, and every later goal is silently lost —
     Liverpool 1-1 Brentford (match 2789503) was stored as 1-0 for exactly this reason.
     """
+
     unique: dict[tuple[int, int], dict[str, Any]] = {}
     for event in sorted(events, key=lambda goal: (goal["minute"], goal["stoppage"])):
         unique.setdefault((event["home_score_after"], event["away_score_after"]), event)
@@ -96,6 +98,7 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
     """Rows that carry both a minute and a running score — i.e. the goals."""
+
     out: list[dict[str, Any]] = []
     for row in live_rows.iter_rows(soup):
         score = SCORE_RE.search(row.text)
@@ -119,6 +122,7 @@ def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
 
 def _side_that_scored(home: int, away: int, new_home: int, new_away: int) -> str | None:
     """Which side the running score says scored, or None if it did not advance by one."""
+
     if new_home == home + 1 and new_away == away:
         return "home"
     if new_away == away + 1 and new_home == home:

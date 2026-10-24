@@ -32,6 +32,7 @@ def test_parse_league_url_rejects_other_pages() -> None:
 
 def _league(**overrides: Any) -> dict[str, Any]:
     """A valid config entry; each test breaks one part of it."""
+
     entry: dict[str, Any] = {
         "name": "Test League",
         "code": "TST",
@@ -88,6 +89,7 @@ def test_season_url_must_match_season_and_league_id(season: dict[str, Any]) -> N
 
 def _config(tmp_path: Path) -> str:
     """Two leagues: TST with one enabled season, OTH with none enabled."""
+
     other = _league(
         name="Other League",
         code="OTH",

@@ -39,6 +39,7 @@ def parse_match_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
     *or* a page whose events never rendered; the caller distinguishes those the same way
     the goal scrape does, by whether anything at all came back for the match.
     """
+
     found: list[dict[str, Any]] = []
     for row in live_rows.iter_rows(soup):
         if row.kind not in EVENT_KINDS or row.side is None:
@@ -78,6 +79,7 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     the players makes the key exact — a genuine pair differs in the name, a double-render
     does not.
     """
+
     unique: dict[tuple[Any, ...], dict[str, Any]] = {}
     for event in sorted(events, key=_when):
         key = (
@@ -105,6 +107,7 @@ def _players(row: live_rows.LiveRow) -> tuple[str, str]:
     to whichever marker most recently preceded it rather than to its position. Pages that
     omit a marker fall back to document order, which is in/out on every page observed.
     """
+
     cell = row.content_cell()
     if cell is None:
         return "", ""
@@ -121,6 +124,7 @@ def _players(row: live_rows.LiveRow) -> tuple[str, str]:
 
 def _by_marker(cell: Tag) -> tuple[str, str]:
     """Walk the cell in order, attributing each player link to the last marker seen."""
+
     on = off = ""
     marker = ""
     for node in cell.find_all([LIVE_EVENT_ICON, "a"]):

@@ -21,6 +21,7 @@ DEAD_COLUMN_THRESHOLD = 0.95
 
 def check_not_empty(report: Report, df: pd.DataFrame) -> None:
     """The file exists but holds no rows — a scrape that produced nothing."""
+
     report.check(not df.empty, "file has no rows")
 
 
@@ -30,6 +31,7 @@ def check_required_columns(report: Report, df: pd.DataFrame, expected: Sequence[
     `scrapers/csv_io.py:write_ordered_csv` filters to the columns present in the frame,
     so a field that stops being produced disappears from the CSV without complaint.
     """
+
     missing = [c for c in expected if c not in df.columns]
     report.check(
         not missing,
@@ -44,6 +46,7 @@ def check_primary_key(report: Report, df: pd.DataFrame, key: str = "match_id") -
     Values are normalised to stripped strings first so the same id compares equal
     whatever dtype pandas inferred for a given file.
     """
+
     if key not in df.columns:
         report.check(False, f"missing primary key column {key!r}")
         return
@@ -68,6 +71,7 @@ def check_unique_across(
 
     A match stored in two files is counted twice by anything that reads them together.
     """
+
     files: dict[str, list[str]] = {}
     for name, values in ids.items():
         for value in set(values):
@@ -87,6 +91,7 @@ def check_declared(
     A file left behind when its entry was taken out of the declaration (a league removed
     from the config) would still be read with the rest.
     """
+
     allowed = set(declared)
     stray = sorted(name for name, values in found.items() if not set(values) <= allowed)
     report.check(not stray, f"{len(stray)} files with a {what} {stray[:3]}")
@@ -104,6 +109,7 @@ def check_no_dead_columns(
     `optional` names columns the schema declares may legitimately be empty; it is a
     contract statement, not a place to park known-broken columns.
     """
+
     if df.empty:
         return
 
@@ -124,6 +130,7 @@ def check_ids_covered(
     report: Report, expected: Collection[str], actual: Collection[str], subject: str
 ) -> None:
     """Every id in `expected` appears in `actual` — join/coverage completeness."""
+
     missing = set(expected) - set(actual)
     report.check(not missing, f"{len(missing)} ids missing from {subject}")
 
@@ -143,6 +150,7 @@ def check_attempt_log(
     the two appends), and a log entry whose claimed count disagrees with the rows actually
     present (a partial write).
     """
+
     dupes = int(attempt_log_df["match_id"].duplicated().sum())
     report.check(dupes == 0, f"{dupes} duplicate match_id in the attempt log (would re-scrape)")
 

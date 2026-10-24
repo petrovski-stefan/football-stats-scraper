@@ -32,6 +32,7 @@ def match_variance(
     "share" is binomial over the match's goals (`expected` holds them), each goal in the
     first half with the chance `value`.
     """
+
     if kind == "count":
         return value * expected
     if kind == "event":
@@ -47,6 +48,7 @@ def dispersion(df: pd.DataFrame, unit: str, observed: str, expected: str, kind: 
     The squared residuals around each unit's own value, summed, over the summed variance
     that the kind gives at that value. 1 means that the kind's variance fits the matches.
     """
+
     sums_df = df.groupby(unit)[[observed, expected]].transform("sum")
     own = sums_df[observed] / sums_df[expected]
     residual = df[observed] - own * df[expected]
@@ -68,6 +70,7 @@ def unit_values(
     / sum(expected) over all matches, times the `dispersion_factor`. With `within` (such as the
     league of a team), each match takes the pooled value of its `within` group instead.
     """
+
     if within is None:
         null: float | pd.Series[float] = float(df[observed].sum() / df[expected].sum())
     else:
@@ -93,6 +96,7 @@ def tested(
     df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str
 ) -> tuple[pd.DataFrame, stats.Heterogeneity, float]:
     """The unit values with their shrunk values, the one test, and the dispersion used."""
+
     dispersion_factor = dispersion(df, unit, observed, expected, kind)
     unit_values_df = unit_values(df, unit, observed, expected, kind, dispersion_factor)
     het = stats.heterogeneity(unit_values_df["value"], unit_values_df["variance"])
@@ -110,6 +114,7 @@ def luck_line(
 ) -> tuple[float, float]:
     """The lowest and highest unit value if every unit had `pooled` (one value, or one per
     unit, such as the value of its league): medians of Poisson draws."""
+
     means = pooled * expected.to_numpy(dtype=float)
     counts = np.random.default_rng(seed).poisson(means, size=(draws, len(means)))
     ratios = counts / expected.to_numpy(dtype=float)
@@ -124,6 +129,7 @@ def cohort_values(
     With `against` (such as the league of a team), each value is taken relative to the value
     of its `against` group in the same cohort.
     """
+
     sums_df = df.groupby([unit, "season_cohort"])[[observed, expected]].sum()
     values = sums_df[observed] / sums_df[expected]
 
@@ -142,6 +148,7 @@ def cohort_agreement(
     df: pd.DataFrame, unit: str, observed: str, expected: str
 ) -> tuple[float, int]:
     """Spearman correlation of the unit values between the two season cohorts, and its n."""
+
     cohort_values_df = cohort_values(df, unit, observed, expected)
     return float(
         cohort_values_df.iloc[:, 0].corr(cohort_values_df.iloc[:, 1], method="spearman")
@@ -153,6 +160,7 @@ def repeat_test(
 ) -> tuple[float, int, float]:
     """The repeat test: does a unit's value in one season cohort predict its value in the
     other, both relative to its `against` group? Spearman's r, its n, and the p of r = 0."""
+
     cohort_values_df = cohort_values(df, unit, observed, expected, against)
     result = spearmanr(cohort_values_df.iloc[:, 0], cohort_values_df.iloc[:, 1])
     return float(result.statistic), len(cohort_values_df), float(result.pvalue)
@@ -166,6 +174,7 @@ def summary_row(
     `quantity` is (observed column, expected column, label, kind). The luck line uses
     Poisson draws, so ask for it only for counts and rare events.
     """
+
     observed, expected, label, kind = quantity
     unit_values_df, het, dispersion_factor = tested(df, unit, observed, expected, kind)
 
@@ -220,6 +229,7 @@ def within_tested(
     unit. tau^2 comes from the summed Q (DerSimonian-Laird), and each part is shrunk toward
     the mean of its unit.
     """
+
     dispersion_factor = dispersion(df, part, observed, expected, kind)
     part_values_df = unit_values(df, part, observed, expected, kind, dispersion_factor, within=unit)
     part_values_df["owner"] = df.groupby(part)[unit].first()
@@ -263,6 +273,7 @@ def within_test(
     df: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
 ) -> tuple[float, int, float]:
     """`within_tested`, as Q, its df and p only."""
+
     result = within_tested(df, unit, part, observed, expected, kind)
     return result.cochran_q, result.degrees_of_freedom, result.p_value
 
@@ -276,6 +287,7 @@ def within_row(
 
     `quantity` is (observed column, expected column, label, kind).
     """
+
     observed, expected, label, kind = quantity
     result = within_tested(df, unit, part, observed, expected, kind)
     repeat_correlation, repeat_count, repeat_p_value = repeat_test(
@@ -312,6 +324,7 @@ def within_row(
 def within_luck_row(label: str, result: Within) -> dict[str, float | str]:
     """How far the raw part values reach, and how far they would reach by luck alone if every
     part had the value of its unit."""
+
     part_values_df = result.part_values_df
     low, high = luck_line(part_values_df["expected"], part_values_df["owner_mean"].to_numpy())
 
@@ -339,6 +352,7 @@ def null_q(
     expected, or a Poisson count with that mean. If the method is right, the mean is near
     the df. A real Q far from this mean is a property of the data, not of the method.
     """
+
     observed, expected, _, kind = quantity
     if kind not in ("event", "count"):
         raise ValueError(f"no null draws for kind {kind!r}")
@@ -376,6 +390,7 @@ def permuted_qs(
     outcomes. The real Q and the shuffled ones come from the same method, so a bias of
     the method (such as a dispersion measured around small parts) is in both.
     """
+
     observed, expected, _, kind = quantity
 
     rng = np.random.default_rng(seed)
@@ -394,6 +409,7 @@ def shuffled_parts(
 ) -> np.ndarray:
     """The parts of the matches in a random order inside each unit: each match takes the
     part of a random match of its unit, and each part keeps its count of matches."""
+
     codes = pd.factorize(unit)[0]
     labels = part.to_numpy()
 
@@ -414,6 +430,7 @@ def variance_share(df: pd.DataFrame, observed: str, expected: str, tau_squared: 
     over the matches that count (expected above 0), against the variance of their observed
     values.
     """
+
     counted_df = df[df[expected] > 0]
     spread = float(np.var(counted_df[observed].to_numpy(dtype=float), ddof=1))
     return float(tau_squared * (counted_df[expected] ** 2).mean() / spread)
@@ -435,6 +452,7 @@ def level_row(
     that the test finds at 80% are given against the pooled value and as a share of a
     match's variance (`variance_share`).
     """
+
     observed, expected, label, kind = quantity
     result = within_tested(df, unit, part, observed, expected, kind)
     part_values_df = result.part_values_df

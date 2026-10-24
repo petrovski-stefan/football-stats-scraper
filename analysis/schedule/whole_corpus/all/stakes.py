@@ -30,6 +30,7 @@ SIDES = (("home", "away"), ("away", "home"))
 def fifth_cuts(matches_df: pd.DataFrame) -> np.ndarray:
     """The cut points of the fifths of the opening win chance: quantiles of the home and away
     chances (S2.17, S2.19) together, over every match with odds. No result is read."""
+
     priced_df = matches_df.dropna(subset=["s2_mkt_p_home", "s2_mkt_p_away"])
     chances = np.concatenate(
         [priced_df["s2_mkt_p_home"].to_numpy(float), priced_df["s2_mkt_p_away"].to_numpy(float)]
@@ -40,6 +41,7 @@ def fifth_cuts(matches_df: pd.DataFrame) -> np.ndarray:
 def trailing_states(matches_df: pd.DataFrame, cuts: np.ndarray) -> pd.DataFrame:
     """One row per match with a team behind at half-time and an opening win chance for it:
     that team's chance, deficit, win, stake fields and stratum, on the match's index."""
+
     parts = []
     for side, other in SIDES:
         side_trailing_df = matches_df[
@@ -76,12 +78,14 @@ def trailing_states(matches_df: pd.DataFrame, cuts: np.ndarray) -> pd.DataFrame:
 def late_and_close(states_df: pd.DataFrame) -> pd.DataFrame:
     """F1: `LATE` or fewer matches left and `CLOSE` or fewer points behind the team above.
     A team with no team above is not flagged."""
+
     return states_df.assign(flag=(states_df["left"] <= LATE) & (states_df["above"] <= CLOSE))
 
 
 def fell_since_open(states_df: pd.DataFrame) -> pd.DataFrame:
     """F2: `FELL` or more places lost since the odds opened. A row with no rank change (the
     first rounds) is left out."""
+
     with_change_df = states_df.dropna(subset=["change"])
     return with_change_df.assign(flag=with_change_df["change"] >= FELL)
 
@@ -94,6 +98,7 @@ FLAGS: tuple[tuple[str, Callable[[pd.DataFrame], pd.DataFrame]], ...] = (
 
 def mh_row(label: str, states_df: pd.DataFrame) -> dict[str, object]:
     """The Mantel-Haenszel comparison of one set of flagged states, as a row."""
+
     result = stats.mantel_haenszel(states_df["flag"], states_df["win"], states_df["stratum"])
 
     return {
@@ -114,6 +119,7 @@ def mh_row(label: str, states_df: pd.DataFrame) -> dict[str, object]:
 
 def mh_table(states_df: pd.DataFrame) -> pd.DataFrame:
     """One row per season cohort, then all states pooled."""
+
     rows = [
         mh_row(str(cohort), cohort_states_df)
         for cohort, cohort_states_df in states_df.groupby("season_cohort")
@@ -124,6 +130,7 @@ def mh_table(states_df: pd.DataFrame) -> pd.DataFrame:
 def the_bar(tables: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """The bar of the frozen plan, read on this run: the pooled CMH p after Holm over the
     flags below `ALPHA`, and the odds ratio on the same side of 1 in both cohorts."""
+
     pooled = [float(mh_table_df["CMH p"].iloc[-1]) for mh_table_df in tables.values()]
 
     rows = []
@@ -149,6 +156,7 @@ def against_odds(states_df: pd.DataFrame, chance: "pd.Series[float]") -> pd.Data
     """The wins of the flagged and of the other states against the yardstick's chance that
     the team behind wins from that half-time score (O/E), with intervals over
     league-seasons. The states without a yardstick chance are left out."""
+
     with_expected_df = states_df.assign(expected=chance).dropna(subset=["expected"])
     with_expected_df = with_expected_df.assign(win=with_expected_df["win"].astype(float))
 

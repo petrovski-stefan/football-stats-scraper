@@ -58,6 +58,7 @@ class OddsColumns:
 
     def markets(self) -> dict[str, tuple[str, str, str]]:
         """Each market's three cells, under the name the reports use."""
+
         return {
             "1X2": (self.home, self.draw, self.away),
             "OU": (self.ou_line, self.over, self.under),
@@ -66,12 +67,14 @@ class OddsColumns:
 
     def cells(self) -> list[str]:
         """All nine cells, market by market."""
+
         return [cell for market in self.markets().values() for cell in market]
 
 
 def _present(df: pd.DataFrame, *columns: str) -> pd.DataFrame:
     """The rows holding every one of `columns`. A table without one of the columns has no
     such rows: a missing column is reported once, by `universal.check_required_columns`."""
+
     if not set(columns) <= set(df.columns):
         return df.iloc[0:0]
     return df[df[list(columns)].notna().all(axis=1)]
@@ -79,6 +82,7 @@ def _present(df: pd.DataFrame, *columns: str) -> pd.DataFrame:
 
 def check_1x2(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """The 1X2 prices are real prices, and the column really is 1X2."""
+
     present_df = _present(df, odds_columns.home, odds_columns.draw, odds_columns.away)
     if present_df.empty:
         return
@@ -110,6 +114,7 @@ def check_asian(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> 
     steps. A line off the quarter grid means `parse_line` mis-split a fraction. The size of
     a line is `check_line_size`'s job.
     """
+
     markets = (
         ("OU", odds_columns.ou_line, odds_columns.over, odds_columns.under),
         ("AH", odds_columns.ah_line, odds_columns.ah_home, odds_columns.ah_away),
@@ -145,6 +150,7 @@ def _line_limits(
     df: pd.DataFrame, odds_columns: OddsColumns
 ) -> tuple["pd.Series[float]", "pd.Series[float]"]:
     """Each row's largest AH size and OU line, from its 1X2 favourite's band."""
+
     if {odds_columns.home, odds_columns.away} <= set(df.columns):
         prices_df = df[[odds_columns.home, odds_columns.away]].astype(float)
         favourite = prices_df.min(axis=1, skipna=False).fillna(NO_PRICE_BAND)
@@ -167,6 +173,7 @@ def check_line_size(report: Report, df: pd.DataFrame, odds_columns: OddsColumns)
     match. The fixed limits used before 2026-10-10 (a 4-goal handicap, a 5.5 total) failed
     real mismatches, where a 1.01-1.04 favourite carries a 4.25-6 handicap and a total up to 7.
     """
+
     ah_max, ou_max = _line_limits(df, odds_columns)
 
     ou_present_df = _present(df, odds_columns.ou_line, odds_columns.over, odds_columns.under)
@@ -194,6 +201,7 @@ def check_line_size(report: Report, df: pd.DataFrame, odds_columns: OddsColumns)
 
 def check_ah_sign(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """A positive AH line must mean the home side is the 1X2 favourite."""
+
     present_df = _present(df, odds_columns.ah_line, odds_columns.home, odds_columns.away)
     if present_df.empty:
         return
@@ -223,6 +231,7 @@ def check_goal_line_above_handicap(
     2026-10-08). When that size is 1.5 or more, the line passes every other check, so only
     this one sees it.
     """
+
     present_df = _present(df, odds_columns.ou_line, odds_columns.ah_line)
     if present_df.empty:
         return
@@ -239,6 +248,7 @@ def check_whole_markets(report: Report, df: pd.DataFrame, odds_columns: OddsColu
     The page shows a market's line and prices together, and `scrapers/schedule.py:
     drop_stale_odds` empties whole markets only, so a part-filled market is a misread cell.
     """
+
     for kind, cells in odds_columns.markets().items():
         if not set(cells) <= set(df.columns):
             continue
@@ -254,6 +264,7 @@ def check_coverage(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) 
     A table without one of the columns is skipped: `universal.check_required_columns`
     reports the column once.
     """
+
     if df.empty or not set(odds_columns.cells()) <= set(df.columns):
         return
 
@@ -269,6 +280,7 @@ def check_coverage(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) 
 def check_all(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
     """The checks every table gets. The staged schedule adds `check_whole_markets` and
     `check_coverage` (`qa/schedule.py`); the archived files predate both."""
+
     check_1x2(report, df, odds_columns)
     check_asian(report, df, odds_columns)
     check_line_size(report, df, odds_columns)

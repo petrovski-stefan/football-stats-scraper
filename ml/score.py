@@ -14,6 +14,7 @@ EPSILON = 1e-12
 
 def top_mask(score: np.ndarray, top_n: int) -> np.ndarray:
     """The `top_n` rows with the highest score. Equal scores keep the order of the rows."""
+
     mask = np.zeros(len(score), dtype=bool)
     mask[np.argsort(-score, kind="stable")[:top_n]] = True
     return mask
@@ -24,6 +25,7 @@ def resampled_sums(
 ) -> np.ndarray:
     """The column sums of `values` (rows by columns) in each of `draws` resamples of whole
     clusters: an array of draws by columns."""
+
     codes = pd.factorize(clusters)[0]
     per_cluster = np.zeros((codes.max() + 1, values.shape[1]))
     np.add.at(per_cluster, codes, values)
@@ -34,6 +36,7 @@ def resampled_sums(
 
 def interval(values: np.ndarray) -> tuple[float, float]:
     """The 95% interval of resampled values."""
+
     low, high = np.nanquantile(values, [0.025, 0.975])
     return float(low), float(high)
 
@@ -49,6 +52,7 @@ def top_n_table(
     """For each N and each ranking: the comebacks in its top N, their share with its interval,
     and the difference to the share of the `reference` ranking with its interval. Each
     resample keeps the rows that the full set put in the top N."""
+
     names = list(scores)
     table = []
     for top_n in top_n_sizes:
@@ -82,6 +86,7 @@ def top_n_table(
 
 def log_loss_rows(outcomes: np.ndarray, chances: np.ndarray) -> np.ndarray:
     """The log loss of each row's chance, with the chance kept inside (1e-12, 1 - 1e-12)."""
+
     clipped = np.clip(chances, EPSILON, 1.0 - EPSILON)
     return np.asarray(-(outcomes * np.log(clipped) + (1.0 - outcomes) * np.log(1.0 - clipped)))
 
@@ -95,6 +100,7 @@ def loss_table(
 ) -> pd.DataFrame:
     """For each model: its mean log loss, its observed over expected count (O/E), and its
     log loss minus that of the `reference` model, with the interval of the difference."""
+
     names = list(chances)
     losses = np.column_stack([log_loss_rows(outcomes, chances[name]) for name in names])
     sums = resampled_sums(np.column_stack([losses, np.ones(len(outcomes))]), clusters, draws)
@@ -121,6 +127,7 @@ def loss_table(
 def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10) -> pd.DataFrame:
     """The rows in `bins` groups of equal size by their chance: the mean chance, the observed
     rate and their ratio (O/E) in each."""
+
     group = pd.qcut(pd.Series(chances).rank(method="first"), bins, labels=False)
     grouped_chances_df = pd.DataFrame({"group": group, "y": outcomes, "p": chances})
     calibration_df = grouped_chances_df.groupby("group").agg(

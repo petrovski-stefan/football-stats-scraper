@@ -28,6 +28,7 @@ def cell(detail_df: pd.DataFrame, column: str, row: int) -> str:
     Trailing ".0" is stripped because pandas reads an integer column with any gap in it as
     float, which turns a match id into "2789133.0" and breaks every lookup keyed on it.
     """
+
     if column not in detail_df.columns:
         return ""
 
@@ -46,6 +47,7 @@ def subject_is_home(detail_df: pd.DataFrame, prefix: str, row: int) -> bool | No
     there is no way to orient "for" and "against", and guessing would silently invert
     half the rows.
     """
+
     raw = cell(detail_df, f"{prefix}is_home", row)
     if raw == "":
         return None
@@ -59,6 +61,7 @@ def match_key(detail_df: pd.DataFrame, prefix: str, row: int) -> str | None:
     event lists) — see `domain/scope.py`, where both exclusions were established by
     measurement rather than assumption.
     """
+
     match_id = cell(detail_df, f"{prefix}match_id", row)
     if not match_id:
         return None
@@ -79,6 +82,7 @@ def score_matches(detail_df: pd.DataFrame, prefix: str, row: int, home: int, awa
     goals were found yields a wrong scoreline rather than a missing one, whether it is
     being read for goal timings or for the state a card was collected in.
     """
+
     stored_home = cell(detail_df, f"{prefix}ft_home_goals", row)
     stored_away = cell(detail_df, f"{prefix}ft_away_goals", row)
     if stored_home == "" or stored_away == "":
@@ -95,11 +99,13 @@ def score_matches(detail_df: pd.DataFrame, prefix: str, row: int, home: int, awa
 
 def feature_names(suffixes: Sequence[str]) -> list[str]:
     """`<section>_<suffix>` for every section, in order."""
+
     return [f"{section}_{suffix}" for section in SECTIONS for suffix in suffixes]
 
 
 def timeline_names(field: str, depth: int) -> list[str]:
     """`<section>_last<n>_<field>` for every section and depth, in order."""
+
     return [f"{section}_last{n}_{field}" for section in SECTIONS for n in range(1, depth + 1)]
 
 
@@ -123,6 +129,7 @@ def build_frame[T](
     share a resolution rather than taking one each, because re-resolving per kind would
     let the three drift apart on which matches counted.
     """
+
     built: dict[str, Any] = {}
     for section in SECTIONS:
         per_row = _resolve_section(detail_df, section, depth, resolve)
@@ -137,6 +144,7 @@ def _resolve_section[T](
     detail_df: pd.DataFrame, section: str, depth: int, resolve: Callable[[str, int], T | None]
 ) -> list[list[T | None]]:
     """For each fixture row, that section's `depth` history matches, oldest slot last."""
+
     return [
         [resolve(f"{section}_last{n}_", row) for n in range(1, depth + 1)]
         for row in range(len(detail_df))

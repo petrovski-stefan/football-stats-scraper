@@ -62,6 +62,7 @@ class LiveRow:
 
     def content_cell(self) -> Tag | None:
         """The populated half of the row — where player links live."""
+
         cells = self.row.find_all("td", recursive=False)
         index = _minute_index(cells)
         if index is None or self.side is None:
@@ -73,6 +74,7 @@ class LiveRow:
 
 def iter_rows(soup: BeautifulSoup) -> Iterator[LiveRow]:
     """Every event row on the page, in document order, de-duplicated by node identity."""
+
     seen: set[int] = set()
     for cell in soup.select(LIVE_EVENT_MINUTE):
         parsed = MINUTE_RE.match(cell.get_text(strip=True))
@@ -97,6 +99,7 @@ def iter_rows(soup: BeautifulSoup) -> Iterator[LiveRow]:
 
 def _minute_index(cells: list[Tag]) -> int | None:
     """Index of the cell holding the minute, which splits the row into home and away."""
+
     for i, cell in enumerate(cells):
         if cell.select_one(LIVE_EVENT_MINUTE) is not None:
             return i
@@ -105,6 +108,7 @@ def _minute_index(cells: list[Tag]) -> int | None:
 
 def _side_of(cells: list[Tag]) -> str | None:
     """Which half of the row carries the event."""
+
     index = _minute_index(cells)
     if index is None:
         return None
@@ -122,6 +126,7 @@ def _populated(cells: list[Tag]) -> bool:
 
 def _kind(cells: list[Tag], side: str | None) -> str:
     """The `alt` of the icon in the cell beside the minute — see the module docstring."""
+
     index = _minute_index(cells)
     if index is None or side is None:
         return ""

@@ -182,6 +182,7 @@ def test_only_stage_two_gets_the_odds_field_check() -> None:
 def _round_row(**overrides: object) -> dict[str, object]:
     """One stage-3 row of a 10-match round after 3 finished round-mates: a 4-3 comeback
     (both a comeback and 7+), a 1-1 and a 2-0."""
+
     row: dict[str, object] = {
         "s3_matches_in_round": 10,
         "s3_round_pre_finished": 3,

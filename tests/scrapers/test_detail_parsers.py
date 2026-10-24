@@ -20,6 +20,7 @@ def _record(
     corner_ft: tuple[int, int] | None = None,
 ) -> dict[str, Any]:
     """One parsed history row, with every key the helpers read."""
+
     return {
         "match_id": f"{home_id}-{away_id}",
         "league_id": 1,

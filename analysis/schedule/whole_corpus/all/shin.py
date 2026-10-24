@@ -15,6 +15,7 @@ from analysis.methods import shin
 
 def summary(scored_df: pd.DataFrame) -> dict[str, float]:
     """z, the margin, and both methods' mean scores with Shin's gain and its cluster CI."""
+
     shin_z = scored_df["shin_z"]
     out = {
         "matches": float(len(scored_df)),
@@ -41,6 +42,7 @@ def summary(scored_df: pd.DataFrame) -> dict[str, float]:
 
 def price_table(scored_df: pd.DataFrame) -> pd.DataFrame:
     """Per price band: outcomes, the observed rate with its Wilson CI, and each method's mean."""
+
     outcome_rows_df = shin.outcome_rows(scored_df)
     outcome_rows_df["band"] = pd.cut(outcome_rows_df["price"], shin.PRICE_EDGES)
 
@@ -66,6 +68,7 @@ def price_table(scored_df: pd.DataFrame) -> pd.DataFrame:
 
 def show(title: str, values: dict[str, float]) -> None:
     """Print one summary block."""
+
     print(f"\n== {title}: {int(values['matches']):,} matches")
     print(
         f"z: median {values['z_median']:.5f} (IQR {values['z_q1']:.5f} to "

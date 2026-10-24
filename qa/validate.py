@@ -60,6 +60,7 @@ def _ids(df: pd.DataFrame) -> list[str]:
 
 def validate_league_season(base_path: str) -> bool:
     """Validate one league-season across its base, detail and enriched files."""
+
     league, season = paths.split_league_season(base_path)
     subject = f"{league} {season}"
     reports: list[Report] = []
@@ -115,6 +116,7 @@ def validate_goals() -> bool | None:
     than counted as a failure. The store is global rather than per league-season because
     the matches a fixture's history references come from other competitions entirely.
     """
+
     goals_path, done_path = paths.goals_path(), paths.goals_done_path()
     if not os.path.exists(done_path):
         return None
@@ -138,6 +140,7 @@ def validate_events() -> bool | None:
     independent score to reconcile against, so `qa/events.py` checks structure and rate
     bands instead; that asymmetry is stated there rather than hidden.
     """
+
     events_path, done_path = paths.events_path(), paths.events_done_path()
     if not os.path.exists(done_path):
         return None
@@ -170,6 +173,7 @@ def _goal_truth() -> pd.DataFrame:
     error in a history match would be invisible. With it, every scraped match has an
     oracle: a parser bug that truncated 19 matches on 2026-09-22 was caught this way.
     """
+
     frames = [pd.read_csv(path, usecols=SCORE_COLUMNS) for path in paths.base_league_csvs()]
     for base in paths.base_league_csvs():
         detail_path = paths.detail_path(base)
@@ -188,6 +192,7 @@ def _goal_truth() -> pd.DataFrame:
 
 def _history_scores(detail_df: pd.DataFrame) -> list[pd.DataFrame]:
     """The per-match history blocks, reshaped into the same columns as a base CSV."""
+
     out: list[pd.DataFrame] = []
     for section in PER_MATCH_SECTIONS:
         for slot in range(1, MATCHES_PER_SECTION + 1):
@@ -205,6 +210,7 @@ def _history_scores(detail_df: pd.DataFrame) -> list[pd.DataFrame]:
 def validate_staged_schedule(schedule_path: str) -> bool:
     """One staged league-season: its stage-1 schedule, the page's final table against the
     table rebuilt from it, then its stage-2 and stage-3 files against the stages before."""
+
     league, season = paths.split_schedule_name(schedule_path)
     schedule_df = schedule_checks.read_staged(schedule_path)
 
@@ -238,6 +244,7 @@ def validate_staged_schedule(schedule_path: str) -> bool:
 
 def _derived_reports(schedule_path: str, stage_1_df: pd.DataFrame, subject: str) -> list[Report]:
     """Stage 2 and stage 3 of one league-season, each against every stage before it."""
+
     earlier = {1: stage_1_df}
     reports: list[Report] = []
     for stage, builder in _BUILDERS.items():
@@ -263,6 +270,7 @@ def validate_corpus(schedule_paths: list[str]) -> bool:
     """The checks across files: no match in two league-seasons, every league-season's
     league in `config/leagues.json`, and no stage-2 or stage-3 file left without its
     stage-1 file."""
+
     report = Report(f"corpus - {len(schedule_paths)} staged league-seasons together")
     keys = {
         os.path.basename(path): schedule_checks.read_staged(path, ["match_id", "s1_league_id"])
@@ -292,6 +300,7 @@ def validate_corpus(schedule_paths: list[str]) -> bool:
 
 def _config_league_ids() -> set[str] | None:
     """The league ids the config declares, as text; None when there is no config."""
+
     if not os.path.exists(paths.LEAGUES_FILE):
         return None
     with open(paths.LEAGUES_FILE, encoding="utf-8") as leagues_file:
@@ -301,6 +310,7 @@ def _config_league_ids() -> set[str] | None:
 def validate_staged() -> bool:
     """Every stage-1 schedule in `data/finished/1_raw/` with its final table and its later
     stages, then the checks across files."""
+
     schedule_paths = paths.schedule_csvs(1)
     if not schedule_paths:
         print(f"no staged schedules found in {paths.stage_dir(1)}/")
@@ -315,6 +325,7 @@ def validate_staged() -> bool:
 
 def validate_archived() -> bool:
     """The old pipeline's league-seasons and global stores in `data/archived/`."""
+
     base_paths = paths.base_league_csvs()
     if not base_paths:
         print(f"no league CSVs found in {paths.RAW_DIR}/")

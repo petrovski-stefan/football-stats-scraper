@@ -14,6 +14,7 @@ PRICED = 4  # the fifth toy match has no draw price
 @pytest.fixture
 def built(toy_schedule_df: pd.DataFrame) -> tuple[pd.DataFrame, list[str], pd.DataFrame]:
     """The side rows of the toy schedule, model B's fields, and the yardstick frame."""
+
     yardstick_df = yardstick.frame(toy_schedule_df, yardstick.build_grid(COARSE))
     side_rows_df, fields = rows.side_rows(toy_schedule_df, yardstick_df)
     return side_rows_df, fields, yardstick_df

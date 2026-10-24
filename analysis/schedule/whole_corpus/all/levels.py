@@ -49,6 +49,7 @@ def odds_share(df: pd.DataFrame, observed: str, denominator: str, model: str) ->
     """The share of a match's variance that the yardstick carries: 1 - SSE / SST, with the
     yardstick's expected values times the pooled O/E as the fit, over the matches that count
     (denominator above 0)."""
+
     counted_df = df[df[denominator] > 0]
     observed_values, expected = counted_df[observed], counted_df[model]
     fitted = expected * observed_values.sum() / expected.sum()
@@ -64,6 +65,7 @@ def level_tests(
 ) -> pd.DataFrame:
     """One test for each level, quantity and reading; `rows` maps "match" and "team" to the
     frames that the levels read."""
+
     quantities = {"match": card.ODDS_CARD, "team": TEAM_QUANTITIES}
 
     table = []
@@ -85,6 +87,7 @@ def level_tests(
 def odds_shares(rows: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """For each quantity of the two cards: the share of a match's variance that the yardstick
     carries, and the variance itself."""
+
     table = []
     for kind_of_rows, quantities in (("match", card.ODDS_CARD), ("team", TEAM_QUANTITIES)):
         level_rows_df = rows[kind_of_rows]

@@ -58,6 +58,7 @@ def odds_fields(
     """The odds fields of one side's rows: the Shin chances, the yardstick's rates and chances,
     the O/U and AH markets from T's view, and the 1X2 margin. `yardstick_df` is the
     yardstick's frame of the same matches (`analysis/methods/yardstick.py:frame`)."""
+
     sign = 1.0 if side == "home" else -1.0
     ah_home = matches_df["s2_implied_ah_home"]
 
@@ -84,12 +85,14 @@ def odds_fields(
 
 def per_game(count: "pd.Series[float]", played: "pd.Series[float]") -> "pd.Series[float]":
     """A count per match played; empty before the first match."""
+
     return count.astype(float) / played.where(played > 0)
 
 
 def table_fields(matches_df: pd.DataFrame, side: str, who: str) -> dict[str, "pd.Series[float]"]:
     """One team's table before kickoff (S3.03), as per-match rates, with its rank and its
     matches played; then its second-half goals and goal difference per match (FT minus HT)."""
+
     out: dict[str, pd.Series[float]] = {}
     for venue in VENUES:
         played = matches_df[f"s3_{side}_pre_ft_{venue}_played"].astype(float)
@@ -115,6 +118,7 @@ def table_fields(matches_df: pd.DataFrame, side: str, who: str) -> dict[str, "pd
 def record_fields(matches_df: pd.DataFrame, side: str, who: str) -> dict[str, "pd.Series[float]"]:
     """One team's HT/FT record before kickoff (S3.08), as shares of its matches played, and its
     stakes (S3.11 to S3.13)."""
+
     out: dict[str, pd.Series[float]] = {}
     for venue in VENUES:
         played = matches_df[f"s3_{side}_pre_ft_{venue}_played"].astype(float)
@@ -132,6 +136,7 @@ def record_fields(matches_df: pd.DataFrame, side: str, who: str) -> dict[str, "p
 def match_fields(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The fields of the match: the round so far (S3.01, S3.14 to S3.20), the gap between the two
     ranks (S3.04), the round (S1.05), the kickoff in Berlin time (S1.07) and the league (S1.02)."""
+
     kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert(BERLIN)
 
     match_fields_df = matches_df[list(ROUND_SO_FAR)].astype(float)
@@ -149,6 +154,7 @@ def match_fields(matches_df: pd.DataFrame) -> pd.DataFrame:
 def side_fields(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """Every non-odds field of one side's rows: T's and O's tables, records and stakes, and the
     match's fields."""
+
     teams: dict[str, pd.Series[float]] = {}
     for who, index in WHO:
         team = (side, other)[index]
@@ -166,6 +172,7 @@ def side_rows(
     """Two rows per priced match, home side first (`card.team_yardstick_rows`), with the
     fields of models A and B; and the fields of model B, the odds first. `yardstick_df` is
     the yardstick's frame of the matches."""
+
     priced_df = matches_df.loc[yardstick_df.index]
     team_rows_df = card.team_yardstick_rows(priced_df, yardstick_df)
 
@@ -189,6 +196,7 @@ def side_rows(
 def summary(side_rows_df: pd.DataFrame, fields: list[str]) -> dict[str, float]:
     """How many rows and comebacks, how many fields each model reads, and the share of the
     values of model B that are empty (mostly before a team's first match of the stage)."""
+
     return {
         "rows": float(len(side_rows_df)),
         "comebacks": float(side_rows_df[TARGET].sum()),

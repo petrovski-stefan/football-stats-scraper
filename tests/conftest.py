@@ -23,6 +23,7 @@ def score_grid() -> list[tuple[tuple[int, int], tuple[int, int]]]:
 
     A side never has fewer goals at full time than at half time.
     """
+
     return [
         ((ht_home, ht_away), (ft_home, ft_away))
         for ht_home, ht_away, ft_home, ft_away in product(range(5), repeat=4)
@@ -33,6 +34,7 @@ def score_grid() -> list[tuple[tuple[int, int], tuple[int, int]]]:
 @pytest.fixture
 def toy_matches_df() -> pd.DataFrame:
     """Five matches in two leagues and two season cohorts; the last has no draw price."""
+
     rows = [
         # league, name, season, cohort, home, draw, away odds, FT home, FT away goals
         (1, "A", "2024", 2024, 1.5, 4.0, 6.0, 2, 0),
@@ -75,6 +77,7 @@ def toy_priced_matches_df(toy_matches_df: pd.DataFrame) -> pd.DataFrame:
     Half-time scores 1-0, 0-0, 0-0, 1-0 and 0-1 against full-time 2-0, 0-0, 0-1, 1-2 and
     1-1: the fourth match is an away comeback, by team 21 against team 22.
     """
+
     priced_df = toy_matches_df.copy()
     priced_df["s1_ht_home_goals"] = [1, 0, 0, 1, 0]
     priced_df["s1_ht_away_goals"] = [0, 0, 0, 0, 1]

@@ -12,6 +12,7 @@ SHARE = 0.45
 @pytest.fixture
 def toy_yardstick_df() -> pd.DataFrame:
     """Four matches in the shape `yardstick.frame` gives: HT/FT 1/1, X/X, 2/1 and 1/X."""
+
     return pd.DataFrame(
         {
             "match_id": ["m1", "m2", "m3", "m4"],

@@ -13,6 +13,7 @@ from analysis.schedule.whole_corpus.all import stakes as runner
 def matches_df() -> pd.DataFrame:
     """Four matches of one league-season. Half-time 0-1 (home behind, wins), 2-0 (away behind
     by 2), 1-1 (no one behind) and 0-1 with no odds."""
+
     league_season_df = pd.DataFrame(
         {
             "s1_league_id": 7,

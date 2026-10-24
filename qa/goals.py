@@ -49,6 +49,7 @@ def validate(
     history, whose score the detail page records. That second source is what makes the
     whole store checkable rather than just the ~20% that are corpus matches.
     """
+
     universal.check_attempt_log(report, goals_df, attempt_log_df, "n_goals")
     _check_columns(report, goals_df)
     _check_sequences(report, goals_df)
@@ -58,6 +59,7 @@ def validate(
 
 def _check_columns(report: Report, goals_df: pd.DataFrame) -> None:
     """Per-row ranges, independent of any match context."""
+
     if goals_df.empty:
         return
 
@@ -79,6 +81,7 @@ def _check_columns(report: Report, goals_df: pd.DataFrame) -> None:
 
 def _check_sequences(report: Report, goals_df: pd.DataFrame) -> None:
     """Per-match invariants that hold with or without a stored score."""
+
     if goals_df.empty:
         return
 
@@ -100,6 +103,7 @@ def _inspect_match(
     match_id: str, match_goals_df: pd.DataFrame, offenders: dict[str, list[str]]
 ) -> None:
     """Order, index, and side/score agreement within one match."""
+
     ordered_df = match_goals_df.sort_values("goal_index")
     minutes = [int(v) for v in ordered_df["minute"]]
     stoppages = [int(v) for v in ordered_df["stoppage"]]
@@ -128,6 +132,7 @@ def _check_against_truth(
     report: Report, goals_df: pd.DataFrame, attempt_log_df: pd.DataFrame, truth_df: pd.DataFrame
 ) -> None:
     """The oracle: reconcile the count and the half-time split against known scores."""
+
     if truth_df.empty:
         return
 
@@ -187,6 +192,7 @@ def _check_against_truth(
 
 def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, tuple[int, int, int, int]]:
     """match_id -> (ft_home, ft_away, ht_home, ht_away), counted from the goal rows."""
+
     if goals_df.empty:
         return {}
 
@@ -217,6 +223,7 @@ def second_half_share(goals_df: pd.DataFrame) -> float | None:
     The same quantity is computable from the stored ht/ft columns with no
     minute data at all, so agreement between the two is a real check, not a tautology.
     """
+
     if goals_df.empty:
         return None
     return float((~goals_df["minute"].le(HALF_TIME)).mean())
@@ -229,6 +236,7 @@ def _check_half_split(report: Report, goals_df: pd.DataFrame) -> None:
     this reports the figure without judging it — a handful of matches says nothing about
     a population rate.
     """
+
     share = second_half_share(goals_df)
     if share is None:
         return

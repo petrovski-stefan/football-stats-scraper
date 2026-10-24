@@ -12,6 +12,7 @@ from analysis.schedule.whole_corpus.all import prematch_screen as runner
 def standings(rows: int, **values: float) -> pd.DataFrame:
     """Stage-3 standings for both sides: each `<side>_<half>_<venue>_<stat>=value` given,
     every other count 1."""
+
     columns = {}
     for side in ("home", "away"):
         for half in ("ft", "ht"):
@@ -25,6 +26,7 @@ def standings(rows: int, **values: float) -> pd.DataFrame:
 
 def model_frame() -> pd.DataFrame:
     """The yardstick's columns for two matches."""
+
     return pd.DataFrame(
         {
             "lam_home": [1.5, 1.0],
@@ -229,6 +231,7 @@ def test_last_season_needs_two_cohorts() -> None:
 def synthetic_rows(size: int = 3000, seed: int = 0) -> pd.DataFrame:
     """Team rows in 20 league-seasons and two cohorts, with every field random and the
     comeback driven by `tb_ppg_diff` beyond the yardstick's chance."""
+
     rng = np.random.default_rng(seed)
     screen_rows_df = pd.DataFrame({field: rng.standard_normal(size) for field in runner.FAMILIES})
     for field in runner.BINARY:

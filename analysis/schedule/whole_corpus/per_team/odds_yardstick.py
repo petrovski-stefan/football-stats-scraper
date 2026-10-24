@@ -66,6 +66,7 @@ TOP = 20
 def calibration(team_rows_df: pd.DataFrame) -> pd.DataFrame:
     """O/E of the calibrated quantities by the team's own win chance, with the interval over
     league-seasons."""
+
     bands = pd.cut(team_rows_df["win_chance"], WIN_EDGES)
 
     table = []
@@ -86,6 +87,7 @@ def calibration(team_rows_df: pd.DataFrame) -> pd.DataFrame:
 def shuffle_table(team_rows_df: pd.DataFrame) -> pd.DataFrame:
     """The goal tests of the teams around their league against shuffles of the team-matches
     inside their league (`units.level_row`)."""
+
     return pd.DataFrame(
         [
             units.level_row(team_rows_df, LEAGUE, UNIT, quantity)
@@ -98,6 +100,7 @@ def shuffle_table(team_rows_df: pd.DataFrame) -> pd.DataFrame:
 def null_table(team_rows_df: pd.DataFrame, results: dict[str, units.Within]) -> pd.DataFrame:
     """For each role quantity: its real Q, and Q when the outcomes come from the test's own
     null (`units.null_q`), in sds of the null draws."""
+
     table = []
     for quantity in QUANTITIES:
         label = quantity[2]

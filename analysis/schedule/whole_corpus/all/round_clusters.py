@@ -35,6 +35,7 @@ ODDS_READING = "odds, around its league-season"
 
 def readings(quantity: tuple[str, str, str, str, str]) -> tuple[tuple[str, str, str], ...]:
     """(reading, unit, expected column) of each way to read a quantity of `card.ODDS_CARD`."""
+
     _, denominator, model, _, _ = quantity
     return (
         ("raw, around all matches", EVERYTHING, denominator),
@@ -48,6 +49,7 @@ def tests(
 ) -> pd.DataFrame:
     """One test of the rounds for each quantity and reading (only the readings named in
     `only`, if it names any)."""
+
     rows = []
     for quantity in card.ODDS_CARD:
         observed, _, _, label, kind = quantity
@@ -67,6 +69,7 @@ def largest_rounds(
 ) -> pd.DataFrame:
     """The rounds with the largest part of Q against the odds: each round's squared distance
     from its league-season, over its variance (`units.within_tested`)."""
+
     observed, _, model, _, kind = quantity
     part_values_df = units.within_tested(
         yardstick_df, LEAGUE_SEASON, ROUND, observed, model, kind
@@ -93,6 +96,7 @@ def days_from_round(
     kickoff: "pd.Series[pd.Timestamp]", rounds: "pd.Series[str]"
 ) -> "pd.Series[float]":
     """How many days each match kicked off from the median kickoff of its round."""
+
     days = (kickoff - pd.Timestamp(0, tz="UTC")) / pd.Timedelta(days=1)
     return (days - days.groupby(rounds).transform("median")).abs()
 
@@ -101,6 +105,7 @@ def league_season_chance(
     yardstick_df: pd.DataFrame, observed: str, model: str
 ) -> "pd.Series[float]":
     """Each match's chance of the event from the odds, times the O/E of its league-season."""
+
     sums_df = yardstick_df.groupby(LEAGUE_SEASON)[[observed, model]].transform("sum")
     return (yardstick_df[model] * sums_df[observed] / sums_df[model]).clip(0.0, 1.0)
 
@@ -110,6 +115,7 @@ def count_table(
 ) -> pd.DataFrame:
     """The rounds by their count of events: observed, and expected if each match has its own
     chance, apart from the other matches of its round (a Poisson-binomial count per round)."""
+
     expected = np.zeros(MOST + 1)
     for _, group in chances.groupby(rounds):
         distribution = np.array([1.0])

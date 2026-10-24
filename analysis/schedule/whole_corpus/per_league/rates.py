@@ -37,11 +37,13 @@ TABLE_COLUMNS = (
 
 def quantity(label: str) -> tuple[str, str, str, str]:
     """The card's row with this label."""
+
     return next(row for row in card.CARD if row[2] == label)
 
 
 def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
     """Per sliced quantity: one test of the league-seasons around their own league."""
+
     rows = []
     for label in SLICED:
         numerator, denominator, _, kind = quantity(label)
@@ -61,6 +63,7 @@ def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
 
 def stage_table(card_df: pd.DataFrame) -> pd.DataFrame:
     """The sliced quantities in the two stages of the leagues that keep both."""
+
     stage = card_df["stage"].map(STAGES)
 
     rows = []
@@ -84,6 +87,7 @@ def stage_table(card_df: pd.DataFrame) -> pd.DataFrame:
 
 def league_table(card_df: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """Per league: its matches and the columns of the table, highest shrunk comeback rate first."""
+
     grouped = card_df.groupby(LEAGUE)
     league_table_df = pd.DataFrame({"league": grouped["league"].first(), "matches": grouped.size()})
     for label, column, header in TABLE_COLUMNS:

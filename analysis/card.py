@@ -43,6 +43,7 @@ ODDS_CARD = (
 
 def card_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """One row per match: the outcomes of the card as floats, the league-season and cohort."""
+
     margin = matches_df["s1_ht_home_goals"] - matches_df["s1_ht_away_goals"]
 
     card_df = pd.DataFrame(
@@ -85,6 +86,7 @@ def team_rows(
     (ahead at half-time, then loses). `extra` adds columns, each given as (the value of the
     home team, the value of the away team) on the index of `matches_df`.
     """
+
     sides = []
     for index, (side, other) in enumerate((("home", "away"), ("away", "home"))):
         ht_for, ht_against = matches_df[f"s1_ht_{side}_goals"], matches_df[f"s1_ht_{other}_goals"]
@@ -136,6 +138,7 @@ def team_yardstick_rows(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) ->
     """The team rows of the priced matches (`team_rows`), with the chances of the odds
     yardstick for each team; `yardstick_df` is `analysis/methods/yardstick.py:frame` of the same
     matches."""
+
     extra = {
         "m_comes_back": (yardstick_df["m_cb_home"], yardstick_df["m_cb_away"]),
         "m_loses_lead": (yardstick_df["m_cb_away"], yardstick_df["m_cb_home"]),
@@ -162,6 +165,7 @@ def team_yardstick_rows(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) ->
 
 def team_line(team_rows_df: pd.DataFrame) -> str:
     """How many team units, leagues, team-matches and teams in two leagues the rows hold."""
+
     in_two = int((team_rows_df.groupby("team")[TEAM_LEAGUE].nunique() > 1).sum())
     return (
         f"{team_rows_df[TEAM_UNIT].nunique():,} team units (a team in one league) in "
@@ -179,6 +183,7 @@ def top_teams(
     """The teams most above their league after shrinkage, then by the raw value, with the
     comebacks in all their matches. `unit_values_df` holds the team values of
     `analysis/units.py:within_tested`; `names` label their observed, expected and value."""
+
     team_names_df = team_rows_df.groupby(TEAM_UNIT)[["team_name", "league_name"]].first()
     in_matches = team_rows_df.groupby(TEAM_UNIT)[["comes_back", "loses_lead"]].sum().sum(axis=1)
 

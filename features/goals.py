@@ -76,11 +76,13 @@ Goals = list[tuple[int, int, str]]
 
 def feature_names() -> list[str]:
     """The numeric aggregate columns, in order."""
+
     return history.feature_names(FEATURE_SUFFIXES)
 
 
 def timeline_names(depth: int = MATCHES_PER_SECTION) -> list[str]:
     """The per-history-match timeline columns, in order."""
+
     return history.timeline_names(TIMELINE_FIELD, depth)
 
 
@@ -91,6 +93,7 @@ def load_store(goals_path: str) -> dict[str, Goals]:
     ignore it, because a goal at 45+3' is minute 45 for every window here and adding the
     stoppage would push it past a 45 boundary it belongs inside.
     """
+
     goals_df = pd.read_csv(goals_path, usecols=["match_id", "minute", "stoppage", "side"])
     store: dict[str, Goals] = {}
     for match_id, minute, stoppage, side in zip(
@@ -111,6 +114,7 @@ def build(
     depth: int = MATCHES_PER_SECTION,
 ) -> pd.DataFrame:
     """One row per fixture: the aggregates for all three sections, plus every timeline."""
+
     return history.build_frame(
         detail_df,
         depth,
@@ -133,6 +137,7 @@ def _usable_goals(
     where two of four goals were found reports a late-goal rate computed from half the
     evidence, which is a wrong number rather than a missing one.
     """
+
     match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
         return None
@@ -157,6 +162,7 @@ def _timeline(goals: Goals | None) -> str:
     Empty when the match had no usable timings; `GOALLESS` when it was usable and simply
     had no goals. Those are different facts and an empty cell cannot carry both.
     """
+
     if goals is None:
         return ""
     if not goals:
@@ -170,6 +176,7 @@ def _timeline(goals: Goals | None) -> str:
 
 def _rates(blocks: list[Goals | None]) -> dict[str, float]:
     """Fold one fixture's usable history matches into timing rates."""
+
     scored = [minute for b in blocks if b for minute, _, tag in b if tag == "GF"]
     conceded = [minute for b in blocks if b for minute, _, tag in b if tag == "GA"]
 
@@ -197,6 +204,7 @@ def _share(minutes: list[int], predicate: Any) -> float:
     NaN rather than 0.0 on an empty list, so "this team conceded no late goals" is not
     confused with "we have no timings for this team".
     """
+
     if not minutes:
         return float("nan")
     return float(sum(1 for m in minutes if predicate(m)) / len(minutes))

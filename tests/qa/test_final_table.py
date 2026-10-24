@@ -70,6 +70,7 @@ def test_tied_teams_may_appear_in_either_order() -> None:
 
 def test_teams_level_on_points_may_appear_in_either_order() -> None:
     """The page may break a tie on points by its league's rule, not by goal difference."""
+
     schedule_df = _schedule(("", 1, 2, 3, 0), ("", 3, 4, 1, 0))
     page = [
         _line(3, 1, (1, 1, 0, 0, 1, 3)),

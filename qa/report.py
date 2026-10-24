@@ -15,6 +15,7 @@ class Report:
 
     def check(self, ok: bool, message: str) -> None:
         """Record `message` as a failure when `ok` is false."""
+
         if not ok:
             self.issues.append(message)
 
@@ -24,6 +25,7 @@ class Report:
 
     def flush(self) -> bool:
         """Print the verdict and every failure. Returns True when the subject passed."""
+
         status = "PASS" if self.ok else f"FAIL ({len(self.issues)})"
         print(f"[{status}] {self.label}")
         for issue in self.issues:

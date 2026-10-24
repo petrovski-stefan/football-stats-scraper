@@ -58,6 +58,7 @@ _ROUND = [
 
 def declared_columns(stage: int) -> list[str]:
     """Every column a stage's file must hold: its own and all the earlier stages'."""
+
     return [column for n in range(1, stage + 1) for column in _ADDED[n]]
 
 
@@ -67,6 +68,7 @@ def validate(
     """One derived stage file: each earlier stage's columns carried over unchanged
     (`earlier` maps a stage to its file), and at stage 2 the odds fields. The universal
     checks (declared columns, the key) are `qa/validate.py`'s, as for stage 1."""
+
     for earlier_stage, earlier_df in earlier.items():
         check_carried(
             report, earlier_df, stage_file_df, _ADDED[earlier_stage], f"stage {earlier_stage}"
@@ -87,6 +89,7 @@ def check_carried(
 ) -> None:
     """`later_df` holds the matches of `earlier_df`, no more and no fewer, with the same value
     in each of `columns`."""
+
     if not (_pairable(earlier_df) and _pairable(later_df)):
         return
 
@@ -124,11 +127,13 @@ def check_carried(
 def _pairable(stage_file_df: pd.DataFrame) -> bool:
     """Rows pair up by `match_id`: the column is there and no id repeats. Otherwise the
     file's own key check reports it."""
+
     return "match_id" in stage_file_df.columns and not stage_file_df["match_id"].duplicated().any()
 
 
 def _same(old: "pd.Series[Any]", new: "pd.Series[Any]") -> "pd.Series[bool]":
     """Equal, or both empty. Floats compare within `TOLERANCE`."""
+
     both_empty = old.isna() & new.isna()
 
     if pd.api.types.is_float_dtype(old) and pd.api.types.is_float_dtype(new):
@@ -142,6 +147,7 @@ def check_odds_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
     flag is true exactly when its market's three cells are filled, each value computed from
     a market is there exactly when the market is, and the three 1X2 probabilities, margin
     removed, sum to 1."""
+
     markets = STAGED_ODDS.markets()
     for kind, (flag, values) in _MARKET_FIELDS.items():
         cells = markets[kind]
@@ -171,6 +177,7 @@ def check_round_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
     rare event is a comeback or a 7+ match, counted once when it is both; a match never
     counts itself, so fewer round-mates finished than the round holds; both teams score in
     every comeback; and the two averages read the same matches, so they are empty together."""
+
     if not set(_ROUND) <= set(stage_file_df.columns):
         return
 
@@ -196,6 +203,7 @@ def check_no_orphans(
 ) -> None:
     """Every stage-`stage` file has its stage-1 file. One without it belongs to a
     league-season no longer in the project, and would still be read with the rest."""
+
     expected = {
         os.path.normpath(paths.schedule_at_stage(schedule_path, stage))
         for schedule_path in raw_paths

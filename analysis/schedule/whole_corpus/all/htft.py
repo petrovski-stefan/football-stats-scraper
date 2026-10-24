@@ -20,6 +20,7 @@ TARGETS = (("is_comeback", "m_cb", "comeback"), ("seven", "m_seven", "7+ goals")
 
 def with_cells(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
     """The frame plus the nine expected cells and one observed 0/1 column per cell."""
+
     cells_df = yardstick.htft_cells(
         yardstick_df["lam_home"].to_numpy(), yardstick_df["lam_away"].to_numpy(), share
     )
@@ -44,6 +45,7 @@ def with_cells(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
 
 def cell_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Each HT/FT result: observed and expected counts, O/E with its interval, observed share."""
+
     rows = tuple((f"o_{cell}", f"m_{cell}", cell) for cell in yardstick.HTFT)
     cell_table_df = stats.observed_expected_table(yardstick_df, rows).rename(
         columns={"quantity": "HT/FT"}
@@ -58,6 +60,7 @@ def top_n(yardstick_df: pd.DataFrame, observed: str, chance: str) -> pd.DataFram
     Ties at the cut go by match id, so the same N always takes the same matches. The
     interval resamples league-seasons; the lift is against the rate of all matches.
     """
+
     ranked_df = yardstick_df.sort_values([chance, "match_id"], ascending=[False, True])
     base = float(yardstick_df[observed].mean())
 

@@ -14,6 +14,7 @@ def round_robin_df() -> pd.DataFrame:
 
     Random half-time and full-time scores, the same on each run.
     """
+
     rng = np.random.default_rng(0)
     rows = []
     for league, cohort in product((1, 2), (2024, 2025)):
@@ -46,6 +47,7 @@ def toy_rounds_df() -> pd.DataFrame:
     """Two leagues in two cohorts, 10 rounds of 8 random matches in each league-season, in
     the columns of the yardstick's frame that `card.ODDS_CARD` reads, with the keys of the
     levels: all, league, league-season (`cluster`) and round."""
+
     rng = np.random.default_rng(0)
     size = 4 * 80
     ht_decisive = rng.random(size) < 0.6

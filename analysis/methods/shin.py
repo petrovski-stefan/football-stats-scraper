@@ -24,6 +24,7 @@ PRICE_EDGES = (1.0, 1.3, 1.6, 2.0, 2.6, 3.5, 5.5, 8.0, 13.0, np.inf)
 
 def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float, float]:
     """Shin's three probabilities and z for one match; all NaN when a price is missing."""
+
     odds = [home, draw, away]
     if any(math.isnan(price) for price in odds):
         return (math.nan, math.nan, math.nan, math.nan)
@@ -34,6 +35,7 @@ def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float
 
 def shin_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Shin's probabilities (`PROBS`) and `shin_z`, one row per match, on the same index."""
+
     rows = [shin_row(*map(float, prices)) for prices in matches_df[ODDS].itertuples(index=False)]
     return pd.DataFrame(rows, columns=[*PROBS, "shin_z"], index=matches_df.index)
 
@@ -45,6 +47,7 @@ def scored(matches_df: pd.DataFrame) -> pd.DataFrame:
     each method's log loss and Brier score, and Shin's gain over proportional (proportional
     loss minus Shin loss: above 0 means Shin scored better). `cluster` is the league-season.
     """
+
     priced_df = matches_df.dropna(subset=ODDS)
     scored_df = pd.concat([priced_df[KEYS + ODDS + PROPORTIONAL], shin_frame(priced_df)], axis=1)
     scored_df["margin"] = (1.0 / priced_df[ODDS]).sum(axis=1) - 1.0
@@ -66,6 +69,7 @@ def scored(matches_df: pd.DataFrame) -> pd.DataFrame:
 def outcome_rows(scored_df: pd.DataFrame) -> pd.DataFrame:
     """Three rows per match of `scored`, one per outcome: its side, its price, both
     probabilities, if it happened, and the league-season."""
+
     codes = (corpus.HOME, corpus.DRAW, corpus.AWAY)
     sides = [
         pd.DataFrame(
@@ -88,4 +92,5 @@ def outcome_rows(scored_df: pd.DataFrame) -> pd.DataFrame:
 
 def sum_error(scored_df: pd.DataFrame) -> float:
     """Largest distance of a match's Shin probabilities from summing to 1 (a convergence check)."""
+
     return float(np.abs(scored_df[PROBS].sum(axis=1) - 1.0).max())

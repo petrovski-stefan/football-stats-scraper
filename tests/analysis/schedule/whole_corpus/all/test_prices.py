@@ -67,6 +67,7 @@ def test_x12_table_orders_the_bands_from_the_shortest_price(toy_matches_df: pd.D
 @pytest.fixture
 def asian_matches_df() -> pd.DataFrame:
     """Four matches with both Asian markets, in two league-seasons."""
+
     return pd.DataFrame(
         {
             "s1_league_id": [1, 1, 2, 2],
@@ -135,6 +136,7 @@ def test_line_shares_and_the_quarter_share() -> None:
 @pytest.fixture
 def tail_matches_df() -> pd.DataFrame:
     """Six matches in two bands of expected goals, in two league-seasons."""
+
     return pd.DataFrame(
         {
             "m_goals": [2.0, 2.0, 2.0, 3.6, 3.6, 3.6],

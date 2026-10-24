@@ -42,6 +42,7 @@ def group_frame(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.Data
     """The matches of the yardstick's frame that also have an AH market: their outcomes, the
     yardstick's chances, the league-season, cohort and league, the prices that the groupings
     read, and one group id per grouping."""
+
     ah_matches_df = matches_df.loc[yardstick_df.index]
     ah_matches_df = ah_matches_df[ah_matches_df[corpus.AH].notna().all(axis=1)].copy()
     ah_matches_df["p_home_band"] = (ah_matches_df["s2_mkt_p_home"] / BAND).round()
@@ -61,11 +62,13 @@ def group_frame(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.Data
 
 def null_chance(events: "pd.Series[float]", expected: "pd.Series[float]") -> np.ndarray:
     """Each match's chance under the null: the yardstick's, scaled to the observed total."""
+
     return np.asarray(expected * events.sum() / expected.sum(), dtype=float)
 
 
 def group_sizes(grouped_matches_df: pd.DataFrame) -> pd.DataFrame:
     """Per grouping: how many groups, how many hold 2 or more matches, and their matches."""
+
     rows = []
     for name, _ in GROUPINGS:
         sizes = grouped_matches_df[name].value_counts()
@@ -87,6 +90,7 @@ def group_stats(groups: np.ndarray, events: np.ndarray, expected: np.ndarray) ->
     """For one set of outcomes: the groups with at least each of `THRESHOLDS` events, and the
     smallest Poisson tail p of a group with an event: the chance of at least its count if
     its expected count is right."""
+
     counts = np.bincount(groups, weights=events, minlength=len(expected))
     out: dict[str, float] = {f"{n} or more": float((counts >= n).sum()) for n in THRESHOLDS}
     hit = counts >= 1
@@ -104,6 +108,7 @@ def against_null(
 ) -> pd.DataFrame:
     """Each statistic of `group_stats` for the outcomes and for draws from the null: the
     mean, the 95% range, and the share of draws at least as extreme (one-sided)."""
+
     expected = np.bincount(groups, weights=chance)
     observed = group_stats(groups, events, expected)
 
@@ -139,6 +144,7 @@ def group_table(
 ) -> pd.DataFrame:
     """Per group: its prices, its matches and events, the events that the null expects, the
     Poisson tail p of its count (the chance of at least that many), and its leagues."""
+
     grouped = grouped_matches_df.assign(null=chance).groupby(grouping)
     group_table_df = grouped[dict(GROUPINGS)[grouping]].first()
 
@@ -154,11 +160,13 @@ def group_table(
 
 def _names(leagues: "pd.Series[str]") -> str:
     """The distinct league names, sorted, in one string."""
+
     return ", ".join(sorted(set(leagues)))
 
 
 def large_groups(grouped_matches_df: pd.DataFrame, grouping: str, expected: str) -> pd.DataFrame:
     """The matches of the groups with at least `MIN_EXPECTED` expected events."""
+
     sums = grouped_matches_df.groupby(grouping)[expected].transform("sum")
     return grouped_matches_df[sums >= MIN_EXPECTED]
 
@@ -172,6 +180,7 @@ def carry_over(
     gives the O/E of the chosen groups in both cohorts, and of all counted groups in the
     other cohort, the level to compare with.
     """
+
     grouped = grouped_matches_df.groupby([grouping, "season_cohort"])
     events_df = grouped[observed].sum().unstack().fillna(0.0)
     chances_df = grouped[expected].sum().unstack().fillna(0.0)
@@ -206,6 +215,7 @@ def carry_over(
 
 def show_grouping(grouped_matches_df: pd.DataFrame, grouping: str, seed: int) -> None:
     """Every table of one grouping, for each quantity."""
+
     groups = grouped_matches_df[grouping].to_numpy()
     for observed, expected, label in QUANTITIES:
         title = f"{grouping}, {label}"

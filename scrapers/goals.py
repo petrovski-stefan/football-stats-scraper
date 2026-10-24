@@ -80,6 +80,7 @@ def scrape_match_live(
     Both come from a single render, which is the whole reason the two stores share a
     scraper — the page is the expensive part and it carries both.
     """
+
     get_live_page(driver, match_id)
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
@@ -98,6 +99,7 @@ def scrape_match_live(
 
 def corpus_ids() -> dict[str, int | None]:
     """Match ids from the base league CSVs, mapped to their league id."""
+
     found: dict[str, int | None] = {}
     for path in paths.base_league_csvs():
         base_df = pd.read_csv(path, usecols=lambda column: column in {"match_id", "league_id"})
@@ -113,6 +115,7 @@ def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
     Detail files scraped before 2026-09-22 have no `*_match_id` columns; those simply
     contribute nothing, and the caller reports the shortfall rather than failing.
     """
+
     wanted = {
         f"{section}_last{slot}_{field}"
         for section in sections
@@ -140,6 +143,7 @@ def _collect_block_ids(detail_df: pd.DataFrame, prefix: str, found: dict[str, in
     First writer wins, so an id already seen keeps its original league id rather than
     being overwritten by a later, equally valid reference to the same match.
     """
+
     id_col = f"{prefix}match_id"
     if id_col not in detail_df.columns:
         return
@@ -161,6 +165,7 @@ def _collect_block_ids(detail_df: pd.DataFrame, prefix: str, found: dict[str, in
 
 def done_ids(path: str) -> set[str]:
     """Match ids already attempted, from one attempt log."""
+
     if not os.path.exists(path):
         return set()
     return set(pd.read_csv(path, usecols=["match_id"])["match_id"].astype(str))
@@ -171,6 +176,7 @@ def build_work_list(sections: tuple[str, ...], depth: int) -> dict[str, int | No
 
     A match is pending when *either* store is missing it, because one render fills both.
     """
+
     corpus = corpus_ids()
     history = history_ids(sections, depth)
     union: dict[str, int | None] = {**history, **corpus}  # corpus league id wins
@@ -204,6 +210,7 @@ def _as_int(value: Any) -> int | None:
 
 def _as_id(value: Any) -> str:
     """History ids arrive from pandas as floats when the column has gaps."""
+
     if value is None or pd.isna(value):
         return ""
 
@@ -218,6 +225,7 @@ def _scrape_one(
     match_id: str,
 ) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], Exception | None]:
     """Run in a worker thread; errors come back rather than cancelling the batch."""
+
     try:
         goals, events = scrape_match_live(_POOL.driver(), match_id)
         return match_id, goals, events, None
@@ -244,6 +252,7 @@ def _store_rows(
     Both writes happen together so the log can never claim a match whose rows are missing.
     The caller holds the lock.
     """
+
     for row in rows:
         row["league_id"] = league_id
 

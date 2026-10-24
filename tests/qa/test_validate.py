@@ -14,6 +14,7 @@ from qa.validate import validate_corpus
 
 def _schedule(stage: int, league: str, season: str, ids: list[str], league_id: int = 1) -> str:
     """A staged schedule file holding only the columns the corpus checks read."""
+
     path = paths.schedule_path(stage, league, season)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     pd.DataFrame({"match_id": ids, "s1_league_id": league_id}).to_csv(path, index=False)
@@ -29,6 +30,7 @@ def _config(league_ids: list[int]) -> None:
 @pytest.fixture
 def corpus(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> list[str]:
     """Two league-seasons of one configured league, each at all three stages."""
+
     monkeypatch.chdir(tmp_path)
     _config([1])
     raw = [

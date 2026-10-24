@@ -39,6 +39,7 @@ def settle(metric: np.ndarray, line: np.ndarray, price: np.ndarray) -> np.ndarra
     A quarter line splits the stake between its two neighbours (2.25: half on 2.0, half on
     2.5). On a whole line, a metric equal to it returns that part of the stake.
     """
+
     quarter = np.round(line * 4).astype(int) % 2 == 1
     profit = np.zeros(len(line))
     for shift in (-0.25, 0.25):
@@ -52,11 +53,13 @@ def settle(metric: np.ndarray, line: np.ndarray, price: np.ndarray) -> np.ndarra
 
 def margin(*prices: "pd.Series[float]") -> "pd.Series[float]":
     """The bookmaker's margin of one market: the sum of the inverse prices, minus 1."""
+
     return sum((1.0 / price for price in prices), start=pd.Series(0.0, index=prices[0].index)) - 1.0
 
 
 def roi(bets_df: pd.DataFrame, profit: str) -> dict[str, float]:
     """The return per unit stake (the mean profit), with its interval over league-seasons."""
+
     low, high = stats.cluster_bootstrap_ci(bets_df[profit], bets_df["cluster"])
     return {
         "bets": float(len(bets_df)),
@@ -69,6 +72,7 @@ def roi(bets_df: pd.DataFrame, profit: str) -> dict[str, float]:
 def x12_bets(matches_df: pd.DataFrame) -> pd.DataFrame:
     """One flat bet on each 1X2 outcome of each priced match, with its profit and the profit
     that the proportional and the Shin probabilities expect."""
+
     outcome_rows_df = shin.outcome_rows(shin.scored(matches_df))
 
     outcome_rows_df["profit"] = np.where(
@@ -88,6 +92,7 @@ def x12_table(bets_df: pd.DataFrame, by: str) -> pd.DataFrame:
     """Per group (a price band from the shortest, or a side): the bets, the mean price, the hit
     rate, the return with its interval, and the returns that the two sets of probabilities
     expect."""
+
     table = []
     for name, group_bets_df in bets_df.groupby(by, observed=True):
         table.append(
@@ -107,6 +112,7 @@ def x12_table(bets_df: pd.DataFrame, by: str) -> pd.DataFrame:
 def two_way_bets(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Per match with both Asian markets: the profit of each side of the O/U and of the AH,
     and the cost of each market's margin, 1 / (1 + margin) - 1."""
+
     priced_df = matches_df.dropna(subset=[*OU, *corpus.AH])
 
     total = priced_df["s2_total_goals"].to_numpy(dtype=float)
@@ -137,6 +143,7 @@ def side_table(
 ) -> pd.DataFrame:
     """Per group of matches: the return of each of the two sides, and the margin's cost. A
     group with no match gets no row."""
+
     table = []
     for name, mask in groups.items():
         side_bets_df = bets_df[mask]
@@ -160,6 +167,7 @@ def side_table(
 
 def ou_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     """Each opening O/U line with enough matches, and all lines together."""
+
     counts = bets_df["ou_line"].value_counts()
     lines = sorted(counts[counts >= MIN_LINE_MATCHES].index)
     groups = {f"{line:g}": bets_df["ou_line"] == line for line in lines}
@@ -169,6 +177,7 @@ def ou_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
 
 def ah_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     """Each band of the opening handicap, and all bands together."""
+
     groups = {
         name: bets_df["ah_line"].between(lowest, highest) for name, lowest, highest in AH_BANDS
     }
@@ -178,6 +187,7 @@ def ah_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
 
 def margin_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Quantiles and the mean of each market's margin, over the matches that have it."""
+
     markets = {"1X2": shin.ODDS, "O/U": OU[1:], "AH": corpus.AH[1:]}
 
     table = []
@@ -199,6 +209,7 @@ def margin_table(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def line_shares(line: "pd.Series[float]") -> pd.DataFrame:
     """The share of matches at each line."""
+
     counts = line.value_counts().sort_index()
     return pd.DataFrame(
         {"line": counts.index, "matches": counts.to_numpy(), "share": counts.to_numpy() / len(line)}
@@ -207,11 +218,13 @@ def line_shares(line: "pd.Series[float]") -> pd.DataFrame:
 
 def quarter_share(line: "pd.Series[float]") -> float:
     """The share of quarter lines (a .25 or .75 line, which splits the stake)."""
+
     return float((np.round(line * 4) % 2 == 1).mean())
 
 
 def calibrated_totals(yardstick_df: pd.DataFrame) -> "pd.Series[float]":
     """Each match's expected goals, times the observed / expected goals of its band."""
+
     bands = pd.cut(yardstick_df["m_goals"], yardstick.TOTAL_EDGES)
     grouped = yardstick_df.groupby(bands, observed=True)
     ratio = grouped["goals"].transform("mean") / grouped["m_goals"].transform("mean")
@@ -221,6 +234,7 @@ def calibrated_totals(yardstick_df: pd.DataFrame) -> "pd.Series[float]":
 def tail_bands(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Per band of expected goals: the model's and the observed mean goals, and the variance
     of the observed totals over their mean (a Poisson count gives 1)."""
+
     grouped = yardstick_df.groupby(
         pd.cut(yardstick_df["m_goals"], yardstick.TOTAL_EDGES), observed=True
     )
@@ -240,6 +254,7 @@ def tail_bands(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 def tail_counts(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Matches with k goals or more: observed, and expected by Poisson on the market's totals
     and on the band-calibrated totals."""
+
     calibrated = calibrated_totals(yardstick_df)
     return pd.DataFrame(
         [
@@ -261,6 +276,7 @@ def tail_counts(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 def tail_oe(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """7+ goals against Poisson on the market's totals and on the band-calibrated totals, and
     the share of the market's gap to the observed count that the calibration closes."""
+
     calibrated_df = yardstick_df.assign(
         m_seven_calibrated=sps.poisson.sf(6, calibrated_totals(yardstick_df))
     )
@@ -281,6 +297,7 @@ def tail_oe(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 
 def show_returns(matches_df: pd.DataFrame, title: str) -> None:
     """The return tables of one set of matches."""
+
     bets_df = x12_bets(matches_df)
     report.show(f"1X2 by price band, {title}", x12_table(bets_df, "band"))
     report.show(f"1X2 by side, {title}", x12_table(bets_df, "side"))

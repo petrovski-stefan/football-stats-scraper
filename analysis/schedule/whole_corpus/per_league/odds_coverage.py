@@ -22,6 +22,7 @@ STAGE_KEYS = ["s1_league_id", "s1_season", "s1_stage"]
 
 def with_markets(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The matches with `all_three` (every market present) and `no_odds` (none present)."""
+
     market_flags_df = matches_df[list(MARKETS.values())].astype(bool)
     return matches_df.assign(
         all_three=market_flags_df.all(axis=1), no_odds=~market_flags_df.any(axis=1)
@@ -30,6 +31,7 @@ def with_markets(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def patterns(matches_df: pd.DataFrame) -> pd.DataFrame:
     """How many matches have each combination of markets, e.g. "1X2 O/U AH" or "none"."""
+
     names = pd.Series("", index=matches_df.index)
     for market, flag in MARKETS.items():
         names = names + np.where(matches_df[flag].astype(bool), f" {market}", "")
@@ -39,6 +41,7 @@ def patterns(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def coverage(matches_df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
     """Per group: its matches, those with all three markets, and their share."""
+
     coverage_df = matches_df.groupby(keys).agg(
         matches=("all_three", "size"), all_three=("all_three", "sum")
     )
@@ -48,12 +51,14 @@ def coverage(matches_df: pd.DataFrame, keys: list[str]) -> pd.DataFrame:
 
 def three_nil(matches_df: pd.DataFrame) -> "pd.Series[bool]":
     """The matches that end 3-0 or 0-3: the score of an awarded match."""
+
     home, away = matches_df["s1_ft_home_goals"], matches_df["s1_ft_away_goals"]
     return ((home == 3) & (away == 0)) | ((home == 0) & (away == 3))
 
 
 def half_time(matches_df: pd.DataFrame) -> tuple["pd.Series[bool]", "pd.Series[bool]"]:
     """Two masks: 0-0 at half-time, and the full-time score already at half-time."""
+
     ht_home, ht_away = matches_df["s1_ht_home_goals"], matches_df["s1_ht_away_goals"]
     level = (ht_home == 0) & (ht_away == 0)
     final = (ht_home == matches_df["s1_ft_home_goals"]) & (
@@ -69,6 +74,7 @@ def causes(matches_df: pd.DataFrame) -> "pd.Series[str]":
     Then: the 1X2 is there but O/U or AH is not; a rescheduled kickoff (S3.10); the first
     rounds or the last rounds of a stage; else isolated.
     """
+
     level, final = half_time(matches_df)
     last = matches_df.groupby(STAGE_KEYS)["s1_round"].transform("max")
 
@@ -86,6 +92,7 @@ def causes(matches_df: pd.DataFrame) -> "pd.Series[str]":
 
 def gaps(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Every match without all three markets, with its markets and its likely cause."""
+
     gaps_df = matches_df.assign(cause=causes(matches_df))[~matches_df["all_three"]]
     columns = [
         "s1_league_name",
@@ -108,6 +115,7 @@ def gaps(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def award_shapes(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The matches that end 3-0 or 0-3, by their half-time score, and how many lack odds."""
+
     level, final = half_time(matches_df)
     ends = three_nil(matches_df)
 

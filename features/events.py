@@ -113,16 +113,19 @@ GoalStore = dict[str, Goals]
 
 def feature_names() -> list[str]:
     """The numeric aggregate columns, in order."""
+
     return history.feature_names(FEATURE_SUFFIXES)
 
 
 def timeline_names(depth: int = MATCHES_PER_SECTION) -> list[str]:
     """The per-history-match timeline columns, in order — one block per event kind."""
+
     return [name for field, _ in TIMELINE_FIELDS for name in history.timeline_names(field, depth)]
 
 
 def load_store(events_path: str) -> dict[str, list[tuple[int, int, str, str]]]:
     """match_id -> [(minute, stoppage, kind, side), ...], as stored."""
+
     events_df = pd.read_csv(events_path, usecols=["match_id", "minute", "stoppage", "kind", "side"])
     store: dict[str, list[tuple[int, int, str, str]]] = {}
     for match_id, minute, stoppage, kind, side in zip(
@@ -149,6 +152,7 @@ def build(
     `goal_store` may be empty — the state-conditioned columns then come back NaN and
     everything else is unaffected, so an events scrape without a goals scrape still builds.
     """
+
     return history.build_frame(
         detail_df,
         depth,
@@ -174,6 +178,7 @@ def _usable_events(
     whose goals do not reconcile still has trustworthy cards, so it keeps its aggregates
     and timelines and loses only its state.
     """
+
     match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
         return None
@@ -209,6 +214,7 @@ def _score_line(
     the same reason: a state computed from half the goals is a wrong scoreline rather than
     a missing one, and it would silently flip "leading" to "trailing".
     """
+
     goals = goal_store.get(match_id)
     if goals is None:
         return None
@@ -231,6 +237,7 @@ def _state_at(line: list[tuple[int, int, int]] | None, minute: int, stoppage: in
     Strictly before, so a card shown in the same minute as the goal that changed the score
     is attributed to the state that provoked it rather than to the one it produced.
     """
+
     if line is None:
         return None
 
@@ -249,6 +256,7 @@ def _timeline(events: Events | None, kind: str) -> str:
     Empty when the match had no usable events; `UNEVENTFUL` when it was usable and simply
     had none of this kind. Those are different facts and an empty cell cannot carry both.
     """
+
     if events is None:
         return ""
 
@@ -271,6 +279,7 @@ def _rates(blocks: list[Events | None]) -> dict[str, float]:
     event supports; and `first_sub_minute_avg` averages each match's earliest subject
     substitution, skipping matches with none rather than treating them as minute 90.
     """
+
     usable = [b for b in blocks if b is not None]
     if not usable:
         return dict.fromkeys(FEATURE_SUFFIXES, float("nan"))
@@ -304,6 +313,7 @@ def _while_leading(usable: list[Events]) -> float:
     split-half 0.345 against 0.564 for this one — dividing by minutes spent ahead adds
     noise faster than it adds meaning.
     """
+
     known = [b for b in usable if all(event.state is not None for event in b)]
     if not known:
         return float("nan")
@@ -322,6 +332,7 @@ def _while_leading(usable: list[Events]) -> float:
 
 def _first_sub_minutes(usable: list[Events]) -> list[int]:
     """Each match's earliest substitution by the subject team, where it made one."""
+
     found = []
     for block in usable:
         minutes = [e.minute for e in block if e.kind == SUBSTITUTION and e.tag == "F"]
@@ -333,6 +344,7 @@ def _first_sub_minutes(usable: list[Events]) -> list[int]:
 
 def _share(minutes: list[int], cutoff: int) -> float:
     """Share of `minutes` at or after `cutoff`; NaN when there is nothing to divide by."""
+
     if not minutes:
         return float("nan")
     return float(sum(1 for m in minutes if m >= cutoff) / len(minutes))
@@ -344,5 +356,6 @@ def _count(flat: Events, kind: str, tag: str) -> float:
 
 def _match_share(usable: list[Events], kind: str, tag: str) -> float:
     """Share of usable matches containing at least one such event."""
+
     hits = sum(1 for b in usable if any(e.kind == kind and e.tag == tag for e in b))
     return float(hits / len(usable))

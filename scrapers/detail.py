@@ -51,6 +51,7 @@ _POOL = BrowserPool()
 
 def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, Any]:
     """Mode-agnostic core: render the detail page and return a validated feature dict."""
+
     get_detail_page(driver, match_id)
     soup = BeautifulSoup(driver.page_source, "html.parser")
 
@@ -88,6 +89,7 @@ def _done_ids(detail_path: str) -> set[str]:
 def _scrape_one(mid: str) -> tuple[str, dict[str, Any] | None, Exception | None]:
     """Run in a worker thread with that thread's own driver; errors come back,
     not raised, so one bad match doesn't cancel the others already in flight."""
+
     driver = _POOL.driver()
     try:
         return mid, scrape_match_detail(driver, mid), None

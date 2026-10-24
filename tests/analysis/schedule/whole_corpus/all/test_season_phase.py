@@ -9,6 +9,7 @@ from analysis.schedule.whole_corpus.all import season_phase as runner
 
 def stage_matches(rounds: int, stage: object = "League") -> pd.DataFrame:
     """One match per round of one stage, kicked off a week apart in round order."""
+
     return pd.DataFrame(
         {
             "s1_league_id": 1,
@@ -25,6 +26,7 @@ def phased_df() -> pd.DataFrame:
     """Four league-seasons in two cohorts, 330 random matches each, in the columns that the
     runner reads: outcomes, yardstick chances, the phase and the round (1 and 2 for 650
     matches each, 3 for the other 20)."""
+
     rng = np.random.default_rng(0)
     size = 4 * 330
     ht_decisive = rng.random(size) < 0.6

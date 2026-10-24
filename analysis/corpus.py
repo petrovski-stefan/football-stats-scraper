@@ -28,6 +28,7 @@ def load() -> pd.DataFrame:
     `season_cohort` is the year a season began (`domain/schedule.py:season_start_year`), so
     a calendar-year 2025 season and a 2025-2026 season share a cohort.
     """
+
     frames = [read_stage_csv(path) for path in paths.schedule_csvs(3)]
     if not frames:
         raise FileNotFoundError(f"no stage-3 schedule files in {paths.stage_dir(3)}")
@@ -39,6 +40,7 @@ def load() -> pd.DataFrame:
 
 def corpus_line(corpus_df: pd.DataFrame, day: date | None = None) -> str:
     """`Corpus 2026-10-16: 144 league-seasons, 36,238 matches`: the line each doc copies."""
+
     league_seasons = corpus_df.groupby(LEAGUE_SEASON).ngroups
     when = (day or date.today()).isoformat()
     return f"Corpus {when}: {league_seasons} league-seasons, {len(corpus_df):,} matches"
@@ -46,6 +48,7 @@ def corpus_line(corpus_df: pd.DataFrame, day: date | None = None) -> str:
 
 def round_key(matches_df: pd.DataFrame) -> "pd.Series[str]":
     """One key per round: the league, the season, the stage and the round of each match."""
+
     return (
         matches_df["s1_league_id"].astype(str)
         + " "
@@ -59,5 +62,6 @@ def round_key(matches_df: pd.DataFrame) -> "pd.Series[str]":
 
 def outcome_1x2(matches_df: pd.DataFrame) -> np.ndarray:
     """`HOME`, `DRAW` or `AWAY` per match, from the full-time goals."""
+
     diff = matches_df["s1_ft_home_goals"].to_numpy() - matches_df["s1_ft_away_goals"].to_numpy()
     return np.where(diff > 0, HOME, np.where(diff == 0, DRAW, AWAY))

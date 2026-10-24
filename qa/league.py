@@ -43,12 +43,14 @@ def validate(report: Report, base_df: pd.DataFrame) -> None:
 def _rounds(base_df: pd.DataFrame) -> "DataFrameGroupBy[Any, Any]":
     """Group by the round's full key. Rounds restart at 1 in each stage, so `round` alone
     is not a key; `stage` is "" on pages without stage tabs."""
+
     keys = [c for c in ("stage", "round") if c in base_df.columns]
     return base_df.groupby(keys, dropna=False)
 
 
 def _round_label(key: Any) -> str:
     """Readable name for a groupby key, hiding the empty `stage` single-table leagues use."""
+
     parts = key if isinstance(key, tuple) else (key,)
     stage, number = (parts[0], parts[-1]) if len(parts) > 1 else ("", parts[0])
     prefix = "" if pd.isna(stage) or not str(stage).strip() else f"{stage} "
@@ -64,6 +66,7 @@ def _check_round_row_counts(report: Report, base_df: pd.DataFrame) -> None:
     (notes/WORKING/IDEAS_2026-10-01.md idea 4, Phase 1). A round with *fewer* rows is
     legitimate — it is partially played — and is reported by `_check_round_index`.
     """
+
     if "matches_in_round" not in base_df.columns:
         return
 
@@ -85,6 +88,7 @@ def _check_round_index(report: Report, base_df: pd.DataFrame) -> None:
     Indices are NOT required to be contiguous 1..N: a partially-played round is missing
     its unplayed matches and so legitimately has gaps.
     """
+
     if "match_index_in_round" not in base_df.columns or base_df.empty:
         return
 
@@ -117,6 +121,7 @@ def _round_size(report: Report, label: str, round_df: pd.DataFrame) -> int | Non
     None means the round disagrees with itself, so the remaining checks have no
     trustworthy denominator to run against.
     """
+
     sizes = round_df["matches_in_round"].unique()
     if len(sizes) != 1:
         report.check(False, f"{label}: matches_in_round is not constant ({sizes.tolist()})")
@@ -126,6 +131,7 @@ def _round_size(report: Report, label: str, round_df: pd.DataFrame) -> int | Non
 
 def _check_index_range(report: Report, label: str, idx: "pd.Series[Any]", total: int) -> None:
     """Check 2: indices are unique and lie in 1..matches_in_round."""
+
     if idx.duplicated().any():
         report.check(False, f"{label}: duplicate match_index_in_round")
 
@@ -136,6 +142,7 @@ def _check_index_range(report: Report, label: str, idx: "pd.Series[Any]", total:
 
 def _check_index_order(report: Report, label: str, ordered_df: pd.DataFrame) -> None:
     """Check 3 — the real test: (kickoff, home, away) order reproduces ascending index."""
+
     if not ordered_df["match_index_in_round"].is_monotonic_increasing:
         report.check(False, f"{label}: index disagrees with (kickoff, home, away) order")
 
@@ -146,6 +153,7 @@ def _check_tied_kickoff_blocks(report: Report, label: str, ordered_df: pd.DataFr
     Follows from sorting on kickoff first, and cross-checks the stored index against
     the tie structure `features/engine.py:round_position` derives independently.
     """
+
     for kickoff, tied_df in ordered_df.groupby("_dt", dropna=False):
         span = tied_df["match_index_in_round"]
         if len(tied_df) > 1 and int(span.max()) - int(span.min()) + 1 != len(tied_df):
@@ -158,6 +166,7 @@ def _check_tied_kickoff_blocks(report: Report, label: str, ordered_df: pd.DataFr
 
 def _check_score_sanity(report: Report, base_df: pd.DataFrame) -> None:
     """Half-time goals never exceed full-time goals, and no score is negative."""
+
     impossible_df = base_df[
         (base_df["ht_home_goals"] > base_df["ft_home_goals"])
         | (base_df["ht_away_goals"] > base_df["ft_away_goals"])
@@ -174,6 +183,7 @@ def _check_derived_columns(report: Report, base_df: pd.DataFrame) -> None:
     that produced them, so they can only catch damage between write and read (a shifted
     column, a dtype coercion). Kept because that damage is silent otherwise.
     """
+
     bad_total_df = base_df[
         base_df["total_goals"] != base_df["ft_home_goals"] + base_df["ft_away_goals"]
     ]
@@ -203,6 +213,7 @@ def _check_standings_positions(report: Report, base_df: pd.DataFrame) -> None:
     Catches the standings dropdown failing to sync to the scraped round, or a rank read
     from the wrong element.
     """
+
     num_teams = len(set(base_df["home_team_id"]) | set(base_df["away_team_id"]))
     positions_df = base_df[["home_team_position", "away_team_position"]].dropna()
     out_of_range_df = positions_df[

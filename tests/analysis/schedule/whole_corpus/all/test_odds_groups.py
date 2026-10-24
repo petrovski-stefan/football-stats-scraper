@@ -18,6 +18,7 @@ def priced_matches() -> tuple[pd.DataFrame, pd.DataFrame]:
     Matches 1 and 2 have the same nine prices. Match 3 has their 1X2 prices but another AH
     price, and a home chance in the next band. Match 4 has no AH market.
     """
+
     rows = [PRICES, PRICES, [*PRICES[:8], 2.0], PRICES]
     matches_df = pd.DataFrame(rows, columns=[*shin.ODDS, *yardstick.OU, *corpus.AH])
     matches_df.loc[3, corpus.AH] = np.nan

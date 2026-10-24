@@ -63,6 +63,7 @@ class Standings:
 
     def add(self, home: int, away: int, home_goals: int, away_goals: int) -> None:
         """Count one result. Both teams must be among those the table was made with."""
+
         self._lines["total"][home].add(home_goals, away_goals)
         self._lines["total"][away].add(away_goals, home_goals)
         self._lines["home"][home].add(home_goals, away_goals)
@@ -78,6 +79,7 @@ class Standings:
         equal on all three share a position, and the next team's position skips past them
         (1, 2, 2, 4): no order is invented between teams the table cannot separate.
         """
+
         lines = self._lines[venue]
         if not any(line.played for line in lines.values()):
             return {}
@@ -91,6 +93,7 @@ class Standings:
         Points only: a team level on points is neither above nor below, so no tie-break
         enters, and a league that breaks ties by head-to-head gets the same gaps.
         """
+
         lines = self._lines[venue].values()
         own = self._lines[venue][team].points
         above = [line.points - own for line in lines if line.points > own]
@@ -114,6 +117,7 @@ class HalfTimeFullTime:
 
     def add(self, home: int, away: int, ht: tuple[int, int], ft: tuple[int, int]) -> None:
         """Count one match: `ht` and `ft` are (home goals, away goals)."""
+
         home_pair = (team_result(*ht), team_result(*ft))
         away_pair = (team_result(ht[1], ht[0]), team_result(ft[1], ft[0]))
         self._pairs["total"][home][home_pair] += 1
@@ -123,4 +127,5 @@ class HalfTimeFullTime:
 
     def count(self, venue: str, team: int, ht: str, ft: str) -> int:
         """How many of the team's matches went `ht` at half-time and `ft` at full time."""
+
         return self._pairs[venue][team][(ht, ft)]

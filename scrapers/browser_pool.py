@@ -29,6 +29,7 @@ class BrowserPool:
 
     def driver(self) -> webdriver.Chrome:
         """This thread's browser, started on first use."""
+
         driver = getattr(self._local, "driver", None)
         if driver is None:
             driver = get_driver()
@@ -44,6 +45,7 @@ class BrowserPool:
         Must run even when the batch raised: a killed run leaves headless Chrome
         processes behind, and they are not obviously attributable to this program.
         """
+
         with self._lock:
             drivers, self._drivers = self._drivers, []
 

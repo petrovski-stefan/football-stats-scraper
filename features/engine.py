@@ -196,6 +196,7 @@ def round_position(matches_df: pd.DataFrame) -> pd.DataFrame:
     Deliberately wired into no preregistered family: FAMILIES and FILTER_FAMILIES are
     closed lists (notes/RECORD/PREREGISTRATION.md S4).
     """
+
     dates = pd.to_datetime(matches_df["date"], errors="coerce")
     group = dates.groupby([matches_df[c] for c in ROUND_GROUP], dropna=False)
     return pd.DataFrame(
@@ -211,6 +212,7 @@ def round_position(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def load_enriched() -> pd.DataFrame:
     """Load every enriched league-season into one frame, tagged with its split."""
+
     files = paths.enriched_csvs()
     if not files:
         raise FileNotFoundError(
@@ -242,6 +244,7 @@ def _warn_unassigned(matches_df: pd.DataFrame) -> None:
     preregistered corpus is closed. Silence about it is not, because a whole league can
     then sit in `data/` contributing nothing to any result with no sign it was ignored.
     """
+
     unassigned_df = matches_df.loc[
         matches_df["split"] == "", ["league_name", "season"]
     ].drop_duplicates()
@@ -263,6 +266,7 @@ def _warn_unassigned(matches_df: pd.DataFrame) -> None:
 
 def _team_match_long(matches_df: pd.DataFrame) -> pd.DataFrame:
     """One row per team per match, from that team's own perspective."""
+
     frames = []
     for side, opp in (("home", "away"), ("away", "home")):
         frames.append(
@@ -303,6 +307,7 @@ def _rolling_form(matches_df: pd.DataFrame) -> pd.DataFrame:
     Each team plays once per round here (asserted), so shifting one row inside a
     team's own chronological sequence is exactly a `round < current` cutoff.
     """
+
     team_matches_df = _team_match_long(matches_df)
 
     per_round = team_matches_df.groupby(["league_name", "season", "round", "team_id"]).size()
@@ -365,6 +370,7 @@ def _corner_goal_share_gap(matches_df: pd.DataFrame, section: str) -> "pd.Series
     winning the corner count by more than the scoreline is the "deserved dominance
     not yet converted" candidate. Corners are the pressure proxy this corpus has.
     """
+
     subj_c: pd.Series[Any] = pd.Series(0.0, index=matches_df.index)
     tot_c = pd.Series(0.0, index=matches_df.index)
     subj_g = pd.Series(0.0, index=matches_df.index)
@@ -400,6 +406,7 @@ def _congestion(
     fixtures that league-only schedules omit, so this is a different variable
     from league-only rest days.
     """
+
     played = pd.Series(0, index=matches_df.index, dtype="int64")
     most_recent = pd.Series(pd.NaT, index=matches_df.index, dtype="datetime64[ns]")
     for slot in range(1, MATCHES_PER_SECTION + 1):
@@ -423,6 +430,7 @@ def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     its full-time one: a fixture that reliably reaches the break goalless cannot
     build the half-time lead a comeback has to reverse.
     """
+
     total = pd.Series(0.0, index=matches_df.index)
     seen = pd.Series(0.0, index=matches_df.index)
     for slot in range(1, MATCHES_PER_SECTION + 1):
@@ -445,6 +453,7 @@ def _h2h_ht_nondraw_rate(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     Factor 1 is "does anyone lead at HT" — a fixture that historically produces
     separated half-times is the natural fixture-level predictor of it.
     """
+
     hits = pd.Series(0.0, index=matches_df.index)
     seen = pd.Series(0.0, index=matches_df.index)
     for slot in range(1, MATCHES_PER_SECTION + 1):
@@ -496,6 +505,7 @@ def _goal_timings(matches_df: pd.DataFrame) -> dict[str, Any]:
     `scrapers.goals` ran has none of the columns. They come back NaN rather than raising,
     the same contract as `_market_lines`.
     """
+
     return {
         name: matches_df[name]
         if name in matches_df.columns
@@ -506,6 +516,7 @@ def _goal_timings(matches_df: pd.DataFrame) -> dict[str, Any]:
 
 def _vig_free(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Proportionally de-vigged 1X2 probabilities from the opening price."""
+
     inv_h = 1.0 / matches_df["home_win_initial_odds"]
     inv_d = 1.0 / matches_df["draw_initial_odds"]
     inv_a = 1.0 / matches_df["away_win_initial_odds"]
@@ -530,6 +541,7 @@ def _closing_odds(matches_df: pd.DataFrame) -> dict[str, Any]:
     (it behaves as a pre-kickoff drift, not a settled price); the opening price is
     the fallback where it is missing.
     """
+
     return {
         f"close_odds_{side}": matches_df[f"odds1x2_live_{side}"].fillna(
             matches_df[f"odds1x2_init_{side}"].fillna(matches_df[f"{side}_win_initial_odds"])
@@ -543,6 +555,7 @@ def _closing_odds(matches_df: pd.DataFrame) -> dict[str, Any]:
 
 def build_features(matches_df: pd.DataFrame | None = None) -> pd.DataFrame:
     """Assemble the full preregistered feature matrix, one row per match."""
+
     matches_df = load_enriched() if matches_df is None else matches_df.copy()
 
     built: dict[str, Any] = {}
@@ -601,6 +614,7 @@ def all_feature_names() -> list[str]:
 
 def _dedupe(names: list[str]) -> list[str]:
     """Order-preserving dedupe — the two studies' family lists overlap."""
+
     return list(dict.fromkeys(names))
 
 
@@ -609,6 +623,7 @@ def in_burn_in(matrix_df: pd.DataFrame) -> "pd.Series[Any]":
 
     Dropped identically for every model so the comparison stays fair.
     """
+
     return matrix_df["round"] <= BURN_IN_ROUNDS
 
 
@@ -621,6 +636,7 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
     For each sampled match, rebuild each team's last-6 form from scratch using
     *only* that team's matches in strictly earlier rounds, and compare.
     """
+
     matches_df = load_enriched()
     matrix_df = build_features(matches_df)
     matrix_with_teams_df = matrix_df.merge(

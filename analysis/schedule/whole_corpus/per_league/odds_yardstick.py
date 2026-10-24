@@ -57,6 +57,7 @@ LINK_COLUMNS = (
 
 def with_own_share(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """The frame with the chances that use the share made again from each league's own share."""
+
     sums_df = yardstick_df.groupby(LEAGUE)[["goals_1h", "goals"]].sum()
     share = yardstick_df[LEAGUE].map(sums_df["goals_1h"] / sums_df["goals"]).to_numpy(dtype=float)
 
@@ -77,6 +78,7 @@ def league_table(
     columns: tuple[tuple[str, str, str], ...],
 ) -> pd.DataFrame:
     """Per league, in the order of the names: its matches and each column asked for."""
+
     grouped = yardstick_df.groupby(LEAGUE)
     league_table_df = pd.DataFrame(
         {"league": grouped["s1_league_name"].first(), "matches": grouped.size()}

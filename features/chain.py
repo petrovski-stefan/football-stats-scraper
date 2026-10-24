@@ -47,6 +47,7 @@ def f11_completion(
     trailer_odds: np.ndarray, deficit: np.ndarray, trailer_is_home: np.ndarray
 ) -> np.ndarray:
     """P(trailing team wins | its closing odds, half-time deficit, venue)."""
+
     linear = (
         F11_INTERCEPT
         + F11_LOG_TRAILER_ODDS * np.log(np.clip(trailer_odds, 1.01, None))
@@ -58,6 +59,7 @@ def f11_completion(
 
 def recover_intercept() -> float:
     """Least-squares intercept against F4's octiles — reproduces the published curve."""
+
     odds = np.array([o for o, _, _ in F4_OCTILES])
     weights = np.array([n for _, n, _ in F4_OCTILES], dtype=float)
     observed = np.array([p for _, _, p in F4_OCTILES])
@@ -80,6 +82,7 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
     applying the curve to this corpus's own trailing states must come out monotone
     in trailer strength and calibrated against what actually happened.
     """
+
     print("=" * 78)
     print("F11 IMPORT VALIDATION")
     print("=" * 78)
@@ -134,6 +137,7 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
 
 def trailing_states(matrix_df: pd.DataFrame) -> pd.DataFrame:
     """One row per match where somebody trailed at half-time."""
+
     margin = matrix_df["ht_home_goals"] - matrix_df["ht_away_goals"]
     trailing_df = matrix_df[margin != 0].copy()
     home_trails = (trailing_df["ht_home_goals"] < trailing_df["ht_away_goals"]).to_numpy()

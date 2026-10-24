@@ -43,6 +43,7 @@ def _check_history_recency_ordering(report: Report, detail_df: pd.DataFrame) -> 
     every slot is filled (true of the home/away sections, where teams always have a
     full six prior matches).
     """
+
     if detail_df.empty:
         return
 
@@ -67,6 +68,7 @@ def _check_history_depth_ordering(report: Report, detail_df: pd.DataFrame) -> No
     only decay with depth. Has teeth on the h2h section, where the gradient is real
     (100% -> 82%); the home/away sections are fully populated and so unconstrained here.
     """
+
     if detail_df.empty:
         return
 

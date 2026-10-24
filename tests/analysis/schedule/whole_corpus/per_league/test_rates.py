@@ -12,6 +12,7 @@ def card_df() -> pd.DataFrame:
 
     League 1 keeps two stages; Apertura-B is a part of its Apertura. League 2 keeps one.
     """
+
     return pd.DataFrame(
         {
             "s1_league_id": [1, 1, 1, 1, 2, 2, 2, 2],

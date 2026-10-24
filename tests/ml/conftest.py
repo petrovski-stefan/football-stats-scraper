@@ -15,6 +15,7 @@ def toy_schedule_df(toy_priced_matches_df: pd.DataFrame) -> pd.DataFrame:
     `ml/rows.py`. The home side has played 0, 2, 4, 6 and 8 matches in each table, the away
     side 1, 3, 5, 7 and 9; every other count of a side is its number of matches played, so
     each per-match rate is 1."""
+
     schedule_df = toy_priced_matches_df.copy()
     schedule_df["s1_odds_ah_open_line"] = [-1.0, 0.0, -1.5, 0.25, -0.5]
     schedule_df["s1_odds_ah_open_home"] = 1.9
@@ -41,6 +42,7 @@ def toy_schedule_df(toy_priced_matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def table_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:
     """Every table column of one side (S3.03), each equal to `counts`."""
+
     return {
         f"s3_{side}_pre_{half}_{venue}_{stat}": counts
         for half in rows.HALVES
@@ -52,6 +54,7 @@ def table_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:
 def record_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:
     """Every HT/FT record column of one side (S3.08), each equal to `counts`, and its stakes
     (S3.11 to S3.13), each `counts` + 100."""
+
     records = {
         f"s3_{side}_pre_htft_{venue}_{ht}_{ft}": counts
         for venue in rows.VENUES

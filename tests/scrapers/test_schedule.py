@@ -64,6 +64,7 @@ def _fake_run(
     monkeypatch: pytest.MonkeyPatch, jobs: list[LeagueSeason]
 ) -> tuple[list[str], list[float]]:
     """Run `scrape_all` over `jobs` with no browser: record each job's thread name and pauses."""
+
     names: list[str] = []
     pauses: list[float] = []
     lock = threading.Lock()
@@ -109,6 +110,7 @@ _Cells = tuple[float | None, float | None, float | None]
 
 def _odds(one_x_two: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
     """A row's three markets, each as its three cells in page order."""
+
     fields = {
         ("s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away"): one_x_two,
         ("s1_odds_ou_open_over", "s1_odds_ou_open_line", "s1_odds_ou_open_under"): ou,

@@ -33,6 +33,7 @@ NO_LEAGUE = "B without league"
 def models(fields_b: list[str]) -> dict[str, list[str]]:
     """The fields of each model: A the odds; B the odds and every other field; B without the
     league, which shows what the other fields add on their own."""
+
     return {
         "A": list(rows.ODDS),
         "B": fields_b,
@@ -43,6 +44,7 @@ def models(fields_b: list[str]) -> dict[str, list[str]]:
 def yardstick_chance(train_df: pd.DataFrame, test_df: pd.DataFrame) -> np.ndarray:
     """The yardstick's chance in the test rows, times its O/E in the training rows, so that
     it is calibrated as a whole, like the two models."""
+
     scale = train_df[rows.TARGET].sum() / train_df[YARDSTICK].sum()
     return np.asarray(test_df[YARDSTICK].to_numpy(dtype=float) * scale)
 
@@ -50,6 +52,7 @@ def yardstick_chance(train_df: pd.DataFrame, test_df: pd.DataFrame) -> np.ndarra
 def importance(contributions_df: pd.DataFrame) -> pd.DataFrame:
     """Each field's mean absolute SHAP value, its share of the total, and whether it is an
     odds field (model A reads it) or not, largest first."""
+
     mean_abs = contributions_df.abs().mean()
     importance_df = pd.DataFrame(
         {
@@ -65,6 +68,7 @@ def importance(contributions_df: pd.DataFrame) -> pd.DataFrame:
 
 def tuning_table(tuned: dict[str, boosting.Tuned]) -> pd.DataFrame:
     """The chosen setting of each model, with its trees and its cross-validated log loss."""
+
     return pd.DataFrame(
         [
             {
@@ -82,6 +86,7 @@ def run_split(
     side_rows_df: pd.DataFrame, fields_b: list[str], train_cohort: int, test_cohort: int
 ) -> None:
     """Tune, fit and score both models on one split, and print its tables."""
+
     train_df = side_rows_df[side_rows_df["season_cohort"] == train_cohort]
     test_df = side_rows_df[side_rows_df["season_cohort"] == test_cohort]
     comes_back = test_df[rows.TARGET].to_numpy(dtype=float)
@@ -135,6 +140,7 @@ def split_rows(
     """The side rows of every priced match for one split, and model B's fields. The
     yardstick's chances use the first-half share of the training cohort only, so no goal of
     the test cohort reaches a field. Also that share."""
+
     train_df = matches_df[matches_df["season_cohort"] == train_cohort]
     share = yardstick.first_half_share(yardstick.priced(train_df))
     side_rows_df, fields_b = rows.side_rows(

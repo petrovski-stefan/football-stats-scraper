@@ -99,6 +99,7 @@ def _page_line(quarters: int) -> str:
     """A line of `quarters` quarter-goals as the page writes it: a whole or half line as one
     number, a quarter line as the two lines either side, with one minus sign on the first of
     them that is not 0."""
+
     sign = "-" if quarters < 0 else ""
     size = abs(quarters)
     if size % 2 == 0:

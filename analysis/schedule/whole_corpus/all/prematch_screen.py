@@ -83,17 +83,20 @@ def stat(
     matches_df: pd.DataFrame, who: str, half: str, venue: str, name: str
 ) -> "pd.Series[float]":
     """One stage-3 standings value of a side (S3.03), as floats."""
+
     return matches_df[f"s3_{who}_pre_{half}_{venue}_{name}"].astype(float)
 
 
 def htft(matches_df: pd.DataFrame, who: str, ht: str, ft: str) -> "pd.Series[float]":
     """One HT/FT count of a side over its whole season so far (S3.08), as floats."""
+
     return matches_df[f"s3_{who}_pre_htft_total_{ht}_{ft}"].astype(float)
 
 
 def odds_columns(yardstick_df: pd.DataFrame, side: str) -> pd.DataFrame:
     """The yardstick's view of the side: its Shin win chance, the two rates, its comeback
     chance, its chance to be behind at half-time, and the completion that follows."""
+
     mine, theirs = ("lam_home", "lam_away") if side == "home" else ("lam_away", "lam_home")
     odds_df = pd.DataFrame(
         {
@@ -113,6 +116,7 @@ def odds_columns(yardstick_df: pd.DataFrame, side: str) -> pd.DataFrame:
 def market(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame, side: str) -> pd.DataFrame:
     """The market family: the 1X2 margin, the AH line against the yardstick's goal margin,
     the AH and O/U chances away from 50/50, and the Shin draw chance against the yardstick's."""
+
     sign = 1.0 if side == "home" else -1.0
     own_odds_df = odds_columns(yardstick_df, side)
     ah_home = matches_df["s2_implied_ah_home"]
@@ -134,6 +138,7 @@ def market(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame, side: str) -> p
 def table(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """The table family, per match played: the points and goal difference against the
     opponent's, and the goals for and against of both teams."""
+
     team_played = stat(matches_df, side, "ft", "total", "played")
     opponent_played = stat(matches_df, other, "ft", "total", "played")
 
@@ -165,6 +170,7 @@ def halves(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """The halves family: each team's goal difference per match in each half, the second
     half's share of the team's goals for and of the opponent's goals against, and each
     team's second-half goal difference at its venue in this match."""
+
     halves_df = pd.DataFrame(index=matches_df.index)
     for who, tag in ((side, "T"), (other, "O")):
         played = stat(matches_df, who, "ft", "total", "played")
@@ -199,6 +205,7 @@ def halves(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 def record(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """The HT/FT record family: how often the team was behind at half-time and came back,
     its shrunk completion, and how often the opponent led at half-time and did not win."""
+
     team_played = stat(matches_df, side, "ft", "total", "played")
     opponent_played = stat(matches_df, other, "ft", "total", "played")
 
@@ -223,6 +230,7 @@ def record(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 def season(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     """The season family: the share of the team's stage played (S3.11 gives the matches
     left), and a dead rubber: late in the stage with both teams in mid-table."""
+
     played = stat(matches_df, side, "ft", "total", "played")
     progress = played / (played + matches_df[f"s3_{side}_pre_matches_left"].astype(float))
 
@@ -244,6 +252,7 @@ def season(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
 def calendar(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The calendar family: a kickoff from Tuesday to Thursday (Berlin time), and the last
     kickoff of a round that has more than one kickoff time."""
+
     kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert(BERLIN)
     keys = [
         matches_df["s1_league_id"],
@@ -267,6 +276,7 @@ def calendar(matches_df: pd.DataFrame) -> pd.DataFrame:
 def round_so_far(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The round-so-far family: the share of the round's finished matches that were
     comebacks (S3.15 / S3.14), and their goals against their opening lines (S3.19 - S3.20)."""
+
     finished = matches_df["s3_round_pre_finished"].astype(float).replace(0, np.nan)
     return pd.DataFrame(
         {
@@ -280,6 +290,7 @@ def round_so_far(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def side_fields(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame, side: str) -> pd.DataFrame:
     """Every column of one side's team row that is known before kickoff."""
+
     other = "away" if side == "home" else "home"
     parts = [
         odds_columns(yardstick_df, side),
@@ -300,6 +311,7 @@ def side_fields(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame, side: str)
 
 def screen_rows(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Two rows per priced match (`card.team_rows`) with every field, and last season's."""
+
     priced_df = matches_df.loc[yardstick_df.index]
     home_fields_df, away_fields_df = (
         side_fields(priced_df, yardstick_df, side) for side in ("home", "away")
@@ -312,6 +324,7 @@ def last_season(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
     """The last-season family, for the rows of the later cohort only: the team's comeback
     rate and the opponent's blown-lead rate in the earlier cohort, both shrunk, and the
     league's comebacks against the yardstick in the earlier cohort."""
+
     with_last_season_df = screen_rows_df.copy()
     cohorts = sorted(screen_rows_df["season_cohort"].unique())
 
@@ -350,6 +363,7 @@ def last_season(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
 
 def logit(values: "pd.Series[float] | np.ndarray") -> np.ndarray:
     """The log odds, with the chance kept inside (1e-6, 1 - 1e-6)."""
+
     clipped = np.clip(np.asarray(values, dtype=float), 1e-6, 1 - 1e-6)
     return np.asarray(np.log(clipped / (1 - clipped)))
 
@@ -358,6 +372,7 @@ def baseline(screen_rows_df: pd.DataFrame, key: str) -> np.ndarray:
     """The baseline design: a constant, the yardstick's chance of the target (log odds), the
     team's Shin win chance (log odds and its square), the log of the expected goals, and
     the venue."""
+
     p_win = logit(screen_rows_df["p_T"])
     return np.column_stack(
         [
@@ -373,12 +388,14 @@ def baseline(screen_rows_df: pd.DataFrame, key: str) -> np.ndarray:
 
 def standardised(values: "pd.Series[float]", binary: bool) -> np.ndarray:
     """A field as one column: a 0/1 field as it is, any other in standard deviations."""
+
     numbers = values.to_numpy(dtype=float)
     return numbers if binary else (numbers - numbers.mean()) / numbers.std()
 
 
 def fit_logit(outcomes: np.ndarray, design: np.ndarray, clusters: "pd.Series[Any]") -> Any:
     """A logistic regression with its covariance clustered by league-season."""
+
     groups = pd.factorize(clusters)[0]
     model = sm.Logit(outcomes, design)
     return model.fit(disp=0, cov_type="cluster", cov_kwds={"groups": groups})
@@ -388,6 +405,7 @@ def field_test(screen_rows_df: pd.DataFrame, field: str, target: str) -> dict[st
     """One field added alone to the baseline of one target: the odds ratio per standard
     deviation (per 1 for a 0/1 field), its 95% interval and the Wald p, both clustered by
     league-season."""
+
     outcome, key, behind_only = TARGETS[target]
     field_rows_df = screen_rows_df[screen_rows_df[field].notna()]
     if behind_only:
@@ -412,6 +430,7 @@ def field_test(screen_rows_df: pd.DataFrame, field: str, target: str) -> dict[st
 
 def eligible(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
     """The rows where both teams have played at least `MIN_PLAYED` matches of the stage."""
+
     return screen_rows_df[
         (screen_rows_df["played_T"] >= MIN_PLAYED) & (screen_rows_df["played_O"] >= MIN_PLAYED)
     ]
@@ -420,6 +439,7 @@ def eligible(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
 def screen(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
     """Each field alone: the comeback test on all rows (Holm over the fields), in each season
     cohort, and for link 1 and link 2."""
+
     cohorts = sorted(screen_rows_df["season_cohort"].unique())
     out = []
     for field, family in FAMILIES.items():
@@ -452,6 +472,7 @@ def screen(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
 def joint_fields() -> list[str]:
     """The fields of the joint model: all but last season's (one cohort only) and
     `JOINT_LEFT_OUT`."""
+
     return [f for f in FAMILIES if f not in LAST_SEASON and f not in JOINT_LEFT_OUT]
 
 
@@ -460,6 +481,7 @@ def joint_design(
 ) -> np.ndarray:
     """The baseline plus the fields, an empty value filled with the training median, each
     field in the training set's standard deviations."""
+
     field_values_df = screen_rows_df[fields].fillna(train_df[fields].median())
     centre, spread = train_df[fields].mean(), train_df[fields].std()
     return np.column_stack(
@@ -469,6 +491,7 @@ def joint_design(
 
 def out_of_sample(train_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, np.ndarray]:
     """The comeback chance that each model gives the test rows, fitted on the train rows."""
+
     train_comes_back = train_df["comes_back"].to_numpy(dtype=float)
     fields = joint_fields()
     base = sm.Logit(train_comes_back, baseline(train_df, "m_cb")).fit(disp=0)
@@ -486,12 +509,14 @@ def out_of_sample(train_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, np
 
 def log_loss(outcomes: np.ndarray, chances: np.ndarray) -> float:
     """The mean log loss of a chance for a 0/1 outcome."""
+
     clipped = np.clip(chances, 1e-12, 1 - 1e-12)
     return float(-np.mean(outcomes * np.log(clipped) + (1 - outcomes) * np.log(1 - clipped)))
 
 
 def auc(outcomes: np.ndarray, score: np.ndarray) -> float:
     """The area under the ROC curve, as the Mann-Whitney statistic of the scores."""
+
     ranks = sps.rankdata(score)
     events = outcomes == 1
     n_events, n_rest = int(events.sum()), int((~events).sum())
@@ -500,6 +525,7 @@ def auc(outcomes: np.ndarray, score: np.ndarray) -> float:
 
 def top_hits(outcomes: np.ndarray, score: np.ndarray, top_count: int) -> int:
     """The events among the `top_count` rows with the highest scores."""
+
     order = np.argsort(-score, kind="stable")
     return int(outcomes[order[:top_count]].sum())
 
@@ -507,6 +533,7 @@ def top_hits(outcomes: np.ndarray, score: np.ndarray, top_count: int) -> int:
 def score_table(outcomes: np.ndarray, scores: dict[str, np.ndarray]) -> pd.DataFrame:
     """Per model: the log loss, the AUC, and the events in each top-N set. A model that gives
     every row the same chance has no top set: its row gives the events that chance expects."""
+
     rows = []
     for name, score in scores.items():
         row: dict[str, object] = {
@@ -536,6 +563,7 @@ def split_rows(
     """The eligible team rows of one out-of-sample split, and the first-half share that the
     yardstick's chances use: the training cohort's only, so no goal of the test cohort reaches
     the baseline or a field."""
+
     train_df = matches_df[matches_df["season_cohort"] == train_cohort]
     share = yardstick.first_half_share(yardstick.priced(train_df))
     screen_rows_df = eligible(

@@ -11,6 +11,7 @@ from analysis.schedule.whole_corpus.all import round_fields as runner
 def matches_df() -> pd.DataFrame:
     """Four matches of one round in kickoff order: none, one, two and three finished
     round-mates before each. The third of them is a 4-3 comeback without an opening line."""
+
     round_df = pd.DataFrame(
         {
             "s3_round_pre_finished": [0, 1, 2, 3],

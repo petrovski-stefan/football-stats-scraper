@@ -15,6 +15,7 @@ COARSE = np.round(np.arange(0.1, 4.01, 0.1), 2)
 @pytest.fixture
 def team_rows_df(toy_priced_matches_df: pd.DataFrame) -> pd.DataFrame:
     """The team rows of the four priced toy matches, with the yardstick's chances."""
+
     yardstick_df = yardstick.frame(toy_priced_matches_df, yardstick.build_grid(COARSE))
     return card.team_yardstick_rows(toy_priced_matches_df, yardstick_df)
 

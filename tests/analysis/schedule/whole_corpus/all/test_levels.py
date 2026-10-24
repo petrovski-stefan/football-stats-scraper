@@ -12,6 +12,7 @@ from analysis.schedule.whole_corpus.all import levels as runner
 def team_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Two random team rows per toy match, in the columns of the team card, with four teams
     in each league-season."""
+
     rng = np.random.default_rng(1)
     size = 2 * len(matches_df)
     behind = rng.random(size) < 0.3

@@ -20,6 +20,7 @@ def league_table(
     scored_df: pd.DataFrame,
 ) -> tuple[pd.DataFrame, dict[str, stats.Heterogeneity]]:
     """Per league: matches, and each quantity's raw and shrunk mean; one test per quantity."""
+
     grouped = scored_df.groupby("s1_league_id")
     sizes = grouped.size()
     league_table_df = pd.DataFrame({"league": grouped["s1_league_name"].first(), "matches": sizes})
@@ -37,6 +38,7 @@ def league_table(
 
 def cohort_stability(scored_df: pd.DataFrame, column: str) -> tuple[float, int]:
     """Spearman correlation of the league means between the two season cohorts, and its n."""
+
     league_means_df = (
         scored_df.groupby(["s1_league_id", "season_cohort"])[column].mean().unstack().dropna()
     )

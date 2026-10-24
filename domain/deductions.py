@@ -52,12 +52,14 @@ def _stage_entries(
 
 def deducted(league_id: int, season: str, stage: str) -> dict[int, int]:
     """Each team's official total deduction in one stage of a league-season, by team id."""
+
     return _stage_entries(POINTS_DEDUCTIONS, league_id, season, stage)
 
 
 def on_page(league_id: int, season: str, stage: str) -> dict[int, int]:
     """Each team's deduction as the page's final table applies it, by team id: the official
     total, or the page's own figure where `PAGE_TOTALS` holds one."""
+
     return deducted(league_id, season, stage) | _stage_entries(
         PAGE_TOTALS, league_id, season, stage
     )

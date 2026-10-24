@@ -52,6 +52,7 @@ def _check_team(
     report: Report, label: str, table: Standings, points: dict[int, int], page: Any
 ) -> None:
     """`points`: every team's rebuilt points, declared deductions included."""
+
     team = int(page.team_id)
     ours = table.line("total", team)
     rebuilt = {name: getattr(ours, name) for name in _COUNTS} | {"points": points[team]}
@@ -74,6 +75,7 @@ def _check_team(
 
 def check(report: Report, schedule_df: pd.DataFrame, final_table_df: pd.DataFrame) -> None:
     """Compare every stage's final table with the table rebuilt from the stage's results."""
+
     if final_table_df.empty:
         report.check(False, "no final table: the rebuilt standings are unchecked")
         return

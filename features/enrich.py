@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 
 def build_enriched(base_path: str) -> str | None:
     """Join one league-season and write it. Returns the path, or None if not yet scraped."""
+
     detail_path = paths.detail_path(base_path)
     if not os.path.exists(detail_path):
         logger.info("%s: no detail scrape yet, skipping", os.path.basename(base_path))
@@ -95,6 +96,7 @@ def _goal_timing_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
     None rather than a frame of NaNs — that keeps the enriched file's column set honest
     about what has actually been collected.
     """
+
     store_path = paths.goals_path()
     if not os.path.exists(store_path):
         return None
@@ -121,6 +123,7 @@ def _event_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
     than a block of NaNs, so the enriched file's column set stays honest about what has
     actually been collected.
     """
+
     store_path = paths.events_path()
     if not os.path.exists(store_path):
         return None
@@ -148,6 +151,7 @@ def _event_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
 
 def build_all() -> None:
     """Rebuild every enriched file from the raw scrapes."""
+
     base_paths = paths.base_league_csvs()
     if not base_paths:
         raise FileNotFoundError(

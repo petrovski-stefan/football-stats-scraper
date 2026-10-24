@@ -83,6 +83,7 @@ _STEM_RE = re.compile(r"^(?P<league>.+)_(?P<season>\d{4}(?:-\d{4})?)$")
 
 def _stem(base_path: str) -> str:
     """`data/raw/epl_2025-2026.csv` -> `epl_2025-2026`."""
+
     return os.path.splitext(os.path.basename(base_path))[0]
 
 
@@ -97,6 +98,7 @@ def split_league_season(path: str) -> tuple[str, str]:
     Returns `(stem, "")` if the name carries no recognisable season, so a stray file
     labels itself oddly in a report rather than crashing the caller.
     """
+
     stem = _stem(path)
     match = _STEM_RE.match(stem)
     if match is None:
@@ -112,6 +114,7 @@ def base_league_csvs() -> list[str]:
     and the **global** goal-timing store, which is keyed by match id rather than by
     league-season and so has no `<league>_<season>` stem to split.
     """
+
     return [
         path
         for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv")))
@@ -121,6 +124,7 @@ def base_league_csvs() -> list[str]:
 
 def detail_path(base_path: str) -> str:
     """The detail scrape that accompanies a base league CSV — same directory."""
+
     return os.path.join(RAW_DIR, _stem(base_path) + DETAIL_SUFFIX)
 
 
@@ -131,11 +135,13 @@ def enriched_path(base_path: str) -> str:
     used to reach a sibling with `base_path.replace(".csv", "_enriched.csv")` must go
     through here instead; that string surgery silently produced a `data/raw/` path.
     """
+
     return os.path.join(PROCESSED_DIR, _stem(base_path) + ENRICHED_SUFFIX)
 
 
 def goals_path() -> str:
     """The global goal-timing store. One row per goal, keyed by match id."""
+
     return os.path.join(RAW_DIR, GOALS_FILE)
 
 
@@ -145,11 +151,13 @@ def goals_done_path() -> str:
     Separate from `goals_path()` because a 0-0 produces no goal rows, so the store alone
     cannot say whether a match has been scraped.
     """
+
     return os.path.join(RAW_DIR, GOALS_DONE_FILE)
 
 
 def events_path() -> str:
     """The global card/substitution store. One row per event, keyed by match id."""
+
     return os.path.join(RAW_DIR, EVENTS_FILE)
 
 
@@ -161,11 +169,13 @@ def events_done_path() -> str:
     and pending for events. Keeping the logs apart is what lets the scraper fetch such a
     match once, write only the store that is missing, and never re-fetch it again.
     """
+
     return os.path.join(RAW_DIR, EVENTS_DONE_FILE)
 
 
 def enriched_csvs() -> list[str]:
     """Every enriched league-season in `data/archived/processed/`, sorted."""
+
     return sorted(glob.glob(os.path.join(PROCESSED_DIR, "*" + ENRICHED_SUFFIX)))
 
 
@@ -174,21 +184,25 @@ def enriched_csvs() -> list[str]:
 
 def stage_dir(stage: int) -> str:
     """`data/finished/<n>_<name>/` for stage 1, 2 or 3. Any other stage is a KeyError."""
+
     return os.path.join(FINISHED_DIR, STAGE_DIRS[stage])
 
 
 def schedule_path(stage: int, league: str, season: str) -> str:
     """A league-season's schedule file at one stage. `league` is the file-name slug."""
+
     return os.path.join(stage_dir(stage), f"{league}_{season}{SCHEDULE_SUFFIX}")
 
 
 def final_table_path(league: str, season: str) -> str:
     """The page's final table for a league-season: stage 1 only, read as a check."""
+
     return os.path.join(stage_dir(1), f"{league}_{season}{FINAL_TABLE_SUFFIX}")
 
 
 def schedule_csvs(stage: int) -> list[str]:
     """Every schedule file at one stage, sorted."""
+
     return sorted(glob.glob(os.path.join(stage_dir(stage), "*" + SCHEDULE_SUFFIX)))
 
 
@@ -197,6 +211,7 @@ def split_schedule_name(path: str) -> tuple[str, str]:
     `("england_english_premier_league", "2025-2026")`. The staged files carry a kind suffix
     after the season, so the suffix goes first and `split_league_season` does the rest.
     `(stem, "")` when the name does not fit."""
+
     name = os.path.basename(path)
     if not name.endswith(SCHEDULE_SUFFIX):
         return _stem(path), ""
@@ -205,6 +220,7 @@ def split_schedule_name(path: str) -> tuple[str, str]:
 
 def schedule_at_stage(path: str, stage: int) -> str:
     """The same league-season's schedule file at another stage."""
+
     league, season = split_schedule_name(path)
     if not season:
         raise ValueError(f"not a staged schedule file: {path}")

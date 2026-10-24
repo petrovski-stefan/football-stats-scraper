@@ -16,6 +16,7 @@ def league_slug(country: str, league_name: str) -> str:
     (`brazil_serie_a`, but `england_english_premier_league`; the user, 2026-10-08).
     Stays here rather than in `domain/paths.py` because it needs `clean_string`, and
     `domain` may not import from `scrapers`."""
+
     prefix = country.lower().replace(" ", "_")
     league = clean_string(league_name)
 
@@ -26,6 +27,7 @@ def league_slug(country: str, league_name: str) -> str:
 
 def write_ordered_csv(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -> None:
     """Write rows to csv_path with columns in the given order (missing cols dropped)."""
+
     os.makedirs(os.path.dirname(csv_path) or ".", exist_ok=True)
     ordered_df = pd.DataFrame(rows)
     ordered_df = ordered_df[[c for c in columns if c in ordered_df.columns]]
@@ -39,6 +41,7 @@ def append_rows(rows: list[dict[str, Any]], csv_path: str, columns: list[str]) -
 
     Used for resumable incremental scrapes so progress survives an interruption.
     """
+
     if not rows:
         return
 
@@ -56,6 +59,7 @@ def save_unless_shrinking(rows: list[dict[str, Any]], csv_path: str, columns: li
     A re-scrape is at least as complete as the last one; one that comes back shorter is a
     partial run, and must not clobber a good file. Returns whether the file was written.
     """
+
     if os.path.exists(csv_path):
         old_len = len(pd.read_csv(csv_path))
         if len(rows) < old_len:

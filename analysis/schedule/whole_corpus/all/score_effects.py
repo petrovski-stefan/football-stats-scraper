@@ -30,12 +30,14 @@ FIRST_HALF_CAP = 4  # first-half goal totals of 4 or more form one group
 
 def state_of(margin: np.ndarray) -> np.ndarray:
     """A team's half-time state, from its own margin: its goals minus the other side's."""
+
     return np.asarray(np.array(STATES)[np.clip(margin, -3, 3).astype(int) + 3])
 
 
 def team_halves(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
     """One row per team per match: its half-time state, and its observed and expected
     second-half goals. The two rows of a match share its league-season cluster."""
+
     sides = []
     for side, sign, favourite in (
         ("home", 1, yardstick_df["fav_is_home"]),
@@ -64,6 +66,7 @@ def team_halves(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
 
 def by_state(team_halves_df: pd.DataFrame) -> pd.DataFrame:
     """Second-half goals O/E per half-time state, in the order of `STATES`."""
+
     table = [
         {"state": state, **stats.observed_expected(state_df, "goals_2h", "expected_2h")}
         for state in STATES
@@ -74,6 +77,7 @@ def by_state(team_halves_df: pd.DataFrame) -> pd.DataFrame:
 
 def by_state_and_side(team_halves_df: pd.DataFrame) -> pd.DataFrame:
     """The same per state, for the favourite and for the underdog."""
+
     parts = []
     for name, mask in (
         ("favourite", team_halves_df["is_favourite"]),
@@ -87,6 +91,7 @@ def by_state_and_side(team_halves_df: pd.DataFrame) -> pd.DataFrame:
 
 def by_ht_score(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
     """Each side's second-half goals O/E after each common half-time score that occurred."""
+
     sides_df = yardstick_df.assign(
         home_2h=yardstick_df["goals_home"] - yardstick_df["goals_home_1h"],
         away_2h=yardstick_df["goals_away"] - yardstick_df["goals_away_1h"],
@@ -115,6 +120,7 @@ def by_ht_score(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
 
 def by_first_half_goals(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """All second-half goals O/E, by the goals of the first half (4 or more as one group)."""
+
     groups = yardstick_df["goals_1h"].clip(upper=FIRST_HALF_CAP)
     table = [
         {
@@ -133,6 +139,7 @@ def scaled_completions(
 
     A state missing from `factors` keeps the basic model's rate (factor 1).
     """
+
     margin = yardstick_df["ht_margin"].to_numpy()
     home = np.array([factors.get(state, 1.0) for state in state_of(margin)])
     away = np.array([factors.get(state, 1.0) for state in state_of(-margin)])
@@ -151,6 +158,7 @@ def scaled_completions(
 
 def gap_table(yardstick_df: pd.DataFrame, share: float, measured: dict[str, float]) -> pd.DataFrame:
     """Expected completions under four sets of factors, against the observed comebacks."""
+
     trailing = {state: f for state, f in measured.items() if state.startswith("behind")}
     leading = {state: f for state, f in measured.items() if state.startswith("ahead")}
 

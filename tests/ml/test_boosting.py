@@ -13,6 +13,7 @@ SMALL_GRID = ({"num_leaves": 4, "min_data_in_leaf": 50, "feature_fraction": 1.0}
 def signal_df() -> pd.DataFrame:
     """3,000 rows in 20 groups. The event has the chance 0.4 when `x` is above 0.8, and 0.02
     otherwise. `noise` tells nothing."""
+
     rng = np.random.default_rng(0)
     size = 3000
     signal_feature = rng.random(size)

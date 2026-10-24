@@ -20,6 +20,7 @@ MANY_GOALS = 10  # totals of this many goals or more share one row
 
 def card_table(card_df: pd.DataFrame) -> pd.DataFrame:
     """Each row of the card: its two sums, their ratio, and the interval over league-seasons."""
+
     rows = []
     for numerator, denominator, label, _ in card.CARD:
         ratio = stats.observed_expected(card_df, numerator, denominator)
@@ -40,6 +41,7 @@ def card_table(card_df: pd.DataFrame) -> pd.DataFrame:
 def by_deficit(card_df: pd.DataFrame) -> pd.DataFrame:
     """Link 2 by the half-time deficit: how often the team behind wins. A band with no
     half-time in it gets no row."""
+
     rows = []
     for smallest, largest, label in DEFICITS:
         deficit_df = card_df[card_df["ht_deficit"].between(smallest, largest)]
@@ -64,6 +66,7 @@ def by_deficit(card_df: pd.DataFrame) -> pd.DataFrame:
 
 def goal_totals(card_df: pd.DataFrame) -> pd.DataFrame:
     """How many matches end with each goal total; totals of MANY_GOALS or more share a row."""
+
     totals = card_df["goals"].clip(upper=MANY_GOALS).astype(int)
     goal_totals_df = (
         totals.value_counts().sort_index().rename_axis("goals").reset_index(name="matches")

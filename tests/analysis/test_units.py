@@ -12,6 +12,7 @@ UNIT = "unit"
 @pytest.fixture
 def toy_unit_matches_df() -> pd.DataFrame:
     """Six matches of two units in both cohorts: goals against an expected count."""
+
     return pd.DataFrame(
         {
             UNIT: [1, 1, 1, 2, 2, 2],
@@ -118,6 +119,7 @@ def test_summary_row_shrinks_toward_the_pool(toy_unit_matches_df: pd.DataFrame) 
 @pytest.fixture
 def seasons_df() -> pd.DataFrame:
     """Two units with two parts each: unit 1's parts agree, unit 2's parts differ widely."""
+
     goals = [1.0, 3.0, 3.0, 1.0, 0.0, 1.0, 5.0, 7.0]
 
     return pd.DataFrame(

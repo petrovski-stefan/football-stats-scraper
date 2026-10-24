@@ -35,6 +35,7 @@ _YEAR_RE = re.compile(r"^\s*(\d{4})")
 
 def is_friendly(league_name: str | None) -> bool:
     """Whether a competition name marks the match as a friendly."""
+
     return FRIENDLY_MARKER in str(league_name or "").lower()
 
 
@@ -45,6 +46,7 @@ def match_year(date_text: str | None) -> int | None:
     part needed, so this avoids a full datetime parse and the formats it would have to
     cover.
     """
+
     found = _YEAR_RE.match(str(date_text or ""))
     return int(found.group(1)) if found else None
 
@@ -57,6 +59,7 @@ def in_scope(league_name: str | None, date_text: str | None) -> bool:
     substantive one, and the reconciliation check in `qa/goals.py` catches anything whose
     timings are actually wrong.
     """
+
     if is_friendly(league_name):
         return False
     year = match_year(date_text)
