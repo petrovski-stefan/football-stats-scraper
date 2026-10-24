@@ -44,7 +44,7 @@ def readings(quantity: tuple[str, str, str, str, str]) -> tuple[tuple[str, str, 
 
 
 def tests(
-    frame: pd.DataFrame, only: tuple[str, ...] = (), draws: int = units.NULL_DRAWS
+    yardstick_df: pd.DataFrame, only: tuple[str, ...] = (), draws: int = units.NULL_DRAWS
 ) -> pd.DataFrame:
     """One test of the rounds for each quantity and reading (only the readings named in
     `only`, if it names any)."""
@@ -54,34 +54,39 @@ def tests(
         for reading, unit, expected in readings(quantity):
             if only and reading not in only:
                 continue
-            row = units.level_row(frame, unit, ROUND, (observed, expected, label, kind), draws)
+            row = units.level_row(
+                yardstick_df, unit, ROUND, (observed, expected, label, kind), draws
+            )
             rows.append({"reading": reading, **row})
 
     return pd.DataFrame(rows)
 
 
 def largest_rounds(
-    frame: pd.DataFrame, quantity: tuple[str, str, str, str, str], top: int = TOP_ROUNDS
+    yardstick_df: pd.DataFrame, quantity: tuple[str, str, str, str, str], top: int = TOP_ROUNDS
 ) -> pd.DataFrame:
     """The rounds with the largest part of Q against the odds: each round's squared distance
     from its league-season, over its variance (`units.within_tested`)."""
     observed, _, model, _, kind = quantity
-    values = units.within_tested(frame, LEAGUE_SEASON, ROUND, observed, model, kind).part_values_df
+    part_values_df = units.within_tested(
+        yardstick_df, LEAGUE_SEASON, ROUND, observed, model, kind
+    ).part_values_df
 
-    rounds = frame.groupby(ROUND)
-    table = pd.DataFrame(
+    rounds = yardstick_df.groupby(ROUND)
+    largest_rounds_df = pd.DataFrame(
         {
             "league": rounds["league"].first(),
             "matches": rounds.size(),
-            "observed": values["observed"],
-            "expected": values["expected"],
-            "O/E": values["value"],
-            "league-season O/E": values["owner_mean"],
-            "part of Q": (values["value"] - values["owner_mean"]) ** 2 / values["variance"],
+            "observed": part_values_df["observed"],
+            "expected": part_values_df["expected"],
+            "O/E": part_values_df["value"],
+            "league-season O/E": part_values_df["owner_mean"],
+            "part of Q": (part_values_df["value"] - part_values_df["owner_mean"]) ** 2
+            / part_values_df["variance"],
         }
     ).dropna(subset=["part of Q"])
 
-    return table.sort_values("part of Q", ascending=False).head(top).reset_index()
+    return largest_rounds_df.sort_values("part of Q", ascending=False).head(top).reset_index()
 
 
 def days_from_round(
@@ -92,10 +97,12 @@ def days_from_round(
     return (days - days.groupby(rounds).transform("median")).abs()
 
 
-def league_season_chance(frame: pd.DataFrame, observed: str, model: str) -> "pd.Series[float]":
+def league_season_chance(
+    yardstick_df: pd.DataFrame, observed: str, model: str
+) -> "pd.Series[float]":
     """Each match's chance of the event from the odds, times the O/E of its league-season."""
-    sums = frame.groupby(LEAGUE_SEASON)[[observed, model]].transform("sum")
-    return (frame[model] * sums[observed] / sums[model]).clip(0.0, 1.0)
+    sums_df = yardstick_df.groupby(LEAGUE_SEASON)[[observed, model]].transform("sum")
+    return (yardstick_df[model] * sums_df[observed] / sums_df[model]).clip(0.0, 1.0)
 
 
 def count_table(
@@ -124,65 +131,65 @@ def count_table(
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    frame = yardstick.frame(matches, yardstick.build_grid())
-    frame["one"] = 1.0
-    frame[EVERYTHING] = EVERYTHING
-    frame[ROUND] = corpus.round_key(matches)
-    frame["league"] = matches["s1_league_name"]
-    frame["round_number"] = matches["s1_round"]
-    frame["season_cohort"] = matches["season_cohort"]
+    yardstick_df = yardstick.frame(matches_df, yardstick.build_grid())
+    yardstick_df["one"] = 1.0
+    yardstick_df[EVERYTHING] = EVERYTHING
+    yardstick_df[ROUND] = corpus.round_key(matches_df)
+    yardstick_df["league"] = matches_df["s1_league_name"]
+    yardstick_df["round_number"] = matches_df["s1_round"]
+    yardstick_df["season_cohort"] = matches_df["season_cohort"]
 
-    kickoff = pd.to_datetime(matches.loc[frame.index, "s1_date"], utc=True)
-    frame["days"] = days_from_round(kickoff, frame[ROUND])
+    kickoff = pd.to_datetime(matches_df.loc[yardstick_df.index, "s1_date"], utc=True)
+    yardstick_df["days"] = days_from_round(kickoff, yardstick_df[ROUND])
 
-    sizes = frame.groupby(ROUND).size()
+    sizes = yardstick_df.groupby(ROUND).size()
     print(
-        f"priced matches (both opening markets): {len(frame):,}; rounds: {len(sizes):,}; "
+        f"priced matches (both opening markets): {len(yardstick_df):,}; rounds: {len(sizes):,}; "
         f"matches per round: median {sizes.median():.0f}, {sizes.min()} to {sizes.max()}"
     )
 
-    far = frame["days"] > NEAR_DAYS
+    far = yardstick_df["days"] > NEAR_DAYS
     print(
         f"matches more than {NEAR_DAYS:.0f} days from the median kickoff of their round: "
-        f"{far.sum():,} ({far.mean():.4f}), in {frame.loc[far, ROUND].nunique():,} rounds"
+        f"{far.sum():,} ({far.mean():.4f}), in {yardstick_df.loc[far, ROUND].nunique():,} rounds"
     )
 
     print(f"each p: {units.NULL_DRAWS} shuffles of the parts inside their units")
-    report.show("One test of the rounds for each quantity and reading", tests(frame))
+    report.show("One test of the rounds for each quantity and reading", tests(yardstick_df))
     report.show(
         f"Against the odds: only the matches within {NEAR_DAYS:.0f} days of their round",
-        tests(frame[~far], only=(ODDS_READING,)),
+        tests(yardstick_df[~far], only=(ODDS_READING,)),
     )
 
-    for cohort, group in frame.groupby("season_cohort"):
+    for cohort, cohort_df in yardstick_df.groupby("season_cohort"):
         report.show(
-            f"Around the league-season: season cohort {cohort} ({len(group):,} matches)",
-            tests(group, only=(RAW_READING, ODDS_READING)),
+            f"Around the league-season: season cohort {cohort} ({len(cohort_df):,} matches)",
+            tests(cohort_df, only=(RAW_READING, ODDS_READING)),
         )
 
-        later = group[group["round_number"] > FIRST_ROUNDS]
+        later_rounds_df = cohort_df[cohort_df["round_number"] > FIRST_ROUNDS]
         report.show(
             f"Around the league-season: season cohort {cohort}, rounds {FIRST_ROUNDS + 1} and "
-            f"later ({len(later):,} matches)",
-            tests(later, only=(RAW_READING, ODDS_READING)),
+            f"later ({len(later_rounds_df):,} matches)",
+            tests(later_rounds_df, only=(RAW_READING, ODDS_READING)),
         )
 
     for quantity in card.ODDS_CARD:
         if quantity[3] in LARGEST:
             report.show(
                 f"The rounds with the largest part of Q against the odds: {quantity[3]}",
-                largest_rounds(frame, quantity),
+                largest_rounds(yardstick_df, quantity),
             )
 
     for observed, _, model, label, _ in card.ODDS_CARD:
         if label in COUNTED:
-            chances = league_season_chance(frame, observed, model)
+            chances = league_season_chance(yardstick_df, observed, model)
             report.show(
                 f"Rounds by their count of {label}: expected from the odds and the league-season",
-                count_table(frame[observed], chances, frame[ROUND]),
+                count_table(yardstick_df[observed], chances, yardstick_df[ROUND]),
             )
 
 

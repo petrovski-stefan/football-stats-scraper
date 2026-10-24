@@ -30,12 +30,12 @@ LEVELS = (1, 2, 3)  # the shares of "at least this many"
 MIN_LINE_MATCHES = 500  # an opening line with fewer matches gets no row of its own
 
 
-def count_table(matches: pd.DataFrame) -> pd.DataFrame:
+def count_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Per count: the share of matches at 0 and at each of `LEVELS` or more, the mean, the
     largest value."""
     rows = []
     for column, label in COUNTS:
-        values = matches[column]
+        values = matches_df[column]
         row: dict[str, object] = {"field": label, "share 0": float((values == 0).mean())}
         row.update({f"share {n}+": float((values >= n).mean()) for n in LEVELS})
         row.update({"mean": float(values.mean()), "max": int(values.max())})
@@ -44,13 +44,13 @@ def count_table(matches: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def average_table(matches: pd.DataFrame) -> pd.DataFrame:
+def average_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     """S3.19, S3.20 and S3.19 - S3.20: the matches with a value and their share, the mean and
     the quartiles."""
     columns = {
-        "S3.19 average goals": matches[GOALS],
-        "S3.20 average O/U line": matches[LINE],
-        "S3.19 - S3.20": matches[GOALS] - matches[LINE],
+        "S3.19 average goals": matches_df[GOALS],
+        "S3.20 average O/U line": matches_df[LINE],
+        "S3.19 - S3.20": matches_df[GOALS] - matches_df[LINE],
     }
 
     rows = []
@@ -71,56 +71,58 @@ def average_table(matches: pd.DataFrame) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def finished_without_line(matches: pd.DataFrame) -> int:
+def finished_without_line(matches_df: pd.DataFrame) -> int:
     """Rows with a finished round-mate whose averages are empty: no round-mate had a line."""
-    return int((matches[GOALS].isna() & (matches["s3_round_pre_finished"] > 0)).sum())
+    return int((matches_df[GOALS].isna() & (matches_df["s3_round_pre_finished"] > 0)).sum())
 
 
-def goals_over_line(matches: pd.DataFrame) -> pd.DataFrame:
+def goals_over_line(matches_df: pd.DataFrame) -> pd.DataFrame:
     """A match's goals minus its opening O/U line: over all matches with a line, then per
     line with at least `MIN_LINE_MATCHES` matches."""
-    lined = matches.dropna(subset=[OPENING_LINE])
-    excess = lined["s2_total_goals"] - lined[OPENING_LINE]
-    by_line = excess.groupby(lined[OPENING_LINE]).agg(["size", "mean"])
-    common = by_line[by_line["size"] >= MIN_LINE_MATCHES]
+    with_line_df = matches_df.dropna(subset=[OPENING_LINE])
+    excess = with_line_df["s2_total_goals"] - with_line_df[OPENING_LINE]
+    by_line_df = excess.groupby(with_line_df[OPENING_LINE]).agg(["size", "mean"])
+    common_lines_df = by_line_df[by_line_df["size"] >= MIN_LINE_MATCHES]
 
-    rows = [{"line": "all", "matches": len(lined), "goals minus line": float(excess.mean())}]
+    rows = [{"line": "all", "matches": len(with_line_df), "goals minus line": float(excess.mean())}]
     rows += [
         {"line": f"{line:g}", "matches": int(row["size"]), "goals minus line": float(row["mean"])}
-        for line, row in common.iterrows()
+        for line, row in common_lines_df.iterrows()
     ]
 
     return pd.DataFrame(rows)
 
 
-def line_against_model(model: pd.DataFrame) -> dict[str, float]:
+def line_against_model(yardstick_df: pd.DataFrame) -> dict[str, float]:
     """The opening O/U line against the yardstick's expected goals: their correlation, and
     the mean of the expected goals minus the line."""
     return {
-        "matches": float(len(model)),
-        "correlation": float(model["line"].corr(model["m_goals"])),
-        "expected goals minus line": float((model["m_goals"] - model["line"]).mean()),
+        "matches": float(len(yardstick_df)),
+        "correlation": float(yardstick_df["line"].corr(yardstick_df["m_goals"])),
+        "expected goals minus line": float((yardstick_df["m_goals"] - yardstick_df["line"]).mean()),
     }
 
 
 def main() -> None:
-    matches = corpus.load()
-    print(corpus.corpus_line(matches))
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
 
-    report.show("The counts, all matches", count_table(matches))
-    report.show("The averages, all matches", average_table(matches))
-    for cohort, group in matches.groupby("season_cohort"):
-        size = f"season cohort {cohort} ({len(group):,} matches)"
-        report.show(f"The counts, {size}", count_table(group))
-        report.show(f"The averages, {size}", average_table(group))
+    report.show("The counts, all matches", count_table(matches_df))
+    report.show("The averages, all matches", average_table(matches_df))
+    for cohort, cohort_df in matches_df.groupby("season_cohort"):
+        size = f"season cohort {cohort} ({len(cohort_df):,} matches)"
+        report.show(f"The counts, {size}", count_table(cohort_df))
+        report.show(f"The averages, {size}", average_table(cohort_df))
 
-    print(f"\nrows with a finished round-mate but empty averages: {finished_without_line(matches)}")
-    report.show("Goals minus the opening O/U line", goals_over_line(matches))
+    print(
+        f"\nrows with a finished round-mate but empty averages: {finished_without_line(matches_df)}"
+    )
+    report.show("Goals minus the opening O/U line", goals_over_line(matches_df))
 
-    model = yardstick.frame(matches, yardstick.build_grid())
+    yardstick_df = yardstick.frame(matches_df, yardstick.build_grid())
     report.show(
         "The opening O/U line against the yardstick's expected goals",
-        pd.DataFrame([line_against_model(model)]),
+        pd.DataFrame([line_against_model(yardstick_df)]),
     )
 
 
