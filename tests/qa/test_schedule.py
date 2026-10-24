@@ -34,8 +34,10 @@ def _season(teams: int = 4, legs: int = 2) -> pd.DataFrame:
     for leg in range(legs):
         for offset, matches in enumerate(single):
             number = leg * len(single) + offset
-            for a, b in matches:
-                home, away = (a, b) if leg % 2 == 0 else (b, a)
+            for first_team, second_team in matches:
+                home, away = (
+                    (first_team, second_team) if leg % 2 == 0 else (second_team, first_team)
+                )
                 rows.append(
                     {
                         "match_id": str(len(rows) + 1),
@@ -57,17 +59,17 @@ def _season(teams: int = 4, legs: int = 2) -> pd.DataFrame:
 
 
 def test_the_test_season_is_a_real_round_robin() -> None:
-    season = _season(teams=6, legs=2)
+    season_df = _season(teams=6, legs=2)
     pairs = combinations(range(1, 7), 2)
     met = dict.fromkeys(pairs, 0)
-    for home, away in zip(season["s1_home_team_id"], season["s1_away_team_id"], strict=True):
+    for home, away in zip(season_df["s1_home_team_id"], season_df["s1_away_team_id"], strict=True):
         met[(min(home, away), max(home, away))] += 1
     assert set(met.values()) == {2}
 
 
-def _issues(df: pd.DataFrame) -> list[str]:
+def _issues(schedule_df: pd.DataFrame) -> list[str]:
     report = Report("test")
-    validate(report, df)
+    validate(report, schedule_df)
     return report.issues
 
 
@@ -84,43 +86,45 @@ def test_a_missing_match_fails_two_ways() -> None:
 def test_a_team_twice_in_one_round_fails_even_when_round_sizes_hold() -> None:
     # Swap the round labels of two matches: every round keeps its size and every pair
     # still meets equally often, but one team now plays twice in a round.
-    season = _season()
-    first = season.index[season["s1_round"] == 1]
-    second = season.index[season["s1_round"] == 2]
-    season.loc[first[1], "s1_round"] = 2
-    season.loc[second[0], "s1_round"] = 1
+    season_df = _season()
+    first = season_df.index[season_df["s1_round"] == 1]
+    second = season_df.index[season_df["s1_round"] == 2]
+    season_df.loc[first[1], "s1_round"] = 2
+    season_df.loc[second[0], "s1_round"] = 1
 
-    issues = _issues(season)
+    issues = _issues(season_df)
 
     assert any("plays twice" in issue for issue in issues)
     assert not any("rounds without" in issue or "meet unequally" in issue for issue in issues)
 
 
 def test_half_time_goals_above_full_time_fail() -> None:
-    season = _season()
-    season.loc[0, "s1_ht_home_goals"] = 2
-    assert any("impossible HT/FT" in issue for issue in _issues(season))
+    season_df = _season()
+    season_df.loc[0, "s1_ht_home_goals"] = 2
+    assert any("impossible HT/FT" in issue for issue in _issues(season_df))
 
 
 def test_a_team_twice_in_one_day_fails() -> None:
-    season = _season()
-    first_kickoff = season.loc[0, "s1_date"]
-    later = season.index[(season["s1_home_team_id"] == 1) | (season["s1_away_team_id"] == 1)][1]
-    season.loc[later, "s1_date"] = first_kickoff
-    assert any("less than 24 h apart" in issue for issue in _issues(season))
+    season_df = _season()
+    first_kickoff = season_df.loc[0, "s1_date"]
+    later = season_df.index[
+        (season_df["s1_home_team_id"] == 1) | (season_df["s1_away_team_id"] == 1)
+    ][1]
+    season_df.loc[later, "s1_date"] = first_kickoff
+    assert any("less than 24 h apart" in issue for issue in _issues(season_df))
 
 
 def test_a_kickoff_in_the_wrong_year_fails() -> None:
-    season = _season()
-    season.loc[0, "s1_date"] = "2030-01-01 15:00+01:00"
-    assert any("kickoffs outside" in issue for issue in _issues(season))
+    season_df = _season()
+    season_df.loc[0, "s1_date"] = "2030-01-01 15:00+01:00"
+    assert any("kickoffs outside" in issue for issue in _issues(season_df))
 
 
 def test_the_year_check_needs_a_season_label_it_can_read() -> None:
-    season = _season()
-    season["s1_season"] = "Apertura"
-    season.loc[0, "s1_date"] = "2030-01-01 15:00+01:00"
-    assert not any("kickoffs outside" in issue for issue in _issues(season))
+    season_df = _season()
+    season_df["s1_season"] = "Apertura"
+    season_df.loc[0, "s1_date"] = "2030-01-01 15:00+01:00"
+    assert not any("kickoffs outside" in issue for issue in _issues(season_df))
 
 
 def _blank_rounds(issues: list[str]) -> list[str]:
@@ -128,16 +132,16 @@ def _blank_rounds(issues: list[str]) -> list[str]:
 
 
 def test_a_round_without_any_odds_fails() -> None:
-    season = _season()
-    season.loc[season["s1_round"] == 2, STAGED_ODDS.cells()] = float("nan")
-    assert _blank_rounds(_issues(season)) == ["1 rounds without odds on any match (rounds) [2]"]
+    season_df = _season()
+    season_df.loc[season_df["s1_round"] == 2, STAGED_ODDS.cells()] = float("nan")
+    assert _blank_rounds(_issues(season_df)) == ["1 rounds without odds on any match (rounds) [2]"]
 
 
 def test_one_priced_match_saves_its_round() -> None:
-    season = _season()
-    unpriced = season.index[season["s1_round"] == 2][1:]
-    season.loc[unpriced, STAGED_ODDS.cells()] = float("nan")
-    assert _blank_rounds(_issues(season)) == []
+    season_df = _season()
+    unpriced = season_df.index[season_df["s1_round"] == 2][1:]
+    season_df.loc[unpriced, STAGED_ODDS.cells()] = float("nan")
+    assert _blank_rounds(_issues(season_df)) == []
 
 
 def test_a_table_without_the_odds_columns_is_not_checked_for_blank_rounds() -> None:
@@ -146,9 +150,9 @@ def test_a_table_without_the_odds_columns_is_not_checked_for_blank_rounds() -> N
 
 
 def test_a_round_below_the_minimum_size_is_left_alone() -> None:
-    season = _season(teams=2 * (BLANK_ROUND_MIN_MATCHES - 1))
-    season.loc[:, STAGED_ODDS.cells()] = float("nan")
-    assert _blank_rounds(_issues(season)) == []
+    season_df = _season(teams=2 * (BLANK_ROUND_MIN_MATCHES - 1))
+    season_df.loc[:, STAGED_ODDS.cells()] = float("nan")
+    assert _blank_rounds(_issues(season_df)) == []
 
 
 def test_read_staged_keeps_text_columns(tmp_path: Path) -> None:
@@ -157,9 +161,9 @@ def test_read_staged_keeps_text_columns(tmp_path: Path) -> None:
         {"match_id": ["007"], "s1_season": ["2025"], "s1_stage": [""], "s1_odds": [None]}
     ).to_csv(path, index=False)
 
-    back = read_staged(str(path))
+    read_back_df = read_staged(str(path))
 
-    assert back.loc[0, "match_id"] == "007"
-    assert back.loc[0, "s1_season"] == "2025"
-    assert back.loc[0, "s1_stage"] == ""
-    assert pd.isna(back.loc[0, "s1_odds"])
+    assert read_back_df.loc[0, "match_id"] == "007"
+    assert read_back_df.loc[0, "s1_season"] == "2025"
+    assert read_back_df.loc[0, "s1_stage"] == ""
+    assert pd.isna(read_back_df.loc[0, "s1_odds"])

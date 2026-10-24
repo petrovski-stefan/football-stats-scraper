@@ -12,40 +12,40 @@ def _report() -> Report:
 
 
 def test_check_not_empty() -> None:
-    r = _report()
-    universal.check_not_empty(r, pd.DataFrame({"a": [1]}))
-    assert r.ok
-    universal.check_not_empty(r, pd.DataFrame({"a": []}))
-    assert not r.ok
+    report = _report()
+    universal.check_not_empty(report, pd.DataFrame({"a": [1]}))
+    assert report.ok
+    universal.check_not_empty(report, pd.DataFrame({"a": []}))
+    assert not report.ok
 
 
 def test_check_required_columns() -> None:
-    r = _report()
-    universal.check_required_columns(r, pd.DataFrame({"a": [1]}), ["a"])
-    assert r.ok
-    universal.check_required_columns(r, pd.DataFrame({"a": [1]}), ["a", "b", "c"])
-    assert r.issues == ["2 declared column(s) missing: ['b', 'c']"]
+    report = _report()
+    universal.check_required_columns(report, pd.DataFrame({"a": [1]}), ["a"])
+    assert report.ok
+    universal.check_required_columns(report, pd.DataFrame({"a": [1]}), ["a", "b", "c"])
+    assert report.issues == ["2 declared column(s) missing: ['b', 'c']"]
 
 
 def test_check_primary_key_passes_unique_ids() -> None:
-    r = _report()
-    universal.check_primary_key(r, pd.DataFrame({"match_id": ["1", "2", "3"]}))
-    assert r.ok
+    report = _report()
+    universal.check_primary_key(report, pd.DataFrame({"match_id": ["1", "2", "3"]}))
+    assert report.ok
 
 
 def test_check_primary_key_missing_column() -> None:
-    r = _report()
-    universal.check_primary_key(r, pd.DataFrame({"other": [1]}))
-    assert r.issues == ["missing primary key column 'match_id'"]
+    report = _report()
+    universal.check_primary_key(report, pd.DataFrame({"other": [1]}))
+    assert report.issues == ["missing primary key column 'match_id'"]
 
 
 def test_check_primary_key_null_blank_and_duplicate() -> None:
-    r = _report()
+    report = _report()
     # " 1" and 1 normalise to the same id, so they count as a duplicate.
-    ids = pd.DataFrame({"match_id": [1, " 1", None, " "]}, dtype=object)
-    universal.check_primary_key(r, ids)
+    ids_df = pd.DataFrame({"match_id": [1, " 1", None, " "]}, dtype=object)
+    universal.check_primary_key(report, ids_df)
 
-    assert r.issues == [
+    assert report.issues == [
         "1 rows with a null match_id",
         "1 rows with a blank match_id",
         "1 duplicate match_id",
@@ -53,74 +53,78 @@ def test_check_primary_key_null_blank_and_duplicate() -> None:
 
 
 def test_check_unique_across() -> None:
-    r = _report()
+    report = _report()
     # A repeat inside one file is `check_primary_key`'s job, not this check's.
-    universal.check_unique_across(r, {"a.csv": ["1", "2", "2"], "b.csv": ["3"]})
-    assert r.ok
-    universal.check_unique_across(r, {"a.csv": ["1", "2"], "b.csv": ["2", "3"]})
-    assert r.issues == ["1 match_id values in more than one file, e.g. 2 in ['a.csv', 'b.csv']"]
+    universal.check_unique_across(report, {"a.csv": ["1", "2", "2"], "b.csv": ["3"]})
+    assert report.ok
+    universal.check_unique_across(report, {"a.csv": ["1", "2"], "b.csv": ["2", "3"]})
+    assert report.issues == [
+        "1 match_id values in more than one file, e.g. 2 in ['a.csv', 'b.csv']"
+    ]
 
 
 def test_check_declared() -> None:
-    r = _report()
-    universal.check_declared(r, {"a.csv": ["1", "1"], "b.csv": ["2"]}, {"1", "2", "3"}, "stray id")
-    assert r.ok
-    universal.check_declared(r, {"a.csv": ["1"], "b.csv": ["2", "4"]}, {"1", "2"}, "stray id")
-    assert r.issues == ["1 files with a stray id ['b.csv']"]
+    report = _report()
+    universal.check_declared(
+        report, {"a.csv": ["1", "1"], "b.csv": ["2"]}, {"1", "2", "3"}, "stray id"
+    )
+    assert report.ok
+    universal.check_declared(report, {"a.csv": ["1"], "b.csv": ["2", "4"]}, {"1", "2"}, "stray id")
+    assert report.issues == ["1 files with a stray id ['b.csv']"]
 
 
 def test_check_no_dead_columns() -> None:
-    frame = pd.DataFrame({"full": [1, 2], "dead": [np.nan, np.nan]})
-    r = _report()
-    universal.check_no_dead_columns(r, frame)
+    with_dead_column_df = pd.DataFrame({"full": [1, 2], "dead": [np.nan, np.nan]})
+    report = _report()
+    universal.check_no_dead_columns(report, with_dead_column_df)
 
-    assert len(r.issues) == 1
-    assert "['dead']" in r.issues[0]
+    assert len(report.issues) == 1
+    assert "['dead']" in report.issues[0]
 
-    r = _report()
-    universal.check_no_dead_columns(r, frame, optional={"dead"})
+    report = _report()
+    universal.check_no_dead_columns(report, with_dead_column_df, optional={"dead"})
 
-    assert r.ok
+    assert report.ok
 
 
 def test_check_no_dead_columns_leaves_an_empty_table_to_check_not_empty() -> None:
-    r = _report()
-    universal.check_no_dead_columns(r, pd.DataFrame({"a": []}))
-    assert r.ok
+    report = _report()
+    universal.check_no_dead_columns(report, pd.DataFrame({"a": []}))
+    assert report.ok
 
 
 def test_check_no_dead_columns_respects_the_threshold() -> None:
-    half_empty = pd.DataFrame({"half": [1, np.nan]})
-    r = _report()
-    universal.check_no_dead_columns(r, half_empty, threshold=0.6)
-    assert r.ok
-    universal.check_no_dead_columns(r, half_empty, threshold=0.5)
-    assert not r.ok
+    half_empty_df = pd.DataFrame({"half": [1, np.nan]})
+    report = _report()
+    universal.check_no_dead_columns(report, half_empty_df, threshold=0.6)
+    assert report.ok
+    universal.check_no_dead_columns(report, half_empty_df, threshold=0.5)
+    assert not report.ok
 
 
 def test_check_ids_covered() -> None:
-    r = _report()
-    universal.check_ids_covered(r, {"1", "2"}, {"1", "2", "3"}, "the store")
-    assert r.ok
-    universal.check_ids_covered(r, {"1", "4"}, {"1"}, "the store")
-    assert r.issues == ["1 ids missing from the store"]
+    report = _report()
+    universal.check_ids_covered(report, {"1", "2"}, {"1", "2", "3"}, "the store")
+    assert report.ok
+    universal.check_ids_covered(report, {"1", "4"}, {"1"}, "the store")
+    assert report.issues == ["1 ids missing from the store"]
 
 
 def test_check_attempt_log_agreeing() -> None:
-    rows = pd.DataFrame({"match_id": ["1", "1", "2"]})
-    done = pd.DataFrame({"match_id": ["1", "2", "3"], "goals": [2, 1, 0]})
-    r = _report()
-    universal.check_attempt_log(r, rows, done, "goals")
-    assert r.ok
+    store_df = pd.DataFrame({"match_id": ["1", "1", "2"]})
+    attempt_log_df = pd.DataFrame({"match_id": ["1", "2", "3"], "goals": [2, 1, 0]})
+    report = _report()
+    universal.check_attempt_log(report, store_df, attempt_log_df, "goals")
+    assert report.ok
 
 
 def test_check_attempt_log_catches_each_disagreement() -> None:
-    rows = pd.DataFrame({"match_id": ["1", "1", "5"]})
-    done = pd.DataFrame({"match_id": ["1", "1"], "goals": [1, 1]})
-    r = _report()
-    universal.check_attempt_log(r, rows, done, "goals")
+    store_df = pd.DataFrame({"match_id": ["1", "1", "5"]})
+    attempt_log_df = pd.DataFrame({"match_id": ["1", "1"], "goals": [1, 1]})
+    report = _report()
+    universal.check_attempt_log(report, store_df, attempt_log_df, "goals")
 
-    assert r.issues == [
+    assert report.issues == [
         "1 duplicate match_id in the attempt log (would re-scrape)",
         "1 matches have rows but no attempt-log entry",
         "1 matches where the attempt log's goals disagrees with the rows",

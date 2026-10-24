@@ -116,8 +116,8 @@ def test_flatten_history_has_a_fixed_schema() -> None:
     flat = detail_parsers.flatten_history(RECORDS[:2], subject_id=1, section="home")
 
     assert set(flat) == {
-        f"home_last{n}_{field}"
-        for n in range(1, MATCHES_PER_SECTION + 1)
+        f"home_last{slot}_{field}"
+        for slot in range(1, MATCHES_PER_SECTION + 1)
         for field in PER_MATCH_FIELDS
     }
 

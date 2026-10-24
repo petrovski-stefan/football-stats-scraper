@@ -67,9 +67,13 @@ def test_a_goal_line_below_the_minimum_fails() -> None:
 
 
 @pytest.mark.usefixtures("bands")
-@pytest.mark.parametrize(("h", "a", "ah"), [(1.05, 26.0, 5.5), (26.0, 1.05, -5.5)])
-def test_a_short_favourite_may_carry_big_lines(h: float, a: float, ah: float) -> None:
-    assert _issues(_row(h=h, d=11.0, a=a, ah=ah, ou=6.5)) == []
+@pytest.mark.parametrize(
+    ("home_price", "away_price", "ah"), [(1.05, 26.0, 5.5), (26.0, 1.05, -5.5)]
+)
+def test_a_short_favourite_may_carry_big_lines(
+    home_price: float, away_price: float, ah: float
+) -> None:
+    assert _issues(_row(h=home_price, d=11.0, a=away_price, ah=ah, ou=6.5)) == []
 
 
 @pytest.mark.usefixtures("bands")

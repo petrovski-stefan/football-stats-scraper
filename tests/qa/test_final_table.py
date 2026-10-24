@@ -44,7 +44,7 @@ def _line(team: int, rank: int, counts: tuple[int, ...], stage: str = "") -> dic
 
 
 # Team 1 beat team 2 2-0; teams 3 and 4 drew 1-1.
-_SCHEDULE = _schedule(("", 1, 2, 2, 0), ("", 3, 4, 1, 1))
+_SCHEDULE_DF = _schedule(("", 1, 2, 2, 0), ("", 3, 4, 1, 1))
 _PAGE = [
     _line(1, 1, (1, 1, 0, 0, 2, 3)),
     _line(3, 2, (1, 0, 1, 0, 0, 1)),
@@ -53,24 +53,24 @@ _PAGE = [
 ]
 
 
-def _run(schedule: pd.DataFrame, page: list[dict[str, object]]) -> Report:
+def _run(schedule_df: pd.DataFrame, page: list[dict[str, object]]) -> Report:
     report = Report("test")
-    check(report, schedule, pd.DataFrame(page))
+    check(report, schedule_df, pd.DataFrame(page))
     return report
 
 
 def test_an_equal_table_passes() -> None:
-    assert _run(_SCHEDULE, _PAGE).ok
+    assert _run(_SCHEDULE_DF, _PAGE).ok
 
 
 def test_tied_teams_may_appear_in_either_order() -> None:
     swapped = [_PAGE[0], {**_PAGE[1], "s1_rank": 3}, {**_PAGE[2], "s1_rank": 2}, _PAGE[3]]
-    assert _run(_SCHEDULE, swapped).ok
+    assert _run(_SCHEDULE_DF, swapped).ok
 
 
 def test_teams_level_on_points_may_appear_in_either_order() -> None:
     """The page may break a tie on points by its league's rule, not by goal difference."""
-    schedule = _schedule(("", 1, 2, 3, 0), ("", 3, 4, 1, 0))
+    schedule_df = _schedule(("", 1, 2, 3, 0), ("", 3, 4, 1, 0))
     page = [
         _line(3, 1, (1, 1, 0, 0, 1, 3)),
         _line(1, 2, (1, 1, 0, 0, 3, 3)),
@@ -78,12 +78,12 @@ def test_teams_level_on_points_may_appear_in_either_order() -> None:
         _line(2, 4, (1, 0, 0, 1, -3, 0)),
     ]
 
-    assert _run(schedule, page).ok
+    assert _run(schedule_df, page).ok
 
 
 def test_a_points_deduction_fails() -> None:
     deducted = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
-    report = _run(_SCHEDULE, deducted)
+    report = _run(_SCHEDULE_DF, deducted)
     assert not report.ok
     assert "Team 1" in report.issues[0]
 
@@ -98,13 +98,13 @@ def test_a_declared_deduction_passes(monkeypatch: pytest.MonkeyPatch) -> None:
         _line(2, 4, (1, 0, 0, 1, -2, 0)),
     ]
 
-    assert _run(_SCHEDULE, page).ok
+    assert _run(_SCHEDULE_DF, page).ok
 
 
 def test_a_deduction_declared_with_the_wrong_amount_fails(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "", 1): -1})
     deducted = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
-    assert not _run(_SCHEDULE, deducted).ok
+    assert not _run(_SCHEDULE_DF, deducted).ok
 
 
 def test_the_pages_own_total_is_what_the_page_is_held_to(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -114,36 +114,36 @@ def test_the_pages_own_total_is_what_the_page_is_held_to(monkeypatch: pytest.Mon
 
     # The page takes 1 of the 3 points off team 1, which stays top.
     partly = [{**_PAGE[0], "s1_points": 2}, *_PAGE[1:]]
-    assert _run(_SCHEDULE, partly).ok
+    assert _run(_SCHEDULE_DF, partly).ok
 
     fully = [{**_PAGE[0], "s1_points": 0}, *_PAGE[1:]]
-    assert not _run(_SCHEDULE, fully).ok
+    assert not _run(_SCHEDULE_DF, fully).ok
 
 
 def test_a_rank_outside_the_block_level_on_points_fails() -> None:
     wrong = [{**_PAGE[0], "s1_rank": 2}, *_PAGE[1:]]
-    assert not _run(_SCHEDULE, wrong).ok
+    assert not _run(_SCHEDULE_DF, wrong).ok
 
 
 def test_a_missing_match_shows_as_a_team_missing_from_the_page() -> None:
-    report = _run(_schedule(*_SCHEDULE.itertuples(index=False), ("", 5, 6, 0, 0)), _PAGE)
+    report = _run(_schedule(*_SCHEDULE_DF.itertuples(index=False), ("", 5, 6, 0, 0)), _PAGE)
     assert any("missing from the page" in issue for issue in report.issues)
 
 
 def test_no_final_table_fails() -> None:
     report = Report("test")
-    check(report, _SCHEDULE, pd.DataFrame())
+    check(report, _SCHEDULE_DF, pd.DataFrame())
     assert not report.ok
 
 
 def test_a_stage_with_a_table_but_no_matches_fails() -> None:
     page = [*_PAGE, _line(1, 1, (1, 1, 0, 0, 2, 3), "Clausura")]
-    issues = _run(_SCHEDULE, page).issues
+    issues = _run(_SCHEDULE_DF, page).issues
     assert "stage 'Clausura': a final table but no stored matches" in issues
 
 
 def test_each_stage_is_held_against_its_own_matches() -> None:
-    schedule = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 0, 1))
+    schedule_df = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 0, 1))
     page = [
         _line(1, 1, (1, 1, 0, 0, 1, 3), "Apertura"),
         _line(2, 2, (1, 0, 0, 1, -1, 0), "Apertura"),
@@ -151,14 +151,14 @@ def test_each_stage_is_held_against_its_own_matches() -> None:
         _line(1, 2, (1, 0, 0, 1, -1, 0), "Clausura"),
     ]
 
-    assert _run(schedule, page).ok
+    assert _run(schedule_df, page).ok
 
 
 def test_a_deduction_counts_only_in_its_own_stage(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "Apertura", 1): -3})
 
     # Team 1 wins both stages; only its Apertura win is cancelled by the deduction.
-    schedule = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 1, 0))
+    schedule_df = _schedule(("Apertura", 1, 2, 1, 0), ("Clausura", 1, 2, 1, 0))
     page = [
         _line(1, 1, (1, 1, 0, 0, 1, 0), "Apertura"),
         _line(2, 2, (1, 0, 0, 1, -1, 0), "Apertura"),
@@ -166,4 +166,4 @@ def test_a_deduction_counts_only_in_its_own_stage(monkeypatch: pytest.MonkeyPatc
         _line(2, 2, (1, 0, 0, 1, -1, 0), "Clausura"),
     ]
 
-    assert _run(schedule, page).ok
+    assert _run(schedule_df, page).ok

@@ -35,10 +35,10 @@ def _raw() -> pd.DataFrame:
     )
 
 
-def _carried_issues(later: pd.DataFrame) -> list[str]:
-    r = Report("test")
-    check_carried(r, _raw(), later, _CARRIED, "stage 1")
-    return r.issues
+def _carried_issues(later_df: pd.DataFrame) -> list[str]:
+    report = Report("test")
+    check_carried(report, _raw(), later_df, _CARRIED, "stage 1")
+    return report.issues
 
 
 def test_the_same_rows_plus_new_columns_pass() -> None:
@@ -50,29 +50,29 @@ def test_rows_in_another_order_still_pair_up() -> None:
 
 
 def test_a_changed_value_fails() -> None:
-    later = _raw()
-    later.loc[0, "s1_odds_1x2_open_home"] = 1.6
-    assert _carried_issues(later) == [
+    later_df = _raw()
+    later_df.loc[0, "s1_odds_1x2_open_home"] = 1.6
+    assert _carried_issues(later_df) == [
         "1 values differ from stage 1 (column: count) {'s1_odds_1x2_open_home': 1} (stale: rebuild)"
     ]
 
 
 def test_a_value_filled_since_fails() -> None:
-    later = _raw()
-    later.loc[1, "s1_odds_1x2_open_home"] = 2.0
-    assert len(_carried_issues(later)) == 1
+    later_df = _raw()
+    later_df.loc[1, "s1_odds_1x2_open_home"] = 2.0
+    assert len(_carried_issues(later_df)) == 1
 
 
 def test_a_float_moved_by_rounding_passes() -> None:
-    later = _raw()
-    later.loc[0, "s1_odds_1x2_open_home"] = 1.5 * (1 + TOLERANCE / 10)
-    assert _carried_issues(later) == []
+    later_df = _raw()
+    later_df.loc[0, "s1_odds_1x2_open_home"] = 1.5 * (1 + TOLERANCE / 10)
+    assert _carried_issues(later_df) == []
 
 
 def test_a_missing_and_an_extra_match_fail() -> None:
-    later = _raw()
-    later.loc[1, "match_id"] = "3"
-    assert _carried_issues(later) == [
+    later_df = _raw()
+    later_df.loc[1, "match_id"] = "3"
+    assert _carried_issues(later_df) == [
         "1 matches of stage 1 missing (stale: rebuild)",
         "1 matches not in stage 1 (stale: rebuild)",
     ]
@@ -104,9 +104,9 @@ def _stage_two_row(**overrides: object) -> dict[str, object]:
 
 
 def _odds_issues(*rows: dict[str, object]) -> list[str]:
-    r = Report("test")
-    check_odds_fields(r, pd.DataFrame(list(rows)))
-    return r.issues
+    report = Report("test")
+    check_odds_fields(report, pd.DataFrame(list(rows)))
+    return report.issues
 
 
 def _without(market: str) -> dict[str, object]:
@@ -152,29 +152,31 @@ def test_probabilities_off_one_fail() -> None:
 def test_a_stage_file_without_its_stage_one_file_fails() -> None:
     raw = [paths.schedule_path(1, "x_league", "2025")]
     later = [paths.schedule_path(2, "x_league", "2025"), paths.schedule_path(2, "y_league", "2025")]
-    r = Report("test")
-    check_no_orphans(r, raw, later, 2)
-    assert r.issues == ["1 stage-2 files without a stage-1 file ['y_league_2025_schedule.csv']"]
+    report = Report("test")
+    check_no_orphans(report, raw, later, 2)
+    assert report.issues == [
+        "1 stage-2 files without a stage-1 file ['y_league_2025_schedule.csv']"
+    ]
 
 
 def test_stage_three_is_held_to_stage_two_as_well() -> None:
-    raw = _raw()
-    row = raw.assign(s2_total_goals=[1, 2])
-    multi = row.assign(s2_total_goals=[1, 3])
+    stage_1_df = _raw()
+    stage_2_df = stage_1_df.assign(s2_total_goals=[1, 2])
+    stage_3_df = stage_2_df.assign(s2_total_goals=[1, 3])
 
-    r = Report("test")
-    validate(r, multi, 3, {1: raw, 2: row})
+    report = Report("test")
+    validate(report, stage_3_df, 3, {1: stage_1_df, 2: stage_2_df})
 
-    assert any("differ from stage 2" in issue for issue in r.issues)
-    assert not any("differ from stage 1" in issue for issue in r.issues)
+    assert any("differ from stage 2" in issue for issue in report.issues)
+    assert not any("differ from stage 1" in issue for issue in report.issues)
 
 
 def test_only_stage_two_gets_the_odds_field_check() -> None:
-    row = pd.DataFrame([_stage_two_row(match_id="1", s2_has_odds=False)])
+    stage_2_df = pd.DataFrame([_stage_two_row(match_id="1", s2_has_odds=False)])
     for stage, checked in ((2, True), (3, False)):
-        r = Report("test")
-        validate(r, row, stage, {})
-        assert any("s2_has_odds disagrees" in issue for issue in r.issues) is checked
+        report = Report("test")
+        validate(report, stage_2_df, stage, {})
+        assert any("s2_has_odds disagrees" in issue for issue in report.issues) is checked
 
 
 def _round_row(**overrides: object) -> dict[str, object]:
@@ -196,9 +198,9 @@ def _round_row(**overrides: object) -> dict[str, object]:
 
 
 def _round_issues(*rows: dict[str, object]) -> list[str]:
-    r = Report("test")
-    check_round_fields(r, pd.DataFrame(list(rows)))
-    return r.issues
+    report = Report("test")
+    check_round_fields(report, pd.DataFrame(list(rows)))
+    return report.issues
 
 
 def test_round_fields_that_agree_pass() -> None:
@@ -234,8 +236,8 @@ def test_each_broken_round_rule_fails(overrides: dict[str, object], rule: str) -
 
 
 def test_only_stage_three_gets_the_round_field_check() -> None:
-    row = pd.DataFrame([_round_row(match_id="1", s3_round_pre_btts=4)])
+    stage_2_df = pd.DataFrame([_round_row(match_id="1", s3_round_pre_btts=4)])
     for stage, checked in ((2, False), (3, True)):
-        r = Report("test")
-        validate(r, row, stage, {})
-        assert any("btts is above" in issue for issue in r.issues) is checked
+        report = Report("test")
+        validate(report, stage_2_df, stage, {})
+        assert any("btts is above" in issue for issue in report.issues) is checked
