@@ -53,8 +53,8 @@ def test_subject_is_home(value: object, home: bool | None) -> None:
     ],
 )
 def test_match_key(league: str, date: str, key: str | None) -> None:
-    frame = _block(match_id=7, league=league, date=date)
-    assert history.match_key(frame, PREFIX, 0) == key
+    detail_df = _block(match_id=7, league=league, date=date)
+    assert history.match_key(detail_df, PREFIX, 0) == key
 
 
 def test_match_key_without_an_id() -> None:
@@ -62,9 +62,9 @@ def test_match_key_without_an_id() -> None:
 
 
 def test_score_matches() -> None:
-    frame = _block(ft_home_goals=2, ft_away_goals=1)
-    assert history.score_matches(frame, PREFIX, 0, 2, 1) is True
-    assert history.score_matches(frame, PREFIX, 0, 1, 1) is False
+    detail_df = _block(ft_home_goals=2, ft_away_goals=1)
+    assert history.score_matches(detail_df, PREFIX, 0, 2, 1) is True
+    assert history.score_matches(detail_df, PREFIX, 0, 1, 1) is False
     # No stored score to check against: treated as usable.
     assert history.score_matches(_block(match_id=7), PREFIX, 0, 0, 0) is True
 

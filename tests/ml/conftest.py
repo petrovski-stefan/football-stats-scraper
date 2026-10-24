@@ -10,21 +10,21 @@ TABLE_STATS = ("rank", "played", "won", "drawn", "lost", "goals_for", "goal_diff
 
 
 @pytest.fixture
-def toy_schedule(toy_priced_matches: pd.DataFrame) -> pd.DataFrame:
+def toy_schedule_df(toy_priced_matches: pd.DataFrame) -> pd.DataFrame:
     """The five toy matches with the AH market, a kickoff, a round, and every stage-3 column of
     `ml/rows.py`. The home side has played 0, 2, 4, 6 and 8 matches in each table, the away
     side 1, 3, 5, 7 and 9; every other count of a side is its number of matches played, so
     each per-match rate is 1."""
-    frame = toy_priced_matches.copy()
-    frame["s1_odds_ah_open_line"] = [-1.0, 0.0, -1.5, 0.25, -0.5]
-    frame["s1_odds_ah_open_home"] = 1.9
-    frame["s1_odds_ah_open_away"] = 1.9
-    frame["s2_implied_ah_home"] = [0.6, 0.5, 0.4, 0.45, 0.55]
-    frame["s1_round"] = [1, 2, 3, 4, 5]
+    schedule_df = toy_priced_matches.copy()
+    schedule_df["s1_odds_ah_open_line"] = [-1.0, 0.0, -1.5, 0.25, -0.5]
+    schedule_df["s1_odds_ah_open_home"] = 1.9
+    schedule_df["s1_odds_ah_open_away"] = 1.9
+    schedule_df["s2_implied_ah_home"] = [0.6, 0.5, 0.4, 0.45, 0.55]
+    schedule_df["s1_round"] = [1, 2, 3, 4, 5]
 
     # Summer and winter kickoffs in Berlin time with their offsets: Sunday 15:30 and
     # Wednesday 20:45.
-    frame["s1_date"] = ["2024-08-04 15:30+02:00", "2025-01-15 20:45+01:00"] + [
+    schedule_df["s1_date"] = ["2024-08-04 15:30+02:00", "2025-01-15 20:45+01:00"] + [
         "2025-03-01 18:00+01:00"
     ] * 3
 
@@ -33,10 +33,10 @@ def toy_schedule(toy_priced_matches: pd.DataFrame) -> pd.DataFrame:
     for side, counts in played.items():
         columns |= table_columns(side, counts) | record_columns(side, counts)
     for column in rows.ROUND_SO_FAR:
-        columns[column] = np.ones(len(frame), dtype=int)
-    columns["s3_pre_rank_gap"] = np.full(len(frame), 3)
+        columns[column] = np.ones(len(schedule_df), dtype=int)
+    columns["s3_pre_rank_gap"] = np.full(len(schedule_df), 3)
 
-    return pd.concat([frame, pd.DataFrame(columns, index=frame.index)], axis=1)
+    return pd.concat([schedule_df, pd.DataFrame(columns, index=schedule_df.index)], axis=1)
 
 
 def table_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:

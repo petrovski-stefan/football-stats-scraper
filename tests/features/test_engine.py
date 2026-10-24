@@ -10,7 +10,7 @@ from features.engine import round_position
 
 
 def test_round_position_handles_shared_kickoffs_and_stages() -> None:
-    df = pd.DataFrame(
+    matches_df = pd.DataFrame(
         {
             "league_name": ["test_league"] * 5,
             "season": ["2025-2026"] * 5,
@@ -26,9 +26,9 @@ def test_round_position_handles_shared_kickoffs_and_stages() -> None:
         }
     )
 
-    position = round_position(df)
+    position_df = round_position(matches_df)
 
-    assert position["earlier"].tolist() == [0, 0, 2, 3, 0]
-    assert position["later"].tolist() == [2, 2, 1, 0, 0]
-    assert position["slot"].tolist() == [1, 1, 2, 3, 1]
-    assert position["slots"].tolist() == [3, 3, 3, 3, 1]
+    assert position_df["earlier"].tolist() == [0, 0, 2, 3, 0]
+    assert position_df["later"].tolist() == [2, 2, 1, 0, 0]
+    assert position_df["slot"].tolist() == [1, 1, 2, 3, 1]
+    assert position_df["slots"].tolist() == [3, 3, 3, 3, 1]

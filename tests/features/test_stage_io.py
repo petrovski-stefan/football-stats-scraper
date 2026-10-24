@@ -10,7 +10,7 @@ from features.stage_io import read_stage_csv, write_stage_csv
 
 def test_text_columns_survive_a_round_trip(tmp_path: Path) -> None:
     path = str(tmp_path / "x_2025_schedule.csv")
-    frame = pd.DataFrame(
+    stage_file_df = pd.DataFrame(
         {
             "match_id": ["0012", "34"],
             "s1_season": ["2025", "2025"],  # a calendar-year label looks like an int
@@ -19,13 +19,13 @@ def test_text_columns_survive_a_round_trip(tmp_path: Path) -> None:
         }
     )
 
-    write_stage_csv(frame, path, list(frame.columns))
-    back = read_stage_csv(path)
+    write_stage_csv(stage_file_df, path, list(stage_file_df.columns))
+    read_back_df = read_stage_csv(path)
 
-    assert back["match_id"].tolist() == ["0012", "34"]
-    assert back["s1_season"].tolist() == ["2025", "2025"]
-    assert back["s1_stage"].tolist() == ["", "Group A"]
-    assert pd.isna(back.loc[1, "s1_odds_1x2_open_home"])
+    assert read_back_df["match_id"].tolist() == ["0012", "34"]
+    assert read_back_df["s1_season"].tolist() == ["2025", "2025"]
+    assert read_back_df["s1_stage"].tolist() == ["", "Group A"]
+    assert pd.isna(read_back_df.loc[1, "s1_odds_1x2_open_home"])
 
 
 def test_write_refuses_a_missing_column(tmp_path: Path) -> None:
