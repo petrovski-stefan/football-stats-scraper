@@ -59,6 +59,25 @@ def test_odds_fields_take_the_view_of_the_side(
     assert away_rows_df["m_cb_T"].tolist() == pytest.approx(away_rows_df["m_comes_back"].tolist())
 
 
+def test_implied_sum_1x2_adds_the_three_implied_probabilities(
+    built: tuple[pd.DataFrame, list[str], pd.DataFrame],
+) -> None:
+    side_rows_df, _, _ = built
+    # The first match: 1 / 1.5 + 1 / 4.0 + 1 / 6.0 = 13 / 12, on both of its rows.
+    implied_sum = side_rows_df["implied_sum_1x2"]
+    assert [implied_sum.iloc[0], implied_sum.iloc[PRICED]] == pytest.approx([13 / 12] * 2)
+
+
+def test_side_rows_refuse_sides_in_another_order_than_the_team_rows(
+    toy_schedule_df: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    yardstick_df = yardstick.frame(toy_schedule_df, yardstick.build_grid(COARSE))
+    monkeypatch.setattr(rows, "SIDES", (("away", "home"), ("home", "away")))
+
+    with pytest.raises(ValueError, match="another order"):
+        rows.side_rows(toy_schedule_df, yardstick_df)
+
+
 def test_table_fields_are_rates_per_match_played(
     built: tuple[pd.DataFrame, list[str], pd.DataFrame],
 ) -> None:

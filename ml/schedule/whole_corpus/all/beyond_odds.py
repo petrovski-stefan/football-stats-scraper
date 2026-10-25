@@ -14,6 +14,9 @@ of both models) use the first-half share of the training cohort only (`split_row
 Run: `uv run python -m ml.schedule.whole_corpus.all.beyond_odds`
 """
 
+from dataclasses import dataclass
+
+import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
@@ -28,6 +31,25 @@ YARDSTICK = "m_comes_back"  # the yardstick's comeback chance of the side
 
 
 NO_LEAGUE = "B without league"
+
+
+@dataclass(frozen=True)
+class SplitRows:
+    """The side rows of every priced match for one split, model B's fields, and the
+    yardstick's first-half share of the training cohort."""
+
+    side_rows_df: pd.DataFrame
+    fields_b: list[str]
+    first_half_share: float
+
+
+@dataclass(frozen=True)
+class Fitted:
+    """One model, tuned and fitted on the training rows, with the fields that it reads."""
+
+    fields: list[str]
+    tuned: boosting.Tuned
+    booster: lgb.Booster
 
 
 def models(fields_b: list[str]) -> dict[str, list[str]]:
@@ -83,30 +105,62 @@ def tuning_table(tuned: dict[str, boosting.Tuned]) -> pd.DataFrame:
     )
 
 
+def fit_models(train_df: pd.DataFrame, fields_b: list[str]) -> dict[str, Fitted]:
+    """Each model of `models`, tuned and fitted on the training rows."""
+
+    fitted: dict[str, Fitted] = {}
+    for name, fields in models(fields_b).items():
+        tuned = boosting.tune(train_df, fields, rows.TARGET, train_df["cluster"])
+        fitted[name] = Fitted(fields, tuned, boosting.fit(train_df, fields, rows.TARGET, tuned))
+
+    return fitted
+
+
+def show_shap(title: str, fitted: dict[str, Fitted], test_df: pd.DataFrame) -> None:
+    """Print, for both B models, the share of the |SHAP| in fields that are not odds fields,
+    and the fields with the largest mean |SHAP|."""
+
+    for name in ("B", NO_LEAGUE):
+        model = fitted[name]
+        importance_df = importance(boosting.contributions(model.booster, test_df, model.fields))
+        non_odds_share = importance_df.loc[~importance_df["odds"], "share"].sum()
+
+        print(
+            f"\n{title}: share of the |SHAP| of {name} in fields that are not odds fields: "
+            f"{non_odds_share:.4f}"
+        )
+        report.show(
+            f"{title}: the fields of {name} by mean |SHAP| (top {SHAP_TOP})",
+            importance_df.head(SHAP_TOP),
+        )
+
+
 def run_split(
     side_rows_df: pd.DataFrame, fields_b: list[str], train_cohort: int, test_cohort: int
 ) -> None:
-    """Tune, fit and score both models on one split, and print its tables."""
+    """Tune, fit and score the models on one split, and print its tables."""
 
     train_df = side_rows_df[side_rows_df["season_cohort"] == train_cohort]
     test_df = side_rows_df[side_rows_df["season_cohort"] == test_cohort]
     comes_back = test_df[rows.TARGET].to_numpy(dtype=float)
+
     title = f"fit on {train_cohort}, scored on {test_cohort}"
     print(
         f"\n#### {title}: {len(train_df):,} training rows ({train_df[rows.TARGET].sum():.0f} "
         f"comebacks), {len(test_df):,} test rows ({comes_back.sum():.0f})"
     )
 
+    fitted = fit_models(train_df, fields_b)
     chances = {"yardstick": yardstick_chance(train_df, test_df)}
-    tuned, boosters = {}, {}
-    for name, fields in models(fields_b).items():
-        tuned[name] = boosting.tune(train_df, fields, rows.TARGET, train_df["cluster"])
-        boosters[name] = boosting.fit(train_df, fields, rows.TARGET, tuned[name])
-        chances[name] = boosting.predict(boosters[name], test_df, fields)
+    for name, model in fitted.items():
+        chances[name] = boosting.predict(model.booster, test_df, model.fields)
 
-    report.show(f"{title}: the chosen settings", tuning_table(tuned))
-    for name, result in tuned.items():
-        report.show(f"{title}: every setting of model {name}", result.settings_df)
+    report.show(
+        f"{title}: the chosen settings",
+        tuning_table({name: model.tuned for name, model in fitted.items()}),
+    )
+    for name, model in fitted.items():
+        report.show(f"{title}: every setting of model {name}", model.tuned.settings_df)
 
     base_rate = np.full(len(test_df), train_df[rows.TARGET].mean())
     report.show(
@@ -123,45 +177,39 @@ def run_split(
             f"{title}: calibration of {name}", score.calibration_table(comes_back, chances[name])
         )
 
-    model_fields = models(fields_b)
-    for name in ("B", NO_LEAGUE):
-        shap_df = importance(boosting.contributions(boosters[name], test_df, model_fields[name]))
-        print(
-            f"\n{title}: share of the |SHAP| of {name} in fields that are not odds fields: "
-            f"{shap_df.loc[~shap_df['odds'], 'share'].sum():.4f}"
-        )
-        report.show(
-            f"{title}: the fields of {name} by mean |SHAP| (top {SHAP_TOP})", shap_df.head(SHAP_TOP)
-        )
+    show_shap(title, fitted, test_df)
 
 
-def split_rows(
-    matches_df: pd.DataFrame, grid: yardstick.Grid, train_cohort: int
-) -> tuple[pd.DataFrame, list[str], float]:
+def split_rows(matches_df: pd.DataFrame, grid: yardstick.Grid, train_cohort: int) -> SplitRows:
     """The side rows of every priced match for one split, and model B's fields. The
     yardstick's chances use the first-half share of the training cohort only, so no goal of
-    the test cohort reaches a field. Also that share."""
+    the test cohort reaches a field."""
 
     train_df = matches_df[matches_df["season_cohort"] == train_cohort]
-    share = yardstick.first_half_share(yardstick.priced(train_df))
+    first_half_share = yardstick.first_half_share(yardstick.priced(train_df))
     side_rows_df, fields_b = rows.side_rows(
-        matches_df, yardstick.frame(matches_df, grid, share=share)
+        matches_df, yardstick.frame(matches_df, grid, share=first_half_share)
     )
 
-    return side_rows_df, fields_b, share
+    return SplitRows(side_rows_df, fields_b, first_half_share)
 
 
 def main() -> None:
+    """Print the corpus, then the rows and the tables of each split."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
     print(f"each interval: {score.DRAWS} resamples of whole league-seasons of the test cohort")
 
     grid = yardstick.build_grid()
     for train_cohort, test_cohort in SPLITS:
-        side_rows_df, fields_b, share = split_rows(matches_df, grid, train_cohort)
-        report.show("The rows", pd.DataFrame([rows.summary(side_rows_df, fields_b)]))
-        print(f"the yardstick's first-half share, from the {train_cohort} cohort: {share:.4f}")
-        run_split(side_rows_df, fields_b, train_cohort, test_cohort)
+        split = split_rows(matches_df, grid, train_cohort)
+        report.show("The rows", pd.DataFrame([rows.summary(split.side_rows_df, split.fields_b)]))
+        print(
+            f"the yardstick's first-half share, from the {train_cohort} cohort: "
+            f"{split.first_half_share:.4f}"
+        )
+        run_split(split.side_rows_df, split.fields_b, train_cohort, test_cohort)
 
 
 if __name__ == "__main__":

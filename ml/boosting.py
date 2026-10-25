@@ -76,19 +76,20 @@ def tune(
     """The setting of `grid` with the lowest log loss over the folds of `groups`, and the
     number of trees where that loss was lowest."""
 
-    data = dataset(df, fields, target)
+    train_set = dataset(df, fields, target)
     folds = group_folds(groups)
 
     tried = []
     for setting in grid:
         history = lgb.cv(
             BASE | setting,
-            data,
+            train_set,
             num_boost_round=max_trees,
             folds=folds,
             callbacks=[lgb.early_stopping(PATIENCE, verbose=False)],
         )
 
+        # LightGBM types each value as a list of losses or a CVBooster; this key holds losses.
         losses = cast("list[float]", history[CV_LOSS])
         tried.append({**setting, "trees": len(losses), "cv loss": float(losses[-1])})
 

@@ -42,9 +42,9 @@ The base rate is the comeback rate of the training cohort. The yardstick is its 
 
 ## Comebacks in the top N
 
-Each cell: the comebacks in the top N of the ranking. "Chance" is N times the comeback rate of the test cohort.
+Each cell: the comebacks in the top N of the ranking. "Random" is N times the comeback rate of the test cohort.
 
-| N | chance | yardstick | A | B | B without league |
+| N | random | yardstick | A | B | B without league |
 |---|---|---|---|---|---|
 | fit on 2024: 100 | 2.6 | 7 | 4 | 3 | 0 |
 | 250 | 6.6 | 13 | 13 | 9 | 5 |

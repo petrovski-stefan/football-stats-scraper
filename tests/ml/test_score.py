@@ -49,7 +49,7 @@ def test_top_n_table_counts_the_hits_and_the_difference(
     assert top_n_df.at["flat", "comebacks"] == 1.0  # rows 0, 1 and 2
     assert top_n_df.at["perfect", "- flat"] == pytest.approx(2 / 3)
     assert top_n_df.at["flat", "- flat"] == 0.0
-    assert top_n_df.at["flat", "chance"] == pytest.approx(0.9)
+    assert top_n_df.at["flat", "random"] == pytest.approx(0.9)
     assert (
         top_n_df.at["perfect", "low"]
         <= top_n_df.at["perfect", "share"]

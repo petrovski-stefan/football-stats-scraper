@@ -25,7 +25,8 @@ def resampled_sums(
     values: np.ndarray, clusters: "pd.Series[Any]", draws: int = DRAWS, seed: int = 0
 ) -> np.ndarray:
     """The column sums of `values` (rows by columns) in each of `draws` resamples of whole
-    clusters: an array of draws by columns."""
+    clusters: an array of draws by columns. All columns share each resample, so a difference
+    of two columns stays paired; `analysis/stats.py:cluster_bootstrap_ratio_ci` takes one."""
 
     codes = pd.factorize(clusters)[0]
     per_cluster = np.zeros((codes.max() + 1, values.shape[1]))
@@ -57,34 +58,40 @@ def top_n_table(
     resample keeps the rows that the full set put in the top N."""
 
     names = list(scores)
-    table = []
+    reference_index = names.index(reference)
+    table_rows = []
     for top_n in top_n_sizes:
         masks = [top_mask(scores[name], top_n) for name in names]
-        columns = [column for mask in masks for column in (outcomes * mask, mask.astype(float))]
-        sums = resampled_sums(np.column_stack(columns), clusters, draws)
-        with np.errstate(divide="ignore", invalid="ignore"):
-            shares = sums[:, 0::2] / sums[:, 1::2]
+        hit_columns = [outcomes * mask for mask in masks]
+        size_columns = [mask.astype(float) for mask in masks]
+        sums = resampled_sums(np.column_stack(hit_columns + size_columns), clusters, draws)
 
-        at = names.index(reference)
+        # A resample can hold none of a ranking's top N rows. Its share is then 0/0 (NaN), and
+        # `interval` leaves it out.
+        with np.errstate(divide="ignore", invalid="ignore"):
+            shares = sums[:, : len(names)] / sums[:, len(names) :]
+
+        reference_share = float(hit_columns[reference_index].sum()) / top_n
         for i, name in enumerate(names):
-            hits = float((outcomes * masks[i]).sum())
-            difference = hits / top_n - float((outcomes * masks[at]).sum()) / top_n
-            table.append(
+            hits = float(hit_columns[i].sum())
+            low, high = interval(shares[:, i])
+            diff_low, diff_high = interval(shares[:, i] - shares[:, reference_index])
+            table_rows.append(
                 {
                     "N": top_n,
                     "ranking": name,
                     "comebacks": hits,
                     "share": hits / top_n,
-                    "low": interval(shares[:, i])[0],
-                    "high": interval(shares[:, i])[1],
-                    f"- {reference}": difference,
-                    "diff low": interval(shares[:, i] - shares[:, at])[0],
-                    "diff high": interval(shares[:, i] - shares[:, at])[1],
-                    "chance": top_n * float(np.mean(outcomes)),
+                    "low": low,
+                    "high": high,
+                    f"- {reference}": hits / top_n - reference_share,
+                    "diff low": diff_low,
+                    "diff high": diff_high,
+                    "random": top_n * float(np.mean(outcomes)),
                 }
             )
 
-    return pd.DataFrame(table)
+    return pd.DataFrame(table_rows)
 
 
 def log_loss_rows(outcomes: np.ndarray, chances: np.ndarray) -> np.ndarray:
@@ -108,24 +115,25 @@ def loss_table(
     names = list(chances)
     losses = np.column_stack([log_loss_rows(outcomes, chances[name]) for name in names])
     sums = resampled_sums(np.column_stack([losses, np.ones(len(outcomes))]), clusters, draws)
-    means = sums[:, :-1] / sums[:, -1:]
+    loss_sums, row_counts = sums[:, :-1], sums[:, -1:]
+    means = loss_sums / row_counts
 
-    at = names.index(reference)
-    table = []
+    reference_index = names.index(reference)
+    table_rows = []
     for i, name in enumerate(names):
-        low, high = interval(means[:, i] - means[:, at])
-        table.append(
+        low, high = interval(means[:, i] - means[:, reference_index])
+        table_rows.append(
             {
                 "model": name,
                 "log loss": float(losses[:, i].mean()),
                 "O/E": float(outcomes.sum() / chances[name].sum()),
-                f"- {reference}": float(losses[:, i].mean() - losses[:, at].mean()),
+                f"- {reference}": float(losses[:, i].mean() - losses[:, reference_index].mean()),
                 "low": low,
                 "high": high,
             }
         )
 
-    return pd.DataFrame(table)
+    return pd.DataFrame(table_rows)
 
 
 def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10) -> pd.DataFrame:
@@ -133,9 +141,9 @@ def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10)
     rate and their ratio (O/E) in each."""
 
     group = pd.qcut(pd.Series(chances).rank(method="first"), bins, labels=False)
-    grouped_chances_df = pd.DataFrame({"group": group, "y": outcomes, "p": chances})
+    grouped_chances_df = pd.DataFrame({"group": group, "outcome": outcomes, "chance": chances})
     calibration_df = grouped_chances_df.groupby("group").agg(
-        rows=("y", "size"), chance=("p", "mean"), rate=("y", "mean")
+        rows=("outcome", "size"), chance=("chance", "mean"), rate=("outcome", "mean")
     )
 
     calibration_df["O/E"] = calibration_df["rate"] / calibration_df["chance"]
