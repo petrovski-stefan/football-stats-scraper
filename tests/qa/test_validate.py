@@ -1,5 +1,6 @@
-"""`qa/validate.py`: the checks across the staged files (`validate_corpus`). The per-file
-checks it runs are tested in their own modules."""
+"""`qa/validate.py`: reading a staged file, the checks across the staged files
+(`validate_corpus`) and a missing derived file. The per-file checks it runs are tested in
+their own modules."""
 
 import json
 import os
@@ -9,7 +10,7 @@ import pandas as pd
 import pytest
 
 from domain import paths
-from qa.validate import validate_corpus
+from qa.validate import read_staged, validate_corpus, validate_staged_schedule
 
 
 def _schedule(stage: int, league: str, season: str, ids: list[str], league_id: int = 1) -> str:
@@ -80,3 +81,42 @@ def test_a_missing_config_fails(corpus: list[str], capsys: pytest.CaptureFixture
     os.remove(paths.LEAGUES_FILE)
     assert not validate_corpus(corpus)
     assert "the leagues go unchecked" in capsys.readouterr().out
+
+
+def test_a_league_season_without_its_derived_files_fails(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    schedule_path = _schedule(1, "test_league", "2025", [])
+
+    assert not validate_staged_schedule(schedule_path)
+
+    printed = capsys.readouterr().out
+    assert "no stage-2 file" in printed
+    assert "no stage-3 file" in printed
+
+
+def test_a_derived_file_on_disk_is_read_and_held_to_stage_1(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+) -> None:
+    monkeypatch.chdir(tmp_path)
+    schedule_path = _schedule(1, "test_league", "2025", [])
+    _schedule(2, "test_league", "2025", ["a1"])  # a match stage 1 does not hold
+
+    validate_staged_schedule(schedule_path)
+
+    assert "1 matches not in stage 1 (stale: rebuild)" in capsys.readouterr().out
+
+
+def test_read_staged_keeps_text_columns(tmp_path: Path) -> None:
+    path = tmp_path / "x_2025_schedule.csv"
+    pd.DataFrame(
+        {"match_id": ["007"], "s1_season": ["2025"], "s1_stage": [""], "s1_odds": [None]}
+    ).to_csv(path, index=False)
+
+    read_back_df = read_staged(str(path))
+
+    assert read_back_df.loc[0, "match_id"] == "007"
+    assert read_back_df.loc[0, "s1_season"] == "2025"
+    assert read_back_df.loc[0, "s1_stage"] == ""
+    assert pd.isna(read_back_df.loc[0, "s1_odds"])

@@ -19,6 +19,8 @@ from pydantic import BaseModel, Field
 # `scrapers/goal_parsers.py`: every score this project stores is the 90-minute one.
 MAX_MINUTE = 90
 MAX_STOPPAGE = 20
+# The first half is `minute <= HALF_TIME`, so "45+3'" (minute 45) still counts in it.
+HALF_TIME = 45
 
 
 class Goal(BaseModel):
@@ -50,4 +52,4 @@ class Goal(BaseModel):
     def is_first_half(self) -> bool:
         """True for "45'" and "45+3'" alike; false from "46'" on."""
 
-        return self.minute <= 45
+        return self.minute <= HALF_TIME

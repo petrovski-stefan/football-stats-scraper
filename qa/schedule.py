@@ -43,21 +43,11 @@ MIN_GAP_BETWEEN_MATCHES = timedelta(hours=24)
 # is the bookmaker's choice; a whole round without odds is a page that did not show them
 # when it was read (England League 2 2024-25, rounds 21 and 28, found 2026-10-10).
 BLANK_ROUND_MIN_MATCHES = 2
-# Text even when every value looks like a number, or is empty.
-_TEXT_COLUMNS = ("match_id", "s1_season", "s1_stage", "season", "stage")
-
-
-def read_staged(path: str, columns: list[str] | None = None) -> pd.DataFrame:
-    """A staged file with its text columns kept as text: an empty stage stays ""."""
-
-    head = pd.read_csv(path, nrows=0).columns
-    text = [c for c in _TEXT_COLUMNS if c in head and (columns is None or c in columns)]
-    staged_df = pd.read_csv(path, usecols=columns, dtype=dict.fromkeys(text, str))
-
-    return staged_df.fillna(dict.fromkeys(text, ""))
 
 
 def validate(report: Report, schedule_df: pd.DataFrame) -> None:
+    """Run every stage-1 schedule check, the season-shape ones once per league stage."""
+
     _check_scores(report, schedule_df)
     check_all(report, schedule_df, STAGED_ODDS)
     check_whole_markets(report, schedule_df, STAGED_ODDS)
@@ -65,8 +55,8 @@ def validate(report: Report, schedule_df: pd.DataFrame) -> None:
     _check_kickoff_years(report, schedule_df)
     _check_no_team_twice_in_a_day(report, schedule_df)
 
-    for stage, league_stage_df in schedule_df.groupby("s1_stage", sort=False):
-        label = f"stage {stage!r}: " if stage else ""
+    for league_stage, league_stage_df in schedule_df.groupby("s1_stage", sort=False):
+        label = f"stage {league_stage!r}: " if league_stage else ""
         _check_round_sizes(report, league_stage_df, label)
         _check_team_once_per_round(report, league_stage_df, label)
         _check_pairs_meet_equally(report, league_stage_df, label)
@@ -99,11 +89,11 @@ def _check_kickoff_years(report: Report, schedule_df: pd.DataFrame) -> None:
 def _check_no_team_twice_in_a_day(report: Report, schedule_df: pd.DataFrame) -> None:
     """No team has two matches less than `MIN_GAP_BETWEEN_MATCHES` apart."""
 
-    kick = schedule_df["s1_date"].map(parse_instant)
+    kickoff = schedule_df["s1_date"].map(parse_instant)
     kickoffs_df = pd.concat(
         [
-            pd.DataFrame({"team": schedule_df["s1_home_team_id"], "kickoff": kick}),
-            pd.DataFrame({"team": schedule_df["s1_away_team_id"], "kickoff": kick}),
+            pd.DataFrame({"team": schedule_df["s1_home_team_id"], "kickoff": kickoff}),
+            pd.DataFrame({"team": schedule_df["s1_away_team_id"], "kickoff": kickoff}),
         ]
     )
 
@@ -112,7 +102,10 @@ def _check_no_team_twice_in_a_day(report: Report, schedule_df: pd.DataFrame) -> 
         gaps = team_kickoffs_df["kickoff"].sort_values().diff().dropna()
         clashes += int((gaps < MIN_GAP_BETWEEN_MATCHES).sum())
 
-    report.check(clashes == 0, f"{clashes} pairs of matches of one team less than 24 h apart")
+    gap_hours = MIN_GAP_BETWEEN_MATCHES // timedelta(hours=1)
+    report.check(
+        clashes == 0, f"{clashes} pairs of matches of one team less than {gap_hours} h apart"
+    )
 
 
 def _check_round_sizes(report: Report, league_stage_df: pd.DataFrame, label: str) -> None:

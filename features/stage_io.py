@@ -10,15 +10,14 @@ import os
 
 import pandas as pd
 
-# Columns that are text even when every value looks like a number, or is empty.
-_TEXT_COLUMNS = ("match_id", "s1_season", "s1_stage", "s1_date", "season", "stage")
+from domain.columns import STAGE_TEXT_COLUMNS
 
 
 def read_stage_csv(path: str) -> pd.DataFrame:
     """A stage file as written: text columns stay text, empty text stays `""`."""
 
     head = pd.read_csv(path, nrows=0).columns
-    text = [c for c in _TEXT_COLUMNS if c in head]
+    text = [c for c in STAGE_TEXT_COLUMNS if c in head]
     stage_file_df = pd.read_csv(
         path, dtype=dict.fromkeys(text, str), keep_default_na=False, na_values=[""]
     )

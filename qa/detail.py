@@ -23,11 +23,15 @@ DEPTH_TOLERANCE = 0.02
 
 
 def validate(report: Report, detail_df: pd.DataFrame) -> None:
+    """Run every detail-file check."""
+
     _check_history_recency_ordering(report, detail_df)
     _check_history_depth_ordering(report, detail_df)
 
 
 def _section_columns(detail_df: pd.DataFrame, section: str, field: str) -> list[str]:
+    """One section's `field` columns, newest block first; a column the file lacks is left out."""
+
     return [
         column
         for slot in range(1, MATCHES_PER_SECTION + 1)
@@ -36,12 +40,9 @@ def _section_columns(detail_df: pd.DataFrame, section: str, field: str) -> list[
 
 
 def _check_history_recency_ordering(report: Report, detail_df: pd.DataFrame) -> None:
-    """`last1` is newer than `last2`, and so on, for every row and every section.
-
-    This is the direct test of the positional contract. It catches a swapped or
-    off-by-one history index, which the populated-rate check below cannot see whenever
-    every slot is filled (true of the home/away sections, where teams always have a
-    full six prior matches).
+    """`last1` is newer than `last2`, and so on, in every row and section: this catches a
+    swapped or off-by-one history index even where every slot is filled. A date that does
+    not parse fails, rather than dropping out of the comparison.
     """
 
     if detail_df.empty:
@@ -50,6 +51,13 @@ def _check_history_recency_ordering(report: Report, detail_df: pd.DataFrame) -> 
     for section in PER_MATCH_SECTIONS:
         columns = _section_columns(detail_df, section, "date")
         parsed = {c: pd.to_datetime(detail_df[c], errors="coerce") for c in columns}
+
+        unparseable = sum(int((detail_df[c].notna() & parsed[c].isna()).sum()) for c in columns)
+        report.check(
+            unparseable == 0,
+            f"{unparseable} {section} history dates that do not parse "
+            f"(left out of the order check)",
+        )
 
         for newer, older in pairwise(columns):
             comparable = parsed[newer].notna() & parsed[older].notna()
@@ -62,11 +70,9 @@ def _check_history_recency_ordering(report: Report, detail_df: pd.DataFrame) -> 
 
 
 def _check_history_depth_ordering(report: Report, detail_df: pd.DataFrame) -> None:
-    """Deeper history slots are no more populated than shallower ones.
-
-    A team either has that many prior matches or it does not, so the populated rate can
-    only decay with depth. Has teeth on the h2h section, where the gradient is real
-    (100% -> 82%); the home/away sections are fully populated and so unconstrained here.
+    """Deeper history slots are no more populated than shallower ones, since a team either has
+    that many prior matches or not. Only the h2h section has a real gradient (100% to 82%);
+    the home and away sections are always full, so the check has nothing to test there.
     """
 
     if detail_df.empty:

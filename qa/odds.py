@@ -11,6 +11,16 @@ import pandas as pd
 
 from qa.report import Report
 
+
+@dataclass(frozen=True)
+class LineBand:
+    """The largest AH size and O/U line for a 1X2 favourite priced from `favourite_from` up."""
+
+    favourite_from: float
+    largest_ah: float
+    largest_ou: float
+
+
 # A 1X2 book below 1.00 is arbitrage-free-impossible; above 1.20 means the column is not
 # 1X2 at all — most likely Asian Handicap, which is what the schedule page defaults to.
 OVERROUND_MIN = 1.00
@@ -25,15 +35,16 @@ OU_LINE_MIN = 1.5
 # the fixed limits used before; on the 2026-10-09 corpus (58,772 matches) the largest lines
 # were 6 and 7 in the first band and a 2.5 handicap in the last. A row without both 1X2 win
 # prices uses the band holding NO_PRICE_BAND.
-# (favourite price from, largest AH size, largest OU line)
-LINE_LIMITS: tuple[tuple[float, float, float], ...] = (
-    (1.00, 7.0, 8.5),
-    (1.10, 4.0, 5.5),
-    (1.35, 3.0, 5.5),
+LINE_LIMITS: tuple[LineBand, ...] = (
+    LineBand(favourite_from=1.00, largest_ah=7.0, largest_ou=8.5),
+    LineBand(favourite_from=1.10, largest_ah=4.0, largest_ou=5.5),
+    LineBand(favourite_from=1.35, largest_ah=3.0, largest_ou=5.5),
 )
 NO_PRICE_BAND = 1.10
 # Asian lines move in quarter-goal steps, so every line is a multiple of 0.25.
 QUARTER = 0.25
+# Slack for float rounding when a line is held to that grid; a misread line is off by far more.
+GRID_TOLERANCE = 1e-9
 # Share of rows whose AH sign may disagree with the 1X2 favourite before it is a finding.
 AH_SIGN_TOLERANCE = 0.02
 # The smallest share of a table's rows that must carry all three markets (the user,
@@ -109,11 +120,9 @@ def check_1x2(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> No
 
 
 def check_asian(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
-    """The O/U and AH columns hold real two-way Asian markets.
-
-    Their vig is far tighter than the 1X2 column's, and both lines move in quarter-goal
-    steps. A line off the quarter grid means `parse_line` mis-split a fraction. The size of
-    a line is `check_line_size`'s job.
+    """The O/U and AH columns hold real two-way Asian markets: an overround far tighter than
+    the 1X2 one, and lines on the quarter-goal grid (a line off it means `parse_line` mis-split
+    a fraction). The size of a line is `check_line_size`'s job.
     """
 
     markets = (
@@ -137,9 +146,8 @@ def check_asian(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> 
             f"{OVERROUND_MIN:.2f}-{TWO_WAY_OVERROUND_MAX:.2f}",
         )
 
-        off_grid_df = present_df[
-            ((present_df[line] / QUARTER).round() - present_df[line] / QUARTER).abs() > 1e-9
-        ]
+        quarters = present_df[line] / QUARTER
+        off_grid_df = present_df[(quarters - quarters.round()).abs() > GRID_TOLERANCE]
         report.check(
             off_grid_df.empty,
             f"{len(off_grid_df)} {kind} rows with a line off the quarter-goal grid "
@@ -158,21 +166,18 @@ def _line_limits(
     else:
         favourite = pd.Series(NO_PRICE_BAND, index=df.index)
 
-    ah_max = pd.Series(LINE_LIMITS[0][1], index=df.index)
-    ou_max = pd.Series(LINE_LIMITS[0][2], index=df.index)
-    for start, ah_limit, ou_limit in LINE_LIMITS[1:]:
-        ah_max = ah_max.mask(favourite >= start, ah_limit)
-        ou_max = ou_max.mask(favourite >= start, ou_limit)
+    ah_max = pd.Series(LINE_LIMITS[0].largest_ah, index=df.index)
+    ou_max = pd.Series(LINE_LIMITS[0].largest_ou, index=df.index)
+    for band in LINE_LIMITS[1:]:
+        ah_max = ah_max.mask(favourite >= band.favourite_from, band.largest_ah)
+        ou_max = ou_max.mask(favourite >= band.favourite_from, band.largest_ou)
 
     return ah_max, ou_max
 
 
 def check_line_size(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -> None:
-    """No line is bigger than its 1X2 favourite's price allows (`LINE_LIMITS`).
-
-    A line past its band's limit means a column was misread, or the line belongs to another
-    match. The fixed limits used before 2026-10-10 (a 4-goal handicap, a 5.5 total) failed
-    real mismatches, where a 1.01-1.04 favourite carries a 4.25-6 handicap and a total up to 7.
+    """No line is bigger than its 1X2 favourite's price allows (`LINE_LIMITS`): a line past
+    its band's limit means a misread column, or a line from another match.
     """
 
     ah_max, ou_max = _line_limits(df, odds_columns)
@@ -225,12 +230,9 @@ def check_ah_sign(report: Report, df: pd.DataFrame, odds_columns: OddsColumns) -
 def check_goal_line_above_handicap(
     report: Report, df: pd.DataFrame, odds_columns: OddsColumns
 ) -> None:
-    """The O/U goal line is above the AH line's size.
-
-    A total no larger than the expected margin would mean the favourite scores every goal.
-    The page opened some O/U lines at exactly the AH line's size on 6 and 19 Oct 2024 (found
-    2026-10-08). When that size is 1.5 or more, the line passes every other check, so only
-    this one sees it.
+    """The O/U goal line is above the AH line's size: a total no larger than the expected
+    margin means the favourite scores every goal. The page opened some O/U lines at exactly
+    the AH size (6 and 19 Oct 2024); from 1.5 up only this check sees them (`qa/CLAUDE.md` §5a).
     """
 
     present_df = _present(df, odds_columns.ou_line, odds_columns.ah_line)

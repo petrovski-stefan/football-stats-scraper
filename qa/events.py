@@ -13,9 +13,9 @@ two weaker kinds, and that limit is stated rather than papered over:
     a dedupe regression doubling every row, or a parser change dropping a whole kind.
 
 The substitution cap is the sharpest structural check available. Five substitutions per
-team is the competition limit in every league in the corpus, so a side showing more than
-that in regulation means events are being attributed to the wrong team or counted twice —
-exactly the two regressions most likely to be introduced here.
+team is the competition limit in every league in the corpus, and a concussion substitute
+can add a sixth, so a side showing more than six means events are being attributed to the
+wrong team or counted twice — exactly the two regressions most likely to be introduced here.
 """
 
 import pandas as pd
@@ -25,8 +25,8 @@ from domain.goal import MAX_MINUTE, MAX_STOPPAGE
 from qa import universal
 from qa.report import Report
 
-# Five per team is the competition limit across the corpus; six is allowed only with extra
-# time, which is dropped at parse time. Seven is a regression, never a fixture.
+# Five per team is the competition limit across the corpus; a concussion substitute can add
+# a sixth (match 2789190, `qa/CLAUDE.md` §3). Seven is a regression, never a fixture.
 MAX_SUBS_PER_SIDE = 6
 
 # Generous bands, per match, both teams combined. Deliberately wide: leagues differ a lot
@@ -96,7 +96,8 @@ def _check_sequences(report: Report, events_df: pd.DataFrame) -> None:
 
     offenders: dict[str, list[str]] = {"order": [], "index": [], "subs": []}
     for match_id, match_events_df in events_df.groupby(events_df["match_id"].astype(str)):
-        _inspect_match(str(match_id), match_events_df, offenders)
+        for fault in _match_faults(match_events_df):
+            offenders[fault].append(str(match_id))
 
     report.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
     report.check(
@@ -117,10 +118,8 @@ def _check_sequences(report: Report, events_df: pd.DataFrame) -> None:
     )
 
 
-def _inspect_match(
-    match_id: str, match_events_df: pd.DataFrame, offenders: dict[str, list[str]]
-) -> None:
-    """Order, index contiguity, and the per-side substitution cap within one match."""
+def _match_faults(match_events_df: pd.DataFrame) -> list[str]:
+    """The checks one match's events fail, of "order", "index" and "subs"; empty when none."""
 
     ordered_df = match_events_df.sort_values("event_index")
     keys = list(
@@ -131,16 +130,19 @@ def _inspect_match(
         )
     )
 
+    faults: list[str] = []
     if keys != sorted(keys):
-        offenders["order"].append(match_id)
+        faults.append("order")
 
     indices = [int(v) for v in ordered_df["event_index"]]
     if indices != list(range(1, len(indices) + 1)):
-        offenders["index"].append(match_id)
+        faults.append("index")
 
     subs_df = ordered_df[ordered_df["kind"] == SUBSTITUTION]
     if not subs_df.empty and int(subs_df.groupby("side").size().max()) > MAX_SUBS_PER_SIDE:
-        offenders["subs"].append(match_id)
+        faults.append("subs")
+
+    return faults
 
 
 def _check_rates(report: Report, events_df: pd.DataFrame, attempt_log_df: pd.DataFrame) -> None:

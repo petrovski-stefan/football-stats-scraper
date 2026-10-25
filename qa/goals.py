@@ -17,14 +17,14 @@ games, other leagues -- have no stored score here, so only the internal checks a
 them. That asymmetry is reported rather than hidden.
 """
 
+from dataclasses import dataclass
+
 import pandas as pd
 
+from domain.goal import HALF_TIME, MAX_MINUTE, MAX_STOPPAGE
 from qa import universal
 from qa.report import Report
 
-MAX_MINUTE = 90  # regulation only; extra time is dropped at parse time
-MAX_STOPPAGE = 20
-HALF_TIME = 45
 # Band for the second-half share of goals, set from an outside corpus that was dropped on
 # 2026-10-13. Re-derive it from our own HT and FT scores at plan step P5.
 SECOND_HALF_SHARE_MIN = 0.52
@@ -39,15 +39,22 @@ MIN_GOALS_FOR_SHARE = 500
 HT_ONLY_TOLERANCE = 0.005
 
 
+@dataclass(frozen=True)
+class _GoalCounts:
+    """One match's goals per side and half, counted from its goal rows; a match without goal
+    rows (a 0-0) counts 0 everywhere."""
+
+    ft_home: int = 0
+    ft_away: int = 0
+    ht_home: int = 0
+    ht_away: int = 0
+
+
 def validate(
     report: Report, goals_df: pd.DataFrame, attempt_log_df: pd.DataFrame, truth_df: pd.DataFrame
 ) -> None:
-    """Run every goal-store check.
-
-    `truth_df` carries match_id plus the ht/ft goal columns for every match whose score is
-    known independently — the corpus itself *and* every match referenced by a fixture's
-    history, whose score the detail page records. That second source is what makes the
-    whole store checkable rather than just the ~20% that are corpus matches.
+    """Run every goal-store check. `truth_df` holds `match_id` and the HT/FT goals of every
+    match whose score is known independently (`qa/validate.py:_goal_truth`).
     """
 
     universal.check_attempt_log(report, goals_df, attempt_log_df, "n_goals")
@@ -87,7 +94,8 @@ def _check_sequences(report: Report, goals_df: pd.DataFrame) -> None:
 
     offenders: dict[str, list[str]] = {"order": [], "index": [], "side": []}
     for match_id, match_goals_df in goals_df.groupby(goals_df["match_id"].astype(str)):
-        _inspect_match(str(match_id), match_goals_df, offenders)
+        for fault in _match_faults(match_goals_df):
+            offenders[fault].append(str(match_id))
 
     report.check(not offenders["order"], f"{len(offenders['order'])} matches not ordered by minute")
     report.check(
@@ -99,10 +107,8 @@ def _check_sequences(report: Report, goals_df: pd.DataFrame) -> None:
     )
 
 
-def _inspect_match(
-    match_id: str, match_goals_df: pd.DataFrame, offenders: dict[str, list[str]]
-) -> None:
-    """Order, index, and side/score agreement within one match."""
+def _match_faults(match_goals_df: pd.DataFrame) -> list[str]:
+    """The checks one match's goals fail, of "order", "index" and "side"; empty when none."""
 
     ordered_df = match_goals_df.sort_values("goal_index")
     minutes = [int(v) for v in ordered_df["minute"]]
@@ -112,20 +118,24 @@ def _inspect_match(
     homes = [int(v) for v in ordered_df["home_score_after"]]
     aways = [int(v) for v in ordered_df["away_score_after"]]
 
+    faults: list[str] = []
     keys = list(zip(minutes, stoppages, strict=True))
     if keys != sorted(keys):
-        offenders["order"].append(match_id)
+        faults.append("order")
 
     if indices != list(range(1, len(indices) + 1)):
-        offenders["index"].append(match_id)
+        faults.append("index")
 
     home = away = 0
     for side, new_home, new_away in zip(sides, homes, aways, strict=True):
         expected = "home" if new_home == home + 1 else "away"
         if side != expected or abs(new_home - home) + abs(new_away - away) != 1:
-            offenders["side"].append(match_id)
-            return
+            faults.append("side")
+            break
+
         home, away = new_home, new_away
+
+    return faults
 
 
 def _check_against_truth(
@@ -157,11 +167,12 @@ def _check_against_truth(
 
     ft_bad: list[str] = []
     ht_bad: list[str] = []
-    for match_id, fh, fa, hh, ha in zip(ids, ft_home, ft_away, ht_home, ht_away, strict=True):
-        got = totals.get(match_id, (0, 0, 0, 0))
-        if (got[0], got[1]) != (fh, fa):
+    stored_scores = zip(ids, ft_home, ft_away, ht_home, ht_away, strict=True)
+    for match_id, stored_ft_home, stored_ft_away, stored_ht_home, stored_ht_away in stored_scores:
+        counted = totals.get(match_id, _GoalCounts())
+        if (counted.ft_home, counted.ft_away) != (stored_ft_home, stored_ft_away):
             ft_bad.append(match_id)
-        if (got[2], got[3]) != (hh, ha):
+        if (counted.ht_home, counted.ht_away) != (stored_ht_home, stored_ht_away):
             ht_bad.append(match_id)
 
     match_count = len(ids)
@@ -190,8 +201,8 @@ def _check_against_truth(
         )
 
 
-def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, tuple[int, int, int, int]]:
-    """match_id -> (ft_home, ft_away, ht_home, ht_away), counted from the goal rows."""
+def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, _GoalCounts]:
+    """Each match's goals counted from the goal rows, by match id."""
 
     if goals_df.empty:
         return {}
@@ -212,10 +223,13 @@ def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, tuple[int, int, int, 
         ["ft_home", "ft_away", "ht_home", "ht_away"]
     ].sum()
 
-    return {
-        str(match_id): (int(row[0]), int(row[1]), int(row[2]), int(row[3]))
-        for match_id, row in zip(totals_df.index, totals_df.to_numpy(), strict=True)
-    }
+    totals: dict[str, _GoalCounts] = {}
+    for match_id, (ft_home, ft_away, ht_home, ht_away) in zip(
+        totals_df.index, totals_df.to_numpy(), strict=True
+    ):
+        totals[str(match_id)] = _GoalCounts(int(ft_home), int(ft_away), int(ht_home), int(ht_away))
+
+    return totals
 
 
 def second_half_share(goals_df: pd.DataFrame) -> float | None:
@@ -232,16 +246,15 @@ def second_half_share(goals_df: pd.DataFrame) -> float | None:
 
 
 def _check_half_split(report: Report, goals_df: pd.DataFrame) -> None:
-    """Tier 2: the corpus-level second-half share, against an independent measurement.
-
-    Only meaningful once enough goals have accumulated, so below `MIN_GOALS_FOR_SHARE`
-    this reports the figure without judging it — a handful of matches says nothing about
-    a population rate.
+    """The corpus-level share of goals after half-time lies between `SECOND_HALF_SHARE_MIN`
+    and `SECOND_HALF_SHARE_MAX`. Below `MIN_GOALS_FOR_SHARE` goals it is only printed, since
+    a few matches say nothing about a rate.
     """
 
     share = second_half_share(goals_df)
     if share is None:
         return
+
     if len(goals_df) < MIN_GOALS_FOR_SHARE:
         print(f"    (info) 2H goal share {share:.1%} on {len(goals_df)} goals (too few to judge)")
         return

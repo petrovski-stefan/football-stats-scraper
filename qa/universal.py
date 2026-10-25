@@ -1,10 +1,8 @@
-"""Dataset-agnostic checks — the ones that hold for any table this project writes,
-whatever its columns happen to mean.
+"""Dataset-agnostic checks: the ones that hold for any table this project writes, whatever
+its columns mean.
 
-These are the checks that were previously duplicated (and had drifted apart: the base
-CSV's key check compared raw values while the detail CSV's compared `astype(str)`, so
-an int64 id and a str id were being validated differently). Anything that needs to know
-what a column *means* belongs in `qa/league.py` or `qa/detail.py` instead.
+Anything that needs to know what a column means belongs in the module of its file, such as
+`qa/schedule.py`, `qa/stages.py` or `qa/league.py`.
 """
 
 from collections.abc import Collection, Mapping, Sequence
@@ -48,7 +46,7 @@ def check_primary_key(report: Report, df: pd.DataFrame, key: str = "match_id") -
     """
 
     if key not in df.columns:
-        report.check(False, f"missing primary key column {key!r}")
+        report.fail(f"missing primary key column {key!r}")
         return
 
     column = df[key]
@@ -85,11 +83,12 @@ def check_unique_across(
 def check_declared(
     report: Report, found: Mapping[str, Collection[str]], declared: Collection[str], what: str
 ) -> None:
-    """Every file holds only declared values. `found` maps each file's name to its values;
-    `what` names a stray value in the message.
+    """Every file holds only declared values: a file left behind when its entry left the
+    declaration (a league removed from the config) would still be read with the rest.
 
-    A file left behind when its entry was taken out of the declaration (a league removed
-    from the config) would still be read with the rest.
+    Args:
+        found: each file's name mapped to its values.
+        what: names a stray value in the message.
     """
 
     allowed = set(declared)
@@ -138,17 +137,12 @@ def check_ids_covered(
 def check_attempt_log(
     report: Report, store_df: pd.DataFrame, attempt_log_df: pd.DataFrame, count_field: str
 ) -> None:
-    """A global store and its attempt log agree, in all three ways they can disagree.
+    """A global store and its attempt log agree: no id logged twice (re-scraped every run), no
+    stored row without a log entry (a crash between the two appends), and each logged count
+    equal to the rows stored (a partial write). The log is the resume key: a 0-0 stores no rows.
 
-    Both `data/archived/raw/goals.csv` and `data/archived/raw/events.csv` are append-only stores
-    whose resume key is a separate log, because a match can legitimately produce zero rows — a 0-0
-    has no goals, a clean match has no cards. That makes the log load-bearing: if it drifts from the
-    store, either work is silently repeated forever or rows are orphaned.
-
-    The three failures, in increasing subtlety: a duplicated id (the match is re-scraped
-    every run), a store row with no log entry (written outside the lock, or a crash between
-    the two appends), and a log entry whose claimed count disagrees with the rows actually
-    present (a partial write).
+    Args:
+        count_field: the log's column with each match's row count.
     """
 
     dupes = int(attempt_log_df["match_id"].duplicated().sum())

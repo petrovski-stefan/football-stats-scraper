@@ -2,13 +2,12 @@
 
 from datetime import datetime, timedelta
 from itertools import combinations
-from pathlib import Path
 
 import pandas as pd
 
 from domain.clock import BERLIN, to_berlin
 from qa.report import Report
-from qa.schedule import BLANK_ROUND_MIN_MATCHES, STAGED_ODDS, read_staged, validate
+from qa.schedule import BLANK_ROUND_MIN_MATCHES, STAGED_ODDS, validate
 
 _START = datetime(2025, 8, 9, 15, 0, tzinfo=BERLIN)
 # Plausible opening odds, the same on every match: 1X2, then O/U and AH line and prices.
@@ -157,17 +156,3 @@ def test_a_round_below_the_minimum_size_is_left_alone() -> None:
     season_df = _season(teams=2 * (BLANK_ROUND_MIN_MATCHES - 1))
     season_df.loc[:, STAGED_ODDS.cells()] = float("nan")
     assert _blank_rounds(_issues(season_df)) == []
-
-
-def test_read_staged_keeps_text_columns(tmp_path: Path) -> None:
-    path = tmp_path / "x_2025_schedule.csv"
-    pd.DataFrame(
-        {"match_id": ["007"], "s1_season": ["2025"], "s1_stage": [""], "s1_odds": [None]}
-    ).to_csv(path, index=False)
-
-    read_back_df = read_staged(str(path))
-
-    assert read_back_df.loc[0, "match_id"] == "007"
-    assert read_back_df.loc[0, "s1_season"] == "2025"
-    assert read_back_df.loc[0, "s1_stage"] == ""
-    assert pd.isna(read_back_df.loc[0, "s1_odds"])

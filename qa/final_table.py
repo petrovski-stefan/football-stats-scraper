@@ -29,9 +29,8 @@ from domain import deductions
 from domain.standings import Standings
 from qa.report import Report
 
-# What the check reads, and the text columns among them (an empty stage stays "").
+# The schedule columns `_rebuild` reads: each match's two teams and its full-time goals.
 SCHEDULE_COLUMNS = [
-    "s1_stage",
     "s1_home_team_id",
     "s1_away_team_id",
     "s1_ft_home_goals",
@@ -41,7 +40,9 @@ _COUNTS = ("played", "won", "drawn", "lost", "goal_diff", "points")
 
 
 def _rebuild(matches_df: pd.DataFrame) -> Standings:
-    columns = [matches_df[c].astype(int).tolist() for c in SCHEDULE_COLUMNS[1:]]
+    """The standings rebuilt from every result in `matches_df`, one league stage's matches."""
+
+    columns = [matches_df[c].astype(int).tolist() for c in SCHEDULE_COLUMNS]
     table = Standings(set(columns[0]) | set(columns[1]))
     for home, away, home_goals, away_goals in zip(*columns, strict=True):
         table.add(home, away, home_goals, away_goals)
@@ -78,19 +79,19 @@ def check(report: Report, schedule_df: pd.DataFrame, final_table_df: pd.DataFram
     """Compare every stage's final table with the table rebuilt from the stage's results."""
 
     if final_table_df.empty:
-        report.check(False, "no final table: the rebuilt standings are unchecked")
+        report.fail("no final table: the rebuilt standings are unchecked")
         return
 
     first_row = final_table_df.iloc[0]
     league, season = int(first_row["league_id"]), str(first_row["season"])
-    for stage, page_table_df in final_table_df.groupby("stage", sort=False):
-        label = f"stage {stage!r}: " if stage else ""
-        stage_matches_df = schedule_df[schedule_df["s1_stage"] == stage]
-        if stage_matches_df.empty:
-            report.check(False, f"{label}a final table but no stored matches")
+    for league_stage, page_table_df in final_table_df.groupby("stage", sort=False):
+        label = f"stage {league_stage!r}: " if league_stage else ""
+        league_stage_df = schedule_df[schedule_df["s1_stage"] == league_stage]
+        if league_stage_df.empty:
+            report.fail(f"{label}a final table but no stored matches")
             continue
 
-        table = _rebuild(stage_matches_df)
+        table = _rebuild(league_stage_df)
         ranks = table.ranks("total")
         on_page = {int(team) for team in page_table_df["team_id"]}
         extra, missing = sorted(on_page - set(ranks)), sorted(set(ranks) - on_page)
@@ -98,7 +99,7 @@ def check(report: Report, schedule_df: pd.DataFrame, final_table_df: pd.DataFram
         report.check(not extra, f"{label}teams on the page with no stored match: {extra}")
         report.check(not missing, f"{label}teams with matches, missing from the page: {missing}")
 
-        deducted = deductions.on_page(league, season, str(stage))
+        deducted = deductions.on_page(league, season, str(league_stage))
         points = {team: table.line("total", team).points + deducted.get(team, 0) for team in ranks}
         for row in page_table_df[page_table_df["team_id"].astype(int).isin(ranks)].itertuples(
             index=False

@@ -13,6 +13,13 @@ def test_report_records_only_failures() -> None:
     assert report.ok is False
 
 
+def test_fail_always_records_its_message() -> None:
+    report = Report("test subject")
+    report.fail("a failure")
+    assert report.issues == ["a failure"]
+    assert report.ok is False
+
+
 def test_flush_prints_the_verdict(capsys: pytest.CaptureFixture[str]) -> None:
     passing, failing = Report("clean"), Report("broken")
     failing.check(False, "a problem")

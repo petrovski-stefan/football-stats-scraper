@@ -59,15 +59,23 @@ _ROUND = [
 def declared_columns(stage: int) -> list[str]:
     """Every column a stage's file must hold: its own and all the earlier stages'."""
 
-    return [column for n in range(1, stage + 1) for column in _ADDED[n]]
+    columns: list[str] = []
+    for stage_number in range(1, stage + 1):
+        columns += _ADDED[stage_number]
+
+    return columns
 
 
 def validate(
     report: Report, stage_file_df: pd.DataFrame, stage: int, earlier: Mapping[int, pd.DataFrame]
 ) -> None:
-    """One derived stage file: each earlier stage's columns carried over unchanged
-    (`earlier` maps a stage to its file), and at stage 2 the odds fields. The universal
-    checks (declared columns, the key) are `qa/validate.py`'s, as for stage 1."""
+    """One derived stage file: each earlier stage's columns carried over unchanged, the odds
+    fields at stage 2 and the round-so-far fields at stage 3. The universal checks (declared
+    columns, the key) are `qa/validate.py`'s, as for stage 1.
+
+    Args:
+        earlier: each earlier stage mapped to its file.
+    """
 
     for earlier_stage, earlier_df in earlier.items():
         check_carried(
@@ -144,10 +152,9 @@ def _same(old: "pd.Series[Any]", new: "pd.Series[Any]") -> "pd.Series[bool]":
 
 
 def check_odds_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
-    """Stage 2's odds fields agree with the stage-1 cells of the same row: each `s2_has_*`
-    flag is true exactly when its market's three cells are filled, each value computed from
-    a market is there exactly when the market is, and the three 1X2 probabilities, margin
-    removed, sum to 1."""
+    """Stage 2's odds fields agree with the row's stage-1 cells: each `s2_has_*` flag is true
+    exactly when its market's three cells are filled, each value from a market is there exactly
+    when the market is, and the three margin-free 1X2 probabilities sum to 1."""
 
     markets = STAGED_ODDS.markets()
     for kind, (flag, values) in _MARKET_FIELDS.items():
@@ -174,10 +181,9 @@ def check_odds_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
 
 
 def check_round_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
-    """The round-so-far counts agree with each other in every row, whatever the results: a
-    rare event is a comeback or a 7+ match, counted once when it is both; a match never
-    counts itself, so fewer round-mates finished than the round holds; both teams score in
-    every comeback; and the two averages read the same matches, so they are empty together."""
+    """The round-so-far counts agree in every row: a rare event is a comeback or a 7+ match,
+    once if both; fewer round-mates finished than the round holds (a match never counts
+    itself); both teams scored in every comeback; the two averages are empty together."""
 
     if not set(_ROUND) <= set(stage_file_df.columns):
         return

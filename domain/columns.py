@@ -16,6 +16,9 @@ so they sit beside the Pydantic models that define the same rows.
 OPTIONAL_BASE_COLUMNS = frozenset({"stage"})
 # The same allowance for the staged schedule file.
 OPTIONAL_SCHEDULE_COLUMNS = frozenset({"s1_stage"})
+# Columns of the staged files that are text even when every value looks like a number, or is
+# empty. Every reader of a stage file names them (`features/stage_io.py`, `qa/validate.py`).
+STAGE_TEXT_COLUMNS = ("match_id", "s1_season", "s1_stage", "s1_date", "season", "stage")
 
 ORDERED_DF_COLUMNS = [
     # Match metadata

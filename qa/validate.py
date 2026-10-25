@@ -39,6 +39,7 @@ from domain.columns import (
     ORDERED_DF_COLUMNS,
     PER_MATCH_SECTIONS,
     SCHEDULE_RAW_COLUMNS,
+    STAGE_TEXT_COLUMNS,
 )
 from qa import detail as detail_checks
 from qa import events as event_checks
@@ -55,7 +56,20 @@ _BUILDERS = {2: "features.schedule_row", 3: "features.schedule_multi"}
 
 
 def _ids(df: pd.DataFrame) -> list[str]:
+    """The table's match ids as stripped text; a missing id is left out."""
+
     return df["match_id"].dropna().astype(str).str.strip().tolist()
+
+
+def read_staged(path: str, columns: list[str] | None = None) -> pd.DataFrame:
+    """A staged file, all its columns or only `columns`, with its text columns kept as text:
+    an empty stage stays ""."""
+
+    head = pd.read_csv(path, nrows=0).columns
+    text = [c for c in STAGE_TEXT_COLUMNS if c in head and (columns is None or c in columns)]
+    staged_df = pd.read_csv(path, usecols=columns, dtype=dict.fromkeys(text, str))
+
+    return staged_df.fillna(dict.fromkeys(text, ""))
 
 
 def validate_league_season(base_path: str) -> bool:
@@ -111,11 +125,9 @@ def validate_league_season(base_path: str) -> bool:
 
 
 def validate_goals() -> bool | None:
-    """Validate the global goal store — once, across every league-season.
-
-    Returns None when nothing has been scraped yet, so an absent store is skipped rather
-    than counted as a failure. The store is global rather than per league-season because
-    the matches a fixture's history references come from other competitions entirely.
+    """Validate the global goal store, once for all league-seasons, since history matches come
+    from other competitions too. None when nothing is scraped yet: an absent store is skipped,
+    not failed.
     """
 
     goals_path, done_path = paths.goals_path(), paths.goals_done_path()
@@ -136,11 +148,9 @@ def validate_goals() -> bool | None:
 
 
 def validate_events() -> bool | None:
-    """Validate the global card/substitution store — once, across every league-season.
-
-    Returns None when nothing has been scraped yet. Unlike the goal store this one has no
-    independent score to reconcile against, so `qa/events.py` checks structure and rate
-    bands instead; that asymmetry is stated there rather than hidden.
+    """Validate the global card/substitution store, once for all league-seasons; None when
+    nothing is scraped yet. It has no free oracle like the goal store's scores, so
+    `qa/events.py` checks structure and rate bands instead (`qa/CLAUDE.md` §4).
     """
 
     events_path, done_path = paths.events_path(), paths.events_done_path()
@@ -164,17 +174,9 @@ SCORE_COLUMNS = ["match_id", "ht_home_goals", "ht_away_goals", "ft_home_goals", 
 
 
 def _goal_truth() -> pd.DataFrame:
-    """Every match whose half-time and full-time score we know independently.
-
-    Two sources, and the second is what makes the goal store fully checkable:
-
-      - the base league CSVs, which cover the corpus itself;
-      - the detail files' history blocks, which record the score of **every match a
-        fixture's history references** — cup ties, European games, other leagues.
-
-    Without the second source only ~20% of the goal store could be reconciled, and an
-    error in a history match would be invisible. With it, every scraped match has an
-    oracle: a parser bug that truncated 19 matches on 2026-09-22 was caught this way.
+    """Every match whose half-time and full-time score we know independently: the corpus's
+    own matches (the base league CSVs) and every match a fixture's history references (the
+    detail files), without which only ~20% of the goal store could be checked.
     """
 
     frames = [pd.read_csv(path, usecols=SCORE_COLUMNS) for path in paths.base_league_csvs()]
@@ -197,7 +199,7 @@ def _goal_truth() -> pd.DataFrame:
 def _history_scores(detail_df: pd.DataFrame) -> list[pd.DataFrame]:
     """The per-match history blocks, reshaped into the same columns as a base CSV."""
 
-    out: list[pd.DataFrame] = []
+    history_blocks: list[pd.DataFrame] = []
     for section in PER_MATCH_SECTIONS:
         for slot in range(1, MATCHES_PER_SECTION + 1):
             columns = {f"{section}_last{slot}_{field}": field for field in SCORE_COLUMNS}
@@ -206,9 +208,11 @@ def _history_scores(detail_df: pd.DataFrame) -> list[pd.DataFrame]:
 
             history_block_df = detail_df[list(columns)].rename(columns=columns).dropna()
             if not history_block_df.empty:
-                out.append(history_block_df.astype(dict.fromkeys(SCORE_COLUMNS, "int64")))
+                history_blocks.append(
+                    history_block_df.astype(dict.fromkeys(SCORE_COLUMNS, "int64"))
+                )
 
-    return out
+    return history_blocks
 
 
 def validate_staged_schedule(schedule_path: str) -> bool:
@@ -216,7 +220,7 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     table rebuilt from it, then its stage-2 and stage-3 files against the stages before."""
 
     league, season = paths.split_schedule_name(schedule_path)
-    schedule_df = schedule_checks.read_staged(schedule_path)
+    schedule_df = read_staged(schedule_path)
 
     schedule_report = Report(f"{league} {season} - schedule (stage 1)")
     universal.check_not_empty(schedule_report, schedule_df)
@@ -231,7 +235,7 @@ def validate_staged_schedule(schedule_path: str) -> bool:
     final_table_report = Report(f"{league} {season} - final table vs rebuilt standings")
     table_path = paths.final_table_path(league, season)
     exists = os.path.exists(table_path)
-    final_table_df = schedule_checks.read_staged(table_path) if exists else pd.DataFrame()
+    final_table_df = read_staged(table_path) if exists else pd.DataFrame()
     final_table_checks.check(final_table_report, schedule_df, final_table_df)
 
     reports = [
@@ -256,7 +260,7 @@ def _derived_reports(schedule_path: str, stage_1_df: pd.DataFrame, subject: str)
         report = Report(f"{subject} - schedule (stage {stage})")
         path = paths.schedule_at_stage(schedule_path, stage)
         if os.path.exists(path):
-            stage_file_df = schedule_checks.read_staged(path)
+            stage_file_df = read_staged(path)
             universal.check_required_columns(
                 report, stage_file_df, stage_checks.declared_columns(stage)
             )
@@ -264,7 +268,7 @@ def _derived_reports(schedule_path: str, stage_1_df: pd.DataFrame, subject: str)
             stage_checks.validate(report, stage_file_df, stage, earlier)
             earlier[stage] = stage_file_df
         else:
-            report.check(False, f"no stage-{stage} file: run `uv run python -m {builder}`")
+            report.fail(f"no stage-{stage} file: run `uv run python -m {builder}`")
 
         reports.append(report)
 
@@ -277,13 +281,13 @@ def validate_corpus(schedule_paths: list[str]) -> bool:
     stage-1 file."""
 
     report = Report(f"corpus - {len(schedule_paths)} staged league-seasons together")
-    keys = {
-        os.path.basename(path): schedule_checks.read_staged(path, ["match_id", "s1_league_id"])
+    ids_by_file = {
+        os.path.basename(path): read_staged(path, ["match_id", "s1_league_id"])
         for path in schedule_paths
     }
 
     universal.check_unique_across(
-        report, {name: _ids(schedule_df) for name, schedule_df in keys.items()}
+        report, {name: _ids(schedule_df) for name, schedule_df in ids_by_file.items()}
     )
 
     league_ids = _config_league_ids()
@@ -291,7 +295,7 @@ def validate_corpus(schedule_paths: list[str]) -> bool:
     if league_ids is not None:
         found = {
             name: schedule_df["s1_league_id"].astype(str).tolist()
-            for name, schedule_df in keys.items()
+            for name, schedule_df in ids_by_file.items()
         }
         universal.check_declared(
             report, found, league_ids, f"league id not in {paths.LEAGUES_FILE}"
@@ -308,6 +312,7 @@ def _config_league_ids() -> set[str] | None:
 
     if not os.path.exists(paths.LEAGUES_FILE):
         return None
+
     with open(paths.LEAGUES_FILE, encoding="utf-8") as leagues_file:
         return {str(league["league_id"]) for league in json.load(leagues_file)}
 
@@ -353,6 +358,8 @@ def validate_archived() -> bool:
 
 
 def main(argv: list[str] | None = None) -> None:
+    """Run the staged checks, or the archived ones with `--archived`; exit 1 on any failure."""
+
     parser = argparse.ArgumentParser(description="Validate the scraped data.")
     parser.add_argument(
         "--archived",

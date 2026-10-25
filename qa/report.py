@@ -10,6 +10,8 @@ class Report:
     """Accumulates failure messages for one subject, then prints a verdict."""
 
     def __init__(self, label: str) -> None:
+        """A report on `label`, with no failure recorded yet."""
+
         self.label = label
         self.issues: list[str] = []
 
@@ -19,8 +21,15 @@ class Report:
         if not ok:
             self.issues.append(message)
 
+    def fail(self, message: str) -> None:
+        """Record `message` as a failure."""
+
+        self.issues.append(message)
+
     @property
     def ok(self) -> bool:
+        """True while no failure is recorded."""
+
         return not self.issues
 
     def flush(self) -> bool:

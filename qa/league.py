@@ -32,6 +32,8 @@ BASE_ODDS = OddsColumns(
 
 
 def validate(report: Report, base_df: pd.DataFrame) -> None:
+    """Run every base-file check."""
+
     _check_round_row_counts(report, base_df)
     _check_round_index(report, base_df)
     _check_score_sanity(report, base_df)
@@ -60,13 +62,9 @@ def _round_label(key: Any) -> str:
 
 
 def _check_round_row_counts(report: Report, base_df: pd.DataFrame) -> None:
-    """No round holds more rows than it has scheduled matches.
-
-    Catches a round whose click did not re-render, so the previous round's rows were
-    scraped twice. Compared against `matches_in_round` rather than the median round
-    size, which mis-fires wholesale on split/playoff formats
-    (notes/WORKING/IDEAS_2026-10-01.md idea 4, Phase 1). A round with *fewer* rows is
-    legitimate — it is partially played — and is reported by `_check_round_index`.
+    """No round holds more rows than its `matches_in_round` (a click that did not re-render
+    scrapes a round twice); the median round size would misfire on split and playoff formats.
+    A round with fewer rows is partly played, and `_check_round_index` reports it.
     """
 
     if "matches_in_round" not in base_df.columns:
@@ -81,14 +79,9 @@ def _check_round_row_counts(report: Report, base_df: pd.DataFrame) -> None:
 
 
 def _check_round_index(report: Report, base_df: pd.DataFrame) -> None:
-    """`match_index_in_round` is a real ordering of the round by kickoff time.
-
-    Four assertions in increasing strength, one per `_round_size` / `_check_index_range`
-    / `_check_index_order` / `_check_tied_kickoff_blocks`. An index of 0 means the
-    scraper could not place the match — see scrapers/schedule.py.
-
-    Indices are NOT required to be contiguous 1..N: a partially-played round is missing
-    its unplayed matches and so legitimately has gaps.
+    """`match_index_in_round` orders each round by kickoff, in four checks of rising strength
+    (checks 1-4 below). An index of 0 means the old scraper could not place the match. Gaps
+    in 1..N are allowed: a partly played round lacks its unplayed matches.
     """
 
     if "match_index_in_round" not in base_df.columns or base_df.empty:
@@ -126,7 +119,7 @@ def _round_size(report: Report, label: str, round_df: pd.DataFrame) -> int | Non
 
     sizes = round_df["matches_in_round"].unique()
     if len(sizes) != 1:
-        report.check(False, f"{label}: matches_in_round is not constant ({sizes.tolist()})")
+        report.fail(f"{label}: matches_in_round is not constant ({sizes.tolist()})")
         return None
 
     return int(sizes[0])
@@ -136,18 +129,18 @@ def _check_index_range(report: Report, label: str, idx: "pd.Series[Any]", total:
     """Check 2: indices are unique and lie in 1..matches_in_round."""
 
     if idx.duplicated().any():
-        report.check(False, f"{label}: duplicate match_index_in_round")
+        report.fail(f"{label}: duplicate match_index_in_round")
 
     out_of_range = idx[(idx < 1) | (idx > total)]
     if len(out_of_range):
-        report.check(False, f"{label}: {len(out_of_range)} index outside 1..{total}")
+        report.fail(f"{label}: {len(out_of_range)} index outside 1..{total}")
 
 
 def _check_index_order(report: Report, label: str, ordered_df: pd.DataFrame) -> None:
     """Check 3 — the real test: (kickoff, home, away) order reproduces ascending index."""
 
     if not ordered_df["match_index_in_round"].is_monotonic_increasing:
-        report.check(False, f"{label}: index disagrees with (kickoff, home, away) order")
+        report.fail(f"{label}: index disagrees with (kickoff, home, away) order")
 
 
 def _check_tied_kickoff_blocks(report: Report, label: str, ordered_df: pd.DataFrame) -> None:
@@ -160,10 +153,9 @@ def _check_tied_kickoff_blocks(report: Report, label: str, ordered_df: pd.DataFr
     for kickoff, tied_df in ordered_df.groupby("_dt", dropna=False):
         span = tied_df["match_index_in_round"]
         if len(tied_df) > 1 and int(span.max()) - int(span.min()) + 1 != len(tied_df):
-            report.check(
-                False,
+            report.fail(
                 f"{label}: matches at {kickoff} do not occupy a contiguous "
-                f"index block ({sorted(span.tolist())})",
+                f"index block ({sorted(span.tolist())})"
             )
 
 
@@ -180,11 +172,9 @@ def _check_score_sanity(report: Report, base_df: pd.DataFrame) -> None:
 
 
 def _check_derived_columns(report: Report, base_df: pd.DataFrame) -> None:
-    """Stored derived columns still agree with the raw scores they came from.
-
-    Low yield by construction — these recompute with the same `domain/stats.py` functions
-    that produced them, so they can only catch damage between write and read (a shifted
-    column, a dtype coercion). Kept because that damage is silent otherwise.
+    """Stored derived columns still agree with the raw scores. They are recomputed with the
+    `domain/stats.py` functions that wrote them, so only damage between write and read (a
+    shifted column, a dtype change) fails here; nothing else would notice it.
     """
 
     bad_total_df = base_df[
