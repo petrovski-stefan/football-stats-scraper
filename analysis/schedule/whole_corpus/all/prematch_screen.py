@@ -342,14 +342,18 @@ def last_season(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
         screen_rows_df["season_cohort"] == cohorts[1],
     )
     base = earlier_cohort_df["comes_back"].mean()
-    team = earlier_cohort_df.groupby("team")[["comes_back", "loses_lead", "ahead", "one"]].sum()
-    comeback_rate = (team["comes_back"] + TEAM_PRIOR_WEIGHT * base) / (
-        team["one"] + TEAM_PRIOR_WEIGHT
+    team_sums_df = earlier_cohort_df.groupby("team")[
+        ["comes_back", "loses_lead", "ahead", "one"]
+    ].sum()
+    comeback_rate = (team_sums_df["comes_back"] + TEAM_PRIOR_WEIGHT * base) / (
+        team_sums_df["one"] + TEAM_PRIOR_WEIGHT
     )
-    blown = (team["loses_lead"] + PRIOR_WEIGHT * COMPLETION_PRIOR) / (team["ahead"] + PRIOR_WEIGHT)
+    blown = (team_sums_df["loses_lead"] + PRIOR_WEIGHT * COMPLETION_PRIOR) / (
+        team_sums_df["ahead"] + PRIOR_WEIGHT
+    )
 
-    league = earlier_cohort_df.groupby(card.TEAM_LEAGUE)[["comes_back", "m_cb"]].sum()
-    league_observed_over_expected = league["comes_back"] / league["m_cb"]
+    league_sums_df = earlier_cohort_df.groupby(card.TEAM_LEAGUE)[["comes_back", "m_cb"]].sum()
+    league_observed_over_expected = league_sums_df["comes_back"] / league_sums_df["m_cb"]
 
     with_last_season_df.loc[later, "prev_T_cb_rate"] = screen_rows_df.loc[later, "team"].map(
         comeback_rate

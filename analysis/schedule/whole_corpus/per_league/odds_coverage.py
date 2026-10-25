@@ -73,11 +73,9 @@ def half_time(matches_df: pd.DataFrame) -> tuple["pd.Series[bool]", "pd.Series[b
 
 
 def causes(matches_df: pd.DataFrame) -> "pd.Series[str]":
-    """The likely cause of a match without all three markets, the first that fits.
-
-    The awarded pattern: no market, a 3-0 or 0-3 result, and 0-0 or that result at half-time.
-    Then: the 1X2 is there but O/U or AH is not; a rescheduled kickoff (S3.10); the first
-    rounds or the last rounds of a stage; else isolated.
+    """The likely cause of a match that lacks a market, the first that fits: the awarded pattern
+    (no market, 3-0 or 0-3, and 0-0 or that score at half-time), the 1X2 there but the O/U or
+    the AH missing, a rescheduled kickoff (S3.10), a stage's first or last rounds, else isolated.
     """
 
     level, final = half_time(matches_df)

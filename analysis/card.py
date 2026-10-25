@@ -79,12 +79,12 @@ def team_rows(
     matches_df: pd.DataFrame,
     extra: "dict[str, tuple[pd.Series[Any], pd.Series[Any]]] | None" = None,
 ) -> pd.DataFrame:
-    """Two rows per match, one for each team: its venue, its two roles and its goals, its unit
-    (the team in its league), the league-season and the cohort.
+    """Two rows per match, one for each team: its venue, its goals, its unit (the team in its
+    league), the league-season, the cohort and its two roles: it comes back (behind at
+    half-time, then wins) or it loses a lead (ahead at half-time, then loses).
 
-    The roles: the team comes back (behind at half-time, then wins), and the team loses a lead
-    (ahead at half-time, then loses). `extra` adds columns, each given as (the value of the
-    home team, the value of the away team) on the index of `matches_df`.
+    Args:
+        extra: more columns, each as (home team values, away team values) on `matches_df`'s index.
     """
 
     sides = []

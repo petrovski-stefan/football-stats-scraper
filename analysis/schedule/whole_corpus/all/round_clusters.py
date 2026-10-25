@@ -57,6 +57,7 @@ def tests(
         for reading, unit, expected in readings(quantity):
             if only and reading not in only:
                 continue
+
             row = units.level_row(
                 yardstick_df, unit, ROUND, (observed, expected, label, kind), draws
             )

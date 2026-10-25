@@ -26,11 +26,9 @@ NULL_DRAWS = 200  # the shuffles of `level_row` (`permuted_qs`)
 def match_variance(
     kind: str, value: "float | pd.Series[float]", expected: "pd.Series[float]"
 ) -> "pd.Series[float]":
-    """One match's variance of its observed value if its unit has the given value.
-
-    "count" is a Poisson count (goals); "event" is 0/1 with the chance value x expected;
-    "share" is binomial over the match's goals (`expected` holds them), each goal in the
-    first half with the chance `value`.
+    """One match's variance of its observed value if its unit has the given value: "count" is
+    a Poisson count (goals), "event" a 0/1 with the chance value x expected, and "share" a
+    binomial over the match's goals (in `expected`), each in the first half with chance `value`.
     """
 
     if kind == "count":
@@ -65,11 +63,12 @@ def unit_values(
     dispersion_factor: float = 1.0,
     within: str | None = None,
 ) -> pd.DataFrame:
-    """Per unit: the two sums, their ratio (`value`), and its variance if all were equal.
+    """Per unit: the two sums, their ratio (`value`), and its variance if all were equal: the
+    variance under one pooled value, sum(observed) / sum(expected) over all matches, times
+    the `dispersion_factor`.
 
-    The variance is that of the value under one pooled value for every unit, sum(observed)
-    / sum(expected) over all matches, times the `dispersion_factor`. With `within` (such as the
-    league of a team), each match takes the pooled value of its `within` group instead.
+    Args:
+        within: a group column (such as a team's league) whose pooled value each match takes.
     """
 
     if within is None:
@@ -230,9 +229,11 @@ def within_tested(
     """Do the parts of a unit (its seasons, or its teams) differ by more than noise?
 
     Each unit's Cochran's Q of its parts around their precision-weighted mean, summed over
-    the units, on the summed degrees of freedom. A part's variance uses the value of its own
-    unit. tau^2 comes from the summed Q (DerSimonian-Laird), and each part is shrunk toward
-    the mean of its unit.
+    the units, on the summed degrees of freedom; a part's variance uses its unit's value.
+
+    Returns:
+        The test, tau^2 from the summed Q (DerSimonian-Laird), and each part shrunk toward
+        the mean of its unit.
     """
 
     dispersion_factor = dispersion(df, part, observed, expected, kind)
@@ -291,7 +292,8 @@ def within_row(
     summary, and its result: the spread that the test finds at 80%, the median share that a
     part keeps after shrinkage, and the repeat test of the parts against their unit.
 
-    `quantity` is (observed column, expected column, label, kind).
+    Args:
+        quantity: (observed column, expected column, label, kind).
     """
 
     observed, expected, label, kind = quantity
@@ -354,9 +356,8 @@ def null_q(
 ) -> tuple[float, float]:
     """The mean and sd of Q of `within_tested` when the outcomes come from the test's own null.
 
-    Each match gets the value of its unit: a 0/1 outcome with the chance unit value x
-    expected, or a Poisson count with that mean. If the method is right, the mean is near
-    the df. A real Q far from this mean is a property of the data, not of the method.
+    Each match is drawn at its unit's value (0/1 with the chance value x expected, or Poisson).
+    If the method is right, the mean is near the df, so a real Q far from it comes from the data.
     """
 
     observed, expected, _, kind = quantity
@@ -390,11 +391,8 @@ def permuted_qs(
 ) -> np.ndarray:
     """Q of `within_tested` in each draw with the parts shuffled inside their units.
 
-    Each match takes the part of a random match of its own unit, so each part keeps its
-    size and each unit its matches. The outcomes and the expected values stay together.
-    This is the null "the part tells nothing beyond the unit", with no model of the
-    outcomes. The real Q and the shuffled ones come from the same method, so a bias of
-    the method (such as a dispersion measured around small parts) is in both.
+    The null "the part tells nothing beyond the unit" (`shuffled_parts`), with no model of
+    the outcomes; a bias of the method is in the real Q and in the shuffled ones alike.
     """
 
     observed, expected, _, kind = quantity
@@ -429,12 +427,9 @@ def shuffled_parts(
 
 
 def variance_share(df: pd.DataFrame, observed: str, expected: str, tau_squared: float) -> float:
-    """The share of a match's variance that a spread tau^2 of the unit values makes.
-
-    A unit's value scales the expected value of each of its matches, so a spread tau^2 of
-    the values spreads a match's chance (or mean) by tau^2 x expected^2. The mean of that
-    over the matches that count (expected above 0), against the variance of their observed
-    values.
+    """The share of a match's variance that a spread tau^2 of the unit values makes: the mean
+    of tau^2 x expected^2 (a unit's value scales its matches' expected values) over the
+    matches with expected above 0, against the variance of their observed values.
     """
 
     counted_df = df[df[expected] > 0]
@@ -452,12 +447,13 @@ def level_row(
 ) -> dict[str, float | str]:
     """One test of the parts around their unit (`within_tested`) as a row of a summary.
 
-    Q with its chi-square p, and Q in `draws` shuffles of the parts inside their units
-    (`permuted_qs`): its mean, its sd and the p of the shuffles, the share of them with a Q
-    at least the real one. The spread tau of the parts comes from the excess of Q over the
-    mean of the shuffles, not over the df, so a bias of Q is out of it. tau and the spread
-    that the test finds at 80% are given against the pooled value and as a share of a
-    match's variance (`variance_share`).
+    tau comes from the excess of Q over the mean of the `draws` shuffles (`permuted_qs`), not
+    over the df, so a bias of Q is out of it.
+
+    Returns:
+        Q with its chi-square p; the shuffles' mean, sd and p (the share with a Q at least the
+        real one); tau and the spread found at 80%, against the pooled value and as a share of
+        a match's variance (`variance_share`).
     """
 
     observed, expected, label, kind = quantity

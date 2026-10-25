@@ -28,6 +28,7 @@ def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float
     odds = [home, draw, away]
     if any(math.isnan(price) for price in odds):
         return (math.nan, math.nan, math.nan, math.nan)
+
     result = calculate_implied_probabilities(odds, full_output=True)
     p_home, p_draw, p_away = result.implied_probabilities
 
@@ -45,9 +46,11 @@ def shin_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
 def scored(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Every match with all three opening 1X2 prices, scored on its full-time result.
 
-    Per match: the keys, the prices, both methods' probabilities, z, the bookmaker's margin,
-    each method's log loss and Brier score, and Shin's gain over proportional (proportional
-    loss minus Shin loss: above 0 means Shin scored better). `cluster` is the league-season.
+    Returns:
+        Per match: the keys, the prices, both methods' probabilities, z, the bookmaker's
+        margin, each method's log loss and Brier score, Shin's gain over proportional
+        (proportional loss minus Shin loss: above 0 means Shin scored better) and `cluster`,
+        the league-season.
     """
 
     priced_df = matches_df.dropna(subset=ODDS)

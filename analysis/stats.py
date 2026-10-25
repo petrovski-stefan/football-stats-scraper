@@ -32,6 +32,7 @@ def wilson_ci(successes: int, trials: int) -> tuple[float, float]:
 
     if trials == 0:
         return (0.0, 0.0)
+
     ci = binomtest(successes, trials).proportion_ci(confidence_level=0.95, method="wilson")
 
     return float(ci.low), float(ci.high)
@@ -137,13 +138,12 @@ def detectable_tau(
     seed: int = 0,
     groups: "pd.Series[Any] | None" = None,
 ) -> float:
-    """The between-unit sd that `heterogeneity` finds at p < 0.05 with the given power.
+    """The between-unit sd that `heterogeneity` finds at p < 0.05 with the given power, by
+    bisection over tau on draws from the normal random-effects model (each unit normal
+    around one mean, with its own variance plus tau^2).
 
-    Simulated under the normal random-effects model: each unit's value is normal around one
-    mean, with its own variance plus tau^2. The same draws serve every tau, and a bisection
-    finds the tau at which the share of draws with p < 0.05 reaches `power`. With `groups`
-    (such as the league of each team), Q sums each group's units around the group's own
-    mean, as in `analysis/units.py:within_tested`.
+    Args:
+        groups: a group per unit (such as its league), Q then within each group (`within_tested`).
     """
 
     unit_variances = variances.to_numpy(dtype=float)
@@ -173,11 +173,9 @@ def detectable_tau(
 def shrink(
     means: "pd.Series[float]", variances: "pd.Series[float]", het: Heterogeneity
 ) -> "pd.Series[float]":
-    """Empirical-Bayes normal shrinkage of each unit's mean toward the pooled mean.
-
-    The continuous counterpart of the Beta-Binomial rule in
-    `notes/REFERENCE/STATS_PRIMER.md` §1: a unit keeps the share tau^2 / (tau^2 + its
-    variance) of its own deviation. With tau^2 = 0 every unit gets the pooled mean.
+    """Empirical-Bayes normal shrinkage of each unit's mean toward the pooled mean, the
+    continuous form of the Beta-Binomial rule (`notes/REFERENCE/STATS_PRIMER.md` §1): a unit
+    keeps tau^2 / (tau^2 + its variance) of its deviation, so none at tau^2 = 0.
     """
 
     keep = het.tau_squared / (het.tau_squared + variances)
@@ -204,9 +202,8 @@ def mantel_haenszel(
     flag: "pd.Series[bool]", event: "pd.Series[bool]", stratum: "pd.Series[Any]"
 ) -> MantelHaenszel:
     """The Mantel-Haenszel odds ratio of `event` for `flag` over the strata, its 95% interval
-    and the CMH test. The Binding rules of `notes/ANALYSIS/CLAUDE.md` §6 ask for it: pool
-    over league-season strata, never test per league. A stratum of one row tells nothing and
-    is left out."""
+    and the CMH test, as `notes/ANALYSIS/CLAUDE.md` §6 asks (pool over league-season strata,
+    never test per league). A stratum of one row tells nothing and is left out."""
 
     flagged, hit = flag.to_numpy(dtype=bool), event.to_numpy(dtype=bool)
     cells_df = (

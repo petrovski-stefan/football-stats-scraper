@@ -30,9 +30,10 @@ MIN_ROUND_MATCHES = 600  # a round number played in fewer matches is a mix of a 
 def phases(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Per match: its round, the rounds of its stage, and its phase in three ways.
 
-    `third` is the third of the stage by round number, `third_kickoff` the third by kickoff
-    order inside the stage (a match played late counts where it was played), and `edge` the
-    first or last `EDGE_ROUNDS` rounds of the stage, or the middle.
+    Returns:
+        `round`, `rounds`, `third` (the third of the stage by round number), `third_kickoff`
+        (the third by kickoff order inside the stage: a match played late counts where it was
+        played) and `edge` (the first or last `EDGE_ROUNDS` rounds of the stage, or the middle).
     """
 
     keys = [matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"].fillna("")]

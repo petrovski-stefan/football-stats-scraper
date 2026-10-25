@@ -178,9 +178,8 @@ def carry_over(
 ) -> pd.DataFrame:
     """The `TOP_SHARE` of groups with the highest O/E in one cohort, read in the other.
 
-    Only groups with at least `COHORT_FLOOR` expected events in each cohort count. Each row
-    gives the O/E of the chosen groups in both cohorts, and of all counted groups in the
-    other cohort, the level to compare with.
+    A group counts with `COHORT_FLOOR` or more expected events in each cohort. Each row adds
+    the O/E of all counted groups in the other cohort, the level to compare with.
     """
 
     grouped = grouped_matches_df.groupby([grouping, "season_cohort"])

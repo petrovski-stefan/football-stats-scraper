@@ -111,8 +111,10 @@ def implied(
     """The model's chances per match, from the two rates and the first-half share.
 
     `m_cb_home` sums, over each half-time deficit d of the home team, P(behind by d at HT)
-    times P(win the second half by more than d); `m_cb_away` mirrors it. The share is one
-    number for every match, or one per match.
+    times P(win the second half by more than d); `m_cb_away` mirrors it.
+
+    Args:
+        share: one number for every match, or one per match.
     """
 
     home_rate_1h, away_rate_1h = share * lam_home, share * lam_away
@@ -158,9 +160,13 @@ def completion_given_ht(
 ) -> np.ndarray:
     """The model's chance that the team behind at half-time wins, from that HT score.
 
-    `ht_margin` is home minus away goals at half-time. A level half-time gives 0: no team
-    is behind, so no comeback can happen. `home_factor` and `away_factor` scale each side's
-    second-half rate; 1 is the basic model. The share is one number, or one per match.
+    A level half-time gives 0: no team is behind, so no comeback can happen.
+
+    Args:
+        share: one number for every match, or one per match.
+        ht_margin: home minus away goals at half-time.
+        home_factor: scales the home side's second-half rate; 1 is the basic model.
+        away_factor: scales the away side's second-half rate; 1 is the basic model.
     """
 
     home_rate_2h = (1 - share) * lam_home * home_factor
@@ -226,10 +232,12 @@ def frame(
 ) -> pd.DataFrame:
     """Every match with both opening markets, with its fitted rates and the model's chances.
 
-    The 1X2 margin goes by Shin's method, or proportionally with `proportional=True`. The
-    first-half share defaults to that of the priced matches. Outcomes come along as
-    floats, so an observed count and an expected count add up the same way. `cluster` is
-    the league-season.
+    Outcomes come along as floats, so an observed count and an expected count add up the
+    same way. `cluster` is the league-season.
+
+    Args:
+        share: the first-half share; None takes that of the priced matches.
+        proportional: remove the 1X2 margin proportionally, not by Shin's method.
     """
 
     priced_df = priced(matches_df)
