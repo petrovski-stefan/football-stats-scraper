@@ -43,6 +43,8 @@ def team_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 @pytest.fixture
 def rows(toy_rounds_df: pd.DataFrame) -> dict[str, pd.DataFrame]:
+    """The toy rounds at the match level and at the team level, by level name."""
+
     return {"match": toy_rounds_df, "team": team_frame(toy_rounds_df)}
 
 

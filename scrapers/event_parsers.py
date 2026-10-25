@@ -138,6 +138,7 @@ def _by_marker(cell: Tag) -> tuple[str, str]:
         name = node.get_text(strip=True)
         if not name:
             continue
+
         if marker == SUB_IN_ALT and not on:
             on = name
         elif marker == SUB_OUT_ALT and not off:

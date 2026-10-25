@@ -157,6 +157,7 @@ def _collect_block_ids(detail_df: pd.DataFrame, prefix: str, found: dict[str, in
         detail_df[id_col], leagues, names, dates, strict=True
     ):
         match_id = _as_id(raw_id)
+
         # Friendlies carry no timings and pre-2023 pages are truncated, so they are
         # dropped here rather than fetched and discarded later -- see domain/scope.py.
         if match_id and scope.in_scope(name, date):
@@ -289,6 +290,7 @@ def scrape_goals(
                 continue
 
             league_id = pending.get(match_id)
+
             # Only the store that is actually missing gets written, so a match fetched
             # purely to backfill events does not duplicate its goal rows.
             with csv_lock:

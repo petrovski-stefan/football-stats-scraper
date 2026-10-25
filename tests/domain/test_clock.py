@@ -8,6 +8,11 @@ from hypothesis import strategies as st
 
 from domain.clock import BERLIN, parse_berlin, parse_instant, to_berlin
 
+# Aware UTC instants, to the minute.
+_INSTANTS = st.datetimes(datetime(1990, 1, 1), datetime(2100, 1, 1), timezones=st.just(UTC)).map(
+    lambda moment: moment.replace(second=0, microsecond=0)
+)
+
 
 @pytest.mark.parametrize(
     ("moment", "text"),
@@ -23,15 +28,11 @@ from domain.clock import BERLIN, parse_berlin, parse_instant, to_berlin
         ),
     ],
 )
-def test_to_berlin(moment: datetime, text: str) -> None:
+def test_to_berlin_writes_berlin_time_with_its_offset(moment: datetime, text: str) -> None:
     assert to_berlin(moment) == text
 
 
-@given(
-    st.datetimes(datetime(1990, 1, 1), datetime(2100, 1, 1), timezones=st.just(UTC)).map(
-        lambda moment: moment.replace(second=0, microsecond=0)
-    )
-)
+@given(_INSTANTS)
 def test_any_instant_to_the_minute_survives_writing_and_reading(moment: datetime) -> None:
     # Every clock change from 1990 to 2100 is in range: the written offset keeps the instant.
     assert parse_instant(to_berlin(moment)) == moment

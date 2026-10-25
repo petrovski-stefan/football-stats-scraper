@@ -70,6 +70,8 @@ def test_the_test_season_is_a_real_round_robin() -> None:
 
 
 def _issues(schedule_df: pd.DataFrame) -> list[str]:
+    """The issues the schedule check finds in this table."""
+
     report = Report("test")
     validate(report, schedule_df)
 
@@ -131,6 +133,8 @@ def test_the_year_check_needs_a_season_label_it_can_read() -> None:
 
 
 def _blank_rounds(issues: list[str]) -> list[str]:
+    """The issues about rounds without odds on any match."""
+
     return [issue for issue in issues if "without odds on any match" in issue]
 
 

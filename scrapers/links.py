@@ -1,3 +1,8 @@
+"""The league config, `config/leagues.json`: its validation and the scrape jobs chosen from it.
+
+The whole file is validated when it loads, and any bad entry fails the run.
+"""
+
 import json
 import re
 from dataclasses import dataclass
@@ -19,6 +24,8 @@ _LEAGUE_URL_RE = re.compile(r"/league/(?P<season>\d{4}(?:-\d{4})?)/(?P<league_id
 
 
 class SeasonConfig(BaseModel):
+    """One season in the config: its label, its page URL and whether a default run takes it."""
+
     season: str
     url: str
     enabled: bool
@@ -27,9 +34,8 @@ class SeasonConfig(BaseModel):
 class LeagueConfig(BaseModel):
     """One league in `config/leagues.json`.
 
-    `stages` is every stage tab the league page showed under "Schedule" (`[]` when it has
-    none) and `keep` is the subset to scrape. Both live on the league, not the season,
-    because a league keeps its format from season to season.
+    `stages` lists every stage tab of its page (`[]` for none), `keep` the ones to scrape. Both
+    sit on the league, not the season: a league keeps its format from season to season.
     """
 
     name: str
@@ -43,6 +49,8 @@ class LeagueConfig(BaseModel):
 
     @model_validator(mode="after")
     def _consistent(self) -> "LeagueConfig":
+        """Fail on a `keep` stage the league does not list, or a URL of another season or id."""
+
         unknown = set(self.keep) - set(self.stages)
         if unknown:
             raise ValueError(f"{self.name}: keep {sorted(unknown)} is not in stages")
@@ -72,11 +80,10 @@ class LeagueSeason:
 
 @dataclass(frozen=True)
 class Selection:
-    """Which league-seasons a run takes.
+    """Which league-seasons a run takes: by default, the seasons marked `enabled: true`.
 
-    By default, the seasons marked `enabled: true`. Naming leagues (`leagues`, by config
-    code) or taking them all (`all_leagues`) ignores the flags. `before_year` then keeps only
-    seasons that started before that year, in either label convention.
+    Naming leagues by config code (`leagues`) or taking all (`all_leagues`) ignores the flags;
+    `before_year` then keeps the seasons that started before that year, in either label form.
     """
 
     leagues: tuple[str, ...] = ()
@@ -128,6 +135,8 @@ def get_league_seasons(
 
 
 def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) -> bool:
+    """Whether a run with `selection` takes this season of this league."""
+
     if selection.all_leagues or selection.leagues:
         picked = selection.all_leagues or league.code in selection.leagues
     else:
@@ -144,8 +153,8 @@ def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) ->
 def parse_league_url(url: str) -> tuple[str, int]:
     """Extract (season, league_id) from a nowgoal league URL, on any host."""
 
-    match = _LEAGUE_URL_RE.search(url)
-    if match is None:
+    found = _LEAGUE_URL_RE.search(url)
+    if found is None:
         raise ValueError(f"Cannot parse season/league id from URL: {url!r}")
 
-    return match.group("season"), int(match.group("league_id"))
+    return found.group("season"), int(found.group("league_id"))

@@ -43,7 +43,7 @@ def test_league_slug_does_not_repeat_the_country(league: str, slug: str) -> None
     assert league_slug("North Testland", league) == slug
 
 
-def test_save_unless_shrinking(tmp_path: Path) -> None:
+def test_save_unless_shrinking_keeps_the_fuller_file(tmp_path: Path) -> None:
     path = str(tmp_path / "out.csv")
     columns = ["a", "b"]
 

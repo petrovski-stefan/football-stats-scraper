@@ -12,6 +12,8 @@ _LEAGUE, _SEASON = 0, "2025-2026"
 
 
 def _schedule(*matches: tuple[str, int, int, int, int]) -> pd.DataFrame:
+    """Schedule rows from (stage, home id, away id, home FT goals, away FT goals) tuples."""
+
     return pd.DataFrame(
         matches,
         columns=[
@@ -25,6 +27,8 @@ def _schedule(*matches: tuple[str, int, int, int, int]) -> pd.DataFrame:
 
 
 def _line(team: int, rank: int, counts: tuple[int, ...], stage: str = "") -> dict[str, object]:
+    """One team's line of the page's final table; `counts` are P, W, D, L, GD and PTS."""
+
     played, won, drawn, lost, goal_diff, points = counts
 
     return {
@@ -54,6 +58,8 @@ _PAGE = [
 
 
 def _run(schedule_df: pd.DataFrame, page: list[dict[str, object]]) -> Report:
+    """The report of the final-table check on these schedule rows and page lines."""
+
     report = Report("test")
     check(report, schedule_df, pd.DataFrame(page))
 
@@ -92,6 +98,7 @@ def test_a_points_deduction_fails() -> None:
 
 def test_a_declared_deduction_passes(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(deductions, "POINTS_DEDUCTIONS", {(_LEAGUE, _SEASON, "", 1): -3})
+
     # Team 1 drops from 3 points to 0, below teams 3 and 4.
     page = [
         _line(3, 1, (1, 0, 1, 0, 0, 1)),

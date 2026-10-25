@@ -1,9 +1,8 @@
 """Scraper-internal constants: nowgoal DOM selectors, page URLs, robots.txt rules, and
 the team-name transliteration table.
 
-The CSV output schema that used to live here alongside these now sits in
-`domain/columns.py` — it is a contract shared with the feature layer, whereas
-nothing outside `scrapers/` has any business knowing a CSS selector.
+The CSV column order is a contract shared with the feature layer, so it sits in
+`domain/columns.py`; nothing outside `scrapers/` needs a CSS selector.
 """
 
 from datetime import timedelta, timezone
@@ -11,9 +10,9 @@ from datetime import timedelta, timezone
 # nowgoal often moves to a new domain or subdomain, and the old host answers 301 to the new
 # one; the paths, the ids and the page structure stay the same (scrapers/CLAUDE.md). So the
 # hosts live here only: a move changes these three lines and the URLs of config/leagues.json.
-SITE = "nowgoal50.com"  # since 2026-10-20; before: nowgoal26.com
+SITE = "nowgoal50.com"
 LEAGUE_HOST = f"football.{SITE}"  # the league pages
-MATCH_HOST = f"live.{SITE}"  # the h2h and live pages of a match; before 2026-10-20: live11.
+MATCH_HOST = f"live.{SITE}"  # the h2h and live pages of a match
 
 # The robots.txt `Disallow` rules of every host the scraper may open, copied from the files
 # the user read in a browser on 2026-10-02, and confirmed unchanged on the new hosts by the

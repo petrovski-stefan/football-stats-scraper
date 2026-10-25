@@ -15,17 +15,23 @@ class _FakeDriver:
     URL that the browser lands on."""
 
     def __init__(self) -> None:
+        """Start with no pages opened and no redirects."""
+
         self.opened: list[str] = []
         self.redirects: dict[str, str] = {}
         self.current_url = ""
 
     def get(self, url: str) -> None:
+        """Record the URL and land on its redirect target, if any."""
+
         self.opened.append(url)
         self.current_url = self.redirects.get(url, url)
 
 
 @pytest.fixture
 def fake(monkeypatch: pytest.MonkeyPatch) -> _FakeDriver:
+    """A fake browser, with robots rules for two test hosts."""
+
     rules = {"example.com": ("/private/", "/en/"), "new.example.com": ("/private/",)}
     monkeypatch.setattr(driver, "ROBOTS_DISALLOW", rules)
 
@@ -33,6 +39,8 @@ def fake(monkeypatch: pytest.MonkeyPatch) -> _FakeDriver:
 
 
 def _open(fake: _FakeDriver, url: str) -> None:
+    """Open `url` through `open_page` with the fake browser."""
+
     driver.open_page(cast(webdriver.Chrome, cast(Any, fake)), url)
 
 

@@ -748,6 +748,7 @@ def main() -> None:
 
     if args.self_check:
         raise SystemExit(1 if self_check(args.sample) else 0)
+
     summarize(build_features())
 
 

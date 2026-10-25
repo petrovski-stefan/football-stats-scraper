@@ -12,6 +12,8 @@ from features.stage_io import write_stage_csv
 
 
 def _write(tmp_path: Path, league_id: int, season: str, match_count: int) -> str:
+    """Write a stage file of `match_count` matches of one league-season; return its path."""
+
     stage_file_df = pd.DataFrame(
         {
             "match_id": [f"{league_id}-{season}-{i}" for i in range(match_count)],
@@ -50,7 +52,7 @@ def test_corpus_line_counts_league_seasons_and_matches() -> None:
     assert line == "Corpus 2026-10-16: 3 league-seasons, 4 matches"
 
 
-def test_outcome_1x2_codes() -> None:
+def test_outcome_1x2_codes_home_win_draw_and_away_win() -> None:
     scores_df = pd.DataFrame({"s1_ft_home_goals": [2, 1, 0], "s1_ft_away_goals": [1, 1, 3]})
     assert corpus.outcome_1x2(scores_df).tolist() == [corpus.HOME, corpus.DRAW, corpus.AWAY]
 

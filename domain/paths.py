@@ -5,8 +5,7 @@ a file has, this one declares *which file, where*. Both are contracts shared bet
 the scrapers that write and the layers that read, which is why they sit in the base
 package every layer may import.
 
-The old pipeline's files sit in `data/archived/` (moved there from `data/raw/` and
-`data/processed/` on 2026-10-10, the user's call), split by provenance as before:
+The old pipeline's files sit in `data/archived/`, split by provenance:
 
     data/archived/raw/        <league>_<season>.csv           scrapers.schedule (old format)
                               <league>_<season>_detail.csv    scrapers.detail
@@ -82,38 +81,31 @@ _STEM_RE = re.compile(r"^(?P<league>.+)_(?P<season>\d{4}(?:-\d{4})?)$")
 
 
 def _stem(base_path: str) -> str:
-    """`data/raw/epl_2025-2026.csv` -> `epl_2025-2026`."""
+    """`data/archived/raw/epl_2025-2026.csv` -> `epl_2025-2026`."""
 
     return os.path.splitext(os.path.basename(base_path))[0]
 
 
 def split_league_season(path: str) -> tuple[str, str]:
-    """`data/raw/norway_eliteserien_2025.csv` -> `("norway_eliteserien", "2025")`.
+    """The league and season of a `<league>_<season>` file name; the inverse of `schedule_path`.
 
-    The inverse of the `<league>_<season>` part that `schedule_path` builds. Never do this by
-    fixed-width slicing: a season label is 9 characters for a cross-year league but 4 for
-    a calendar-year one, so a hardcoded width eats into the league name instead —
-    `norway_eliteserien_2025` sliced at 9 yields `("norway_elites", "rien_2025")`.
-
-    Returns `(stem, "")` if the name carries no recognisable season, so a stray file
-    labels itself oddly in a report rather than crashing the caller.
+    Never slice a fixed width instead: a season label has 9 characters or 4. `(stem, "")` when
+    the name carries no season, so a stray file shows oddly in a report and crashes nothing.
     """
 
     stem = _stem(path)
-    match = _STEM_RE.match(stem)
-    if match is None:
+    found = _STEM_RE.match(stem)
+    if found is None:
         return stem, ""
 
-    return match.group("league"), match.group("season")
+    return found.group("league"), found.group("season")
 
 
 def base_league_csvs() -> list[str]:
     """Every base league CSV in `data/archived/raw/`, sorted.
 
-    Two kinds of file share the directory without being league-seasons and must be
-    excluded, or every consumer treats them as one: the per-league `_detail.csv` scrapes,
-    and the **global** goal-timing store, which is keyed by match id rather than by
-    league-season and so has no `<league>_<season>` stem to split.
+    Leaves out the two kinds of file that share the directory but are no league-season: the
+    `_detail.csv` scrapes and the global goal and event stores (`GLOBAL_FILES`).
     """
 
     return [
@@ -130,11 +122,9 @@ def detail_path(base_path: str) -> str:
 
 
 def enriched_path(base_path: str) -> str:
-    """The enriched join built from a base league CSV — a *different* directory.
+    """The enriched join built from a base league CSV, in a *different* directory.
 
-    This is the function that knows raw and derived have been separated. Callers that
-    used to reach a sibling with `base_path.replace(".csv", "_enriched.csv")` must go
-    through here instead; that string surgery silently produced a `data/raw/` path.
+    Never build it from `base_path` by string surgery: the result would land in `RAW_DIR`.
     """
 
     return os.path.join(PROCESSED_DIR, _stem(base_path) + ENRICHED_SUFFIX)
@@ -163,12 +153,10 @@ def events_path() -> str:
 
 
 def events_done_path() -> str:
-    """The attempt log beside it.
+    """The attempt log beside the event store.
 
-    Separate from `goals_done_path()` on purpose: the two stores are filled by the same
-    page render but were introduced at different times, so a match can be done for goals
-    and pending for events. Keeping the logs apart is what lets the scraper fetch such a
-    match once, write only the store that is missing, and never re-fetch it again.
+    Kept apart from `goals_done_path()`: a match can be done for one store and pending for the
+    other, and the scraper then fetches it once and writes only the store that is missing.
     """
 
     return os.path.join(RAW_DIR, EVENTS_DONE_FILE)
@@ -208,10 +196,10 @@ def schedule_csvs(stage: int) -> list[str]:
 
 
 def split_schedule_name(path: str) -> tuple[str, str]:
-    """`.../england_english_premier_league_2025-2026_schedule.csv` ->
-    `("england_english_premier_league", "2025-2026")`. The staged files carry a kind suffix
-    after the season, so the suffix goes first and `split_league_season` does the rest.
-    `(stem, "")` when the name does not fit."""
+    """The league and season of a staged schedule file name; `(stem, "")` when it does not fit.
+
+    The `_schedule.csv` suffix comes off first, then `split_league_season` does the rest.
+    """
 
     name = os.path.basename(path)
     if not name.endswith(SCHEDULE_SUFFIX):

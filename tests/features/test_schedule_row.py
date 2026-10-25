@@ -9,6 +9,8 @@ from features.schedule_row import derive
 
 
 def _row(ht: tuple[int, int], ft: tuple[int, int], **overrides: Any) -> dict[str, Any]:
+    """A priced stage-1 row with these HT and FT scores; `overrides` change fields."""
+
     row: dict[str, Any] = {
         "match_id": "1",
         "s1_date": "2026-01-31 18:30+01:00",  # a Saturday in Berlin
@@ -32,38 +34,40 @@ def _row(ht: tuple[int, int], ft: tuple[int, int], **overrides: Any) -> dict[str
     return row
 
 
-def test_goal_fields() -> None:
-    out = derive(_row((0, 2), (3, 2)))
-    assert out["s2_total_goals"] == 5
-    assert (out["s2_goals_1h"], out["s2_goals_2h"]) == (2, 3)
-    assert (out["s2_home_2h_goals"], out["s2_away_2h_goals"]) == (3, 0)
-    assert (out["s2_ht_result"], out["s2_ft_result"]) == ("2", "1")
+def test_goal_fields_split_the_score_by_half() -> None:
+    fields = derive(_row((0, 2), (3, 2)))
+    assert fields["s2_total_goals"] == 5
+    assert (fields["s2_goals_1h"], fields["s2_goals_2h"]) == (2, 3)
+    assert (fields["s2_home_2h_goals"], fields["s2_away_2h_goals"]) == (3, 0)
+    assert (fields["s2_ht_result"], fields["s2_ft_result"]) == ("2", "1")
 
 
 def test_comeback_fields_agree_with_the_kernel(
     score_grid: list[tuple[tuple[int, int], tuple[int, int]]],
 ) -> None:
     for ht, ft in score_grid:
-        out = derive(_row(ht, ft))
-        assert out["s2_is_comeback"] is stats.is_comeback(*ht, *ft), (ht, ft)
-        assert out["s2_is_comeback_home"] is stats.is_comeback_home(*ht, *ft), (ht, ft)
-        assert out["s2_is_comeback_away"] is stats.is_comeback_away(*ht, *ft), (ht, ft)
-        assert out["s2_ht_decisive"] is (ht[0] != ht[1]), (ht, ft)
+        fields = derive(_row(ht, ft))
+
+        assert fields["s2_is_comeback"] is stats.is_comeback(*ht, *ft), (ht, ft)
+        assert fields["s2_is_comeback_home"] is stats.is_comeback_home(*ht, *ft), (ht, ft)
+        assert fields["s2_is_comeback_away"] is stats.is_comeback_away(*ht, *ft), (ht, ft)
+        assert fields["s2_ht_decisive"] is (ht[0] != ht[1]), (ht, ft)
 
 
-def test_market_fields() -> None:
-    out = derive(_row((0, 0), (0, 0)))
-    total = out["s2_mkt_p_home"] + out["s2_mkt_p_draw"] + out["s2_mkt_p_away"]
+def test_a_fully_priced_row_gets_every_market_field() -> None:
+    fields = derive(_row((0, 0), (0, 0)))
+    total = fields["s2_mkt_p_home"] + fields["s2_mkt_p_draw"] + fields["s2_mkt_p_away"]
     assert total == pytest.approx(1.0)
-    assert out["s2_mkt_sup"] > 0  # the home side is the favourite
-    assert out["s2_implied_over"] == pytest.approx(0.5)  # equal prices
-    assert out["s2_has_odds"] and out["s2_has_ou_odds"] and out["s2_has_ah_odds"]
+    assert fields["s2_mkt_sup"] > 0  # the home side is the favourite
+    assert fields["s2_implied_over"] == pytest.approx(0.5)  # equal prices
+    assert fields["s2_has_odds"] and fields["s2_has_ou_odds"] and fields["s2_has_ah_odds"]
 
 
 def test_a_missing_price_leaves_its_market_empty() -> None:
-    out = derive(_row((0, 0), (0, 0), s1_odds_1x2_open_draw=float("nan")))
-    assert out["s2_has_odds"] is False
-    assert out["s2_mkt_p_home"] is None
-    assert out["s2_mkt_sup"] is None
+    fields = derive(_row((0, 0), (0, 0), s1_odds_1x2_open_draw=float("nan")))
+    assert fields["s2_has_odds"] is False
+    assert fields["s2_mkt_p_home"] is None
+    assert fields["s2_mkt_sup"] is None
+
     # The other markets do not depend on the 1X2 prices.
-    assert out["s2_has_ou_odds"] is True
+    assert fields["s2_has_ou_odds"] is True

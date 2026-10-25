@@ -45,6 +45,7 @@ def build_enriched(base_path: str) -> str | None:
 
     detail_df = pd.read_csv(detail_path, low_memory=False)
     detail_df["match_id"] = detail_df["match_id"].astype(str)
+
     # The detail scrape appends, so a re-scraped match appears twice; the later row wins.
     detail_df = detail_df.drop_duplicates("match_id", keep="last")
 

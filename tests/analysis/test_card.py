@@ -22,8 +22,13 @@ def test_the_odds_card_reads_columns_of_the_yardstick_frame(
     yardstick_df = yardstick.frame(toy_priced_matches_df, yardstick.build_grid(COARSE))
     yardstick_df["one"] = 1.0
     for observed, denominator, model, _, kind in card.ODDS_CARD:
-        assert {observed, denominator, model} <= set(yardstick_df.columns)
-        assert kind in {"event", "count"}
+        assert {observed, denominator, model} <= set(yardstick_df.columns), (
+            observed,
+            denominator,
+            model,
+            kind,
+        )
+        assert kind in {"event", "count"}, (observed, denominator, model, kind)
 
 
 def test_card_frame_reads_the_stage_columns(toy_priced_matches_df: pd.DataFrame) -> None:
@@ -116,8 +121,10 @@ def test_the_completion_counts_only_from_the_right_half_time_state(
     team_yardstick: tuple[pd.DataFrame, pd.DataFrame],
 ) -> None:
     team_rows_df, _ = team_yardstick
+
     assert (team_rows_df.loc[team_rows_df["behind"] == 0.0, "m_wins_from_behind"] == 0.0).all()
     assert (team_rows_df.loc[team_rows_df["ahead"] == 0.0, "m_loses_from_ahead"] == 0.0).all()
+
     behind_df = team_rows_df[team_rows_df["behind"] == 1.0]
     assert behind_df["m_wins_from_behind"].tolist() == pytest.approx(
         behind_df["m_completion"].tolist()

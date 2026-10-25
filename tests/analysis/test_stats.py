@@ -97,6 +97,7 @@ def test_detectable_tau_matches_the_closed_form_for_equal_variances() -> None:
     closed = math.sqrt(
         variance * (chi2.isf(0.05, degrees_of_freedom) / chi2.isf(0.8, degrees_of_freedom) - 1)
     )
+
     assert stats.detectable_tau(pd.Series([variance] * units), draws=4000) == pytest.approx(
         closed, rel=0.05
     )
@@ -150,6 +151,8 @@ def _flagged_rows(cells: list[tuple[str, int, int, int, int]]) -> pd.DataFrame:
 
 
 def _mh(flagged_rows_df: pd.DataFrame) -> stats.MantelHaenszel:
+    """The Mantel-Haenszel result of flagged rows, by their `flag`, `event` and `stratum`."""
+
     return stats.mantel_haenszel(
         flagged_rows_df["flag"], flagged_rows_df["event"], flagged_rows_df["stratum"]
     )
@@ -189,7 +192,9 @@ def test_the_cmh_test_of_one_table_is_pearsons_scaled_by_n_minus_one() -> None:
             * (flagged_misses + rest_misses)
         )
     )
+
     result = _mh(_flagged_rows([("s", flagged_hits, flagged_misses, rest_hits, rest_misses)]))
+
     assert result.p_value == pytest.approx(
         float(chi2.sf(pearson * (stratum_size - 1) / stratum_size, 1))
     )

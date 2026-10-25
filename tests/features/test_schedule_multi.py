@@ -38,6 +38,8 @@ def _match(
     round_number: int = 1,
     stage: str = "",
 ) -> dict[str, object]:
+    """A stage-1 match of `teams` (home, away) with its FT score; the HT score is 0-0."""
+
     return {
         "match_id": match_id,
         "s1_stage": stage,
@@ -55,6 +57,8 @@ def _match(
 
 
 def _frame(*matches: dict[str, object]) -> pd.DataFrame:
+    """The matches as a table, indexed by match id."""
+
     return pd.DataFrame(list(matches)).set_index("match_id", drop=False)
 
 
@@ -160,9 +164,11 @@ def test_a_postponed_match_counts_only_from_when_it_is_played() -> None:
 
     # Before round 2, team 1 has played nothing: its round-1 match has not happened.
     assert pre_kickoff_df.loc["r2_ac", "s3_home_pre_ft_total_played"] == 0
+
     # The postponed match itself sees round 2's result.
     assert pre_kickoff_df.loc["r1_ab", "s3_home_pre_ft_total_played"] == 1
     assert pre_kickoff_df.loc["r1_ab", "s3_home_pre_ft_total_points"] == 3
+
     # Round 3 sees both of team 1's matches.
     assert pre_kickoff_df.loc["r3_ad", "s3_home_pre_ft_total_played"] == 2
 
@@ -190,7 +196,7 @@ def test_stages_keep_separate_tables() -> None:
     assert pre_kickoff_df.loc["b", "s3_home_pre_ft_total_played"] == 0
 
 
-def test_rank_gap() -> None:
+def test_rank_gap_is_the_distance_between_the_two_ranks() -> None:
     schedule_df = _frame(
         _match("a", _START, (1, 2), (3, 0)),
         _match("b", _START, (3, 4), (1, 1)),
@@ -209,10 +215,14 @@ def test_rank_gap() -> None:
 
 
 def _with_ht(match: dict[str, object], ht: tuple[int, int]) -> dict[str, object]:
+    """The match with this half-time score."""
+
     return {**match, "s1_ht_home_goals": ht[0], "s1_ht_away_goals": ht[1]}
 
 
 def _season() -> pd.DataFrame:
+    """Five matches of four teams, kicked off in three groups a week apart."""
+
     week = timedelta(days=7)
 
     return _frame(
@@ -226,6 +236,7 @@ def _season() -> pd.DataFrame:
 
 def test_htft_record_is_from_each_teams_own_side() -> None:
     pre_kickoff_df = pre_kickoff_tables(_season())
+
     # Before match e, team 1 (home in e) has one comeback, team 3 (away in e) has none.
     assert pre_kickoff_df.at["e", "s3_home_pre_htft_total_l_w"] == 1
     assert pre_kickoff_df.at["e", "s3_home_pre_htft_home_l_w"] == 1
@@ -260,12 +271,25 @@ def test_htft_counts_agree_with_the_standings() -> None:
     for side in STANDING_SIDES:
         for venue in STANDING_VENUES:
             played = pre_kickoff_df[f"s3_{side}_pre_ft_{venue}_played"]
-            assert (_cells(pre_kickoff_df, side, venue, every, every) == played).all()
+            assert (_cells(pre_kickoff_df, side, venue, every, every) == played).all(), (
+                side,
+                venue,
+            )
             for result, stat in zip(HTFT_RESULTS, ("won", "drawn", "lost"), strict=True):
                 by_ht = _cells(pre_kickoff_df, side, venue, (result,), every)
                 by_ft = _cells(pre_kickoff_df, side, venue, every, (result,))
-                assert (by_ht == pre_kickoff_df[f"s3_{side}_pre_ht_{venue}_{stat}"]).all()
-                assert (by_ft == pre_kickoff_df[f"s3_{side}_pre_ft_{venue}_{stat}"]).all()
+                assert (by_ht == pre_kickoff_df[f"s3_{side}_pre_ht_{venue}_{stat}"]).all(), (
+                    side,
+                    venue,
+                    result,
+                    stat,
+                )
+                assert (by_ft == pre_kickoff_df[f"s3_{side}_pre_ft_{venue}_{stat}"]).all(), (
+                    side,
+                    venue,
+                    result,
+                    stat,
+                )
 
 
 # --- What is at stake ------------------------------------------------------------------
@@ -352,6 +376,8 @@ def test_a_result_is_news_only_after_the_odds_opened(gap: timedelta, change: int
 def _with_events(
     match: dict[str, object], comeback: bool = False, goals: int = 2, line: float = 2.5
 ) -> dict[str, object]:
+    """The match with its comeback flag, total goals and opening O/U line."""
+
     return {
         **match,
         "s2_is_comeback": comeback,
@@ -383,7 +409,7 @@ def test_round_so_far_counts_the_finished_round_mates() -> None:
 
     # The first kickoff, a match kicking off before anything finished, another round.
     for match in ("a", "b", "d", "e"):
-        assert _counts(round_so_far_df, match) == [0, 0, 0, 0]
+        assert _counts(round_so_far_df, match) == [0, 0, 0, 0], match
 
 
 def test_a_comeback_with_seven_goals_is_one_rare_event() -> None:
@@ -490,10 +516,10 @@ def _results_and_odds(rng: random.Random) -> dict[str, object]:
 
 
 def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
-    """Six teams, a double round robin of 10 rounds. Each round has two simultaneous kickoffs
-    and a third that starts exactly FINISHED_AFTER later, a minute less, 1 h or 4 h later; one
-    match is played 10 days late and one a month early. The minute-less gap is what catches a
-    window that counts a match too soon."""
+    """Six teams, a double round robin of 10 rounds: two kickoffs at once, then a third exactly
+    `FINISHED_AFTER`, a minute less, 1 h or 4 h later; one match 10 days late, one a month
+    early. The minute-less gap catches a window that counts a match too soon.
+    """
 
     rng = random.Random(seed)
     teams = list(range(1, 7))
@@ -545,6 +571,8 @@ def _stage_2(rows: list[dict[str, object]]) -> pd.DataFrame:
 
 
 def _kickoff(row: dict[str, object]) -> datetime:
+    """The row's kickoff as an instant."""
+
     return parse_instant(str(row["s1_date"]))
 
 
@@ -564,10 +592,10 @@ def _differing(before_df: pd.DataFrame, after_df: pd.DataFrame, match_id: str) -
 
 
 def _leaks(rows: list[dict[str, object]], rng: random.Random) -> dict[str, list[str]]:
-    """For each match, scramble the score and odds of every match that kicked off less than
-    FINISHED_AFTER before it, or later, the match itself included, and keep the stage-3
-    columns of the match that moved. Only those matches' fixtures (teams, kickoff, round) may
-    be read, so nothing may move."""
+    """The stage-3 columns that move, by match id, when the score and odds of every match that
+    kicked off less than `FINISHED_AFTER` before it, or later, itself included, are scrambled.
+    Only those matches' fixtures may be read, so the result must be empty.
+    """
 
     before_df = derive(_stage_2(rows))
 
@@ -609,13 +637,16 @@ _GAPS = st.one_of(
 _STARTS = st.datetimes(datetime(2023, 1, 1), datetime(2026, 12, 31), timezones=st.just(UTC)).map(
     lambda moment: moment.replace(second=0, microsecond=0)
 )
+_GAP_LISTS = st.lists(_GAPS, min_size=len(_FIXTURES), max_size=len(_FIXTURES))
+_ORDERS = st.permutations(range(len(_FIXTURES)))
+_SEEDS = st.integers(0, 2**32 - 1)
 
 
 @given(
     start=_STARTS,
-    gaps=st.lists(_GAPS, min_size=len(_FIXTURES), max_size=len(_FIXTURES)),
-    order=st.permutations(range(len(_FIXTURES))),
-    seed=st.integers(0, 2**32 - 1),
+    gaps=_GAP_LISTS,
+    order=_ORDERS,
+    seed=_SEEDS,
 )
 def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row_of_a_generated_season(
     start: datetime, gaps: list[timedelta], order: list[int], seed: int

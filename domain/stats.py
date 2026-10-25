@@ -1,5 +1,5 @@
-"""Pure football-stat helpers shared by the Match model and the detail-page
-mini-records, so the derived-market logic lives in exactly one place.
+"""Pure per-match football facts: results, points, comebacks and margin-free probabilities.
+Each rule lives here once; the stage builders, the detail parsers and the checks call it.
 """
 
 
@@ -83,6 +83,7 @@ def vig_free_1x2(
 
     if not home or not draw or not away:
         return None
+
     inverse = (1 / home, 1 / draw, 1 / away)
     total = sum(inverse)
 
@@ -98,6 +99,7 @@ def two_way_prob(odds_for: float | None, odds_against: float | None) -> float | 
 
     if not odds_for or not odds_against:
         return None
+
     implied_for, implied_against = 1 / odds_for, 1 / odds_against
 
     return implied_for / (implied_for + implied_against)

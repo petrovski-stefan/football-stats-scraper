@@ -54,6 +54,7 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
     links = row.select(HIST_TEAM_LINKS)
     if len(links) < 2:
         return None
+
     home_id = _team_id(links[0])
     away_id = _team_id(links[1])
     if home_id is None or away_id is None:
@@ -344,6 +345,7 @@ def parse_odds_1x2(soup: BeautifulSoup) -> dict[str, Any]:
     initial_rows = _bookmaker_initial_rows(table)
     if not initial_rows:
         return empty
+
     init_row = next(
         (r for name, r in initial_rows if name.lower() == PREFERRED_BOOKMAKER.lower()),
         initial_rows[0][1],
@@ -414,6 +416,7 @@ def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
     block = soup.select_one(DETAIL_STRENGTH_BLOCK)
     if block is not None:
         nums = re.findall(r"\b(\d{1,3})\b", block.get_text())
+
         # The headline split is the first "NN NN" pair after the team names.
         if len(nums) >= 2:
             out["strength_home"], out["strength_away"] = int(nums[0]), int(nums[1])

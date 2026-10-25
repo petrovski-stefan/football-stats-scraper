@@ -72,6 +72,8 @@ def test_fell_since_open_leaves_out_the_rows_without_a_rank_change() -> None:
 
 
 def _states(cohort: int, flag: list[bool], win: list[bool]) -> pd.DataFrame:
+    """One cohort's matches in one stratum, with their flags and outcomes."""
+
     return pd.DataFrame(
         {"season_cohort": cohort, "flag": flag, "win": win, "stratum": f"s{cohort}"}
     )
@@ -97,6 +99,8 @@ def test_mh_table_gives_each_cohort_then_all_pooled() -> None:
 
 def test_the_bar_needs_a_small_holm_p_and_the_same_side_in_both_cohorts() -> None:
     def table(first: float, second: float, p_value: float) -> pd.DataFrame:
+        """The odds ratios of two cohorts and the pooled p, as `mh_table` gives them."""
+
         return pd.DataFrame({"MH OR": [first, second, math.nan], "CMH p": [0.5, 0.5, p_value]})
 
     tables = {

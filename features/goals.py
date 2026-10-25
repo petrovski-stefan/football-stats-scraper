@@ -141,6 +141,7 @@ def _usable_goals(
     match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
         return None
+
     is_home = history.subject_is_home(detail_df, prefix, row)
     if is_home is None:
         return None

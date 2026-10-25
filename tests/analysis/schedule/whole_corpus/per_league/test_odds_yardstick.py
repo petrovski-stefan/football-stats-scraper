@@ -32,6 +32,7 @@ def toy_yardstick_df() -> pd.DataFrame:
 
 def test_with_own_share_uses_each_league_share(toy_yardstick_df: pd.DataFrame) -> None:
     with_own_share_df = runner.with_own_share(toy_yardstick_df)
+
     league = toy_yardstick_df["s1_league_id"] == 1
     share = 2 / 6  # league 1: 2 first-half goals of 6
     lam_home, lam_away = toy_yardstick_df["lam_home"][league], toy_yardstick_df["lam_away"][league]
@@ -39,6 +40,7 @@ def test_with_own_share_uses_each_league_share(toy_yardstick_df: pd.DataFrame) -
     assert with_own_share_df["m_cb"][league].to_numpy() == pytest.approx(
         implied_df["m_cb"].to_numpy()
     )
+
     completion = yardstick.completion_given_ht(
         lam_home.to_numpy(),
         lam_away.to_numpy(),

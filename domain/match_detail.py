@@ -1,3 +1,5 @@
+"""The contract for one row of the detail scrape (`scrapers/detail.py`), keyed by `match_id`."""
+
 from pydantic import BaseModel, computed_field
 
 from domain import stats

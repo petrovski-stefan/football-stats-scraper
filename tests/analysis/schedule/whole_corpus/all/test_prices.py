@@ -156,7 +156,7 @@ def test_calibrated_totals_match_the_observed_mean_of_each_band(
     assert calibrated[3:].mean() == pytest.approx(tail_matches_df["goals"][3:].mean())
 
 
-def test_tail_tables(tail_matches_df: pd.DataFrame) -> None:
+def test_tail_tables_give_bands_counts_and_the_gap_closed(tail_matches_df: pd.DataFrame) -> None:
     tail_bands_df = runner.tail_bands(tail_matches_df)
 
     assert tail_bands_df["matches"].tolist() == [3, 3]

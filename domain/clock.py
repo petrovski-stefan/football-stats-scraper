@@ -31,10 +31,8 @@ def to_berlin(moment: datetime) -> str:
 def parse_berlin(text: str) -> datetime:
     """Read a stored value back as Berlin wall-clock time: for the date and the weekday.
 
-    **Never compare or subtract these.** Python compares two datetimes of the same zone by
-    their wall clocks and ignores the offset, so on the autumn night 02:30+02:00 and
-    02:30+01:00 come out equal, and a gap across a clock change is off by an hour. For
-    order and durations, use `parse_instant`.
+    Never compare or subtract these: same-zone datetimes compare by wall clock, ignoring the
+    offset (`domain/CLAUDE.md` §1a). For order and durations, use `parse_instant`.
     """
 
     return _parse(text).astimezone(BERLIN)
@@ -47,6 +45,8 @@ def parse_instant(text: str) -> datetime:
 
 
 def _parse(text: str) -> datetime:
+    """The stored text as an aware datetime; ValueError when it has no offset."""
+
     moment = datetime.fromisoformat(text.strip())
     if moment.tzinfo is None:
         raise ValueError(f"stored time has no offset: {text!r}")

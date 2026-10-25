@@ -37,6 +37,8 @@ def _number(row: Mapping[str, Any], column: str) -> float | None:
 
 
 def _goal_fields(ht: tuple[int, int], ft: tuple[int, int]) -> dict[str, Any]:
+    """The goal totals and the HT and FT 1X2 results; `ht` and `ft` are (home, away) goals."""
+
     return {
         "s2_total_goals": ft[0] + ft[1],
         "s2_goals_1h": ht[0] + ht[1],
@@ -49,6 +51,8 @@ def _goal_fields(ht: tuple[int, int], ft: tuple[int, int]) -> dict[str, Any]:
 
 
 def _odds_fields(row: Mapping[str, Any]) -> dict[str, Any]:
+    """The `s2_` odds fields; a field that needs a missing price is None."""
+
     one_x_two = [_number(row, f"s1_odds_1x2_open_{s}") for s in ("home", "draw", "away")]
     over_under = [_number(row, f"s1_odds_ou_open_{s}") for s in ("line", "over", "under")]
     handicap = [_number(row, f"s1_odds_ah_open_{s}") for s in ("line", "home", "away")]
@@ -71,6 +75,8 @@ def _odds_fields(row: Mapping[str, Any]) -> dict[str, Any]:
 
 
 def _comeback_fields(ht: tuple[int, int], ft: tuple[int, int]) -> dict[str, Any]:
+    """The comeback flags (`domain/stats.py`) and whether the half-time score was decisive."""
+
     return {
         "s2_is_comeback": stats.is_comeback(*ht, *ft),
         "s2_is_comeback_home": stats.is_comeback_home(*ht, *ft),
@@ -99,19 +105,21 @@ def build(raw_path: str) -> str:
     records = [{str(k): v for k, v in row.items()} for row in stage_1_df.to_dict("records")]
     derived_df = pd.DataFrame([derive(row) for row in records], index=stage_1_df.index)
 
-    out_path = paths.schedule_at_stage(raw_path, 2)
+    stage_2_path = paths.schedule_at_stage(raw_path, 2)
     write_stage_csv(
         pd.concat([stage_1_df, derived_df], axis=1),
-        out_path,
+        stage_2_path,
         SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS,
     )
 
-    logger.info("%s: %d rows -> %s", raw_path, len(stage_1_df), out_path)
+    logger.info("%s: %d rows -> %s", raw_path, len(stage_1_df), stage_2_path)
 
-    return out_path
+    return stage_2_path
 
 
 def build_all() -> None:
+    """Build the stage-2 file of every stage-1 schedule file."""
+
     raw_paths = paths.schedule_csvs(1)
     if not raw_paths:
         logger.warning("No stage-1 schedule files in %s", paths.stage_dir(1))
@@ -121,6 +129,8 @@ def build_all() -> None:
 
 
 def main() -> None:
+    """Entry point: build every stage-2 schedule file."""
+
     build_all()
 
 

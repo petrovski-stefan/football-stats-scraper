@@ -42,6 +42,7 @@ def test_dispersion_compares_the_spread_with_the_kind() -> None:
     unit_rows_df = pd.DataFrame(
         {UNIT: [1, 1, 2, 2], "observed": [1.0, 3.0, 0.0, 4.0], "expected": [2.0, 2.0, 1.0, 1.0]}
     )
+
     # Unit 1: own value 1, residuals -1 and 1, Poisson variance 2 + 2. Unit 2: own value 2,
     # residuals -2 and 2, variance 2 + 2. So (2 + 8) / (4 + 4).
     assert units.dispersion(unit_rows_df, UNIT, "observed", "expected", "count") == pytest.approx(
@@ -94,7 +95,9 @@ def test_cohort_agreement_pairs_the_units_seen_in_both_cohorts(
     cohort_correlation, cohort_count = units.cohort_agreement(
         toy_unit_matches_df, UNIT, "goals", "m_goals"
     )
+
     assert cohort_count == 2
+
     # Two units are ranked the same way in both cohorts, or the opposite way.
     assert abs(cohort_correlation) == pytest.approx(1.0)
 
@@ -110,7 +113,7 @@ def test_summary_row_shrinks_toward_the_pool(toy_unit_matches_df: pd.DataFrame) 
     assert float(row["luck min"]) <= float(row["luck max"])
 
     for raw, shrunk in zip(unit_values_df["value"], unit_values_df["shrunk"], strict=True):
-        assert min(raw, 13 / 14.5) - 1e-12 <= shrunk <= max(raw, 13 / 14.5) + 1e-12
+        assert min(raw, 13 / 14.5) - 1e-12 <= shrunk <= max(raw, 13 / 14.5) + 1e-12, (raw, shrunk)
 
     no_luck, _ = units.summary_row(toy_unit_matches_df, UNIT, quantity)
     assert pd.isna(no_luck["luck min"])
@@ -151,7 +154,7 @@ def test_within_tested_uses_each_units_value_and_shrinks_toward_it(
             float(part_values_df.at[part, "owner_mean"]),
         )
         shrunk = float(part_values_df.at[part, "shrunk"])
-        assert min(raw, mean) - 1e-12 <= shrunk <= max(raw, mean) + 1e-12
+        assert min(raw, mean) - 1e-12 <= shrunk <= max(raw, mean) + 1e-12, part
 
     assert result.tau_squared >= 0.0
 
@@ -235,9 +238,11 @@ def test_null_q_of_an_event_has_the_mean_of_its_df(round_robin_df: pd.DataFrame)
     # being behind at half-time is not.
     team_rows_df = card.team_rows(round_robin_df)
     quantity = ("behind", "one", "behind at half-time", "event")
+
     mean, standard_deviation = units.null_q(
         team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200
     )
+
     assert mean == pytest.approx(6.0, abs=1.0)  # 8 teams in 2 leagues
     assert standard_deviation > 0
 
@@ -268,7 +273,7 @@ def test_shuffled_parts_stay_inside_their_unit_and_keep_their_size() -> None:
 
     for key in (1, 2):
         inside = (unit == key).to_numpy()
-        assert sorted(moved[inside]) == sorted(part[inside])
+        assert sorted(moved[inside]) == sorted(part[inside]), key
 
     assert not (moved == part.to_numpy()).all()
 
@@ -294,6 +299,7 @@ def test_permuted_qs_fall_below_the_q_of_parts_that_really_differ() -> None:
 
 def test_variance_share_scales_tau2_by_the_expected_values() -> None:
     unit_rows_df = pd.DataFrame({"goals": [0.0, 2.0, 4.0, 9.0], "expected": [1.0, 1.0, 2.0, 0.0]})
+
     # The rows that count are the first three: variance of 0, 2, 4 is 4; mean of e^2 is 2.
     assert units.variance_share(unit_rows_df, "goals", "expected", 0.5) == pytest.approx(
         0.5 * 2 / 4

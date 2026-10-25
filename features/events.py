@@ -182,6 +182,7 @@ def _usable_events(
     match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
         return None
+
     is_home = history.subject_is_home(detail_df, prefix, row)
     if is_home is None:
         return None
@@ -219,6 +220,7 @@ def _score_line(
     goals = goal_store.get(match_id)
     if goals is None:
         return None
+
     counted_home = sum(1 for _, _, side in goals if side == "home")
     if not history.score_matches(detail_df, prefix, row, counted_home, len(goals) - counted_home):
         return None
@@ -246,6 +248,7 @@ def _state_at(line: list[tuple[int, int, int]] | None, minute: int, stoppage: in
     for goal_minute, goal_stoppage, running in line:
         if (goal_minute, goal_stoppage) >= (minute, stoppage):
             break
+
         diff = running
 
     return diff

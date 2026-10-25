@@ -35,14 +35,15 @@ POINTS_DEDUCTIONS: dict[tuple[int, str, str, int], int] = {
 
 # Where the page's final table applies less than the official total above, the amount it
 # does apply, under the same key. Only the final-table check reads it; the official total
-# stays the entry above. Empty since 2026-10-10: its one entry (the user's exception of that
-# day) left the project with its league.
+# stays the entry above.
 PAGE_TOTALS: dict[tuple[int, str, str, int], int] = {}
 
 
 def _stage_entries(
     table: dict[tuple[int, str, str, int], int], league_id: int, season: str, stage: str
 ) -> dict[int, int]:
+    """The entries of `table` for one stage of a league-season, by team id."""
+
     return {
         team: points
         for (league, label, part, team), points in table.items()

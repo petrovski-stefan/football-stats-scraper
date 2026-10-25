@@ -1,3 +1,9 @@
+"""The browser: starting Chrome, opening pages under the robots.txt guard, and the waits and
+clicks that put the league page, the detail page and the live page on screen.
+
+Every page load goes through `open_page`; the DOM selectors come from `scrapers/constants.py`.
+"""
+
 import contextlib
 import re
 import time
@@ -56,6 +62,8 @@ _USER_AGENTS = UserAgent(browsers=["Chrome"], platforms=["desktop"])
 
 
 def get_driver() -> webdriver.Chrome:
+    """A headless Chrome with one desktop-Chrome user agent for its whole life."""
+
     chrome_options = webdriver.ChromeOptions()
     chrome_options.add_argument(f"--user-agent={_USER_AGENTS.random}")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
@@ -86,14 +94,10 @@ def robots_refusal(url: str) -> str | None:
 
 
 def open_page(driver: webdriver.Chrome, url: str) -> None:
-    """Navigate to `url`. The only place the scrapers call `driver.get`.
+    """Navigate to `url`: the only place the scrapers call `driver.get`.
 
-    Refuses, before any request is made, a URL on a host with no recorded robots.txt rules and
-    a path that host's robots.txt disallows (`ROBOTS_DISALLOW`). After the load, it checks the
-    URL the browser landed on in the same way: nowgoal moves to new domains and answers the
-    old one with a redirect (scrapers/CLAUDE.md), so a page that lands on an unchecked host
-    is refused before anything parses it. Resources the page loads by itself while rendering
-    are not checked: the rule covers the pages the scraper chooses to open (decided 2026-10-02).
+    Raises ValueError, before any request, for a host or path `ROBOTS_DISALLOW` refuses, and
+    after it when a redirect lands on one (the rules and their reasons: `scrapers/CLAUDE.md`).
     """
 
     refusal = robots_refusal(url)
@@ -111,6 +115,8 @@ def open_page(driver: webdriver.Chrome, url: str) -> None:
 def find_element_by_css(
     driver: webdriver.Chrome, selector: str, many: bool = False
 ) -> WebElement | list[WebElement] | None:
+    """The first element for `selector`, or all of them when `many` is set."""
+
     if many:
         return driver.find_elements(By.CSS_SELECTOR, selector)
 
@@ -146,6 +152,9 @@ def get_detail_page(
     WebDriverWait(driver, timeout).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, DETAIL_ODDS_TABLE_CANDIDATES))
     )
+
+    # The rows are only a readiness signal: a home team without recent matches never shows
+    # any, and its page is still parsed.
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
             lambda browser: len(browser.find_elements(By.CSS_SELECTOR, DETAIL_HOME_RECENT_ROWS)) > 0
@@ -176,27 +185,26 @@ def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAUL
 
 
 def _scroll_page(driver: webdriver.Chrome, steps: int = 12) -> None:
-    js = f"window.scrollBy(0, document.body.scrollHeight/{steps});"
+    """Scroll down the page in `steps` jumps, so that its lazy widgets load."""
+
+    scroll_script = f"window.scrollBy(0, document.body.scrollHeight/{steps});"
     for _ in range(steps):
-        driver.execute_script(js)  # type: ignore[no-untyped-call]
+        driver.execute_script(scroll_script)  # type: ignore[no-untyped-call]
         time.sleep(0.3)
 
     time.sleep(1.0)
 
 
 def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
-    """Wait until the current round's odds cells have rendered; return whether they did.
+    """Wait until a row shows a numeric first odds cell; return whether one did in time.
 
-    Clicking a round (especially the first one after switching the odds type)
-    swaps the schedule rows before the odds cells are populated; reading
-    `page_source` too early yields blank odds. We wait until at least one row has
-    a numeric first odds cell, which is when the whole column has rendered.
-    Gives up after the timeout so a genuinely odds-less round can't hang. False then
-    means no odds yet: the round may have none, or they may still be loading, and the
-    two look the same here, so the caller decides.
+    A clicked round swaps its rows before their odds fill in. False means no odds yet: the
+    round may have none or still be loading, which look the same here, so the caller decides.
     """
 
     def some_row_has_odds(browser: webdriver.Chrome) -> bool:
+        """Whether any schedule row's first odds cell holds a number."""
+
         for row in browser.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS):
             cells = row.find_elements(By.CSS_SELECTOR, ROW_ODDS_CELLS)
             if cells and _is_number(cells[0].text):
@@ -215,12 +223,10 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
 
 
 def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT_TIMEOUT) -> bool:
-    """Switch the schedule odds column to "1x2", "ah" or "ou".
+    """Switch the schedule odds column to "1x2", "ah" or "ou" (the page opens on AH).
 
-    The page defaults to AH. The choice persists across round clicks, so switching once
-    is enough for a whole pass; switching per round is also safe. Returns False (quietly)
-    when the selector is absent or the header never adopts the new label, so a league
-    that does not carry a given odds type degrades to empty columns rather than raising.
+    The choice holds across round clicks. False, with no error, when the type is absent or the
+    header never shows its label: a league without that market gets empty columns.
     """
 
     dom_type, label = ODDS_TYPES[kind]
@@ -255,9 +261,8 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
 def click_stage(driver: webdriver.Chrome, stage_id: str, timeout: int = DEFAULT_TIMEOUT) -> None:
     """Show one stage tab's schedule and wait until its rows replace the previous stage's.
 
-    Clicking a tab marks it 'on', unhides that stage's round buttons and loads the
-    stage's current round. The stage already on screen is left alone: re-clicking it
-    changes nothing, so the row-swap wait would sit out its whole timeout.
+    The click loads the stage's current round. The stage already on screen is not clicked:
+    nothing would change, so the row-swap wait would sit out its whole timeout.
     """
 
     _click_schedule_tab(driver, STAGE_SPAN.format(stage=stage_id), STAGE_ACTIVE_CLASS, timeout)
@@ -268,10 +273,8 @@ def sync_standings_to_stage(
 ) -> bool:
     """Point the standings table at `stage_id`'s sub-table; return whether it shows it.
 
-    The sub-table picker ignores the stage tabs and opens on the latest sub-table: a
-    Liga MX page shows the Apertura schedule beside the Clausura table, a Scottish
-    Premiership page the regular season beside the 6-team Championship Group. Ranks read
-    without this sync belong to another table, so on False the caller must drop them.
+    The sub-table picker ignores the stage tabs (`scrapers/CLAUDE.md` §2), so on False the
+    table on screen is another stage's and the caller must not read it.
     """
 
     if _standing_sub(driver) == stage_id:
@@ -293,9 +296,8 @@ def click_round(
 ) -> None:
     """Click a round button and wait until its schedule list has re-rendered.
 
-    `stage_id` scopes the button to one stage tab: a multi-stage page holds every
-    stage's round buttons at once, so "round 3" alone would match the first stage's.
-    None on pages without stage tabs.
+    `stage_id` scopes the button to its stage tab, None on a page without tabs: a multi-stage
+    page holds every stage's round buttons, so "round 3" alone matches the first stage's.
     """
 
     if stage_id is None:
@@ -309,9 +311,8 @@ def click_round(
 def show_total_standings(driver: webdriver.Chrome, timeout: int = DEFAULT_TIMEOUT) -> bool:
     """Show the standings' `Total` view and return whether it is on screen.
 
-    `Total` is the table as it stands now, so for a finished season the final table. The
-    dropdown lists it beside one entry per finished round; a page opens on it, and picking
-    a sub-table resets to it, so this is usually only a check.
+    `Total` is the table now, so the final table of a finished season. A page opens on it and
+    picking a sub-table resets to it, so this is usually only a check.
     """
 
     if _standing_label(driver) == STANDING_TOTAL_LABEL:
@@ -347,7 +348,7 @@ def _click_schedule_tab(
         lambda browser: _has_class(browser.find_element(By.CSS_SELECTOR, selector), active_class)
     )
 
-    # Wait for the row list to actually swap (unless the button was already active).
+    # Wait for the row list to actually swap.
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
             lambda browser: (
@@ -377,18 +378,18 @@ def _select_standings(
         return False
 
     driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
-    ok = True
+    is_applied = True
     try:
         WebDriverWait(driver, timeout).until(applied)
         WebDriverWait(driver, timeout).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, STANDING_ROWS))
         )
     except TimeoutException:
-        ok = False
+        is_applied = False
 
     time.sleep(0.3)
 
-    return ok
+    return is_applied
 
 
 def _first_row_odds(driver: webdriver.Chrome) -> list[str]:
@@ -402,12 +403,16 @@ def _first_row_odds(driver: webdriver.Chrome) -> list[str]:
 
 
 def _first_row_match_id(driver: webdriver.Chrome) -> str | None:
+    """The first schedule row's match id; None when no row is on screen."""
+
     rows = driver.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS)
 
     return rows[0].get_attribute("matchid") if rows else None
 
 
 def _has_class(element: WebElement, name: str) -> bool:
+    """Whether the element's `class` attribute lists `name`."""
+
     return name in (element.get_attribute("class") or "").split()
 
 
@@ -420,18 +425,24 @@ def _standing_sub(driver: webdriver.Chrome) -> str | None:
 
 
 def _standing_label(driver: webdriver.Chrome) -> str:
+    """The standings dropdown's label, such as "Total"; "" when it is not on screen."""
+
     elements = driver.find_elements(By.CSS_SELECTOR, STANDING_BOX_LABEL)
 
     return elements[0].text.strip() if elements else ""
 
 
 def _odds_label(driver: webdriver.Chrome) -> str:
+    """The odds column's header label, such as "1X2"; "" when it is not on screen."""
+
     elements = driver.find_elements(By.CSS_SELECTOR, ODDS_LABEL)
 
     return elements[0].text.strip() if elements else ""
 
 
 def _is_number(text: str) -> bool:
+    """Whether the text reads as a number."""
+
     try:
         float(text.strip())
         return True

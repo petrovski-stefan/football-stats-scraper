@@ -18,6 +18,8 @@ _BANDS = (
 
 
 def _row(**overrides: float | None) -> dict[str, float | None]:
+    """A fully priced row; `overrides` change prices."""
+
     row: dict[str, float | None] = {
         "h": 1.5, "d": 4.0, "a": 6.0,
         "ou": 2.75, "over": 1.9, "under": 1.95,
@@ -30,19 +32,23 @@ def _row(**overrides: float | None) -> dict[str, float | None]:
 
 
 def _issues(*rows: dict[str, float | None]) -> list[str]:
+    """The issues `check_all` finds in these rows."""
+
     return _issues_of(check_all, *rows)
 
 
 def _issues_of(
     check: Callable[[Report, pd.DataFrame, OddsColumns], None], *rows: dict[str, float | None]
 ) -> list[str]:
+    """The issues one odds check finds in these rows."""
+
     report = Report("test")
     check(report, pd.DataFrame(list(rows)), _COLUMNS)
 
     return report.issues
 
 
-def test_plausible_odds_pass() -> None:
+def test_plausible_odds_raise_no_issue() -> None:
     assert _issues(_row()) == []
 
 
@@ -63,6 +69,8 @@ def test_a_three_way_book_that_is_not_1x2_fails() -> None:
 
 @pytest.fixture
 def bands(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Use the test's line bands, `_BANDS`, and their band for an unpriced favourite."""
+
     monkeypatch.setattr(odds, "LINE_LIMITS", _BANDS)
     monkeypatch.setattr(odds, "NO_PRICE_BAND", _BANDS[1].favourite_from)
 
@@ -160,6 +168,8 @@ def test_a_market_missing_whole_passes() -> None:
 
 @pytest.fixture
 def half_floor(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Set the odds coverage floor to one half."""
+
     monkeypatch.setattr(odds, "COVERAGE_FLOOR", 0.5)
 
 

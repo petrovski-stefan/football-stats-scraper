@@ -2,17 +2,16 @@
 
 Where those files live is the companion contract in `domain/paths.py`.
 
-Split out of the old flat `constants.py`, whose other half (DOM selectors, user
-agents) is scraper-internal and now lives in `scrapers/constants.py`. These names
-are a data *contract* — the scrapers write them and the feature layer reads them —
-so they sit beside the Pydantic models that define the same rows.
+These names are a data *contract*: the scrapers write them and the feature layer reads
+them, so they sit beside the Pydantic models that define the same rows. The DOM selectors
+are scraper-internal and live in `scrapers/constants.py`.
 """
 
 # Base columns that are empty in a *correct* scrape, so the dead-column canary in
 # `qa/universal.py` must not read them as parser breakage. This is a statement about
 # the contract, not an exemption for known defects: `stage` is the group/stage label,
-# which single-table leagues do not have, and `Match.stage` types it as `str` with a
-# documented "" default. A CSV cannot distinguish "" from missing, hence the declaration.
+# which single-table leagues do not have, so it is written as "" there. A CSV cannot
+# distinguish "" from missing, hence the declaration.
 OPTIONAL_BASE_COLUMNS = frozenset({"stage"})
 # The same allowance for the staged schedule file.
 OPTIONAL_SCHEDULE_COLUMNS = frozenset({"s1_stage"})

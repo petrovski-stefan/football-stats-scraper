@@ -92,6 +92,7 @@ def test_table_compares_the_teams_per_match_played() -> None:
 
     assert float(table["tb_ppg_diff"]) == pytest.approx(2.0 - 1.0)
     assert float(table["tb_gd_diff"]) == pytest.approx(0.5 - (-1.0))
+
     # Goals for and against per match: home (15 + 10) / 10, away (5 + 10) / 5.
     assert float(table["tb_goal_env"]) == pytest.approx((2.5 + 3.0) / 2)
 
@@ -309,7 +310,9 @@ def test_out_of_sample_scores_every_test_row() -> None:
         screen_rows_df[screen_rows_df["season_cohort"] == 2024],
         screen_rows_df[screen_rows_df["season_cohort"] == 2025],
     )
+
     scores = runner.out_of_sample(train_df, test_df)
+
     assert list(scores) == ["constant", "yardstick", "baseline", "baseline + all fields"]
     assert all(len(score) == len(test_df) for score in scores.values())
     assert scores["constant"][0] == pytest.approx(train_df["comes_back"].mean())
@@ -339,6 +342,8 @@ def test_split_rows_take_the_share_of_the_training_cohort(
     seen: dict[str, float | None] = {}
 
     def frame(matches_df: pd.DataFrame, grid: object, share: float | None = None) -> pd.DataFrame:
+        """Stand in for `yardstick.frame`: record the share asked for, change nothing."""
+
         seen["share"] = share
 
         return matches_df

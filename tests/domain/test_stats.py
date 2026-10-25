@@ -22,13 +22,15 @@ _PRICES = st.floats(1.01, 1000.0)
         ((1, 0), (2, 0), False, False),  # the HT leader stayed ahead
     ],
 )
-def test_comeback_cases(ht: Score, ft: Score, home: bool, away: bool) -> None:
+def test_a_comeback_is_a_half_time_loser_who_wins(
+    ht: Score, ft: Score, home: bool, away: bool
+) -> None:
     assert stats.is_comeback_home(*ht, *ft) is home
     assert stats.is_comeback_away(*ht, *ft) is away
     assert stats.is_comeback(*ht, *ft) is (home or away)
 
 
-def test_comeback_grid(score_grid: list[tuple[Score, Score]]) -> None:
+def test_no_score_is_a_comeback_for_both_sides(score_grid: list[tuple[Score, Score]]) -> None:
     for ht, ft in score_grid:
         home = stats.is_comeback_home(*ht, *ft)
         away = stats.is_comeback_away(*ht, *ft)
@@ -37,14 +39,16 @@ def test_comeback_grid(score_grid: list[tuple[Score, Score]]) -> None:
 
 
 @pytest.mark.parametrize(("home", "away", "result"), [(2, 1, "1"), (1, 1, "X"), (0, 3, "2")])
-def test_one_x_two(home: int, away: int, result: str) -> None:
+def test_one_x_two_gives_1_x_or_2(home: int, away: int, result: str) -> None:
     assert stats.one_x_two(home, away) == result
 
 
 @pytest.mark.parametrize(
     ("goals_for", "goals_against", "result"), [(2, 1, "W"), (1, 1, "D"), (0, 3, "L")]
 )
-def test_team_result(goals_for: int, goals_against: int, result: str) -> None:
+def test_team_result_gives_w_d_or_l_from_the_team_side(
+    goals_for: int, goals_against: int, result: str
+) -> None:
     assert stats.team_result(goals_for, goals_against) == result
 
 
@@ -52,7 +56,7 @@ def test_team_result(goals_for: int, goals_against: int, result: str) -> None:
     ("total", "line", "over"),
     [(3, 2.5, True), (2, 2.5, False), (7, 6.5, True), (6, 6.5, False)],
 )
-def test_is_over(total: int, line: float, over: bool) -> None:
+def test_is_over_means_more_goals_than_the_line(total: int, line: float, over: bool) -> None:
     assert stats.is_over(total, line) is over
 
 
@@ -64,19 +68,23 @@ def test_is_over_defaults_to_two_and_a_half() -> None:
 @pytest.mark.parametrize(
     ("home", "away", "btts"), [(1, 1, True), (1, 0, False), (0, 2, False), (0, 0, False)]
 )
-def test_is_btts(home: int, away: int, btts: bool) -> None:
+def test_is_btts_needs_a_goal_from_each_side(home: int, away: int, btts: bool) -> None:
     assert stats.is_btts(home, away) is btts
 
 
 @pytest.mark.parametrize(
     ("goals_for", "goals_against", "points"), [(2, 1, 3), (1, 1, 1), (0, 1, 0)]
 )
-def test_points(goals_for: int, goals_against: int, points: int) -> None:
+def test_points_are_3_for_a_win_and_1_for_a_draw(
+    goals_for: int, goals_against: int, points: int
+) -> None:
     assert stats.points(goals_for, goals_against) == points
 
 
 @pytest.mark.parametrize(("odds", "prob"), [(2.0, 0.5), (4.0, 0.25), (None, None), (0.0, None)])
-def test_implied_prob(odds: float | None, prob: float | None) -> None:
+def test_implied_prob_is_one_over_the_price_and_none_without_one(
+    odds: float | None, prob: float | None
+) -> None:
     assert stats.implied_prob(odds) == prob
 
 
@@ -89,7 +97,7 @@ def test_implied_prob(odds: float | None, prob: float | None) -> None:
         (1.9, 0.0, None),
     ],
 )
-def test_two_way_prob(
+def test_two_way_prob_cancels_the_overround_and_is_none_without_a_price(
     odds_for: float | None, odds_against: float | None, prob: float | None
 ) -> None:
     result = stats.two_way_prob(odds_for, odds_against)

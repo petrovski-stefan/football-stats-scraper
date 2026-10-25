@@ -7,7 +7,9 @@ from domain.schedule import FinalTableRow, ScheduleRow
 
 def test_column_lists_have_no_duplicates() -> None:
     for declared in (columns.ORDERED_DF_COLUMNS, columns.DETAIL_ORDERED_COLUMNS):
-        assert len(declared) == len(set(declared))
+        assert len(declared) == len(set(declared)), sorted(
+            {column for column in declared if declared.count(column) > 1}
+        )
 
 
 def test_detail_columns_cover_the_detail_model() -> None:

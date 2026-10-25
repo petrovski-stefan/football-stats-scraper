@@ -1,3 +1,7 @@
+"""Parsers for the league page: each turns a rendered row or table into values read from the
+page, parsed and nothing computed (stage 1, `notes/FIELDS/SCHEDULE_1_RAW.md`).
+"""
+
 import re
 from datetime import datetime
 from typing import Any
@@ -21,6 +25,8 @@ _TEAM_ID_RE = re.compile(r"toTeam\(\s*'?(\d+)'?\s*\)")
 
 
 def clean_string(string: str) -> str:
+    """The text with each accented letter of `PORTUGUESE_TO_ENGLISH_LETTERS` made plain."""
+
     return "".join([(PORTUGUESE_TO_ENGLISH_LETTERS.get(char, char)) for char in string])
 
 
@@ -29,11 +35,12 @@ def parse_score(raw: str | None) -> tuple[int, int] | None:
 
     if not raw:
         return None
-    match = _SCORE_RE.match(raw)
-    if match is None:
+
+    found = _SCORE_RE.match(raw)
+    if found is None:
         return None
 
-    return int(match.group(1)), int(match.group(2))
+    return int(found.group(1)), int(found.group(2))
 
 
 def parse_float(raw: str | None) -> float | None:
@@ -41,6 +48,7 @@ def parse_float(raw: str | None) -> float | None:
 
     if not raw:
         return None
+
     try:
         return float(raw.strip())
     except ValueError:
@@ -72,17 +80,10 @@ def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
 
 
 def parse_line(raw: str) -> float | None:
-    """Parse an Asian line: a single value, or a split quarter-line, with an optional sign.
+    """Parse an Asian line, a single value or a split quarter-line; None when it holds no number.
 
-    nowgoal writes a quarter line as two halves and hangs one minus sign off whichever
-    half it reaches first, so the sign belongs to the whole expression, not to one part:
-
-        "3"        ->  3.0      "2.5/3"    ->  2.75
-        "-0.5"     -> -0.5      "0/0.5"    ->  0.25
-        "0/-0.5"   -> -0.25     "-1/1.5"   -> -1.25
-
-    Verified against a full round of live rows on 2026-09-22: every observed string
-    (`-0.5`, `-1/1.5`, `0`, `0.5/1`, `0/-0.5`, `0/0.5`, `1.5`) round-trips under this rule.
+    The one minus sign belongs to the whole expression, wherever it hangs: `0/-0.5` -> -0.25,
+    `-1/1.5` -> -1.25 (`scrapers/CLAUDE.md` §5; checked on a full round of rows, 2026-09-22).
     """
 
     text = (raw or "").strip()
@@ -135,18 +136,22 @@ def attr(tag: Tag | None, name: str) -> str | None:
 
     if tag is None:
         return None
+
     value = tag.get(name)
 
     return value if isinstance(value, str) else None
 
 
 def _team_id_from_onclick(tag: Tag | None) -> int | None:
+    """The team id in a tag's `onclick="toTeam(...)"`; None when it has none."""
+
     onclick = attr(tag, "onclick")
     if onclick is None:
         return None
-    match = _TEAM_ID_RE.search(onclick)
 
-    return int(match.group(1)) if match else None
+    found = _TEAM_ID_RE.search(onclick)
+
+    return int(found.group(1)) if found else None
 
 
 # The standings table's columns, as its title row names them (measured 2026-10-06).
@@ -154,6 +159,8 @@ _FINAL_TABLE_HEADER = ("R", "Team", "P", "W", "D", "L", "GD", "PTS")
 
 
 def _parse_int(text: str) -> int | None:
+    """The text as an int; None when it is not one."""
+
     try:
         return int(text.strip())
     except ValueError:
@@ -161,13 +168,9 @@ def _parse_int(text: str) -> int | None:
 
 
 def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
-    """The standings table on screen, one dict per team; [] if its columns are not R, Team,
-    P, W, D, L, GD, PTS.
-
-    Each `li.standlis` row has eight `span` children in the title row's order. The counts
-    sit inside nested tags (`<span><span>26</span></span>`, `<b>85</b>`), so each cell is
-    read by its text. A row that does not parse is skipped; the caller compares the table
-    with the one rebuilt from our own results, so a missing team shows up there.
+    """The standings table on screen, one dict per team; [] if its columns are not R, Team, P, W,
+    D, L, GD, PTS. Each cell is read by its text (layout: `scrapers/CLAUDE.md` §2). A row that
+    does not parse is skipped: the check against our rebuilt table shows the missing team.
     """
 
     title = soup.select_one(STANDING_TITLE_ROW)
@@ -209,16 +212,14 @@ def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
 def parse_kickoff(raw: str | None) -> str | None:
     """A row's `data-t` kickoff as Berlin time with its offset; None if it does not parse.
 
-    The league page gives kickoffs in UTC+8 (China time), with no offset written: the EPL's
-    Saturday 31 Jan 2026, 17:30 UK kickoff reads "2026-02-01 01:30". Every schedule file
-    before the staged pipeline stored that text unconverted (`notes/FIELDS/SCHEDULE_1_RAW.md`
-    S1.07).
+    The page writes UTC+8 with no offset (`LEAGUE_PAGE_CLOCK`): the EPL's 17:30 UK kickoff on
+    Saturday 31 Jan 2026 reads "2026-02-01 01:30" (`notes/FIELDS/SCHEDULE_1_RAW.md` S1.07).
     """
 
     text = (raw or "").strip()
-    for fmt in _KICKOFF_FORMATS:
+    for kickoff_format in _KICKOFF_FORMATS:
         try:
-            naive = datetime.strptime(text, fmt)
+            naive = datetime.strptime(text, kickoff_format)
         except ValueError:
             continue
         return to_berlin(naive.replace(tzinfo=LEAGUE_PAGE_CLOCK))
@@ -229,9 +230,8 @@ def parse_kickoff(raw: str | None) -> str | None:
 def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
     """Parse one finished `div.schedulis` row into its stage-1 fields; None if unplayed.
 
-    Only what the row itself shows: ids, teams, kickoff, goals and the 1X2 prices (the
-    caller adds the league context and the O/U and AH prices, read with the header switched).
-    Nothing is computed here: `notes/FIELDS/SCHEDULE_1_RAW.md`.
+    Only what the row shows, nothing computed (`notes/FIELDS/SCHEDULE_1_RAW.md`): the caller
+    adds the league context and the O/U and AH prices, read with the header switched.
     """
 
     ft = parse_score(attr(row, "score") or tag_text(row.select_one("span.score")))
@@ -262,4 +262,6 @@ def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
 
 
 def tag_text(tag: Tag | None) -> str:
+    """The tag's stripped text; "" for no tag."""
+
     return tag.get_text(strip=True) if tag is not None else ""

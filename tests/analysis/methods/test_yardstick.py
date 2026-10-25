@@ -66,6 +66,7 @@ def test_each_side_behind_at_half_time_adds_up_to_link_one() -> None:
     implied_df = yardstick.implied(np.array([1.8, 0.7]), np.array([0.9, 1.6]), 0.45)
     both = implied_df["m_home_behind"] + implied_df["m_away_behind"]
     assert both.to_numpy() == pytest.approx(implied_df["m_ht_decisive"].to_numpy())
+
     # The stronger side is behind less often.
     assert implied_df["m_home_behind"][0] < implied_df["m_away_behind"][0]
     assert implied_df["m_home_behind"][1] > implied_df["m_away_behind"][1]
@@ -88,10 +89,10 @@ def test_score_and_total_chances_follow_the_poisson_formulas() -> None:
 def test_completion_from_each_half_time_score() -> None:
     home, away, share = np.full(3, 1.3), np.full(3, 1.1), 0.45
     home_rate_2h, away_rate_2h = 0.55 * 1.3, 0.55 * 1.1
-    out = yardstick.completion_given_ht(home, away, share, np.array([0, -1, 2]))
-    assert out[0] == 0.0
-    assert out[1] == pytest.approx(sps.skellam.sf(1, home_rate_2h, away_rate_2h))
-    assert out[2] == pytest.approx(sps.skellam.cdf(-3, home_rate_2h, away_rate_2h))
+    completion = yardstick.completion_given_ht(home, away, share, np.array([0, -1, 2]))
+    assert completion[0] == 0.0
+    assert completion[1] == pytest.approx(sps.skellam.sf(1, home_rate_2h, away_rate_2h))
+    assert completion[2] == pytest.approx(sps.skellam.cdf(-3, home_rate_2h, away_rate_2h))
 
 
 def test_completions_over_every_half_time_score_add_up_to_the_comeback_chance() -> None:
@@ -114,10 +115,13 @@ def test_a_share_per_match_gives_each_match_the_chances_of_its_own_share() -> No
     for i, share in enumerate(shares):
         one_home, one_away = home[i : i + 1], away[i : i + 1]
         one_match_df = yardstick.implied(one_home, one_away, float(share))
-        assert implied_df.iloc[i].to_numpy() == pytest.approx(one_match_df.iloc[0].to_numpy())
+        assert implied_df.iloc[i].to_numpy() == pytest.approx(one_match_df.iloc[0].to_numpy()), (
+            i,
+            share,
+        )
 
         single = yardstick.completion_given_ht(one_home, one_away, float(share), np.array([-1]))
-        assert completion[i] == pytest.approx(single[0])
+        assert completion[i] == pytest.approx(single[0]), (i, share)
 
 
 def test_result_code_of_a_margin() -> None:
@@ -132,8 +136,10 @@ def test_the_nine_htft_chances_add_up_to_one() -> None:
 
 def test_the_comeback_cells_are_the_comeback_chances() -> None:
     home, away = np.array([1.6, 0.9]), np.array([1.0, 1.7])
+
     htft_cells_df = yardstick.htft_cells(home, away, 0.45)
     implied_df = yardstick.implied(home, away, 0.45)
+
     assert htft_cells_df["m_2/1"].to_numpy() == pytest.approx(
         implied_df["m_cb_home"].to_numpy(), abs=1e-7
     )

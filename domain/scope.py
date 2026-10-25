@@ -63,6 +63,7 @@ def in_scope(league_name: str | None, date_text: str | None) -> bool:
 
     if is_friendly(league_name):
         return False
+
     year = match_year(date_text)
 
     return year is None or year >= HISTORY_FROM_YEAR

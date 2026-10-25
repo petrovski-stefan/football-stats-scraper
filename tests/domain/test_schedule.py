@@ -9,8 +9,13 @@ from pydantic import ValidationError
 
 from domain.schedule import FinalTableRow, ScheduleRow, season_start_year
 
+_YEARS = st.integers(1900, 2100)
+_IS_CROSS_YEAR = st.booleans()
+
 
 def _row(**overrides: Any) -> dict[str, Any]:
+    """A valid stage-1 row; `overrides` change or add fields."""
+
     row: dict[str, Any] = {
         "match_id": "1",
         "s1_season": "2025-2026",
@@ -55,7 +60,7 @@ def test_negative_goals_are_refused() -> None:
         ScheduleRow(**_row(s1_ft_home_goals=-1))
 
 
-def test_final_table_row() -> None:
+def test_final_table_row_accepts_a_negative_goal_difference() -> None:
     line = FinalTableRow(
         season="2025",
         league_id=1,
@@ -89,11 +94,13 @@ def test_final_table_row() -> None:
         ("", None),
     ],
 )
-def test_season_start_year(season: str, start: int | None) -> None:
+def test_season_start_year_reads_both_label_forms_and_nothing_else(
+    season: str, start: int | None
+) -> None:
     assert season_start_year(season) == start
 
 
-@given(st.integers(1900, 2100), st.booleans())
+@given(_YEARS, _IS_CROSS_YEAR)
 def test_season_start_year_reads_any_year_in_both_label_forms(year: int, cross_year: bool) -> None:
     label = f"{year}-{year + 1}" if cross_year else str(year)
     assert season_start_year(label) == year

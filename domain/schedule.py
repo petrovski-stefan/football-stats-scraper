@@ -17,22 +17,15 @@ _SEASON_RE = re.compile(r"^(?P<start>\d{4})(?:-(?P<end>\d{4}))?$")
 
 
 def season_start_year(season: str) -> int | None:
-    """The calendar year a season began, for either label convention. None if unparseable.
+    """The calendar year a season began, for either label convention; None if unparseable.
 
-    Season labels come from the nowgoal URL and are stored verbatim, because the two
-    conventions describe genuinely different things: an English "2025-2026" runs Aug-May,
-    a Norwegian "2025" runs Mar-Nov. Rewriting the latter as a range would invent a fact.
-
-    Sorting is safe either way (the start year is a fixed-width prefix, so lexicographic
-    order already agrees). What is *not* safe is **equality across conventions**: "2025"
-    and "2025-2026" describe seasons starting in the same year but never compare equal, so
-    `groupby("season")` splits them and an `isin([...])` season list silently matches
-    neither. Anything asking "which seasons are contemporaneous?" must compare this.
+    "2025" and "2025-2026" both began in 2025 but never compare equal, so compare this, not the
+    labels, to find seasons played at the same time ("Season labels", `domain/CLAUDE.md`).
     """
 
-    match = _SEASON_RE.match(season.strip())
+    found = _SEASON_RE.match(season.strip())
 
-    return int(match.group("start")) if match else None
+    return int(found.group("start")) if found else None
 
 
 class ScheduleRow(BaseModel):
@@ -73,6 +66,8 @@ class ScheduleRow(BaseModel):
     @field_validator("s1_date")
     @classmethod
     def _has_offset(cls, value: str) -> str:
+        """Refuse an `s1_date` without its offset; return the value unchanged."""
+
         parse_berlin(value)  # raises on a value with no offset
 
         return value

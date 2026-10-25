@@ -80,6 +80,8 @@ _ROUND_KEY = ["s1_stage", "s1_round"]
 
 
 class _Match(NamedTuple):
+    """One finished match of a stage, as the table builders read it."""
+
     index: Any
     kickoff: Any
     home: int
@@ -91,9 +93,8 @@ class _Match(NamedTuple):
 def round_positions(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """`s3_match_index_in_round` and `s3_matches_in_round`, from kickoff times only.
 
-    The position is 1.. by kickoff within (stage, round); team names break ties, which
-    makes the order reproducible but carries no meaning. The count is the round's finished
-    matches: the finished tree holds no unplayed rows.
+    The position is 1.. by kickoff within (stage, round), ties broken by team names: reproducible
+    but meaningless. The count is the round's finished matches, the only rows the tree holds.
     """
 
     with_kickoff_df = schedule_df.assign(_kickoff=schedule_df["s1_date"].map(parse_instant))
@@ -115,11 +116,8 @@ def round_positions(schedule_df: pd.DataFrame) -> pd.DataFrame:
 def round_offsets(schedule_df: pd.DataFrame) -> pd.DataFrame:
     """`s3_days_off_round` and `s3_is_rescheduled`, from kickoff times only.
 
-    The offset is this kickoff minus the median kickoff of its (stage, round), in days:
-    positive for a match played after its round, negative for one brought forward. A match
-    `RESCHEDULED_AFTER_DAYS` or more off its round was rescheduled. A read-only indicator for
-    now (the user, 2026-10-10). Not `s3_out_of_round` (S3.07), whose survey wording misfires
-    on a brought-forward match.
+    Days from the median kickoff of the match's (stage, round), positive when played after it;
+    `RESCHEDULED_AFTER_DAYS` or more either way is rescheduled (S3.09, S3.10).
     """
 
     kickoff = pd.to_datetime(schedule_df["s1_date"].map(parse_instant), utc=True)
@@ -135,17 +133,10 @@ def round_offsets(schedule_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def round_so_far(schedule_df: pd.DataFrame) -> pd.DataFrame:
-    """The round so far: `s3_round_pre_finished`, `_comebacks`, `_seven_plus`,
-    `_rare_events`, `_btts`, `_avg_goals` and `_avg_ou_line`.
+    """The round so far: the `s3_round_pre_*` fields (`notes/FIELDS/SCHEDULE_3_MULTI.md` §A2).
 
-    A round-mate counts when it is of the same (stage, round) and kicked off at least
-    `FINISHED_AFTER` and less than `ROUND_LOOK_BACK` before this one. The counts say how many
-    of those were a comeback, had 7+ goals, either (a match that was both counts once), or
-    ended with both teams scoring. The two averages, goals per match and the opening O/U
-    line, cover the counted round-mates that have a line, so their difference is how far the
-    round scored above or below its opening lines (not centred at 0: the line is the market's
-    50/50 point, and a match scores about 0.13 goals above it on average); both are empty when
-    there is none. The first kickoff of a round sees 0 in every count.
+    Reads the round-mates of the same (stage, round) that kicked off at least `FINISHED_AFTER`
+    and less than `ROUND_LOOK_BACK` before this one; the first kickoff of a round sees 0.
     """
 
     with_kickoff_df = schedule_df.assign(
@@ -198,6 +189,8 @@ def _round_counts(round_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _matches_by_kickoff(league_stage_df: pd.DataFrame) -> list[_Match]:
+    """The stage's matches as `_Match` records, in kickoff order."""
+
     by_kickoff_df = league_stage_df.assign(
         _kickoff=league_stage_df["s1_date"].map(parse_instant)
     ).sort_values("_kickoff")
@@ -218,31 +211,33 @@ def _matches_by_kickoff(league_stage_df: pd.DataFrame) -> list[_Match]:
 def _lines(tables: dict[str, Standings], team: int, side: str) -> dict[str, int | None]:
     """One team's stats in the FT and HT tables, as `s3_<side>_pre_<half>_<venue>_<stat>`."""
 
-    out: dict[str, int | None] = {}
+    team_fields: dict[str, int | None] = {}
     for half, table in tables.items():
         for venue in STANDING_VENUES:
             line = table.line(venue, team)
             prefix = f"s3_{side}_pre_{half}_{venue}_"
-            out[prefix + "rank"] = table.ranks(venue).get(team)
-            out[prefix + "played"] = line.played
-            out[prefix + "won"] = line.won
-            out[prefix + "drawn"] = line.drawn
-            out[prefix + "lost"] = line.lost
-            out[prefix + "goals_for"] = line.goals_for
-            out[prefix + "goal_diff"] = line.goal_diff
-            out[prefix + "points"] = line.points
+            team_fields[prefix + "rank"] = table.ranks(venue).get(team)
+            team_fields[prefix + "played"] = line.played
+            team_fields[prefix + "won"] = line.won
+            team_fields[prefix + "drawn"] = line.drawn
+            team_fields[prefix + "lost"] = line.lost
+            team_fields[prefix + "goals_for"] = line.goals_for
+            team_fields[prefix + "goal_diff"] = line.goal_diff
+            team_fields[prefix + "points"] = line.points
 
-    return out
+    return team_fields
 
 
 def _htft(record: HalfTimeFullTime, team: int, side: str) -> dict[str, int | None]:
     """One team's HT/FT record, as `s3_<side>_pre_htft_<venue>_<ht>_<ft>` (team view)."""
 
     return {
-        f"s3_{side}_pre_htft_{venue}_{ht}_{ft}": record.count(venue, team, ht.upper(), ft.upper())
+        f"s3_{side}_pre_htft_{venue}_{ht_result}_{ft_result}": record.count(
+            venue, team, ht_result.upper(), ft_result.upper()
+        )
         for venue in STANDING_VENUES
-        for ht in HTFT_RESULTS
-        for ft in HTFT_RESULTS
+        for ht_result in HTFT_RESULTS
+        for ft_result in HTFT_RESULTS
     }
 
 
@@ -320,12 +315,10 @@ def _stage_tables(league_stage_df: pd.DataFrame) -> Iterator[tuple[Any, dict[str
 
 
 def pre_kickoff_tables(schedule_df: pd.DataFrame) -> pd.DataFrame:
-    """Both teams' standings (96 columns), `s3_pre_rank_gap`, HT/FT records (54) and what is
-    at stake (8).
+    """Both teams' standings (96 columns), `s3_pre_rank_gap`, HT/FT records (54) and stakes (8).
 
-    One table and one record per stage, each counting only the matches that kicked off at
-    least `FINISHED_AFTER` before this one; the rank change compares the table with the one
-    `OPEN_LEAD` earlier.
+    One table and one record per stage, counting the matches that kicked off at least
+    `FINISHED_AFTER` before this one; the rank change compares with the table `OPEN_LEAD` earlier.
     """
 
     rows: dict[Any, dict[str, int | None]] = {}
@@ -366,16 +359,18 @@ def build(row_path: str) -> str:
     stage_2_df = read_stage_csv(row_path)
     stage_3_df = pd.concat([stage_2_df, derive(stage_2_df)], axis=1)
 
-    out_path = paths.schedule_at_stage(row_path, 3)
+    stage_3_path = paths.schedule_at_stage(row_path, 3)
     columns = SCHEDULE_RAW_COLUMNS + SCHEDULE_ROW_COLUMNS + SCHEDULE_MULTI_COLUMNS
-    write_stage_csv(stage_3_df, out_path, columns)
+    write_stage_csv(stage_3_df, stage_3_path, columns)
 
-    logger.info("%s: %d rows -> %s", row_path, len(stage_2_df), out_path)
+    logger.info("%s: %d rows -> %s", row_path, len(stage_2_df), stage_3_path)
 
-    return out_path
+    return stage_3_path
 
 
 def build_all() -> None:
+    """Build the stage-3 file of every stage-2 schedule file."""
+
     row_paths = paths.schedule_csvs(2)
     if not row_paths:
         logger.warning("No stage-2 schedule files in %s", paths.stage_dir(2))
@@ -385,6 +380,8 @@ def build_all() -> None:
 
 
 def main() -> None:
+    """Entry point: build every stage-3 schedule file."""
+
     build_all()
 
 

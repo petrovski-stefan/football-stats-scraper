@@ -145,9 +145,9 @@ def scrape_league(job: LeagueSeason) -> _Scrape:
 
         scrape = _Scrape(league_name, [], [])
         for stage in stages:
-            ctx = _StagePass(job.season, job.league_id, league_name, stage)
-            scrape.final_table.extend(_read_final_table(driver, ctx))
-            scrape.matches.extend(_scrape_stage(driver, ctx))
+            stage_pass = _StagePass(job.season, job.league_id, league_name, stage)
+            scrape.final_table.extend(_read_final_table(driver, stage_pass))
+            scrape.matches.extend(_scrape_stage(driver, stage_pass))
 
         logger.info("League '%s': %d finished matches", league_name, len(scrape.matches))
         return scrape
@@ -165,18 +165,16 @@ def _read_stages(driver: webdriver.Chrome) -> list[tuple[str, str]]:
 
 
 def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: str) -> list[_Stage]:
-    """Choose the stage passes for a page from the config's `keep` list.
-
-    No tabs means one pass over the page as it opens; otherwise one pass per kept tab,
-    in page order. A kept stage missing from the page only warns, since an unfinished
-    season may not have reached it yet. A config whose shape does not match the page at
-    all scrapes nothing: any guess would be a stage nobody chose.
+    """The stage passes for a page: one over the page as it opens if it has no tabs, otherwise
+    one per kept tab, in page order. A kept stage missing from the page only warns (an
+    unfinished season may not have reached it); a config that does not fit scrapes nothing.
     """
 
     if not tabs:
         if keep:
             logger.error("%s: config keeps %s but the page has no stage tabs", label, list(keep))
             return []
+
         return [_Stage(None, "")]
 
     if not keep:
@@ -191,15 +189,14 @@ def _resolve_stages(tabs: list[tuple[str, str]], keep: tuple[str, ...], label: s
     return [_Stage(stage_id, name) for stage_id, name in tabs if name in keep]
 
 
-def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, Any]]:
-    """The stage's final table as the page shows it: `Total`, FT, read once.
+def _read_final_table(driver: webdriver.Chrome, stage_pass: _StagePass) -> list[dict[str, Any]]:
+    """The stage's final table as the page shows it (`Total`, FT), read once as a check only.
 
-    A check only (`notes/FIELDS/SCHEDULE_1_RAW.md` §B). The standings have their own
-    sub-table picker that ignores the stage tabs, so a stage page points it at its own
-    sub-table first; a stage whose table cannot be shown gets none, never another's.
+    A stage page first points the standings' own sub-table picker at its stage; a stage whose
+    table cannot be shown gets none, never another's (`notes/FIELDS/SCHEDULE_1_RAW.md` §B).
     """
 
-    stage = ctx.stage
+    stage = stage_pass.stage
     if stage.stage_id is not None:
         click_stage(driver, stage.stage_id)
         if not sync_standings_to_stage(driver, stage.stage_id):
@@ -211,34 +208,40 @@ def _read_final_table(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[st
         return []
 
     lines = parse_final_table(BeautifulSoup(driver.page_source, "html.parser"))
-    context = {"season": ctx.season, "league_id": ctx.league_id, "stage": stage.name}
+    context = {"season": stage_pass.season, "league_id": stage_pass.league_id, "stage": stage.name}
 
     return [{**context, **line} for line in lines]
 
 
-def _scrape_stage(driver: webdriver.Chrome, ctx: _StagePass) -> list[dict[str, Any]]:
+def _scrape_stage(driver: webdriver.Chrome, stage_pass: _StagePass) -> list[dict[str, Any]]:
     """Scrape one stage pass round by round."""
 
-    if ctx.stage.stage_id is not None:
-        click_stage(driver, ctx.stage.stage_id)
+    if stage_pass.stage.stage_id is not None:
+        click_stage(driver, stage_pass.stage.stage_id)
 
-    rounds = _read_rounds(driver, ctx.stage.stage_id)
+    rounds = _read_rounds(driver, stage_pass.stage.stage_id)
     logger.info(
-        "League '%s' (%s) %s: %d rounds", ctx.league_name, ctx.season, ctx.stage.name, len(rounds)
+        "League '%s' (%s) %s: %d rounds",
+        stage_pass.league_name,
+        stage_pass.season,
+        stage_pass.stage.name,
+        len(rounds),
     )
 
     matches: list[dict[str, Any]] = []
     for round_number in rounds:
-        matches.extend(_scrape_round(driver, round_number, ctx))
+        matches.extend(_scrape_round(driver, round_number, stage_pass))
 
     return matches
 
 
 def _scrape_round(
-    driver: webdriver.Chrome, round_number: int, ctx: _StagePass
+    driver: webdriver.Chrome, round_number: int, stage_pass: _StagePass
 ) -> list[dict[str, Any]]:
-    click_round(driver, round_number, ctx.stage.stage_id)
-    label = f"{ctx.stage.name} round {round_number}".strip()
+    """Click one round and return its finished matches, each with all three odds markets."""
+
+    click_round(driver, round_number, stage_pass.stage.stage_id)
+    label = f"{stage_pass.stage.name} round {round_number}".strip()
     if not wait_for_odds(driver) and not wait_for_odds(driver, ODDS_RETRY_TIMEOUT):
         logger.warning("  %s: no odds on screen, stored without odds; check the page", label)
 
@@ -247,10 +250,10 @@ def _scrape_round(
     soup = BeautifulSoup(driver.page_source, "html.parser")
     rows = soup.select(SCHEDULE_ROWS)
     context = {
-        "s1_season": ctx.season,
-        "s1_league_id": ctx.league_id,
-        "s1_league_name": ctx.league_name,
-        "s1_stage": ctx.stage.name,
+        "s1_season": stage_pass.season,
+        "s1_league_id": stage_pass.league_id,
+        "s1_league_name": stage_pass.league_name,
+        "s1_stage": stage_pass.stage.name,
         "s1_round": round_number,
     }
 
@@ -298,11 +301,10 @@ _MISSING_BY_REPEATS: dict[frozenset[tuple[str, str]], list[str]] = {
 
 
 def drop_stale_odds(row: dict[str, Any]) -> list[str]:
-    """Empty each market whose three cells repeat another market's; return the ones emptied.
+    """Empty each market whose three cells repeat another's in `row`; return the markets emptied.
 
-    Real markets never repeat each other (none of 29,478 rows): a 1X2 middle cell is a
-    draw price, an O/U or AH middle cell a line. Which repeat means which market is
-    missing is `_MISSING_BY_REPEATS`.
+    Real markets never repeat (none of 29,478 rows: a 1X2 middle cell is a price, an O/U or AH
+    one a line). Which repeat means which market is missing: `_MISSING_BY_REPEATS`.
     """
 
     cells = {market: tuple(row.get(f) for f in fields) for market, fields in _MARKETS.items()}
@@ -320,17 +322,13 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
 
 
 def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | None]]:
-    """Read the OU and AH columns for the round already on screen, keyed by match id.
+    """Read the O/U and AH columns of the round on screen, keyed by match id.
 
-    The odds type is a page-level setting shared by every row, so the only way to get
-    all three is to switch the header and re-read. This leaves the header back on 1X2,
-    because the caller parses the full rows (scores, teams, 1X2 odds) after it returns.
-
-    A league that does not carry a type is skipped rather than raised on, so its rows
-    simply come out with empty columns for it.
+    Each type means switching the page-wide header and re-reading; the header ends back on 1X2
+    for the caller's parse. A type the league does not carry is skipped: its columns stay empty.
     """
 
-    out: dict[str, dict[str, float | None]] = {}
+    odds_by_match: dict[str, dict[str, float | None]] = {}
     for kind, parse, fields in _SECONDARY_ODDS:
         if not switch_odds_type(driver, kind):
             logger.warning("  odds type %r unavailable", kind)
@@ -341,15 +339,19 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
         for row in soup.select(SCHEDULE_ROWS):
             match_id = (attr(row, "matchid") or "").strip()
             if match_id:
-                out.setdefault(match_id, {}).update(dict(zip(fields, parse(row), strict=True)))
+                odds_by_match.setdefault(match_id, {}).update(
+                    dict(zip(fields, parse(row), strict=True))
+                )
 
     switch_odds_type(driver, "1x2")
     wait_for_odds(driver)
 
-    return out
+    return odds_by_match
 
 
 def _read_league_name(driver: webdriver.Chrome, season: str) -> str:
+    """The league's name from the page title, lowercased, with "_" for each space."""
+
     # Title looks like: "Schedule, Fixture, Latest Results - 2025-2026 English Premier League"
     name = driver.title.split(" - ")[-1].strip()
 
@@ -361,12 +363,10 @@ def _read_league_name(driver: webdriver.Chrome, season: str) -> str:
 
 
 def _read_rounds(driver: webdriver.Chrome, stage_id: str | None) -> list[int]:
-    """Return round numbers 1..current (finished rounds + the live one) of one stage.
+    """The round numbers 1..current of one stage: the finished rounds and the live one.
 
-    Rounds beyond the current one are future fixtures with no results; their rows
-    would all be skipped, so we stop at the round marked 'current'. Every stage's round
-    buttons are in the DOM at once, each set with its own 'current', so the read is
-    scoped to `stage_id` (None on pages without stage tabs).
+    Later rounds have no results yet. Every stage's round buttons are in the DOM at once, each
+    set with its own 'current', so the read is scoped to `stage_id` (None without stage tabs).
     """
 
     selector = ROUND_SPANS if stage_id is None else STAGE_ROUND_SPANS.format(stage=stage_id)
@@ -457,6 +457,8 @@ def plan_jobs(
 
 
 def _save(job: LeagueSeason, scrape: _Scrape) -> Outcome:
+    """Validate one league-season's rows and write its stage-1 files; return the outcome."""
+
     league = league_slug(job.country, scrape.league_name)
     matches = _validate(scrape.matches, ScheduleRow, "match")
     table = _validate(scrape.final_table, FinalTableRow, "final-table team")
@@ -552,6 +554,8 @@ def _start(number: int, total: int, job: LeagueSeason) -> Outcome:
 
 
 def main() -> None:
+    """Entry point: read the options, scrape, and exit 1 if any league-season failed."""
+
     # Output sent to a file is written in the Windows code page, which cannot hold every
     # character a league name can have; UTF-8 can.
     for stream in (sys.stdout, sys.stderr):

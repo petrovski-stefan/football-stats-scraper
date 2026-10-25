@@ -16,13 +16,13 @@ from domain.columns import STAGE_TEXT_COLUMNS
 def read_stage_csv(path: str) -> pd.DataFrame:
     """A stage file as written: text columns stay text, empty text stays `""`."""
 
-    head = pd.read_csv(path, nrows=0).columns
-    text = [c for c in STAGE_TEXT_COLUMNS if c in head]
+    header = pd.read_csv(path, nrows=0).columns
+    text_columns = [c for c in STAGE_TEXT_COLUMNS if c in header]
     stage_file_df = pd.read_csv(
-        path, dtype=dict.fromkeys(text, str), keep_default_na=False, na_values=[""]
+        path, dtype=dict.fromkeys(text_columns, str), keep_default_na=False, na_values=[""]
     )
 
-    return stage_file_df.fillna(dict.fromkeys(text, ""))
+    return stage_file_df.fillna(dict.fromkeys(text_columns, ""))
 
 
 def write_stage_csv(stage_file_df: pd.DataFrame, path: str, columns: list[str]) -> None:

@@ -20,6 +20,7 @@ def test_resampled_sums_resample_whole_clusters() -> None:
     assert one.tolist() == [[6.0, 3.0]] * 5
 
     two = score.resampled_sums(values, pd.Series(["a", "a", "b"]), draws=200)
+
     # Each resample holds two clusters: a + a, a + b, b + a or b + b.
     assert set(map(tuple, two.tolist())) <= {(6.0, 4.0), (6.0, 3.0), (6.0, 2.0)}
     assert set(two[:, 0].tolist()) == {6.0}

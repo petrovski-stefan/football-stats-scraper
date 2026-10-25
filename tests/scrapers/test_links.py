@@ -21,7 +21,7 @@ from scrapers.links import LeagueConfig, Selection, get_league_seasons, parse_le
         ("https://example.com/league/2025/71", ("2025", 71)),
     ],
 )
-def test_parse_league_url(url: str, parsed: tuple[str, int]) -> None:
+def test_parse_league_url_reads_both_season_forms(url: str, parsed: tuple[str, int]) -> None:
     assert parse_league_url(url) == parsed
 
 
@@ -56,7 +56,7 @@ def _league(**overrides: Any) -> dict[str, Any]:
     return entry
 
 
-def test_valid_league_config() -> None:
+def test_a_valid_league_config_loads() -> None:
     config = LeagueConfig.model_validate(_league())
     assert config.keep == ["League"]
     assert [s.season for s in config.seasons] == ["2025-2026", "2025"]
@@ -108,6 +108,8 @@ def _config(tmp_path: Path) -> str:
 
 
 def _picked(selection: Selection | None, config: str) -> list[tuple[str, str]]:
+    """(code, season) of each job a run with `selection` takes from `config`."""
+
     return [(job.code, job.season) for job in get_league_seasons(selection, config)]
 
 
@@ -124,6 +126,7 @@ def test_named_leagues_run_whatever_their_flags(tmp_path: Path) -> None:
 
 def test_all_leagues_and_a_year_bound(tmp_path: Path) -> None:
     picked = _picked(Selection(all_leagues=True, before_year=2026), _config(tmp_path))
+
     # 2025-2026 and 2025 started in 2025; the calendar-year 2026 season is left out.
     assert picked == [("TST", "2025-2026"), ("TST", "2025"), ("OTH", "2025")]
 

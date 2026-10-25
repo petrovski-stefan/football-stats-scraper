@@ -23,7 +23,7 @@ CUTOFF = scope.HISTORY_FROM_YEAR
         (None, False),
     ],
 )
-def test_is_friendly(league: str | None, friendly: bool) -> None:
+def test_is_friendly_finds_the_marker_in_any_case(league: str | None, friendly: bool) -> None:
     assert scope.is_friendly(league) is friendly
 
 
@@ -37,7 +37,7 @@ def test_is_friendly(league: str | None, friendly: bool) -> None:
         (None, None),
     ],
 )
-def test_match_year(date: str | None, year: int | None) -> None:
+def test_match_year_reads_a_leading_year_only(date: str | None, year: int | None) -> None:
     assert scope.match_year(date) == year
 
 
@@ -51,5 +51,7 @@ def test_match_year(date: str | None, year: int | None) -> None:
         ("Test League", "not a date", True),
     ],
 )
-def test_in_scope(league: str, date: str, usable: bool) -> None:
+def test_in_scope_drops_friendlies_and_old_matches_but_keeps_unreadable_dates(
+    league: str, date: str, usable: bool
+) -> None:
     assert scope.in_scope(league, date) is usable

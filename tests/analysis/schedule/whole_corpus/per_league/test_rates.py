@@ -49,6 +49,8 @@ def test_stage_table_puts_apertura_b_into_the_apertura(card_df: pd.DataFrame) ->
 
 def test_league_table_ranks_by_the_shrunk_comeback_rate(card_df: pd.DataFrame) -> None:
     def values(shrunk: list[float]) -> pd.DataFrame:
+        """Two leagues' observed, raw and shrunk values of one quantity."""
+
         return pd.DataFrame(
             {"observed": [1.0, 2.0], "value": [0.25, 0.5], "shrunk": shrunk},
             index=pd.Index([1, 2]),

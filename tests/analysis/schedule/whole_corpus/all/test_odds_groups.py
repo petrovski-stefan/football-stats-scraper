@@ -97,9 +97,11 @@ def test_group_stats_count_crowded_groups_and_the_smallest_tail() -> None:
 def test_against_null_finds_nothing_when_the_outcomes_are_certain() -> None:
     groups = np.array([0, 0, 1, 1, 2])
     chance = np.array([1.0, 1.0, 1.0, 0.0, 0.0])
+
     against_null_df = runner.against_null(groups, chance.copy(), chance, draws=20).set_index(
         "statistic"
     )
+
     assert against_null_df["observed"].tolist() == [1.0, 0.0, float(poisson.sf(1, 2.0))]
     assert (against_null_df["null low"] == against_null_df["observed"]).all()
     assert (against_null_df["p"] == 1.0).all()

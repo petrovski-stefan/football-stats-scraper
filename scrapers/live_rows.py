@@ -85,6 +85,7 @@ def iter_rows(soup: BeautifulSoup) -> Iterator[LiveRow]:
         row = cell.find_parent(LIVE_EVENT_ROW)
         if row is None or id(row) in seen:
             continue
+
         seen.add(id(row))
 
         cells = row.find_all("td", recursive=False)

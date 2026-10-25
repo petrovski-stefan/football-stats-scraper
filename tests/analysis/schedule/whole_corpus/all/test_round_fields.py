@@ -40,6 +40,7 @@ def test_count_table_gives_the_share_at_each_level(matches_df: pd.DataFrame) -> 
 
 def test_average_table_reads_the_rows_with_a_value(matches_df: pd.DataFrame) -> None:
     average_table_df = runner.average_table(matches_df).set_index("field")
+
     assert int(average_table_df.at["S3.19 average goals", "with a value"]) == 3
     assert float(average_table_df.at["S3.19 average goals", "share with a value"]) == pytest.approx(
         3 / 4
@@ -61,7 +62,9 @@ def test_goals_over_line_gives_all_then_the_common_lines(
     matches_df: pd.DataFrame, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setattr(runner, "MIN_LINE_MATCHES", 2)
+
     goals_over_line_df = runner.goals_over_line(matches_df)
+
     assert goals_over_line_df["line"].tolist() == ["all", "2.5"]
     assert goals_over_line_df["matches"].tolist() == [3, 2]
     assert goals_over_line_df["goals minus line"].tolist() == pytest.approx(

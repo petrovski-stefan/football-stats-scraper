@@ -55,6 +55,7 @@ def phased_df() -> pd.DataFrame:
 
 def test_phases_split_a_stage_into_thirds_by_round_and_by_kickoff() -> None:
     stage_matches_df = stage_matches(9)
+
     # Round 1's match was put off until after round 9.
     stage_matches_df.loc[0, "s1_date"] = "2024-08-20T15:00:00+02:00"
 
@@ -85,8 +86,10 @@ def test_the_league_season_reading_expects_what_each_league_season_has(
         sums_df = pd.DataFrame({"observed": phased_df[observed], "expected": expected})
         sums_df = sums_df.groupby(phased_df["cluster"]).sum()
 
-        assert sums_df["expected"].to_numpy() == pytest.approx(sums_df["observed"].to_numpy())
-        assert (expected[phased_df[denominator] == 0] == 0).all()
+        assert sums_df["expected"].to_numpy() == pytest.approx(sums_df["observed"].to_numpy()), (
+            quantity
+        )
+        assert (expected[phased_df[denominator] == 0] == 0).all(), quantity
 
 
 def test_readings_are_raw_then_the_league_season_then_the_odds() -> None:

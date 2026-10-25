@@ -11,9 +11,8 @@ from analysis.schedule.whole_corpus.all import rates as runner
 def card_df() -> pd.DataFrame:
     """Six matches in two league-seasons, in the shape `card_frame` gives.
 
-    Half-time to full time: 0-1 to 2-1 (home comeback), 1-0 to 1-0, 0-0 to 1-1, 0-1 to 0-2,
-    2-0 to 2-3 (away comeback) and 0-0 to 4-3. Each league-season has a home team and an
-    away team behind at half-time.
+    HT to FT: 0-1 to 2-1 (home comeback), 1-0 to 1-0, 0-0 to 1-1, 0-1 to 0-2, 2-0 to 2-3 (away
+    comeback), 0-0 to 4-3; each league-season has a home and an away team behind at the break.
     """
 
     six_matches_df = pd.DataFrame(

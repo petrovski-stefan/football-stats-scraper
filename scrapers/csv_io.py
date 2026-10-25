@@ -1,3 +1,9 @@
+"""Writing scraped rows to CSV, and the league part of the stage-1 file names.
+
+`save_unless_shrinking` keeps a shorter re-scrape from overwriting a fuller file, and
+`append_rows` lets a resumable run keep its progress.
+"""
+
 import logging
 import os
 from typing import Any
@@ -10,12 +16,10 @@ logger = logging.getLogger(__name__)
 
 
 def league_slug(country: str, league_name: str) -> str:
-    """The league part of a staged file name: the config's country, then the league's name
-    as the page's title gives it (`japan_j2_league`). The title alone can leave the
-    country out. A name that already starts with the exact country keeps it once
-    (`brazil_serie_a`, but `england_english_premier_league`; the user, 2026-10-08).
-    Stays here rather than in `domain/paths.py` because it needs `clean_string`, and
-    `domain` may not import from `scrapers`."""
+    """The league part of a staged file name: the config's country, then the page title's league
+    name (`japan_j2_league`), the country once if the name starts with it (`brazil_serie_a`; the
+    user, 2026-10-08). Not in `domain/paths.py`: it needs `clean_string` from `scrapers`.
+    """
 
     prefix = country.lower().replace(" ", "_")
     league = clean_string(league_name)

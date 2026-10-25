@@ -42,4 +42,4 @@ def test_on_page_takes_the_pages_own_figure_where_one_is_held(
 
 def test_every_page_total_falls_short_of_a_declared_deduction() -> None:
     for key, points in deductions.PAGE_TOTALS.items():
-        assert deductions.POINTS_DEDUCTIONS[key] < points <= 0
+        assert deductions.POINTS_DEDUCTIONS[key] < points <= 0, (key, points)

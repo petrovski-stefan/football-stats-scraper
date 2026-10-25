@@ -14,6 +14,8 @@ from scrapers.schedule import Outcome, plan_jobs, scraped_league_seasons, summar
 
 
 def _job(league_id: int, season: str, code: str = "TST") -> LeagueSeason:
+    """A scrape job for one league-season of a made-up league."""
+
     url = f"https://example.com/league/{season}/{league_id}"
 
     return LeagueSeason(url, season, league_id, (), code, "Test League", "Testland")
@@ -71,6 +73,8 @@ def _fake_run(
     lock = threading.Lock()
 
     def run_job(job: LeagueSeason) -> Outcome:
+        """Record the worker's thread name; a job coded BAD fails."""
+
         with lock:
             names.append(threading.current_thread().name)
 

@@ -21,5 +21,6 @@ def test_price_table_counts_every_outcome_once(toy_matches_df: pd.DataFrame) -> 
     price_table_df = runner.price_table(scored_df)
     assert price_table_df["outcomes"].sum() == 3 * len(scored_df)
     assert len(price_table_df) <= len(shin.PRICE_EDGES) - 1
+
     # Exactly one of the three outcomes of each match happens.
     assert round((price_table_df["observed"] * price_table_df["outcomes"]).sum()) == len(scored_df)

@@ -29,7 +29,7 @@ def _block(**cells: object) -> pd.DataFrame:
         (None, ""),
     ],
 )
-def test_cell(value: object, text: str) -> None:
+def test_cell_reads_a_value_as_text_and_a_missing_one_as_empty(value: object, text: str) -> None:
     assert history.cell(_block(match_id=value), f"{PREFIX}match_id", 0) == text
 
 
@@ -41,7 +41,9 @@ def test_cell_of_a_missing_column_is_empty() -> None:
     ("value", "home"),
     [(True, True), ("True", True), (1.0, True), (False, False), ("False", False), (np.nan, None)],
 )
-def test_subject_is_home(value: object, home: bool | None) -> None:
+def test_subject_is_home_reads_any_true_form_and_none_when_missing(
+    value: object, home: bool | None
+) -> None:
     assert history.subject_is_home(_block(is_home=value), PREFIX, 0) is home
 
 
@@ -53,7 +55,9 @@ def test_subject_is_home(value: object, home: bool | None) -> None:
         ("Test League", f"{HISTORY_FROM_YEAR - 1}-03-01 15:00:00", None),
     ],
 )
-def test_match_key(league: str, date: str, key: str | None) -> None:
+def test_match_key_is_none_for_a_friendly_or_an_old_match(
+    league: str, date: str, key: str | None
+) -> None:
     detail_df = _block(match_id=7, league=league, date=date)
     assert history.match_key(detail_df, PREFIX, 0) == key
 
@@ -62,15 +66,16 @@ def test_match_key_without_an_id() -> None:
     assert history.match_key(_block(match_id=None), PREFIX, 0) is None
 
 
-def test_score_matches() -> None:
+def test_score_matches_compares_with_the_stored_score_when_there_is_one() -> None:
     detail_df = _block(ft_home_goals=2, ft_away_goals=1)
     assert history.score_matches(detail_df, PREFIX, 0, 2, 1) is True
     assert history.score_matches(detail_df, PREFIX, 0, 1, 1) is False
+
     # No stored score to check against: treated as usable.
     assert history.score_matches(_block(match_id=7), PREFIX, 0, 0, 0) is True
 
 
-def test_feature_names() -> None:
+def test_feature_names_go_section_by_section() -> None:
     assert history.feature_names(["a", "b"]) == [
         "home_a",
         "home_b",
@@ -81,7 +86,7 @@ def test_feature_names() -> None:
     ]
 
 
-def test_timeline_names() -> None:
+def test_timeline_names_go_section_by_section_then_slot_by_slot() -> None:
     assert history.timeline_names("x", 2) == [
         "home_last1_x",
         "home_last2_x",

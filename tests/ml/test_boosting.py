@@ -35,7 +35,7 @@ def test_group_folds_put_each_group_in_one_test_fold() -> None:
     tested = np.concatenate([test for _, test in folds])
     assert sorted(tested.tolist()) == list(range(len(groups)))
     for train, test in folds:
-        assert not set(groups.iloc[train]) & set(groups.iloc[test])
+        assert not set(groups.iloc[train]) & set(groups.iloc[test]), sorted(set(groups.iloc[test]))
 
 
 def test_tune_fit_and_predict_find_a_clear_signal(signal_df: pd.DataFrame) -> None:

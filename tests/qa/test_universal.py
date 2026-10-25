@@ -8,10 +8,12 @@ from qa.report import Report
 
 
 def _report() -> Report:
+    """An empty report to check against."""
+
     return Report("test subject")
 
 
-def test_check_not_empty() -> None:
+def test_check_not_empty_fails_an_empty_table() -> None:
     report = _report()
     universal.check_not_empty(report, pd.DataFrame({"a": [1]}))
     assert report.ok
@@ -19,7 +21,7 @@ def test_check_not_empty() -> None:
     assert not report.ok
 
 
-def test_check_required_columns() -> None:
+def test_check_required_columns_names_the_missing_ones() -> None:
     report = _report()
     universal.check_required_columns(report, pd.DataFrame({"a": [1]}), ["a"])
     assert report.ok
@@ -41,6 +43,7 @@ def test_check_primary_key_missing_column() -> None:
 
 def test_check_primary_key_null_blank_and_duplicate() -> None:
     report = _report()
+
     # " 1" and 1 normalise to the same id, so they count as a duplicate.
     ids_df = pd.DataFrame({"match_id": [1, " 1", None, " "]}, dtype=object)
     universal.check_primary_key(report, ids_df)
@@ -52,18 +55,20 @@ def test_check_primary_key_null_blank_and_duplicate() -> None:
     ]
 
 
-def test_check_unique_across() -> None:
+def test_check_unique_across_fails_an_id_in_two_files() -> None:
     report = _report()
+
     # A repeat inside one file is `check_primary_key`'s job, not this check's.
     universal.check_unique_across(report, {"a.csv": ["1", "2", "2"], "b.csv": ["3"]})
     assert report.ok
+
     universal.check_unique_across(report, {"a.csv": ["1", "2"], "b.csv": ["2", "3"]})
     assert report.issues == [
         "1 match_id values in more than one file, e.g. 2 in ['a.csv', 'b.csv']"
     ]
 
 
-def test_check_declared() -> None:
+def test_check_declared_names_the_files_with_an_undeclared_id() -> None:
     report = _report()
     universal.check_declared(
         report, {"a.csv": ["1", "1"], "b.csv": ["2"]}, {"1", "2", "3"}, "stray id"
@@ -102,7 +107,7 @@ def test_check_no_dead_columns_respects_the_threshold() -> None:
     assert not report.ok
 
 
-def test_check_ids_covered() -> None:
+def test_check_ids_covered_counts_the_ids_missing_from_the_store() -> None:
     report = _report()
     universal.check_ids_covered(report, {"1", "2"}, {"1", "2", "3"}, "the store")
     assert report.ok

@@ -31,6 +31,7 @@ def test_tests_give_one_row_per_quantity_and_reading(toy_rounds_df: pd.DataFrame
 
 def test_largest_rounds_rank_the_parts_of_q(toy_rounds_df: pd.DataFrame) -> None:
     league_rounds_df = toy_rounds_df.assign(league="toy")
+
     # One round gets many more goals than its odds expect.
     league_rounds_df.loc[league_rounds_df["round"] == "1 2024 3", "goals"] = 9.0
     goals = card.ODDS_CARD[-1]

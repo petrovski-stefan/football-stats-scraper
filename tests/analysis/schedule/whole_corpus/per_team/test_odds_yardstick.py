@@ -23,7 +23,7 @@ def team_rows_df(toy_priced_matches_df: pd.DataFrame) -> pd.DataFrame:
 
 def test_the_quantities_read_columns_of_the_team_rows(team_rows_df: pd.DataFrame) -> None:
     for observed, expected, _, _ in runner.QUANTITIES:
-        assert {observed, expected} <= set(team_rows_df.columns)
+        assert {observed, expected} <= set(team_rows_df.columns), (observed, expected)
 
 
 def test_calibration_has_the_calibrated_quantities_by_win_chance(

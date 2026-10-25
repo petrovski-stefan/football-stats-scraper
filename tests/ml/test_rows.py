@@ -63,6 +63,7 @@ def test_implied_sum_1x2_adds_the_three_implied_probabilities(
     built: tuple[pd.DataFrame, list[str], pd.DataFrame],
 ) -> None:
     side_rows_df, _, _ = built
+
     # The first match: 1 / 1.5 + 1 / 4.0 + 1 / 6.0 = 13 / 12, on both of its rows.
     implied_sum = side_rows_df["implied_sum_1x2"]
     assert [implied_sum.iloc[0], implied_sum.iloc[PRICED]] == pytest.approx([13 / 12] * 2)
@@ -88,9 +89,11 @@ def test_table_fields_are_rates_per_match_played(
     assert np.isnan(home_rows_df["T_ft_total_won_pg"].iloc[0])
     assert home_rows_df["T_ft_total_won_pg"].iloc[1:].tolist() == [1.0] * (PRICED - 1)
     assert home_rows_df["T_ft_total_played"].tolist() == [0.0, 2.0, 4.0, 6.0]
+
     # The opponent of a home row is the away side, and the other way.
     assert home_rows_df["O_ft_total_played"].tolist() == [1.0, 3.0, 5.0, 7.0]
     assert away_rows_df["T_ft_total_played"].tolist() == [1.0, 3.0, 5.0, 7.0]
+
     # Every count equals the matches played, so the FT and HT counts cancel in the 2nd half.
     assert away_rows_df["T_2h_home_goal_diff_pg"].tolist() == [0.0] * PRICED
 
@@ -122,7 +125,9 @@ def test_summary_counts_the_rows_and_fields(
     built: tuple[pd.DataFrame, list[str], pd.DataFrame],
 ) -> None:
     side_rows_df, fields, _ = built
+
     summary = rows.summary(side_rows_df, fields)
+
     assert summary["rows"] == 2 * PRICED
     assert summary["fields A"] == len(rows.ODDS)
     assert summary["fields B"] == len(fields)

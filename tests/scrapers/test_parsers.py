@@ -59,7 +59,9 @@ def test_tag_text_strips_and_tolerates_none() -> None:
         ("100-1", None),
     ],
 )
-def test_parse_score(raw: str | None, score: tuple[int, int] | None) -> None:
+def test_parse_score_reads_a_played_score_only(
+    raw: str | None, score: tuple[int, int] | None
+) -> None:
     assert parse_score(raw) == score
 
 
@@ -67,7 +69,9 @@ def test_parse_score(raw: str | None, score: tuple[int, int] | None) -> None:
     ("raw", "value"),
     [("1.85", 1.85), (" 2 ", 2.0), ("", None), (None, None), ("-", None), ("abc", None)],
 )
-def test_parse_float(raw: str | None, value: float | None) -> None:
+def test_parse_float_gives_none_for_anything_but_a_number(
+    raw: str | None, value: float | None
+) -> None:
     assert parse_float(raw) == value
 
 
@@ -91,7 +95,7 @@ def test_parse_float(raw: str | None, value: float | None) -> None:
         ("/", None),
     ],
 )
-def test_parse_line(raw: str, line: float | None) -> None:
+def test_parse_line_negates_the_whole_quarter_line(raw: str, line: float | None) -> None:
     assert parse_line(raw) == line
 
 
@@ -104,6 +108,7 @@ def _page_line(quarters: int) -> str:
     size = abs(quarters)
     if size % 2 == 0:
         return f"{sign}{size / 4:g}"
+
     low, high = (size - 1) / 4, (size + 1) / 4
 
     return f"0/{sign}{high:g}" if low == 0 else f"{sign}{low:g}/{high:g}"
@@ -140,7 +145,9 @@ def test_clean_string_transliterates_portuguese_letters() -> None:
         ("01/02/2026 01:30", None),
     ],
 )
-def test_parse_kickoff(raw: str | None, berlin: str | None) -> None:
+def test_parse_kickoff_converts_china_time_to_berlin_time(
+    raw: str | None, berlin: str | None
+) -> None:
     assert parse_kickoff(raw) == berlin
 
 
@@ -148,6 +155,8 @@ def test_parse_kickoff(raw: str | None, berlin: str | None) -> None:
 
 
 def _schedule_row(score: str, ht: str) -> str:
+    """A finished schedule row's HTML with this FT and HT score."""
+
     return f"""
     <div class="schedulis" matchid="11" score="{score}">
       <span class="date" data-t="2026-02-01 01:30"></span>
@@ -190,6 +199,8 @@ def test_parse_schedulis_row_skips_an_unplayed_match() -> None:
 
 
 def _odds_row(*cells: str) -> Tag:
+    """A schedule row holding only these odds cells."""
+
     spans = "".join(f"<span>{cell}</span>" for cell in cells)
     html = f'<div class="schedulis"><span class="odds">{spans}</span></div>'
     row = BeautifulSoup(html, "html.parser").select_one("div")
@@ -223,6 +234,8 @@ _TITLE = (
 
 
 def _standing(rank: int, team: int, name: str, counts: tuple[int, ...]) -> str:
+    """One team's standings row HTML; `counts` are P, W, D, L, GD and PTS."""
+
     played, won, drawn, lost, goal_diff, points = counts
 
     return (
@@ -235,12 +248,14 @@ def _standing(rank: int, team: int, name: str, counts: tuple[int, ...]) -> str:
 
 
 def _table(*rows: str, title: str = _TITLE) -> BeautifulSoup:
+    """A standings table page with this title row and these rows."""
+
     html = f'<div id="standingPlates"><ul id="standingList">{title}{"".join(rows)}</ul></div>'
 
     return BeautifulSoup(html, "html.parser")
 
 
-def test_parse_final_table() -> None:
+def test_parse_final_table_reads_every_team_line() -> None:
     soup = _table(
         _standing(1, 19, "First FC", (38, 26, 7, 5, 44, 85)),
         _standing(20, 7, "Last FC", (38, 3, 5, 30, -61, 14)),

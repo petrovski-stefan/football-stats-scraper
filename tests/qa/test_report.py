@@ -27,7 +27,7 @@ def test_flush_prints_the_verdict(capsys: pytest.CaptureFixture[str]) -> None:
     assert passing.flush() is True
     assert failing.flush() is False
 
-    out = capsys.readouterr().out
-    assert "[PASS] clean" in out
-    assert "[FAIL (1)] broken" in out
-    assert "- a problem" in out
+    printed = capsys.readouterr().out
+    assert "[PASS] clean" in printed
+    assert "[FAIL (1)] broken" in printed
+    assert "- a problem" in printed

@@ -53,7 +53,7 @@ def test_subject_team_id_is_the_team_in_most_rows() -> None:
     assert detail_parsers.subject_team_id([]) is None
 
 
-def test_aggregate_form() -> None:
+def test_aggregate_form_sums_the_subject_teams_matches() -> None:
     form = detail_parsers.aggregate_form(RECORDS, subject_id=1)
 
     assert form == {
@@ -88,12 +88,13 @@ def test_aggregate_recent_adds_the_venue_split() -> None:
     recent = detail_parsers.aggregate_recent(RECORDS, subject_id=1, side="home")
     assert all(key.startswith("home_recent_") for key in recent)
     assert recent["home_recent_played"] == 3
+
     # Only the two matches team 1 played at home: a win and a loss, both 3 goals.
     assert recent["home_recent_venue_ppg"] == 1.5
     assert recent["home_recent_venue_over25_rate"] == 1.0
 
 
-def test_aggregate_h2h() -> None:
+def test_aggregate_h2h_counts_wins_from_the_home_teams_side() -> None:
     h2h = detail_parsers.aggregate_h2h(RECORDS, subject_id=1)
 
     assert h2h == {

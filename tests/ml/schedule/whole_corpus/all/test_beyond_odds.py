@@ -105,6 +105,7 @@ def test_run_split_prints_every_table_of_the_split(
 def test_yardstick_chance_is_scaled_to_the_training_rows() -> None:
     train_df = pd.DataFrame({rows.TARGET: [1.0, 0.0, 1.0, 0.0], runner.YARDSTICK: 0.25})
     test_df = pd.DataFrame({runner.YARDSTICK: [0.1, 0.2]})
+
     # The training rows have 2 comebacks against 1 expected: O/E 2.
     assert runner.yardstick_chance(train_df, test_df).tolist() == pytest.approx([0.2, 0.4])
 

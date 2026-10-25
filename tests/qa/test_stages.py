@@ -30,12 +30,16 @@ def test_each_stage_declares_the_earlier_stages_columns_first() -> None:
 
 
 def _raw() -> pd.DataFrame:
+    """Two stage-1 rows of one round, the second without a home price."""
+
     return pd.DataFrame(
         {"match_id": ["1", "2"], "s1_round": [1, 1], "s1_odds_1x2_open_home": [1.5, None]}
     )
 
 
 def _carried_issues(later_df: pd.DataFrame) -> list[str]:
+    """The issues of the carried-columns check of `later_df` against `_raw()`."""
+
     report = Report("test")
     check_carried(report, _raw(), later_df, _CARRIED, "stage 1")
 
@@ -84,6 +88,8 @@ def test_a_repeated_id_is_left_to_the_key_check() -> None:
 
 
 def _stage_two_row(**overrides: object) -> dict[str, object]:
+    """A valid stage-2 odds row; `overrides` change fields."""
+
     row: dict[str, object] = {
         **dict(
             zip(STAGED_ODDS.cells(), [1.5, 4.0, 6.0, 2.75, 1.9, 1.95, 0.75, 1.9, 1.95], strict=True)
@@ -106,6 +112,8 @@ def _stage_two_row(**overrides: object) -> dict[str, object]:
 
 
 def _odds_issues(*rows: dict[str, object]) -> list[str]:
+    """The issues the stage-2 odds-field check finds in these rows."""
+
     report = Report("test")
     check_odds_fields(report, pd.DataFrame(list(rows)))
 
@@ -113,6 +121,8 @@ def _odds_issues(*rows: dict[str, object]) -> list[str]:
 
 
 def _without(market: str) -> dict[str, object]:
+    """Every cell of one market, empty, to merge into a row."""
+
     return dict.fromkeys(STAGED_ODDS.markets()[market])
 
 
@@ -179,7 +189,10 @@ def test_only_stage_two_gets_the_odds_field_check() -> None:
     for stage, checked in ((2, True), (3, False)):
         report = Report("test")
         validate(report, stage_2_df, stage, {})
-        assert any("s2_has_odds disagrees" in issue for issue in report.issues) is checked
+        assert any("s2_has_odds disagrees" in issue for issue in report.issues) is checked, (
+            stage,
+            checked,
+        )
 
 
 def _round_row(**overrides: object) -> dict[str, object]:
@@ -203,6 +216,8 @@ def _round_row(**overrides: object) -> dict[str, object]:
 
 
 def _round_issues(*rows: dict[str, object]) -> list[str]:
+    """The issues the stage-3 round-field check finds in these rows."""
+
     report = Report("test")
     check_round_fields(report, pd.DataFrame(list(rows)))
 
@@ -246,4 +261,4 @@ def test_only_stage_three_gets_the_round_field_check() -> None:
     for stage, checked in ((2, False), (3, True)):
         report = Report("test")
         validate(report, stage_2_df, stage, {})
-        assert any("btts is above" in issue for issue in report.issues) is checked
+        assert any("btts is above" in issue for issue in report.issues) is checked, (stage, checked)

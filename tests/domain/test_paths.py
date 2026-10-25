@@ -17,6 +17,9 @@ from domain.paths import split_league_season
 # A league slug as the file names hold it: lowercase letters, digits and underscores, so it may
 # end in something that looks like a year (`liga_2000`).
 _SLUGS = st.text("abcdefghijklmnopqrstuvwxyz0123456789_", min_size=1, max_size=30)
+_YEARS = st.integers(1900, 2100)
+_IS_CROSS_YEAR = st.booleans()
+_STAGES = st.sampled_from(sorted(paths.STAGE_DIRS))
 
 
 @pytest.mark.parametrize(
@@ -62,7 +65,9 @@ def test_global_stores_live_in_raw_and_are_not_league_seasons() -> None:
         ),
     ],
 )
-def test_split_league_season(path: str, split: tuple[str, str]) -> None:
+def test_split_league_season_splits_at_the_last_underscore_before_a_season(
+    path: str, split: tuple[str, str]
+) -> None:
     assert split_league_season(path) == split
 
 
@@ -94,7 +99,7 @@ def test_split_schedule_name_inverts_schedule_path(league: str, season: str) -> 
     assert paths.split_schedule_name(paths.schedule_path(2, league, season)) == (league, season)
 
 
-@given(_SLUGS, st.integers(1900, 2100), st.booleans(), st.sampled_from(sorted(paths.STAGE_DIRS)))
+@given(_SLUGS, _YEARS, _IS_CROSS_YEAR, _STAGES)
 def test_any_league_and_season_survive_the_file_name(
     league: str, year: int, cross_year: bool, stage: int
 ) -> None:

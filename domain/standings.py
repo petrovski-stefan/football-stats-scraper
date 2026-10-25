@@ -36,13 +36,19 @@ class Line:
 
     @property
     def points(self) -> int:
+        """League points: 3 for a win, 1 for a draw."""
+
         return 3 * self.won + self.drawn
 
     @property
     def goal_diff(self) -> int:
+        """Goals for minus goals against."""
+
         return self.goals_for - self.goals_against
 
     def add(self, goals_for: int, goals_against: int) -> None:
+        """Count one result, from this team's side."""
+
         self.played += 1
         self.goals_for += goals_for
         self.goals_against += goals_against
@@ -58,6 +64,8 @@ class Standings:
     """The total, home and away tables of one competition, built one result at a time."""
 
     def __init__(self, teams: Iterable[int]) -> None:
+        """Start the total, home and away tables with one empty line per team id."""
+
         ids = sorted(set(teams))
         self._lines = {venue: {team: Line() for team in ids} for venue in VENUES}
 
@@ -70,29 +78,30 @@ class Standings:
         self._lines["away"][away].add(away_goals, home_goals)
 
     def line(self, venue: str, team: int) -> Line:
+        """The team's line in one table: "total", "home" or "away"."""
+
         return self._lines[venue][team]
 
     def ranks(self, venue: str) -> dict[int, int]:
         """Each team's position in one table; empty while the table holds no result.
 
-        Ordered by points, then goal difference, then goals for, in every league. Teams
-        equal on all three share a position, and the next team's position skips past them
-        (1, 2, 2, 4): no order is invented between teams the table cannot separate.
+        Points, then goal difference, then goals for, in every league. Teams equal on all three
+        share a position and the next team skips past them (1, 2, 2, 4): no order is invented.
         """
 
         lines = self._lines[venue]
         if not any(line.played for line in lines.values()):
             return {}
+
         keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
 
         return {team: 1 + sum(other > key for other in keys.values()) for team, key in keys.items()}
 
     def points_gaps(self, venue: str, team: int) -> tuple[int | None, int | None]:
-        """How many points the team trails the nearest team with more points by, and leads
-        the nearest team with fewer points by; None where no team has more (or fewer).
+        """How far the team trails the nearest team above and leads the nearest below, in points.
 
-        Points only: a team level on points is neither above nor below, so no tie-break
-        enters, and a league that breaks ties by head-to-head gets the same gaps.
+        None where no team has more (or fewer). By points only, so a team level on points is
+        neither above nor below and no tie-break, head-to-head included, enters the gaps.
         """
 
         lines = self._lines[venue].values()
@@ -104,14 +113,15 @@ class Standings:
 
 
 class HalfTimeFullTime:
-    """Each team's (half-time result, full-time result) pairs from its own side, by venue.
+    """Each team's (half-time, full-time) result pairs, "W", "D" or "L", from its own side.
 
-    A pair is two letters, "W", "D" or "L": ("L", "W") is a match the team trailed at
-    half-time and won, ("W", "L") one it led and lost. The same match counts as ("L", "W")
-    for one team and ("W", "L") for the other, and Total is always Home + Away.
+    ("L", "W") is a match the team trailed at half-time and won; the same match is ("W", "L")
+    for the other team. By venue, and the total is always home plus away.
     """
 
     def __init__(self, teams: Iterable[int]) -> None:
+        """Start every team's record at zero in all three venues."""
+
         ids = sorted(set(teams))
         self._pairs: dict[str, dict[int, Counter[tuple[str, str]]]] = {
             venue: {team: Counter() for team in ids} for venue in VENUES
@@ -127,7 +137,7 @@ class HalfTimeFullTime:
         self._pairs["total"][away][away_pair] += 1
         self._pairs["away"][away][away_pair] += 1
 
-    def count(self, venue: str, team: int, ht: str, ft: str) -> int:
-        """How many of the team's matches went `ht` at half-time and `ft` at full time."""
+    def count(self, venue: str, team: int, ht_result: str, ft_result: str) -> int:
+        """How many of the team's matches went `ht_result` at HT and `ft_result` at FT."""
 
-        return self._pairs[venue][team][(ht, ft)]
+        return self._pairs[venue][team][(ht_result, ft_result)]

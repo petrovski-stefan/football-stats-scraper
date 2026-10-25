@@ -20,7 +20,11 @@ def test_league_table_has_one_row_per_league_shrunk_toward_the_pool(
         for raw, shrunk in zip(
             league_table_df[name], league_table_df[f"{name}_shrunk"], strict=True
         ):
-            assert min(raw, pooled) - 1e-12 <= shrunk <= max(raw, pooled) + 1e-12
+            assert min(raw, pooled) - 1e-12 <= shrunk <= max(raw, pooled) + 1e-12, (
+                name,
+                raw,
+                shrunk,
+            )
 
 
 def test_cohort_stability_pairs_the_leagues_seen_in_both_cohorts(
@@ -29,6 +33,8 @@ def test_cohort_stability_pairs_the_leagues_seen_in_both_cohorts(
     cohort_correlation, cohort_count = runner.cohort_stability(
         shin.scored(toy_matches_df), "shin_z"
     )
+
     assert cohort_count == 2
+
     # Two leagues are ranked the same way in both cohorts, or the opposite way.
     assert abs(cohort_correlation) == pytest.approx(1.0)
