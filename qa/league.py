@@ -193,7 +193,8 @@ def _check_derived_columns(report: Report, base_df: pd.DataFrame) -> None:
         mismatch_df.empty, f"{len(mismatch_df)} rows where is_comeback disagrees with raw scores"
     )
 
-    mismatch_7plus_df = base_df[base_df["is_seven_or_more_goals"] != (base_df["total_goals"] >= 7)]
+    is_seven_plus = base_df["total_goals"] >= stats.SEVEN_PLUS_GOALS
+    mismatch_7plus_df = base_df[base_df["is_seven_or_more_goals"] != is_seven_plus]
     report.check(
         mismatch_7plus_df.empty,
         f"{len(mismatch_7plus_df)} rows where is_seven_or_more_goals disagrees with total_goals",

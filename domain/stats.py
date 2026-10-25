@@ -1,6 +1,11 @@
-"""Pure per-match football facts: results, points, comebacks and margin-free probabilities.
-Each rule lives here once; the stage builders, the detail parsers and the checks call it.
+"""Pure per-match football facts: results, points, comebacks, BTTS, 7+ and margin-free
+probabilities. Each rule lives here once; the stage builders, the parsers and the checks call it.
 """
+
+from dataclasses import dataclass
+
+# The 7+ market: a match with at least this many goals (`notes/REFERENCE/GLOSSARY.md`, "7+").
+SEVEN_PLUS_GOALS = 7
 
 
 def one_x_two(home_goals: int, away_goals: int) -> str:
@@ -72,9 +77,18 @@ def implied_prob(odds: float | None) -> float | None:
     return 1 / odds if odds else None
 
 
+@dataclass(frozen=True)
+class VigFreeChances:
+    """The home, draw and away chances of one 1X2 market, the vig removed: they sum to 1."""
+
+    home: float
+    draw: float
+    away: float
+
+
 def vig_free_1x2(
     home: float | None, draw: float | None, away: float | None
-) -> tuple[float, float, float] | None:
+) -> VigFreeChances | None:
     """Home, draw and away probabilities with the bookmaker's margin removed.
 
     Proportional normalisation over the three inverse prices, so they sum to 1. None when
@@ -87,7 +101,7 @@ def vig_free_1x2(
     inverse = (1 / home, 1 / draw, 1 / away)
     total = sum(inverse)
 
-    return inverse[0] / total, inverse[1] / total, inverse[2] / total
+    return VigFreeChances(home=inverse[0] / total, draw=inverse[1] / total, away=inverse[2] / total)
 
 
 def two_way_prob(odds_for: float | None, odds_against: float | None) -> float | None:

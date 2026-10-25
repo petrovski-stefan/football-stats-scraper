@@ -65,6 +65,12 @@ ODDS_TYPES = {
     "ou": ("T", "OU"),  # cells: over / goal line / under
 }
 ROW_ODDS_CELLS = "span.odds > span"  # relative to a schedule row; always three cells
+# The row's other cells, relative to it.
+ROW_FT_SCORE = "span.score"
+ROW_HT_SCORE = "span.ht"
+ROW_HOME_TEAM = "span.home span[onclick]"
+ROW_AWAY_TEAM = "span.away span[onclick]"
+ROW_DATE = "span.date"
 # The clock of the row's `span.date[data-t]` kickoff: UTC+8 (China time), no offset written.
 # Verified 2026-10-05 on two EPL kickoffs, one in winter and one in summer (UK clocks
 # differ, the +8 does not). `parsers.parse_kickoff` converts it to Berlin time.
@@ -87,6 +93,8 @@ STANDING_TOTAL_ITEM = (
 STANDING_ROWS = "div#standingPlates ul#standingList li.standlis"
 # The title row above them: R, Team, P, W, D, L, GD, PTS (measured 2026-10-06).
 STANDING_TITLE_ROW = "div#standingPlates ul#standingList li.title"
+# A standings row's team name, inside its team cell.
+STANDING_TEAM_NAME = "span.name"
 
 
 # --- Detail page (MATCH_HOST/match/h2h-<id>) ----------------------------------

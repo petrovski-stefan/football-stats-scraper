@@ -123,11 +123,11 @@ def _odds(one_x_two: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
         ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away"): ah,
     }
 
-    return {
-        name: value
-        for names, values in fields.items()
-        for name, value in zip(names, values, strict=True)
-    }
+    cells: dict[str, float | None] = {}
+    for names, values in fields.items():
+        cells.update(zip(names, values, strict=True))
+
+    return cells
 
 
 _X12: _Cells = (2.1, 3.4, 3.2)

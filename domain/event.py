@@ -21,7 +21,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field
 
-from domain.goal import MAX_MINUTE, MAX_STOPPAGE
+from domain.goal import HALF_TIME, MAX_MINUTE, MAX_STOPPAGE
 
 YELLOW_CARD = "Yellow Card"
 RED_CARD = "Red Card"
@@ -41,7 +41,7 @@ class Event(BaseModel):
     event_index: int = Field(ge=1)
 
     # Base minute and stoppage kept apart, as for goals: "45+3'" is minute 45, stoppage 3,
-    # so `minute <= 45` is an exact first-half test rather than an approximate one.
+    # so `minute <= HALF_TIME` is an exact first-half test rather than an approximate one.
     minute: int = Field(ge=1, le=MAX_MINUTE)
     stoppage: int = Field(ge=0, le=MAX_STOPPAGE)
 
@@ -60,7 +60,7 @@ class Event(BaseModel):
     def is_first_half(self) -> bool:
         """True for "45'" and "45+3'" alike; false from "46'" on."""
 
-        return self.minute <= 45
+        return self.minute <= HALF_TIME
 
     @property
     def is_card(self) -> bool:

@@ -24,11 +24,6 @@ from domain.columns import DETAIL_ORDERED_COLUMNS
 from features import events as event_features
 from features import goals as goal_features
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 
@@ -165,6 +160,14 @@ def build_all() -> None:
 
 
 def main() -> None:
+    """Entry point: rebuild every enriched join."""
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
     build_all()
 
 

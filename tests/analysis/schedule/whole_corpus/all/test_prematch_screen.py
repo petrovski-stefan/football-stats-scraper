@@ -1,5 +1,7 @@
 """`analysis/schedule/whole_corpus/all/prematch_screen.py`: the fields, the fits, the scores."""
 
+from itertools import product
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -122,10 +124,8 @@ def test_halves_split_the_goal_difference_and_read_each_side_at_its_venue() -> N
 
 def test_record_shrinks_the_completion_toward_the_prior() -> None:
     counts = {
-        f"s3_{side}_pre_htft_total_{ht}_{ft}": 0.0
-        for side in ("home", "away")
-        for ht in "wdl"
-        for ft in "wdl"
+        f"s3_{side}_pre_htft_total_{ht_result}_{ft_result}": 0.0
+        for side, ht_result, ft_result in product(("home", "away"), "wdl", "wdl")
     }
     matches_df = pd.DataFrame({**counts, **standings(1).iloc[0].to_dict()}, index=[0])
     matches_df["s3_home_pre_ft_total_played"] = 10.0

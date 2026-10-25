@@ -78,7 +78,7 @@ class LeagueSeason:
     country: str  # the config's country, the first part of the file names
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, kw_only=True)
 class Selection:
     """Which league-seasons a run takes: by default, the seasons marked `enabled: true`.
 
@@ -118,20 +118,25 @@ def get_league_seasons(
     if unknown:
         raise ValueError(f"league codes not in {path}: {unknown}")
 
-    return [
-        LeagueSeason(
-            season_config.url,
-            season_config.season,
-            league.league_id,
-            tuple(league.keep),
-            league.code,
-            league.name,
-            league.country,
-        )
-        for league in leagues
-        for season_config in league.seasons
-        if _chosen(chosen, league, season_config)
-    ]
+    jobs: list[LeagueSeason] = []
+    for league in leagues:
+        for season_config in league.seasons:
+            if not _chosen(chosen, league, season_config):
+                continue
+
+            jobs.append(
+                LeagueSeason(
+                    url=season_config.url,
+                    season=season_config.season,
+                    league_id=league.league_id,
+                    keep=tuple(league.keep),
+                    code=league.code,
+                    name=league.name,
+                    country=league.country,
+                )
+            )
+
+    return jobs
 
 
 def _chosen(selection: Selection, league: LeagueConfig, season: SeasonConfig) -> bool:

@@ -21,6 +21,7 @@ from scipy import stats as sps
 from scipy.spatial import cKDTree
 
 from analysis.methods import shin
+from domain.stats import SEVEN_PLUS_GOALS
 
 RATE_STEP = 0.02
 RATES = np.arange(RATE_STEP, 6.0 + 1e-9, RATE_STEP)
@@ -290,7 +291,7 @@ def _outcomes(priced_df: pd.DataFrame, ht_margin: np.ndarray) -> pd.DataFrame:
             "is_comeback_home": priced_df["s2_is_comeback_home"],
             "is_comeback_away": priced_df["s2_is_comeback_away"],
             "ht_decisive": priced_df["s2_ht_decisive"],
-            "seven": priced_df["s2_total_goals"] >= 7,
+            "seven": priced_df["s2_total_goals"] >= SEVEN_PLUS_GOALS,
             "is00": (home == 0) & (away == 0),
             "is11": (home == 1) & (away == 1),
             "goals": priced_df["s2_total_goals"],

@@ -12,6 +12,8 @@ from typing import Any
 
 import pandas as pd
 
+from domain.stats import SEVEN_PLUS_GOALS
+
 # (numerator column, denominator column, label, kind)
 CARD = (
     ("is_comeback", "one", "comeback", "event"),
@@ -54,7 +56,7 @@ def card_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
             "ht_decisive": matches_df["s2_ht_decisive"],
             "home_behind": margin < 0,
             "away_behind": margin > 0,
-            "seven": matches_df["s2_total_goals"] >= 7,
+            "seven": matches_df["s2_total_goals"] >= SEVEN_PLUS_GOALS,
             "goals": matches_df["s2_total_goals"],
             "goals_1h": matches_df["s2_goals_1h"],
             "goals_2h": matches_df["s2_goals_2h"],

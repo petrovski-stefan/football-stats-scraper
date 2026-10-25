@@ -1,6 +1,6 @@
 """`domain/standings.py`: lines, the three venue tables, and the rank order."""
 
-from itertools import permutations
+from itertools import permutations, product
 
 from hypothesis import given
 from hypothesis import strategies as st
@@ -151,10 +151,11 @@ def test_total_is_home_plus_away() -> None:
     record.add(1, 2, (1, 0), (1, 0))  # team 1 at home: W/W
     record.add(2, 1, (0, 1), (2, 1))  # team 1 away: W at half-time, L at full time
 
-    pairs = [(ht, ft) for ht in "WDL" for ft in "WDL"]
-    for ht, ft in pairs:
-        total = record.count("total", 1, ht, ft)
-        assert total == record.count("home", 1, ht, ft) + record.count("away", 1, ht, ft), (ht, ft)
+    for ht_result, ft_result in product("WDL", repeat=2):
+        total = record.count("total", 1, ht_result, ft_result)
+        home = record.count("home", 1, ht_result, ft_result)
+        away = record.count("away", 1, ht_result, ft_result)
+        assert total == home + away, (ht_result, ft_result)
 
     assert record.count("total", 1, "W", "W") == 1
     assert record.count("total", 1, "W", "L") == 1

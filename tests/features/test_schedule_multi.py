@@ -4,6 +4,7 @@ reaches a row, on a made-up season and on generated ones."""
 
 import random
 from datetime import UTC, datetime, timedelta
+from itertools import product
 from typing import Any
 
 import pandas as pd
@@ -13,12 +14,12 @@ from hypothesis import strategies as st
 
 from domain.clock import BERLIN, parse_instant, to_berlin
 from domain.columns import HTFT_RESULTS, STANDING_SIDES, STANDING_VENUES
+from domain.stats import SEVEN_PLUS_GOALS
 from features.schedule_multi import (
     FINISHED_AFTER,
     OPEN_LEAD,
     RESCHEDULED_AFTER_DAYS,
     ROUND_LOOK_BACK,
-    SEVEN_PLUS_GOALS,
     derive,
     pre_kickoff_tables,
     round_offsets,
@@ -259,7 +260,10 @@ def _cells(
 ) -> "pd.Series[Any]":
     """The sum of some HT/FT cells, row by row."""
 
-    names = [f"s3_{side}_pre_htft_{venue}_{ht}_{ft}" for ht in ht_results for ft in ft_results]
+    names = [
+        f"s3_{side}_pre_htft_{venue}_{ht_result}_{ft_result}"
+        for ht_result, ft_result in product(ht_results, ft_results)
+    ]
 
     return pre_kickoff_df[names].sum(axis=1)
 
@@ -620,11 +624,20 @@ def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row() -> None:
 # A double round robin of four teams: six rounds of two matches, as (round, home, away).
 _FIRST_LEG = [[(1, 4), (2, 3)], [(1, 3), (4, 2)], [(1, 2), (3, 4)]]
 _SECOND_LEG = [[(away, home) for home, away in pairs] for pairs in _FIRST_LEG]
-_FIXTURES = [
-    (number, home, away)
-    for number, pairs in enumerate([*_FIRST_LEG, *_SECOND_LEG], 1)
-    for home, away in pairs
-]
+
+
+def _numbered(rounds: list[list[tuple[int, int]]]) -> list[tuple[int, int, int]]:
+    """Each fixture as (round, home, away), the rounds numbered from 1."""
+
+    fixtures = []
+    for number, pairs in enumerate(rounds, 1):
+        for home, away in pairs:
+            fixtures.append((number, home, away))
+
+    return fixtures
+
+
+_FIXTURES = _numbered([*_FIRST_LEG, *_SECOND_LEG])
 # From one kickoff to the next: anything up to 10 days, or the last gap at which the earlier
 # match is still unfinished. Only a gap under FINISHED_AFTER can show a leak: two matches
 # further apart are both finished, so neither is scrambled. The unit tests above check the

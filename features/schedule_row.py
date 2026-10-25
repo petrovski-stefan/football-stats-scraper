@@ -18,11 +18,6 @@ from domain import paths, stats
 from domain.columns import SCHEDULE_RAW_COLUMNS, SCHEDULE_ROW_COLUMNS
 from features.stage_io import read_stage_csv, write_stage_csv
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 
@@ -57,18 +52,20 @@ def _odds_fields(row: Mapping[str, Any]) -> dict[str, Any]:
     over_under = [_number(row, f"s1_odds_ou_open_{s}") for s in ("line", "over", "under")]
     handicap = [_number(row, f"s1_odds_ah_open_{s}") for s in ("line", "home", "away")]
 
-    market = stats.vig_free_1x2(*one_x_two)
-    p_home, p_draw, p_away = market if market else (None, None, None)
+    chances = stats.vig_free_1x2(*one_x_two)
+    home_chance = chances.home if chances is not None else None
+    draw_chance = chances.draw if chances is not None else None
+    away_chance = chances.away if chances is not None else None
 
     return {
         "s2_has_odds": None not in one_x_two,
         "s2_has_ou_odds": None not in over_under,
         "s2_has_ah_odds": None not in handicap,
-        "s2_mkt_p_home": p_home,
-        "s2_mkt_p_draw": p_draw,
-        "s2_mkt_p_away": p_away,
-        "s2_mkt_sup": math.log(p_home / p_away) if p_home and p_away else None,
-        "s2_mkt_tot": -math.log(p_draw) if p_draw else None,
+        "s2_mkt_p_home": home_chance,
+        "s2_mkt_p_draw": draw_chance,
+        "s2_mkt_p_away": away_chance,
+        "s2_mkt_sup": math.log(home_chance / away_chance) if home_chance and away_chance else None,
+        "s2_mkt_tot": -math.log(draw_chance) if draw_chance else None,
         "s2_implied_over": stats.two_way_prob(over_under[1], over_under[2]),
         "s2_implied_ah_home": stats.two_way_prob(handicap[1], handicap[2]),
     }
@@ -130,6 +127,12 @@ def build_all() -> None:
 
 def main() -> None:
     """Entry point: build every stage-2 schedule file."""
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
     build_all()
 

@@ -108,11 +108,14 @@ def base_league_csvs() -> list[str]:
     `_detail.csv` scrapes and the global goal and event stores (`GLOBAL_FILES`).
     """
 
-    return [
-        path
-        for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv")))
-        if not path.endswith(DETAIL_SUFFIX) and os.path.basename(path) not in GLOBAL_FILES
-    ]
+    league_csvs: list[str] = []
+    for path in sorted(glob.glob(os.path.join(RAW_DIR, "*.csv"))):
+        is_detail = path.endswith(DETAIL_SUFFIX)
+        is_global_store = os.path.basename(path) in GLOBAL_FILES
+        if not is_detail and not is_global_store:
+            league_csvs.append(path)
+
+    return league_csvs
 
 
 def detail_path(base_path: str) -> str:

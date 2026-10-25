@@ -35,11 +35,6 @@ from scrapers.constants import (
 from scrapers.csv_io import append_rows
 from scrapers.driver import get_detail_page
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 WORKERS = 3
@@ -163,6 +158,14 @@ def _parse_limit(argv: list[str]) -> int | None:
 
 
 def main() -> None:
+    """Entry point: scrape the detail pages still missing, at most `--limit` of them."""
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
     enrich_finished(limit=_parse_limit(sys.argv))
 
 

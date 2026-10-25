@@ -18,14 +18,14 @@ from collections import Counter
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from domain.stats import team_result
+from domain import stats
 
 VENUES = ("total", "home", "away")
 
 
 @dataclass
 class Line:
-    """One team's row: P, W, D, L and goals, with points and goal difference derived."""
+    """One team's row: P, W, D, L, goals and points, each result counted by `domain/stats.py`."""
 
     played: int = 0
     won: int = 0
@@ -33,12 +33,7 @@ class Line:
     lost: int = 0
     goals_for: int = 0
     goals_against: int = 0
-
-    @property
-    def points(self) -> int:
-        """League points: 3 for a win, 1 for a draw."""
-
-        return 3 * self.won + self.drawn
+    points: int = 0
 
     @property
     def goal_diff(self) -> int:
@@ -49,12 +44,15 @@ class Line:
     def add(self, goals_for: int, goals_against: int) -> None:
         """Count one result, from this team's side."""
 
+        result = stats.team_result(goals_for, goals_against)
+
         self.played += 1
         self.goals_for += goals_for
         self.goals_against += goals_against
-        if goals_for > goals_against:
+        self.points += stats.points(goals_for, goals_against)
+        if result == "W":
             self.won += 1
-        elif goals_for == goals_against:
+        elif result == "D":
             self.drawn += 1
         else:
             self.lost += 1
@@ -130,8 +128,8 @@ class HalfTimeFullTime:
     def add(self, home: int, away: int, ht: tuple[int, int], ft: tuple[int, int]) -> None:
         """Count one match: `ht` and `ft` are (home goals, away goals)."""
 
-        home_pair = (team_result(*ht), team_result(*ft))
-        away_pair = (team_result(ht[1], ht[0]), team_result(ft[1], ft[0]))
+        home_pair = (stats.team_result(*ht), stats.team_result(*ft))
+        away_pair = (stats.team_result(ht[1], ht[0]), stats.team_result(ft[1], ft[0]))
         self._pairs["total"][home][home_pair] += 1
         self._pairs["home"][home][home_pair] += 1
         self._pairs["total"][away][away_pair] += 1

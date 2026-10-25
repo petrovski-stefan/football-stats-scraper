@@ -34,14 +34,14 @@ import logging
 import sys
 import threading
 import time
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from concurrent.futures import ThreadPoolExecutor, wait
-from dataclasses import dataclass
+from dataclasses import astuple, dataclass
 from itertools import combinations
 from typing import Any
 
 import pandas as pd
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Tag
 from pydantic import BaseModel, ValidationError
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -70,6 +70,8 @@ from scrapers.driver import (
 )
 from scrapers.links import LeagueSeason, Selection, get_league_seasons
 from scrapers.parsers import (
+    HandicapOdds,
+    OverUnderOdds,
     attr,
     parse_ah_odds,
     parse_final_table,
@@ -77,13 +79,6 @@ from scrapers.parsers import (
     parse_schedulis_row,
 )
 
-logging.basicConfig(
-    level=logging.INFO,
-    # A worker thread is named after its league-season (`_start`), so the lines of jobs
-    # running at once can be told apart.
-    format="%(asctime)s %(levelname)s [%(threadName)s] %(message)s",
-    datefmt="%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 # League-seasons scraped at once, as in `scrapers/detail.py`.
@@ -283,8 +278,21 @@ _MARKETS = {
     "ah": ("s1_odds_ah_open_home", "s1_odds_ah_open_line", "s1_odds_ah_open_away"),
 }
 
+
+@dataclass(frozen=True)
+class _SecondaryMarket:
+    """An odds type read after the 1X2 view: its name, its parser and its row fields."""
+
+    kind: str
+    parse: Callable[[Tag], OverUnderOdds | HandicapOdds]
+    fields: tuple[str, str, str]
+
+
 # Each secondary odds type, read after the 1X2 view in this order.
-_SECONDARY_ODDS = (("ou", parse_ou_odds, _MARKETS["ou"]), ("ah", parse_ah_odds, _MARKETS["ah"]))
+_SECONDARY_ODDS = (
+    _SecondaryMarket(kind="ou", parse=parse_ou_odds, fields=_MARKETS["ou"]),
+    _SecondaryMarket(kind="ah", parse=parse_ah_odds, fields=_MARKETS["ah"]),
+)
 
 # The markets a match does not carry, by the pairs of markets whose cells show the same
 # numbers. One widget shows the markets in turn, 1X2, then O/U, then AH, then 1X2 again,
@@ -308,13 +316,15 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
     """
 
     cells = {market: tuple(row.get(f) for f in fields) for market, fields in _MARKETS.items()}
-    repeats = frozenset(
-        (market_a, market_b)
-        for market_a, market_b in combinations(_MARKETS, 2)
-        if cells[market_a] == cells[market_b] and any(v is not None for v in cells[market_a])
-    )
 
-    missing = _MISSING_BY_REPEATS.get(repeats, [])
+    repeated_pairs: set[tuple[str, str]] = set()
+    for market_a, market_b in combinations(_MARKETS, 2):
+        same_cells = cells[market_a] == cells[market_b]
+        has_a_value = any(cell is not None for cell in cells[market_a])
+        if same_cells and has_a_value:
+            repeated_pairs.add((market_a, market_b))
+
+    missing = _MISSING_BY_REPEATS.get(frozenset(repeated_pairs), [])
     for market in missing:
         row.update(dict.fromkeys(_MARKETS[market]))
 
@@ -329,9 +339,9 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
     """
 
     odds_by_match: dict[str, dict[str, float | None]] = {}
-    for kind, parse, fields in _SECONDARY_ODDS:
-        if not switch_odds_type(driver, kind):
-            logger.warning("  odds type %r unavailable", kind)
+    for market in _SECONDARY_ODDS:
+        if not switch_odds_type(driver, market.kind):
+            logger.warning("  odds type %r unavailable", market.kind)
             continue
 
         wait_for_odds(driver)
@@ -339,8 +349,9 @@ def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | Non
         for row in soup.select(SCHEDULE_ROWS):
             match_id = (attr(row, "matchid") or "").strip()
             if match_id:
+                cells = astuple(market.parse(row))
                 odds_by_match.setdefault(match_id, {}).update(
-                    dict(zip(fields, parse(row), strict=True))
+                    dict(zip(market.fields, cells, strict=True))
                 )
 
     switch_odds_type(driver, "1x2")
@@ -443,15 +454,18 @@ def scraped_league_seasons() -> set[tuple[int, str]]:
 
 
 def plan_jobs(
-    jobs: Iterable[LeagueSeason], done: set[tuple[int, str]], force: bool
+    jobs: Iterable[LeagueSeason], done: set[tuple[int, str]], *, force: bool
 ) -> tuple[list[LeagueSeason], list[LeagueSeason]]:
     """Split the chosen jobs into (to scrape, already on disk). `force` scrapes them all."""
 
     to_scrape: list[LeagueSeason] = []
     on_disk: list[LeagueSeason] = []
     for job in jobs:
-        skip = not force and (job.league_id, job.season) in done
-        (on_disk if skip else to_scrape).append(job)
+        is_on_disk = (job.league_id, job.season) in done
+        if is_on_disk and not force:
+            on_disk.append(job)
+        else:
+            to_scrape.append(job)
 
     return to_scrape, on_disk
 
@@ -517,7 +531,9 @@ def scrape_all(
 ) -> int:
     """Scrape the chosen league-seasons into their stage-1 files; return the failure count."""
 
-    to_scrape, on_disk = plan_jobs(get_league_seasons(selection), scraped_league_seasons(), force)
+    to_scrape, on_disk = plan_jobs(
+        get_league_seasons(selection), scraped_league_seasons(), force=force
+    )
 
     for job in on_disk:
         print(f"  on disk   {job.code:8s} {job.season:9s} {job.name}", flush=True)
@@ -562,6 +578,14 @@ def main() -> None:
         if isinstance(stream, io.TextIOWrapper):
             stream.reconfigure(encoding="utf-8")
 
+    logging.basicConfig(
+        level=logging.INFO,
+        # A worker thread is named after its league-season (`_start`), so the lines of jobs
+        # running at once can be told apart.
+        format="%(asctime)s %(levelname)s [%(threadName)s] %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
     parser = argparse.ArgumentParser(
         description="Scrape league schedules into data/finished/1_raw/."
     )
@@ -580,7 +604,7 @@ def main() -> None:
 
     args = parser.parse_args()
     codes = tuple(code.strip() for code in (args.leagues or "").split(",") if code.strip())
-    selection = Selection(codes, args.all_leagues, args.before_year)
+    selection = Selection(leagues=codes, all_leagues=args.all_leagues, before_year=args.before_year)
 
     failed = scrape_all(selection, force=args.force, list_only=args.list_only)
     raise SystemExit(1 if failed else 0)

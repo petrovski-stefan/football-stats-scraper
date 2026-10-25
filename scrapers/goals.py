@@ -59,11 +59,6 @@ from scrapers.driver import get_live_page
 from scrapers.event_parsers import parse_match_events
 from scrapers.goal_parsers import parse_goal_events
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 WORKERS = 3
@@ -331,6 +326,14 @@ def scrape_goals(
 
 
 def main() -> None:
+    """Entry point: scrape the live pages still missing, for goals and events."""
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--limit", type=int, default=None, help="cap this batch")
     parser.add_argument(

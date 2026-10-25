@@ -4,6 +4,7 @@ They turn parsed history rows ("mini-records") into aggregates and per-match col
 Team 1 is the subject team throughout; teams 2-4 are its opponents.
 """
 
+from itertools import product
 from typing import Any
 
 import pytest
@@ -119,8 +120,7 @@ def test_flatten_history_has_a_fixed_schema() -> None:
 
     assert set(flat) == {
         f"home_last{slot}_{field}"
-        for slot in range(1, MATCHES_PER_SECTION + 1)
-        for field in PER_MATCH_FIELDS
+        for slot, field in product(range(1, MATCHES_PER_SECTION + 1), PER_MATCH_FIELDS)
     }
 
     # Blocks past the available matches are present but empty.

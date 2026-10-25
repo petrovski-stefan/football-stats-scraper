@@ -25,12 +25,13 @@ import logging
 from collections import Counter
 from collections.abc import Iterator
 from datetime import timedelta
+from itertools import product
 from typing import Any, NamedTuple
 
 import numpy as np
 import pandas as pd
 
-from domain import paths
+from domain import paths, stats
 from domain.clock import parse_instant
 from domain.columns import (
     HTFT_RESULTS,
@@ -45,11 +46,6 @@ from domain.columns import (
 from domain.standings import HalfTimeFullTime, Standings
 from features.stage_io import read_stage_csv, write_stage_csv
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
-    datefmt="%H:%M:%S",
-)
 logger = logging.getLogger(__name__)
 
 # A match counts in another's table only if it kicked off at least this long before. A
@@ -66,9 +62,6 @@ RESCHEDULED_AFTER_DAYS = 5
 # rest of the round for a postponed one) is not "this round so far". It never reads a later
 # kickoff (Claude's choice, 2026-10-13, asked by the user).
 ROUND_LOOK_BACK = timedelta(days=RESCHEDULED_AFTER_DAYS)
-
-# The 7+ market: a match with at least this many goals.
-SEVEN_PLUS_GOALS = 7
 
 # The opening odds (Bet365's "Initial") are published about this long before kickoff (the
 # user, 2026-10-10: "usually about 7 days", more or fewer by league). A result between then
@@ -162,9 +155,15 @@ def _round_counts(round_df: pd.DataFrame) -> pd.DataFrame:
 
     goals = round_df["s2_total_goals"].to_numpy(dtype=float)
     comeback = round_df["s2_is_comeback"].to_numpy(dtype=bool)
-    seven_plus = goals >= SEVEN_PLUS_GOALS
-    btts = (round_df["s1_ft_home_goals"].to_numpy() >= 1) & (
-        round_df["s1_ft_away_goals"].to_numpy() >= 1
+    seven_plus = goals >= stats.SEVEN_PLUS_GOALS
+    btts = np.array(
+        [
+            stats.is_btts(home_goals, away_goals)
+            for home_goals, away_goals in zip(
+                round_df["s1_ft_home_goals"], round_df["s1_ft_away_goals"], strict=True
+            )
+        ],
+        dtype=bool,
     )
 
     line = round_df["s1_odds_ou_open_line"].to_numpy(dtype=float)
@@ -235,9 +234,7 @@ def _htft(record: HalfTimeFullTime, team: int, side: str) -> dict[str, int | Non
         f"s3_{side}_pre_htft_{venue}_{ht_result}_{ft_result}": record.count(
             venue, team, ht_result.upper(), ft_result.upper()
         )
-        for venue in STANDING_VENUES
-        for ht_result in HTFT_RESULTS
-        for ft_result in HTFT_RESULTS
+        for venue, ht_result, ft_result in product(STANDING_VENUES, HTFT_RESULTS, HTFT_RESULTS)
     }
 
 
@@ -381,6 +378,12 @@ def build_all() -> None:
 
 def main() -> None:
     """Entry point: build every stage-3 schedule file."""
+
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s %(levelname)s %(message)s",
+        datefmt="%H:%M:%S",
+    )
 
     build_all()
 

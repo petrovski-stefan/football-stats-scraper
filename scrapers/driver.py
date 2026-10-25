@@ -45,7 +45,26 @@ from scrapers.constants import (
     SUB_STANDING_ITEM,
 )
 
+# Waits and pauses, in seconds. They came with the early scraper (the page-load limit with the
+# first commit, 2025-08-31, the rest on 2026-07-26); no measurement of them is on record.
 DEFAULT_TIMEOUT = 20
+PAGE_LOAD_TIMEOUT = 60
+# How long `wait_for_odds` waits for a round's odds before it returns False.
+ODDS_TIMEOUT = 10
+# After a wait succeeds, for DOM updates that land just after it.
+SETTLE_PAUSE = 0.3
+# After a stage or round click, once the new rows are in place.
+CLICK_SETTLE_PAUSE = 0.4
+# After the detail page's widgets have shown.
+DETAIL_SETTLE_PAUSE = 0.5
+# The detail page's tables load as the page scrolls: this many steps, a pause after each, and a
+# longer pause at the end.
+SCROLL_STEPS = 12
+SCROLL_STEP_PAUSE = 0.3
+SCROLL_END_PAUSE = 1.0
+
+# The headless browser's window, width by height in pixels.
+WINDOW_SIZE = "1600,6000"
 
 # JS click bypasses "element not interactable" for off-screen / overlaid controls.
 _CLICK_JS = "arguments[0].click();"
@@ -68,11 +87,11 @@ def get_driver() -> webdriver.Chrome:
     chrome_options.add_argument(f"--user-agent={_USER_AGENTS.random}")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-logging"])
     chrome_options.add_argument("--headless=new")
-    chrome_options.add_argument("--window-size=1600,6000")
+    chrome_options.add_argument(f"--window-size={WINDOW_SIZE}")
     chrome_options.add_argument("log-level=3")
 
     driver = webdriver.Chrome(options=chrome_options)
-    driver.set_page_load_timeout(60)
+    driver.set_page_load_timeout(PAGE_LOAD_TIMEOUT)
 
     return driver
 
@@ -112,17 +131,6 @@ def open_page(driver: webdriver.Chrome, url: str) -> None:
         raise ValueError(f"Refusing {url}: it redirected to {landed}, and {refusal}")
 
 
-def find_element_by_css(
-    driver: webdriver.Chrome, selector: str, many: bool = False
-) -> WebElement | list[WebElement] | None:
-    """The first element for `selector`, or all of them when `many` is set."""
-
-    if many:
-        return driver.find_elements(By.CSS_SELECTOR, selector)
-
-    return driver.find_element(By.CSS_SELECTOR, selector)
-
-
 def wait_for_schedule_rows(driver: webdriver.Chrome, timeout: int = DEFAULT_TIMEOUT) -> None:
     """Wait until the schedule rows and the round nav bar are present in the DOM."""
 
@@ -159,7 +167,7 @@ def get_detail_page(
         WebDriverWait(driver, timeout).until(
             lambda browser: len(browser.find_elements(By.CSS_SELECTOR, DETAIL_HOME_RECENT_ROWS)) > 0
         )
-    time.sleep(0.5)
+    time.sleep(DETAIL_SETTLE_PAUSE)
 
 
 def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAULT_TIMEOUT) -> None:
@@ -184,18 +192,18 @@ def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAUL
         )
 
 
-def _scroll_page(driver: webdriver.Chrome, steps: int = 12) -> None:
-    """Scroll down the page in `steps` jumps, so that its lazy widgets load."""
+def _scroll_page(driver: webdriver.Chrome) -> None:
+    """Scroll down the page in `SCROLL_STEPS` jumps, so that its lazy widgets load."""
 
-    scroll_script = f"window.scrollBy(0, document.body.scrollHeight/{steps});"
-    for _ in range(steps):
+    scroll_script = f"window.scrollBy(0, document.body.scrollHeight/{SCROLL_STEPS});"
+    for _ in range(SCROLL_STEPS):
         driver.execute_script(scroll_script)  # type: ignore[no-untyped-call]
-        time.sleep(0.3)
+        time.sleep(SCROLL_STEP_PAUSE)
 
-    time.sleep(1.0)
+    time.sleep(SCROLL_END_PAUSE)
 
 
-def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
+def wait_for_odds(driver: webdriver.Chrome, timeout: int = ODDS_TIMEOUT) -> bool:
     """Wait until a row shows a numeric first odds cell; return whether one did in time.
 
     A clicked round swaps its rows before their odds fill in. False means no odds yet: the
@@ -217,7 +225,7 @@ def wait_for_odds(driver: webdriver.Chrome, timeout: int = 10) -> bool:
     except TimeoutException:
         return False
 
-    time.sleep(0.3)
+    time.sleep(SETTLE_PAUSE)
 
     return True
 
@@ -253,7 +261,7 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
         WebDriverWait(driver, timeout).until(
             lambda browser: _first_row_odds(browser) not in (before, [])
         )
-    time.sleep(0.3)
+    time.sleep(SETTLE_PAUSE)
 
     return switched
 
@@ -358,7 +366,7 @@ def _click_schedule_tab(
         )
 
     wait_for_schedule_rows(driver, timeout)
-    time.sleep(0.4)  # small settle for trailing DOM updates
+    time.sleep(CLICK_SETTLE_PAUSE)
 
 
 def _select_standings(
@@ -387,7 +395,7 @@ def _select_standings(
     except TimeoutException:
         is_applied = False
 
-    time.sleep(0.3)
+    time.sleep(SETTLE_PAUSE)
 
     return is_applied
 

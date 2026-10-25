@@ -3,6 +3,7 @@ page, parsed and nothing computed (stage 1, `notes/FIELDS/SCHEDULE_1_RAW.md`).
 """
 
 import re
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -12,8 +13,14 @@ from domain.clock import to_berlin
 from scrapers.constants import (
     LEAGUE_PAGE_CLOCK,
     PORTUGUESE_TO_ENGLISH_LETTERS,
+    ROW_AWAY_TEAM,
+    ROW_DATE,
+    ROW_FT_SCORE,
+    ROW_HOME_TEAM,
+    ROW_HT_SCORE,
     ROW_ODDS_CELLS,
     STANDING_ROWS,
+    STANDING_TEAM_NAME,
     STANDING_TITLE_ROW,
 )
 
@@ -22,6 +29,33 @@ _KICKOFF_FORMATS = ("%Y-%m-%d %H:%M", "%Y-%m-%d %H:%M:%S")
 _SCORE_RE = re.compile(r"^\s*(\d{1,2})\s*[-:]\s*(\d{1,2})\s*$")
 # toTeam('60') / toTeam(60) -> 60
 _TEAM_ID_RE = re.compile(r"toTeam\(\s*'?(\d+)'?\s*\)")
+
+
+@dataclass(frozen=True)
+class OneXTwoOdds:
+    """A row's 1X2 cells, in page order: the home, draw and away prices; None where empty."""
+
+    home: float | None
+    draw: float | None
+    away: float | None
+
+
+@dataclass(frozen=True)
+class OverUnderOdds:
+    """A row's O/U cells, in page order: the over price, the goal line and the under price."""
+
+    over: float | None
+    line: float | None
+    under: float | None
+
+
+@dataclass(frozen=True)
+class HandicapOdds:
+    """A row's AH cells, in page order: the home price, the handicap line and the away price."""
+
+    home: float | None
+    line: float | None
+    away: float | None
 
 
 def clean_string(string: str) -> str:
@@ -65,8 +99,8 @@ def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
     return tag_text(cells[0]), tag_text(cells[1]), tag_text(cells[2])
 
 
-def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
-    """Read the row's 1X2 odds cells as (home_win, draw, away_win).
+def parse_1x2_odds(row: Tag) -> OneXTwoOdds:
+    """Read the row's 1X2 odds cells; all None when the row has fewer than three.
 
     Assumes the schedule odds display has already been switched to 1X2, whose
     three cells are always ordered home / draw / away.
@@ -74,9 +108,11 @@ def parse_1x2_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
 
     cells = _odds_cells(row)
     if cells is None:
-        return None, None, None
+        return OneXTwoOdds(home=None, draw=None, away=None)
 
-    return parse_float(cells[0]), parse_float(cells[1]), parse_float(cells[2])
+    return OneXTwoOdds(
+        home=parse_float(cells[0]), draw=parse_float(cells[1]), away=parse_float(cells[2])
+    )
 
 
 def parse_line(raw: str) -> float | None:
@@ -103,8 +139,8 @@ def parse_line(raw: str) -> float | None:
     return -magnitude if negative else magnitude
 
 
-def parse_ou_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
-    """Read the row's Over/Under cells as (over_odds, goal_line, under_odds).
+def parse_ou_odds(row: Tag) -> OverUnderOdds:
+    """Read the row's Over/Under cells; all None when the row has fewer than three.
 
     The goal line is Asian and variable — nowgoal moves the line and holds both prices
     near 1.90, so the *line* is the forecast and the prices only carry a sub-quarter tilt.
@@ -112,13 +148,15 @@ def parse_ou_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
 
     cells = _odds_cells(row)
     if cells is None:
-        return None, None, None
+        return OverUnderOdds(over=None, line=None, under=None)
 
-    return parse_float(cells[0]), parse_line(cells[1]), parse_float(cells[2])
+    return OverUnderOdds(
+        over=parse_float(cells[0]), line=parse_line(cells[1]), under=parse_float(cells[2])
+    )
 
 
-def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
-    """Read the row's Asian Handicap cells as (home_odds, handicap_line, away_odds).
+def parse_ah_odds(row: Tag) -> HandicapOdds:
+    """Read the row's Asian Handicap cells; all None when the row has fewer than three.
 
     Sign convention, verified 10/10 against the 1X2 favourite on live rows:
     **positive means the home side is favoured** and gives the handicap.
@@ -126,9 +164,11 @@ def parse_ah_odds(row: Tag) -> tuple[float | None, float | None, float | None]:
 
     cells = _odds_cells(row)
     if cells is None:
-        return None, None, None
+        return HandicapOdds(home=None, line=None, away=None)
 
-    return parse_float(cells[0]), parse_line(cells[1]), parse_float(cells[2])
+    return HandicapOdds(
+        home=parse_float(cells[0]), line=parse_line(cells[1]), away=parse_float(cells[2])
+    )
 
 
 def attr(tag: Tag | None, name: str) -> str | None:
@@ -194,7 +234,7 @@ def parse_final_table(soup: BeautifulSoup) -> list[dict[str, Any]]:
             {
                 "team_id": team_id,
                 "s1_team_name": clean_string(
-                    tag_text(cells[1].select_one("span.name") or cells[1])
+                    tag_text(cells[1].select_one(STANDING_TEAM_NAME) or cells[1])
                 ),
                 "s1_rank": rank,
                 "s1_played": played,
@@ -234,15 +274,15 @@ def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
     adds the league context and the O/U and AH prices, read with the header switched.
     """
 
-    ft = parse_score(attr(row, "score") or tag_text(row.select_one("span.score")))
-    ht = parse_score(tag_text(row.select_one("span.ht")))
+    ft = parse_score(attr(row, "score") or tag_text(row.select_one(ROW_FT_SCORE)))
+    ht = parse_score(tag_text(row.select_one(ROW_HT_SCORE)))
     if ft is None or ht is None:
         return None  # not played yet -> skip
 
-    home_tag = row.select_one("span.home span[onclick]")
-    away_tag = row.select_one("span.away span[onclick]")
-    date_tag = row.select_one("span.date")
-    home_odds, draw_odds, away_odds = parse_1x2_odds(row)
+    home_tag = row.select_one(ROW_HOME_TEAM)
+    away_tag = row.select_one(ROW_AWAY_TEAM)
+    date_tag = row.select_one(ROW_DATE)
+    one_x_two = parse_1x2_odds(row)
 
     return {
         "match_id": (attr(row, "matchid") or "").strip(),
@@ -255,9 +295,9 @@ def parse_schedulis_row(row: Tag) -> dict[str, Any] | None:
         "s1_ht_away_goals": ht[1],
         "s1_ft_home_goals": ft[0],
         "s1_ft_away_goals": ft[1],
-        "s1_odds_1x2_open_home": home_odds,
-        "s1_odds_1x2_open_draw": draw_odds,
-        "s1_odds_1x2_open_away": away_odds,
+        "s1_odds_1x2_open_home": one_x_two.home,
+        "s1_odds_1x2_open_draw": one_x_two.draw,
+        "s1_odds_1x2_open_away": one_x_two.away,
     }
 
 

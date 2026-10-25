@@ -44,11 +44,12 @@ def _stage_entries(
 ) -> dict[int, int]:
     """The entries of `table` for one stage of a league-season, by team id."""
 
-    return {
-        team: points
-        for (league, label, part, team), points in table.items()
-        if league == league_id and label == season and part == stage
-    }
+    entries: dict[int, int] = {}
+    for (entry_league_id, entry_season, entry_stage, team_id), points in table.items():
+        if (entry_league_id, entry_season, entry_stage) == (league_id, season, stage):
+            entries[team_id] = points
+
+    return entries
 
 
 def deducted(league_id: int, season: str, stage: str) -> dict[int, int]:

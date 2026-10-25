@@ -48,7 +48,10 @@ def test_card_frame_reads_the_stage_columns(toy_priced_matches_df: pd.DataFrame)
         "2 2025-2026",
     ]
 
-    columns = {column for row in card.CARD for column in row[:2]}
+    columns: set[str] = set()
+    for row in card.CARD:
+        columns.update(row[:2])
+
     assert columns <= set(card_df.columns)
 
 

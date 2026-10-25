@@ -140,12 +140,10 @@ def _flagged_rows(cells: list[tuple[str, int, int, int, int]]) -> pd.DataFrame:
     with, unflagged without."""
 
     kinds = ((True, True), (True, False), (False, True), (False, False))
-    rows = [
-        {"stratum": stratum, "flag": flag, "event": event}
-        for stratum, *counts in cells
-        for (flag, event), count in zip(kinds, counts, strict=True)
-        for _ in range(count)
-    ]
+    rows: list[dict[str, object]] = []
+    for stratum, *counts in cells:
+        for (flag, event), count in zip(kinds, counts, strict=True):
+            rows.extend({"stratum": stratum, "flag": flag, "event": event} for _ in range(count))
 
     return pd.DataFrame(rows)
 

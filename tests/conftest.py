@@ -24,11 +24,13 @@ def score_grid() -> list[tuple[tuple[int, int], tuple[int, int]]]:
     A side never has fewer goals at full time than at half time.
     """
 
-    return [
-        ((ht_home, ht_away), (ft_home, ft_away))
-        for ht_home, ht_away, ft_home, ft_away in product(range(5), repeat=4)
-        if ft_home >= ht_home and ft_away >= ht_away
-    ]
+    grid: list[tuple[tuple[int, int], tuple[int, int]]] = []
+    for ht_home, ht_away, ft_home, ft_away in product(range(5), repeat=4):
+        is_reachable = ft_home >= ht_home and ft_away >= ht_away
+        if is_reachable:
+            grid.append(((ht_home, ht_away), (ft_home, ft_away)))
+
+    return grid
 
 
 @pytest.fixture

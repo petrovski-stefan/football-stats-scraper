@@ -1,5 +1,7 @@
 """Toy data of the ML tests: the toy priced matches with every column that `ml/rows.py` reads."""
 
+from itertools import product
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -45,9 +47,7 @@ def table_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:
 
     return {
         f"s3_{side}_pre_{half}_{venue}_{stat}": counts
-        for half in rows.HALVES
-        for venue in rows.VENUES
-        for stat in TABLE_STATS
+        for half, venue, stat in product(rows.HALVES, rows.VENUES, TABLE_STATS)
     }
 
 
@@ -56,10 +56,8 @@ def record_columns(side: str, counts: np.ndarray) -> dict[str, np.ndarray]:
     (S3.11 to S3.13), each `counts` + 100."""
 
     records = {
-        f"s3_{side}_pre_htft_{venue}_{ht}_{ft}": counts
-        for venue in rows.VENUES
-        for ht in rows.RESULTS
-        for ft in rows.RESULTS
+        f"s3_{side}_pre_htft_{venue}_{ht_result}_{ft_result}": counts
+        for venue, ht_result, ft_result in product(rows.VENUES, rows.RESULTS, rows.RESULTS)
     }
 
     return records | {f"s3_{side}_{stake}": counts + 100 for stake in rows.STAKES}

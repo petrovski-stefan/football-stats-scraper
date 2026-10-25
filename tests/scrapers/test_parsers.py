@@ -5,11 +5,15 @@ Tests on a saved, trimmed copy of the real page are a later batch (IDEAS idea 11
 """
 
 from collections.abc import Callable
+from dataclasses import astuple
 
 import pytest
 from bs4 import BeautifulSoup, Tag
 
 from scrapers.parsers import (
+    HandicapOdds,
+    OneXTwoOdds,
+    OverUnderOdds,
     attr,
     clean_string,
     parse_1x2_odds,
@@ -23,8 +27,6 @@ from scrapers.parsers import (
     parse_score,
     tag_text,
 )
-
-Prices = tuple[float | None, float | None, float | None]
 
 _SPAN = BeautifulSoup(
     '<span class="date on" data-t="2026-01-03 15:00"> 3 - 1 </span>', "html.parser"
@@ -210,18 +212,22 @@ def _odds_row(*cells: str) -> Tag:
 
 
 def test_parse_ou_odds_reads_over_line_under() -> None:
-    assert parse_ou_odds(_odds_row("1.90", "2.5/3", "1.95")) == (1.90, 2.75, 1.95)
+    assert parse_ou_odds(_odds_row("1.90", "2.5/3", "1.95")) == OverUnderOdds(
+        over=1.90, line=2.75, under=1.95
+    )
 
 
 def test_parse_ah_odds_reads_home_line_away() -> None:
-    assert parse_ah_odds(_odds_row("2.05", "0/-0.5", "1.80")) == (2.05, -0.25, 1.80)
+    assert parse_ah_odds(_odds_row("2.05", "0/-0.5", "1.80")) == HandicapOdds(
+        home=2.05, line=-0.25, away=1.80
+    )
 
 
 @pytest.mark.parametrize("parse", [parse_1x2_odds, parse_ou_odds, parse_ah_odds])
 def test_a_row_with_fewer_than_three_odds_cells_reads_nothing(
-    parse: Callable[[Tag], Prices],
+    parse: Callable[[Tag], OneXTwoOdds | OverUnderOdds | HandicapOdds],
 ) -> None:
-    assert parse(_odds_row("1.90", "2.5")) == (None, None, None)
+    assert astuple(parse(_odds_row("1.90", "2.5"))) == (None, None, None)
 
 
 # --- The final table -----------------------------------------------------------------

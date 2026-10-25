@@ -1,5 +1,7 @@
 """`domain/stats.py`: the market-label kernel."""
 
+from dataclasses import astuple
+
 import pytest
 from hypothesis import given
 from hypothesis import strategies as st
@@ -108,10 +110,11 @@ def test_two_way_prob_cancels_the_overround_and_is_none_without_a_price(
 
 
 def test_vig_free_1x2_sums_to_one_and_keeps_the_order() -> None:
-    probs = stats.vig_free_1x2(1.5, 4.0, 6.0)
-    assert probs is not None
-    assert sum(probs) == pytest.approx(1.0)
-    assert probs[0] > probs[1] > probs[2]
+    chances = stats.vig_free_1x2(1.5, 4.0, 6.0)
+
+    assert chances is not None
+    assert chances.home + chances.draw + chances.away == pytest.approx(1.0)
+    assert chances.home > chances.draw > chances.away
 
 
 @given(_PRICES, _PRICES, _PRICES)
@@ -119,9 +122,11 @@ def test_any_three_prices_give_three_chances_that_sum_to_one(
     home: float, draw: float, away: float
 ) -> None:
     chances = stats.vig_free_1x2(home, draw, away)
+
     assert chances is not None
-    assert sum(chances) == pytest.approx(1.0)
-    assert all(0 < chance < 1 for chance in chances)
+    values = astuple(chances)
+    assert sum(values) == pytest.approx(1.0)
+    assert all(0 < chance < 1 for chance in values)
 
 
 @pytest.mark.parametrize("prices", [(None, 3.0, 3.0), (2.0, 0.0, 3.0), (2.0, 3.0, None)])

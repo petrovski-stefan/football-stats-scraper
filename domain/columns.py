@@ -7,6 +7,8 @@ them, so they sit beside the Pydantic models that define the same rows. The DOM 
 are scraper-internal and live in `scrapers/constants.py`.
 """
 
+from itertools import product
+
 # Base columns that are empty in a *correct* scrape, so the dead-column canary in
 # `qa/universal.py` must not read them as parser breakage. This is a statement about
 # the contract, not an exemption for known defects: `stage` is the group/stage label,
@@ -200,9 +202,9 @@ def per_match_columns() -> list[str]:
 
     return [
         f"{section}_last{slot}_{field}"
-        for section in PER_MATCH_SECTIONS
-        for slot in range(1, MATCHES_PER_SECTION + 1)
-        for field in PER_MATCH_FIELDS
+        for section, slot, field in product(
+            PER_MATCH_SECTIONS, range(1, MATCHES_PER_SECTION + 1), PER_MATCH_FIELDS
+        )
     ]
 
 
@@ -353,10 +355,9 @@ def pre_kickoff_columns() -> list[str]:
 
     return [
         f"s3_{side}_pre_{half}_{venue}_{stat}"
-        for side in STANDING_SIDES
-        for half in STANDING_HALVES
-        for venue in STANDING_VENUES
-        for stat in STANDING_STATS
+        for side, half, venue, stat in product(
+            STANDING_SIDES, STANDING_HALVES, STANDING_VENUES, STANDING_STATS
+        )
     ]
 
 
@@ -370,11 +371,10 @@ def pre_htft_columns() -> list[str]:
     """`s3_<side>_pre_htft_<venue>_<ht>_<ft>`, in side/venue/ht/ft order: 54 names."""
 
     return [
-        f"s3_{side}_pre_htft_{venue}_{ht}_{ft}"
-        for side in STANDING_SIDES
-        for venue in STANDING_VENUES
-        for ht in HTFT_RESULTS
-        for ft in HTFT_RESULTS
+        f"s3_{side}_pre_htft_{venue}_{ht_result}_{ft_result}"
+        for side, venue, ht_result, ft_result in product(
+            STANDING_SIDES, STANDING_VENUES, HTFT_RESULTS, HTFT_RESULTS
+        )
     ]
 
 
@@ -392,7 +392,7 @@ STAKE_FIELDS = (
 def stake_columns() -> list[str]:
     """`s3_<side>_<field>`, in side/field order: 8 names."""
 
-    return [f"s3_{side}_{field}" for side in STANDING_SIDES for field in STAKE_FIELDS]
+    return [f"s3_{side}_{field}" for side, field in product(STANDING_SIDES, STAKE_FIELDS)]
 
 
 # notes/FIELDS/SCHEDULE_3_MULTI.md: fields that need the league-season's other rows.

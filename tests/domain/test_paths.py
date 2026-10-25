@@ -6,6 +6,7 @@ calendar-year "2025" ones.
 """
 
 import os
+from pathlib import Path
 
 import pytest
 from hypothesis import given
@@ -116,3 +117,17 @@ def test_schedule_at_stage_keeps_the_league_season() -> None:
     assert paths.schedule_at_stage(raw, 3) == paths.schedule_path(3, "test_league", "2025")
     with pytest.raises(ValueError, match="not a staged schedule"):
         paths.schedule_at_stage("data/raw/test_league_2025.csv", 2)
+
+
+def test_base_league_csvs_leave_out_the_detail_scrapes_and_the_global_stores(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    league_files = ["a_league_2025-2026.csv", "b_league_2025.csv"]
+    other_files = ["a_league_2025-2026" + paths.DETAIL_SUFFIX, *paths.GLOBAL_FILES]
+    for name in league_files + other_files:
+        (tmp_path / name).write_text("match_id\n", encoding="utf-8")
+    monkeypatch.setattr(paths, "RAW_DIR", str(tmp_path))
+
+    league_csvs = paths.base_league_csvs()
+
+    assert [os.path.basename(path) for path in league_csvs] == league_files

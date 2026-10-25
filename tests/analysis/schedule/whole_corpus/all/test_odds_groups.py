@@ -1,5 +1,7 @@
 """`analysis/schedule/whole_corpus/all/odds_groups.py`: the groups, the null and the tests."""
 
+from itertools import product
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -151,8 +153,7 @@ def test_carry_over_reads_the_top_groups_of_one_cohort_in_the_other() -> None:
                 "obs": observed[cohort][group],
                 "exp": expected[cohort][group],
             }
-            for cohort in (2024, 2025)
-            for group in range(6)
+            for cohort, group in product((2024, 2025), range(6))
         ]
     )
 
