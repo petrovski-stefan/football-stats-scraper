@@ -7,6 +7,7 @@ proportional removal, is stage 2's `s2_mkt_p_*` (`features/schedule_row.py`).
 """
 
 import math
+from dataclasses import astuple, dataclass
 
 import numpy as np
 import pandas as pd
@@ -22,23 +23,36 @@ KEYS = ["match_id", "s1_league_id", "s1_league_name", "s1_season", "season_cohor
 PRICE_EDGES = (1.0, 1.3, 1.6, 2.0, 2.6, 3.5, 5.5, 8.0, 13.0, np.inf)
 
 
-def shin_row(home: float, draw: float, away: float) -> tuple[float, float, float, float]:
+@dataclass(frozen=True)
+class ShinResult:
+    """Shin's three probabilities and the insider share z of one match, in the order of the
+    columns `PROBABILITIES`, then `shin_z`."""
+
+    p_home: float
+    p_draw: float
+    p_away: float
+    z: float
+
+
+def shin_row(home: float, draw: float, away: float) -> ShinResult:
     """Shin's three probabilities and z for one match; all NaN when a price is missing."""
 
     odds = [home, draw, away]
     if any(math.isnan(price) for price in odds):
-        return (math.nan, math.nan, math.nan, math.nan)
+        return ShinResult(p_home=math.nan, p_draw=math.nan, p_away=math.nan, z=math.nan)
 
     result = calculate_implied_probabilities(odds, full_output=True)
     p_home, p_draw, p_away = result.implied_probabilities
 
-    return p_home, p_draw, p_away, result.z
+    return ShinResult(p_home=p_home, p_draw=p_draw, p_away=p_away, z=result.z)
 
 
 def shin_frame(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Shin's probabilities (`PROBABILITIES`) and `shin_z`, one row per match, on the same index."""
 
-    rows = [shin_row(*map(float, prices)) for prices in matches_df[ODDS].itertuples(index=False)]
+    prices = matches_df[ODDS].itertuples(index=False)
+    results = [shin_row(*map(float, match_prices)) for match_prices in prices]
+    rows = [astuple(result) for result in results]
 
     return pd.DataFrame(rows, columns=[*PROBABILITIES, "shin_z"], index=matches_df.index)
 

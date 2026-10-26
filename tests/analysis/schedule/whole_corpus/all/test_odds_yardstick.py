@@ -61,3 +61,18 @@ def test_pivot_counts_each_cell(toy_yardstick_df: pd.DataFrame) -> None:
     assert pivot_df["oe"].tolist() == pytest.approx(
         (pivot_df["observed"] / pivot_df["expected"]).tolist()
     )
+
+
+def test_share_shift_table_moves_the_share_both_ways() -> None:
+    rates_df = pd.DataFrame(
+        {"lam_home": [1.4, 1.0], "lam_away": [1.0, 1.2], "is_comeback": [1.0, 0.0]}
+    )
+
+    shifted_df = runner.share_shift_table(rates_df, 0.45)
+
+    assert shifted_df["share"].tolist() == pytest.approx(
+        [0.45 - runner.SHARE_SHIFT, 0.45, 0.45 + runner.SHARE_SHIFT]
+    )
+    assert (shifted_df["oe"] * shifted_df["expected comebacks"]).tolist() == pytest.approx(
+        [1.0, 1.0, 1.0]
+    )

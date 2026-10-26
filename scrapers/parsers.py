@@ -89,7 +89,17 @@ def parse_float(raw: str | None) -> float | None:
         return None
 
 
-def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
+@dataclass(frozen=True)
+class _OddsCells:
+    """The three raw odds-cell strings of a row, left to right. What each one holds depends
+    on the odds type displayed."""
+
+    left: str
+    middle: str
+    right: str
+
+
+def _odds_cells(row: Tag) -> _OddsCells | None:
     """The row's three raw odds-cell strings, whichever odds type is displayed; None when the
     row has fewer than three."""
 
@@ -97,7 +107,7 @@ def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
     if len(cells) < 3:
         return None
 
-    return tag_text(cells[0]), tag_text(cells[1]), tag_text(cells[2])
+    return _OddsCells(left=tag_text(cells[0]), middle=tag_text(cells[1]), right=tag_text(cells[2]))
 
 
 def parse_1x2_odds(row: Tag) -> OneXTwoOdds:
@@ -112,7 +122,7 @@ def parse_1x2_odds(row: Tag) -> OneXTwoOdds:
         return OneXTwoOdds(home=None, draw=None, away=None)
 
     return OneXTwoOdds(
-        home=parse_float(cells[0]), draw=parse_float(cells[1]), away=parse_float(cells[2])
+        home=parse_float(cells.left), draw=parse_float(cells.middle), away=parse_float(cells.right)
     )
 
 
@@ -152,7 +162,7 @@ def parse_ou_odds(row: Tag) -> OverUnderOdds:
         return OverUnderOdds(over=None, line=None, under=None)
 
     return OverUnderOdds(
-        over=parse_float(cells[0]), line=parse_line(cells[1]), under=parse_float(cells[2])
+        over=parse_float(cells.left), line=parse_line(cells.middle), under=parse_float(cells.right)
     )
 
 
@@ -168,7 +178,7 @@ def parse_ah_odds(row: Tag) -> HandicapOdds:
         return HandicapOdds(home=None, line=None, away=None)
 
     return HandicapOdds(
-        home=parse_float(cells[0]), line=parse_line(cells[1]), away=parse_float(cells[2])
+        home=parse_float(cells.left), line=parse_line(cells.middle), away=parse_float(cells.right)
     )
 
 

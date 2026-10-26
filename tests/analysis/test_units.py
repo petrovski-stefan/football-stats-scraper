@@ -73,13 +73,12 @@ def test_equal_units_show_no_spread_and_keep_the_pooled_value() -> None:
         {UNIT: [1, 1, 2, 2], "hit": [1.0, 0.0, 1.0, 0.0], "chance": [0.5, 0.5, 0.5, 0.5]}
     )
 
-    unit_values_df, heterogeneity, dispersion_factor = units.tested(
-        unit_rows_df, UNIT, "hit", "chance", "event"
-    )
+    across = units.tested(unit_rows_df, UNIT, "hit", "chance", "event")
 
+    heterogeneity = across.heterogeneity
     assert (heterogeneity.cochran_q, heterogeneity.tau_squared) == pytest.approx((0.0, 0.0))
-    assert dispersion_factor == pytest.approx(1.0)
-    assert unit_values_df["shrunk"].tolist() == pytest.approx([1.0, 1.0])
+    assert across.dispersion_factor == pytest.approx(1.0)
+    assert across.unit_values_df["shrunk"].tolist() == pytest.approx([1.0, 1.0])
 
 
 def test_luck_line_brackets_the_pooled_value() -> None:
@@ -175,28 +174,24 @@ def test_cohort_values_against_a_group_and_the_repeat_test() -> None:
     # The league has 1/2 in each cohort; units 1, 2 and 3 have 1, 1/2 and 0.
     assert cohort_values_df[2024].tolist() == pytest.approx([0.5, 0.0, -0.5])
 
-    repeat_correlation, repeat_count, repeat_p_value = units.repeat_test(
-        unit_rows_df, UNIT, "hit", "one", "league"
-    )
-    assert repeat_correlation == pytest.approx(1.0)
-    assert repeat_count == 3
-    assert 0.0 <= repeat_p_value <= 1.0
+    repeat = units.repeat_test(unit_rows_df, UNIT, "hit", "one", "league")
+    assert repeat.correlation == pytest.approx(1.0)
+    assert repeat.count == 3
+    assert 0.0 <= repeat.p_value <= 1.0
 
 
-def test_within_test_sums_the_parts_of_each_unit(seasons_df: pd.DataFrame) -> None:
-    cochran_q, degrees_of_freedom, p_value = units.within_test(
-        seasons_df, UNIT, "part", "goals", "one", "count"
-    )
+def test_within_tested_sums_the_parts_of_each_unit(seasons_df: pd.DataFrame) -> None:
+    within = units.within_tested(seasons_df, UNIT, "part", "goals", "one", "count")
 
-    assert degrees_of_freedom == 2  # two units with two parts each
-    assert cochran_q > 0
+    assert within.degrees_of_freedom == 2  # two units with two parts each
+    assert within.cochran_q > 0
 
-    alone = units.within_test(
+    alone = units.within_tested(
         seasons_df[seasons_df[UNIT] == 1], UNIT, "part", "goals", "one", "count"
     )
-    assert alone[0] == pytest.approx(0.0)
-    assert alone[1] == 1
-    assert 0.0 <= p_value <= 1.0
+    assert alone.cochran_q == pytest.approx(0.0)
+    assert alone.degrees_of_freedom == 1
+    assert 0.0 <= within.p_value <= 1.0
 
 
 def test_within_row_tests_the_teams_around_their_league(round_robin_df: pd.DataFrame) -> None:

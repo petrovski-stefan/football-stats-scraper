@@ -42,12 +42,10 @@ def test_fit_recovers_the_rates_that_made_the_market() -> None:
     point = np.flatnonzero((grid.home == 1.4) & (grid.away == 1.0))
     over = yardstick.fair_over(np.array([2.4]), 2.5)
 
-    lam_home, lam_away, error = yardstick.fit_rates(
-        grid, grid.p_home[point], grid.p_away[point], over, np.array([2.5])
-    )
+    fit = yardstick.fit_rates(grid, grid.p_home[point], grid.p_away[point], over, np.array([2.5]))
 
-    assert (lam_home[0], lam_away[0]) == pytest.approx((1.4, 1.0))
-    assert error[0] == pytest.approx(0.0, abs=1e-12)
+    assert (fit.home[0], fit.away[0]) == pytest.approx((1.4, 1.0))
+    assert fit.error[0] == pytest.approx(0.0, abs=1e-12)
 
 
 def test_equal_rates_give_equal_comeback_chances() -> None:

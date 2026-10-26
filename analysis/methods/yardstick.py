@@ -88,13 +88,22 @@ def fair_over(total: np.ndarray, line: float) -> np.ndarray:
     return np.asarray(win / (win + loss))
 
 
+@dataclass(frozen=True)
+class RateFit:
+    """Per match: the fitted home and away goal rates, and the fit error of `fit_rates`."""
+
+    home: np.ndarray
+    away: np.ndarray
+    error: np.ndarray
+
+
 def fit_rates(
     grid: Grid, p_home: np.ndarray, p_away: np.ndarray, over: np.ndarray, lines: np.ndarray
-) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+) -> RateFit:
     """Per match, the grid's home and away rates nearest to its three market numbers.
 
-    Returns the two rates and the fit error: the Euclidean distance, in probability, from
-    (P(home), P(away), fair over) of the market to the same three numbers of the model.
+    The fit error is the Euclidean distance, in probability, from (P(home), P(away), fair
+    over) of the market to the same three numbers of the model.
     """
 
     lam_home, lam_away, error = (np.full(len(lines), np.nan) for _ in range(3))
@@ -108,7 +117,7 @@ def fit_rates(
         lam_away[rows] = grid.away[nearest]
         error[rows] = distance
 
-    return lam_home, lam_away, error
+    return RateFit(home=lam_home, away=lam_away, error=error)
 
 
 def implied(
@@ -254,7 +263,7 @@ def frame(
         probabilities_df = shin.shin_frame(priced_df)[shin.PROBABILITIES]
 
     lines = priced_df["s1_odds_ou_open_line"].to_numpy(dtype=float)
-    lam_home, lam_away, error = fit_rates(
+    fit = fit_rates(
         grid,
         probabilities_df["shin_p_home"].to_numpy(dtype=float),
         probabilities_df["shin_p_away"].to_numpy(dtype=float),
@@ -267,17 +276,15 @@ def frame(
     yardstick_df = priced_df[shin.KEYS].copy()
     yardstick_df[shin.PROBABILITIES] = probabilities_df.to_numpy()
     yardstick_df["line"] = lines
-    yardstick_df["lam_home"], yardstick_df["lam_away"], yardstick_df["fit_error"] = (
-        lam_home,
-        lam_away,
-        error,
-    )
+    yardstick_df["lam_home"] = fit.home
+    yardstick_df["lam_away"] = fit.away
+    yardstick_df["fit_error"] = fit.error
 
-    implied_df = implied(lam_home, lam_away, share)
+    implied_df = implied(fit.home, fit.away, share)
     yardstick_df[implied_df.columns] = implied_df.to_numpy()
 
     ht_margin = (priced_df["s1_ht_home_goals"] - priced_df["s1_ht_away_goals"]).to_numpy()
-    yardstick_df["m_completion"] = completion_given_ht(lam_home, lam_away, share, ht_margin)
+    yardstick_df["m_completion"] = completion_given_ht(fit.home, fit.away, share, ht_margin)
 
     yardstick_df = yardstick_df.join(_outcomes(priced_df, ht_margin))
     yardstick_df["fav_p"] = yardstick_df[["shin_p_home", "shin_p_away"]].max(axis=1)

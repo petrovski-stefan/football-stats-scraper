@@ -363,3 +363,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
   - `domain/standings.py`: `Standings.__init__`, `Standings.ranks` and `HalfTimeFullTime.__init__`. In `ranks`, the count of the teams ahead has the name `teams_ahead`.
   - `ml/schedule/whole_corpus/all/beyond_odds.py:tuning_table`.
   - `tests/features/test_schedule_multi.py`: the new helper `_return_leg` swaps home and away for the second leg, in `_made_up_season` and in `_SECOND_LEG`.
+- **Group 7 of the same plan, part 1: the result tuples and one long function** (`CODING_STYLE.md` §4, §8). No change alters what the code does. The quantity specs are part 2 (the user, 2026-10-26).
+  - **Frozen dataclasses in place of tuples of 3 or more values.** `analysis/methods/shin.py:shin_row` gives a `ShinResult`, `analysis/methods/yardstick.py:fit_rates` a `RateFit`, `analysis/units.py:tested` an `Across` and `units.repeat_test` a `Repeat`. `scrapers/parsers.py:_odds_cells` gives an `_OddsCells` with `left`, `middle` and `right`.
+  - **`units.within_test` is deleted.** It gave Q, its df and p of `units.within_tested` as a tuple. Its one caller, `per_league/rates.py:season_tests`, and its test read `within_tested` now.
+  - **`odds_yardstick.py:main` had 104 lines.** Its phases are the functions `show_fit`, `show_observed_expected` and `show_share_checks` now. The table of other first-half shares is the pure function `share_shift_table`, with a test. The new constants `FIT_ERROR_QUANTILES` and `POOR_FITS_LISTED` replace two numbers that were written in `main`.

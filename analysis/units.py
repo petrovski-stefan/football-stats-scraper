@@ -93,9 +93,16 @@ def unit_values(
     return unit_values_df
 
 
-def tested(
-    df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str
-) -> tuple[pd.DataFrame, stats.Heterogeneity, float]:
+@dataclass(frozen=True)
+class Across:
+    """One test across the units, with the unit values it read."""
+
+    unit_values_df: pd.DataFrame  # per unit: the sums, value, variance and shrunk value
+    heterogeneity: stats.Heterogeneity
+    dispersion_factor: float
+
+
+def tested(df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str) -> Across:
     """The unit values with their shrunk values, the one test, and the dispersion used."""
 
     dispersion_factor = dispersion(df, unit, observed, expected, kind)
@@ -105,7 +112,11 @@ def tested(
         unit_values_df["value"], unit_values_df["variance"], heterogeneity
     )
 
-    return unit_values_df, heterogeneity, dispersion_factor
+    return Across(
+        unit_values_df=unit_values_df,
+        heterogeneity=heterogeneity,
+        dispersion_factor=dispersion_factor,
+    )
 
 
 def luck_line(
@@ -159,16 +170,27 @@ def cohort_agreement(
     ), len(cohort_values_df)
 
 
-def repeat_test(
-    df: pd.DataFrame, unit: str, observed: str, expected: str, against: str
-) -> tuple[float, int, float]:
+@dataclass(frozen=True)
+class Repeat:
+    """The repeat test: Spearman's r between the two season cohorts, its n, and the p of r = 0."""
+
+    correlation: float
+    count: int
+    p_value: float
+
+
+def repeat_test(df: pd.DataFrame, unit: str, observed: str, expected: str, against: str) -> Repeat:
     """The repeat test: does a unit's value in one season cohort predict its value in the
-    other, both relative to its `against` group? Spearman's r, its n, and the p of r = 0."""
+    other, both relative to its `against` group?"""
 
     cohort_values_df = cohort_values(df, unit, observed, expected, against)
     result = spearmanr(cohort_values_df.iloc[:, 0], cohort_values_df.iloc[:, 1])
 
-    return float(result.statistic), len(cohort_values_df), float(result.pvalue)
+    return Repeat(
+        correlation=float(result.statistic),
+        count=len(cohort_values_df),
+        p_value=float(result.pvalue),
+    )
 
 
 def summary_row(
@@ -181,7 +203,9 @@ def summary_row(
     """
 
     observed, expected, label, kind = quantity
-    unit_values_df, heterogeneity, dispersion_factor = tested(df, unit, observed, expected, kind)
+    across = tested(df, unit, observed, expected, kind)
+    unit_values_df = across.unit_values_df
+    heterogeneity = across.heterogeneity
 
     pooled = float(unit_values_df["observed"].sum() / unit_values_df["expected"].sum())
     low, high = luck_line(unit_values_df["expected"], pooled) if has_luck_line else (np.nan, np.nan)
@@ -192,7 +216,7 @@ def summary_row(
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
-        "dispersion": dispersion_factor,
+        "dispersion": across.dispersion_factor,
         "Q": heterogeneity.cochran_q,
         "p": f"{heterogeneity.p_value:.3g}",
         "tau": between_unit_sd,
@@ -277,16 +301,6 @@ def within_tested(
     )
 
 
-def within_test(
-    df: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
-) -> tuple[float, int, float]:
-    """`within_tested`, as Q, its df and p only."""
-
-    result = within_tested(df, unit, part, observed, expected, kind)
-
-    return result.cochran_q, result.degrees_of_freedom, result.p_value
-
-
 def within_row(
     df: pd.DataFrame, unit: str, part: str, quantity: tuple[str, str, str, str]
 ) -> tuple[dict[str, float | str], Within]:
@@ -300,9 +314,7 @@ def within_row(
 
     observed, expected, label, kind = quantity
     tested = within_tested(df, unit, part, observed, expected, kind)
-    repeat_correlation, repeat_count, repeat_p_value = repeat_test(
-        df, part, observed, expected, unit
-    )
+    repeat = repeat_test(df, part, observed, expected, unit)
 
     part_values_df = tested.part_values_df
     pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
@@ -323,9 +335,9 @@ def within_row(
         "keep median": float(keep.median()),
         "shrunk - league min": float(against.min()),
         "shrunk - league max": float(against.max()),
-        "repeat r": repeat_correlation,
-        "repeat n": float(repeat_count),
-        "repeat p": f"{repeat_p_value:.3g}",
+        "repeat r": repeat.correlation,
+        "repeat n": float(repeat.count),
+        "repeat p": f"{repeat.p_value:.3g}",
     }
 
     return row, tested

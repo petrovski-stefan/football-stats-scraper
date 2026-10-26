@@ -25,6 +25,8 @@ GOALS = (
     ("goals_away", "lam_away", "away goals"),
 )
 POOR_FIT = 0.05  # a fit error above this is listed
+POOR_FITS_LISTED = 5  # the worst fits printed, chosen on 2026-10-18
+FIT_ERROR_QUANTILES = (0.5, 0.9, 0.99, 1.0)  # the quantiles printed, chosen on 2026-10-18
 EVENTS = (
     ("is_comeback", "m_cb", "comeback, either side"),
     ("is_comeback_home", "m_cb_home", "comeback, home side"),
@@ -143,21 +145,35 @@ def pivot(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     )
 
 
-def main() -> None:
-    """Entry point: print the odds yardstick on the whole corpus."""
+def share_shift_table(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
+    """The comebacks that the yardstick expects with the first-half share moved down and up by
+    `SHARE_SHIFT`, and the observed count over each."""
 
-    matches_df = corpus.load()
-    print(corpus.corpus_line(matches_df))
+    rows = []
+    for shift in (-SHARE_SHIFT, 0.0, SHARE_SHIFT):
+        implied_df = yardstick.implied(
+            yardstick_df["lam_home"].to_numpy(), yardstick_df["lam_away"].to_numpy(), share + shift
+        )
 
-    grid = yardstick.build_grid()
-    share = yardstick.first_half_share(yardstick.priced(matches_df))
-    yardstick_df = yardstick.frame(matches_df, grid, share=share)
-    print(f"Priced: {len(yardstick_df):,} of {len(matches_df):,} matches have both opening markets")
+        expected = float(implied_df["m_cb"].sum())
+        rows.append(
+            {
+                "share": share + shift,
+                "expected comebacks": expected,
+                "oe": yardstick_df["is_comeback"].sum() / expected,
+            }
+        )
 
-    error = yardstick_df["fit_error"].quantile([0.5, 0.9, 0.99, 1.0])
+    return pd.DataFrame(rows)
+
+
+def show_fit(yardstick_df: pd.DataFrame, share: float) -> None:
+    """Print the fit error, the worst fits, the first-half share and the observed goals."""
+
+    error_quantiles = yardstick_df["fit_error"].quantile(list(FIT_ERROR_QUANTILES))
     print(
         "fit error (probability distance): "
-        + ", ".join(f"q{q:g} {v:.4f}" for q, v in error.items())
+        + ", ".join(f"q{q:g} {v:.4f}" for q, v in error_quantiles.items())
     )
 
     poor_fit_df = yardstick_df[yardstick_df["fit_error"] > POOR_FIT].sort_values(
@@ -166,7 +182,7 @@ def main() -> None:
     print(f"fit error above {POOR_FIT}: {len(poor_fit_df)} matches")
     print(
         poor_fit_df[["match_id", "s1_league_name", "s1_season", "fit_error"]]
-        .head(5)
+        .head(POOR_FITS_LISTED)
         .to_string(index=False)
     )
 
@@ -175,6 +191,11 @@ def main() -> None:
         f"observed mean goals per match: {yardstick_df['goals'].mean():.4f} (first half "
         f"{yardstick_df['goals_1h'].mean():.4f}, second half {yardstick_df['goals_2h'].mean():.4f})"
     )
+
+
+def show_observed_expected(yardstick_df: pd.DataFrame) -> None:
+    """Print observed against expected: for all matches, per season cohort, by band, where the
+    comeback excess sits, and by win chance and expected goals together."""
 
     report.show(
         "Goals, observed / expected, all matches",
@@ -205,6 +226,11 @@ def main() -> None:
     )
     report.show("Comebacks by win chance and expected goals", pivot(yardstick_df))
 
+
+def show_share_checks(yardstick_df: pd.DataFrame, share: float) -> None:
+    """Print the checks of one first-half share: by side, per season cohort, and the comebacks
+    under other shares."""
+
     side_goals_df = side_goals(yardstick_df)
     report.show(
         "First-half share of each side's goals",
@@ -225,22 +251,23 @@ def main() -> None:
         ),
     )
 
-    rows = []
-    for shift in (-SHARE_SHIFT, 0.0, SHARE_SHIFT):
-        implied_df = yardstick.implied(
-            yardstick_df["lam_home"].to_numpy(), yardstick_df["lam_away"].to_numpy(), share + shift
-        )
+    report.show("Comebacks under other first-half shares", share_shift_table(yardstick_df, share))
 
-        expected = float(implied_df["m_cb"].sum())
-        rows.append(
-            {
-                "share": share + shift,
-                "expected comebacks": expected,
-                "oe": yardstick_df["is_comeback"].sum() / expected,
-            }
-        )
 
-    report.show("Comebacks under other first-half shares", pd.DataFrame(rows))
+def main() -> None:
+    """Entry point: print the odds yardstick on the whole corpus."""
+
+    matches_df = corpus.load()
+    print(corpus.corpus_line(matches_df))
+
+    grid = yardstick.build_grid()
+    share = yardstick.first_half_share(yardstick.priced(matches_df))
+    yardstick_df = yardstick.frame(matches_df, grid, share=share)
+    print(f"Priced: {len(yardstick_df):,} of {len(matches_df):,} matches have both opening markets")
+
+    show_fit(yardstick_df, share)
+    show_observed_expected(yardstick_df)
+    show_share_checks(yardstick_df, share)
 
     proportional_df = yardstick.frame(matches_df, grid, share=share, is_proportional=True)
     report.show(

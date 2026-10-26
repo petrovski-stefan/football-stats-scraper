@@ -47,15 +47,13 @@ def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for label in SLICED:
         numerator, denominator, _, kind = quantity(label)
-        cochran_q, degrees_of_freedom, p_value = units.within_test(
-            card_df, LEAGUE, "cluster", numerator, denominator, kind
-        )
+        within = units.within_tested(card_df, LEAGUE, "cluster", numerator, denominator, kind)
         rows.append(
             {
                 "quantity": label,
-                "Q": cochran_q,
-                "df": float(degrees_of_freedom),
-                "p": f"{p_value:.3g}",
+                "Q": within.cochran_q,
+                "df": float(within.degrees_of_freedom),
+                "p": f"{within.p_value:.3g}",
             }
         )
 

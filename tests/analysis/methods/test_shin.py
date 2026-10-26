@@ -1,6 +1,7 @@
 """`analysis/methods/shin.py`: Shin's probabilities and z per match, and the scored frame."""
 
 import math
+from dataclasses import astuple
 
 import numpy as np
 import pandas as pd
@@ -10,18 +11,18 @@ from analysis.methods import shin
 
 
 def test_probabilities_sum_to_one_and_z_is_not_negative() -> None:
-    p_home, p_draw, p_away, shin_z = shin.shin_row(1.5, 4.0, 6.0)
-    assert p_home + p_draw + p_away == pytest.approx(1.0)
-    assert shin_z >= 0
+    result = shin.shin_row(1.5, 4.0, 6.0)
+    assert result.p_home + result.p_draw + result.p_away == pytest.approx(1.0)
+    assert result.z >= 0
 
 
 def test_equal_prices_give_equal_probabilities() -> None:
-    p_home, p_draw, p_away, _ = shin.shin_row(2.7, 2.7, 2.7)
-    assert [p_home, p_draw, p_away] == pytest.approx([1 / 3, 1 / 3, 1 / 3])
+    result = shin.shin_row(2.7, 2.7, 2.7)
+    assert [result.p_home, result.p_draw, result.p_away] == pytest.approx([1 / 3, 1 / 3, 1 / 3])
 
 
 def test_a_missing_price_gives_nan() -> None:
-    assert all(math.isnan(value) for value in shin.shin_row(1.5, math.nan, 6.0))
+    assert all(math.isnan(value) for value in astuple(shin.shin_row(1.5, math.nan, 6.0)))
 
 
 def test_shin_frame_keeps_the_index(toy_matches_df: pd.DataFrame) -> None:
