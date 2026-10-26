@@ -101,7 +101,11 @@ def feature_names(suffixes: Sequence[str]) -> list[str]:
 def timeline_names(field: str, depth: int) -> list[str]:
     """`<section>_last<n>_<field>` for every section and depth, in order."""
 
-    return [f"{section}_last{n}_{field}" for section in SECTIONS for n in range(1, depth + 1)]
+    names: list[str] = []
+    for section in SECTIONS:
+        names.extend(f"{section}_last{slot}_{field}" for slot in range(1, depth + 1))
+
+    return names
 
 
 def build_frame[T](
@@ -139,10 +143,11 @@ def _resolve_section[T](
 ) -> list[list[T | None]]:
     """For each fixture row, that section's `depth` history matches, oldest slot last."""
 
-    return [
-        [resolve(f"{section}_last{n}_", row) for n in range(1, depth + 1)]
-        for row in range(len(detail_df))
-    ]
+    per_row: list[list[T | None]] = []
+    for row in range(len(detail_df)):
+        per_row.append([resolve(f"{section}_last{slot}_", row) for slot in range(1, depth + 1)])
+
+    return per_row
 
 
 def _aggregates(
@@ -150,7 +155,11 @@ def _aggregates(
 ) -> dict[str, Any]:
     """One column `<section>_<suffix>` per suffix, from each fixture row's rates."""
 
-    return {f"{section}_{suffix}": [s[suffix] for s in stats] for suffix in suffixes}
+    columns: dict[str, Any] = {}
+    for suffix in suffixes:
+        columns[f"{section}_{suffix}"] = [row_rates[suffix] for row_rates in stats]
+
+    return columns
 
 
 def _timelines[T](

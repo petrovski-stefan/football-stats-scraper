@@ -171,8 +171,17 @@ def _timeline(goals: Goals | None) -> str:
 def _rates(blocks: list[Goals | None]) -> dict[str, float]:
     """Fold one fixture's usable history matches into timing rates."""
 
-    scored = [minute for b in blocks if b for minute, _, tag in b if tag == "GF"]
-    conceded = [minute for b in blocks if b for minute, _, tag in b if tag == "GA"]
+    scored: list[int] = []
+    conceded: list[int] = []
+    for block in blocks:
+        if not block:
+            continue
+
+        for minute, _, tag in block:
+            if tag == "GF":
+                scored.append(minute)
+            elif tag == "GA":
+                conceded.append(minute)
 
     rates: dict[str, float] = {
         "goal_minute_avg": float(np.mean(scored)) if scored else float("nan"),
@@ -184,10 +193,8 @@ def _rates(blocks: list[Goals | None]) -> dict[str, float]:
     }
 
     for minutes, direction in ((scored, "gf"), (conceded, "ga")):
-        for lo, hi in BUCKETS:
-            rates[f"{direction}_{lo:02d}_{hi}"] = _share(
-                minutes, lambda minute, lo=lo, hi=hi: lo <= minute <= hi
-            )
+        for low, high in BUCKETS:
+            rates[f"{direction}_{low:02d}_{high}"] = _bucket_share(minutes, low, high)
 
     return rates
 
@@ -203,3 +210,9 @@ def _share(minutes: list[int], predicate: Any) -> float:
         return float("nan")
 
     return float(sum(1 for m in minutes if predicate(m)) / len(minutes))
+
+
+def _bucket_share(minutes: list[int], low: int, high: int) -> float:
+    """Share of `minutes` from `low` to `high`, both included; NaN when there are none."""
+
+    return _share(minutes, lambda minute: low <= minute <= high)

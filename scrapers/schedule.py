@@ -315,7 +315,9 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
     one a line). Which repeat means which market is missing: `_MISSING_BY_REPEATS`.
     """
 
-    cells = {market: tuple(row.get(f) for f in fields) for market, fields in _MARKETS.items()}
+    cells: dict[str, tuple[Any, ...]] = {}
+    for market, fields in _MARKETS.items():
+        cells[market] = tuple(row.get(field) for field in fields)
 
     repeated_pairs: set[tuple[str, str]] = set()
     for market_a, market_b in combinations(_MARKETS, 2):

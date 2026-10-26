@@ -99,7 +99,10 @@ def build(raw_path: str) -> str:
     """Write the stage-2 file for one stage-1 schedule file; return its path."""
 
     stage_1_df = read_stage_csv(raw_path)
-    records = [{str(k): v for k, v in row.items()} for row in stage_1_df.to_dict("records")]
+    records: list[dict[str, Any]] = []
+    for row in stage_1_df.to_dict("records"):
+        records.append({str(column): value for column, value in row.items()})
+
     derived_df = pd.DataFrame([derive(row) for row in records], index=stage_1_df.index)
 
     stage_2_path = paths.schedule_at_stage(raw_path, 2)

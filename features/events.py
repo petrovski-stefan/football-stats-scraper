@@ -279,7 +279,10 @@ def _rates(blocks: list[Events | None]) -> dict[str, float]:
         return dict.fromkeys(FEATURE_SUFFIXES, float("nan"))
 
     match_count = len(usable)
-    flat = [e for b in usable for e in b]
+    flat: Events = []
+    for block in usable:
+        flat.extend(block)
+
     first_subs = _first_sub_minutes(usable)
     sub_minutes = [e.minute for e in flat if e.kind == SUBSTITUTION and e.tag == "F"]
 
@@ -302,19 +305,17 @@ def _while_leading(usable: list[Events]) -> float:
     Only matches whose events all have a known score state count, not unknown goals as 0. Per
     match, not per minute ahead: split-half 0.564 against 0.345 (`features/CLAUDE.md` §5)."""
 
-    known = [b for b in usable if all(event.state is not None for event in b)]
+    known = [block for block in usable if all(event.state is not None for event in block)]
     if not known:
         return float("nan")
 
-    hits = sum(
-        1
-        for block in known
-        for event in block
-        if event.kind == YELLOW_CARD
-        and event.tag == "F"
-        and event.state is not None
-        and event.state > 0
-    )
+    hits = 0
+    for block in known:
+        for event in block:
+            is_own_yellow = event.kind == YELLOW_CARD and event.tag == "F"
+            is_ahead = event.state is not None and event.state > 0
+            if is_own_yellow and is_ahead:
+                hits += 1
 
     return float(hits / len(known))
 
@@ -349,6 +350,9 @@ def _count(flat: Events, kind: str, tag: str) -> float:
 def _match_share(usable: list[Events], kind: str, tag: str) -> float:
     """Share of usable matches containing at least one such event."""
 
-    hits = sum(1 for b in usable if any(e.kind == kind and e.tag == tag for e in b))
+    hits = 0
+    for block in usable:
+        if any(event.kind == kind and event.tag == tag for event in block):
+            hits += 1
 
     return float(hits / len(usable))
