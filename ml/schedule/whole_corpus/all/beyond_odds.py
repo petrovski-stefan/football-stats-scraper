@@ -92,17 +92,14 @@ def importance(contributions_df: pd.DataFrame) -> pd.DataFrame:
 def tuning_table(tuned: dict[str, boosting.Tuned]) -> pd.DataFrame:
     """The chosen setting of each model, with its trees and its cross-validated log loss."""
 
-    return pd.DataFrame(
-        [
-            {
-                "model": name,
-                **{key: result.params[key] for key in boosting.GRID[0]},
-                "trees": result.trees,
-                "cv loss": result.cv_loss,
-            }
-            for name, result in tuned.items()
-        ]
-    )
+    table_rows = []
+    for name, result in tuned.items():
+        chosen = {key: result.params[key] for key in boosting.GRID[0]}
+        table_rows.append(
+            {"model": name, **chosen, "trees": result.trees, "cv loss": result.cv_loss}
+        )
+
+    return pd.DataFrame(table_rows)
 
 
 def fit_models(train_df: pd.DataFrame, fields_b: list[str]) -> dict[str, Fitted]:

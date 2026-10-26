@@ -519,6 +519,16 @@ def _results_and_odds(rng: random.Random) -> dict[str, object]:
     }
 
 
+def _return_leg(rounds: list[list[tuple[int, int]]]) -> list[list[tuple[int, int]]]:
+    """The same rounds with home and away swapped in every fixture."""
+
+    return_leg = []
+    for pairs in rounds:
+        return_leg.append([(away, home) for home, away in pairs])
+
+    return return_leg
+
+
 def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
     """Six teams, a double round robin of 10 rounds: two kickoffs at once, then a third exactly
     `FINISHED_AFTER`, a minute less, 1 h or 4 h later; one match 10 days late, one a month
@@ -531,7 +541,7 @@ def _made_up_season(seed: int = 7) -> list[dict[str, object]]:
     for _ in range(len(teams) - 1):
         single.append([(teams[i], teams[-1 - i]) for i in range(len(teams) // 2)])
         teams = [teams[0], teams[-1], *teams[1:-1]]
-    rounds = single + [[(away, home) for home, away in pairs] for pairs in single]
+    rounds = single + _return_leg(single)
 
     gaps = (
         FINISHED_AFTER,
@@ -623,7 +633,7 @@ def test_no_score_or_odds_of_an_unfinished_match_reaches_a_row() -> None:
 
 # A double round robin of four teams: six rounds of two matches, as (round, home, away).
 _FIRST_LEG = [[(1, 4), (2, 3)], [(1, 3), (4, 2)], [(1, 2), (3, 4)]]
-_SECOND_LEG = [[(away, home) for home, away in pairs] for pairs in _FIRST_LEG]
+_SECOND_LEG = _return_leg(_FIRST_LEG)
 
 
 def _numbered(rounds: list[list[tuple[int, int]]]) -> list[tuple[int, int, int]]:

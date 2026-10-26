@@ -6,7 +6,7 @@
 
 **Status: IN PROGRESS.** The user asked for this plan on 2026-10-26, and gives the groups to fix one by one.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item, the new-pipeline items of groups 8 and 11, and parts of groups 3, 7 and 14 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item, the new-pipeline items of groups 8, 11 and 14, and parts of groups 3 and 7 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -73,9 +73,11 @@ Only old-pipeline items are open.
 
 - `s1_stage.fillna("")` in `analysis/corpus.py:59`, `analysis/schedule/whole_corpus/all/prematch_screen.py:240`, `:263` and `season_phase.py:39`. These tables come from `features/stage_io.py:read_stage_csv`, which keeps an empty `s1_stage` as `""` (`features/CLAUDE.md` §0).
 
-### 14. §6 and §7: other items (about 12)
+### 14. §6 and §7: other items
 
-- Nested comprehensions: `domain/standings.py:68`, `:96`, `:125`, `ml/schedule/whole_corpus/all/beyond_odds.py:99`, `features/history.py:177` (`_timelines`), `tests/features/test_schedule_multi.py:534`, `:626`.
+Only old-pipeline items are open.
+
+- A nested comprehension: `features/history.py:177` (`_timelines`).
 - A lambda with a long body: `qa/league.py:186`. Fix: a named function.
 
 ---
@@ -83,5 +85,5 @@ Only old-pipeline items are open.
 ## Order
 
 1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`. Group 10 after the user's decision.
-2. New-pipeline Defaults: groups 7, 13 and 14, file by file. Groups 8 and 11 have no new-pipeline items left.
+2. New-pipeline Defaults: groups 7 and 13, file by file. Groups 8, 11 and 14 have no new-pipeline items left.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

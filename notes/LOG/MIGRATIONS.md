@@ -359,3 +359,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
   - `probs` is `probabilities` in `analysis/stats.py:log_loss_1x2`, `brier_1x2` and `analysis/methods/shin.py:scored`.
   - `shin.PROBS` is `shin.PROBABILITIES`.
   - In `units.summary_row`, one assignment of two unrelated values is two statements now (§6).
+- **The new-pipeline items of group 14 of the same plan are done** (`CODING_STYLE.md` §6). 6 nested comprehensions use a loop now. No change alters what the code does, and the tests run each changed function.
+  - `domain/standings.py`: `Standings.__init__`, `Standings.ranks` and `HalfTimeFullTime.__init__`. In `ranks`, the count of the teams ahead has the name `teams_ahead`.
+  - `ml/schedule/whole_corpus/all/beyond_odds.py:tuning_table`.
+  - `tests/features/test_schedule_multi.py`: the new helper `_return_leg` swaps home and away for the second leg, in `_made_up_season` and in `_SECOND_LEG`.

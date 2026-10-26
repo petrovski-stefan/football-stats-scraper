@@ -65,7 +65,9 @@ class Standings:
         """Start the total, home and away tables with one empty line per team id."""
 
         ids = sorted(set(teams))
-        self._lines = {venue: {team: Line() for team in ids} for venue in VENUES}
+        self._lines: dict[str, dict[int, Line]] = {}
+        for venue in VENUES:
+            self._lines[venue] = {team: Line() for team in ids}
 
     def add(self, home: int, away: int, home_goals: int, away_goals: int) -> None:
         """Count one result. Both teams must be among those the table was made with."""
@@ -93,7 +95,12 @@ class Standings:
 
         keys = {team: (line.points, line.goal_diff, line.goals_for) for team, line in lines.items()}
 
-        return {team: 1 + sum(other > key for other in keys.values()) for team, key in keys.items()}
+        positions = {}
+        for team, key in keys.items():
+            teams_ahead = sum(other > key for other in keys.values())
+            positions[team] = 1 + teams_ahead
+
+        return positions
 
     def points_gaps(self, venue: str, team: int) -> tuple[int | None, int | None]:
         """How far the team trails the nearest team above and leads the nearest below, in points.
@@ -121,9 +128,9 @@ class HalfTimeFullTime:
         """Start every team's record at zero in all three venues."""
 
         ids = sorted(set(teams))
-        self._pairs: dict[str, dict[int, Counter[tuple[str, str]]]] = {
-            venue: {team: Counter() for team in ids} for venue in VENUES
-        }
+        self._pairs: dict[str, dict[int, Counter[tuple[str, str]]]] = {}
+        for venue in VENUES:
+            self._pairs[venue] = {team: Counter() for team in ids}
 
     def add(self, home: int, away: int, ht: tuple[int, int], ft: tuple[int, int]) -> None:
         """Count one match: `ht` and `ft` are (home goals, away goals)."""
