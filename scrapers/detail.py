@@ -76,6 +76,8 @@ def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, An
 
 
 def _done_ids(detail_path: str) -> set[str]:
+    """The match ids already in the detail file, empty when the file does not exist yet."""
+
     if not os.path.exists(detail_path):
         return set()
 
@@ -99,6 +101,8 @@ def enrich_league(
     limit: int | None,
     csv_lock: threading.Lock,
 ) -> None:
+    """Scrape one league CSV's pending detail pages, at most `limit`, appending each row."""
+
     league = os.path.splitext(os.path.basename(base_path))[0]
     detail_path = paths.detail_path(base_path)
 
@@ -142,6 +146,8 @@ def enrich_league(
 
 
 def enrich_finished(limit: int | None = None) -> None:
+    """Scrape the pending detail pages of every base league CSV, at most `limit` per CSV."""
+
     csv_lock = threading.Lock()
     with _POOL, ThreadPoolExecutor(max_workers=WORKERS) as pool:
         for base_path in paths.base_league_csvs():
@@ -151,6 +157,8 @@ def enrich_finished(limit: int | None = None) -> None:
 
 
 def _parse_limit(argv: list[str]) -> int | None:
+    """The number after `--limit`, None when the option is not given."""
+
     if "--limit" in argv:
         return int(argv[argv.index("--limit") + 1])
 

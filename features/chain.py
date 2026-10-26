@@ -67,6 +67,8 @@ def recover_intercept() -> float:
     grid = np.linspace(-2.0, 4.0, 60001)
 
     def sse(intercept: float) -> float:
+        """The weighted squared error against F4's octiles of the curve with this intercept."""
+
         predicted = 1 / (1 + np.exp(-(intercept - 1.72 * np.log(odds) - 1.27)))
 
         return float(np.sum(weights * (predicted - observed) ** 2))
@@ -168,6 +170,8 @@ def trailing_states(matrix_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Entry point: validate the imported F11 completion curve, with `--replicate-f11`."""
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--replicate-f11", action="store_true", help="validate the imported completion stage"

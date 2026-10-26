@@ -144,6 +144,8 @@ def table(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     opponent_played = stat(matches_df, other, "ft", "total", "played")
 
     def per_game(who: str, name: str, played: "pd.Series[float]") -> "pd.Series[float]":
+        """The full-time total `name` of side `who`, per match played."""
+
         return stat(matches_df, who, "ft", "total", name) / played
 
     team_goals = 2 * per_game(side, "goals_for", team_played) - per_game(
@@ -589,6 +591,8 @@ def split_rows(
 
 
 def main() -> None:
+    """Entry point: print the screen of pre-match fields beyond the odds."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

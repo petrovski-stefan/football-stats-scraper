@@ -142,6 +142,8 @@ def count_table(
 
 
 def main() -> None:
+    """Entry point: print whether comebacks and 7+ collect in one round."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

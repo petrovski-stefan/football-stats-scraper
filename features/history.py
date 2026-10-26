@@ -158,6 +158,8 @@ def _resolve_section[T](
 def _aggregates(
     section: str, suffixes: Sequence[str], stats: list[dict[str, float]]
 ) -> dict[str, Any]:
+    """One column `<section>_<suffix>` per suffix, from each fixture row's rates."""
+
     return {f"{section}_{suffix}": [s[suffix] for s in stats] for suffix in suffixes}
 
 
@@ -168,6 +170,8 @@ def _timelines[T](
     per_row: list[list[T | None]],
     render: Callable[[T | None], str],
 ) -> dict[str, Any]:
+    """One column `<section>_last<slot>_<field>` per slot, each history match rendered."""
+
     return {
         f"{section}_last{slot}_{field}": [render(blocks[slot - 1]) for blocks in per_row]
         for slot in range(1, depth + 1)

@@ -113,6 +113,8 @@ def _parse_pair_cell(
 
 
 def rows_to_records(rows: list[Tag]) -> list[dict[str, Any]]:
+    """The parsed history rows, without the rows that do not parse."""
+
     records = [parse_history_row(r) for r in rows]
 
     return [r for r in records if r is not None]
@@ -177,6 +179,8 @@ def aggregate_form(
 
 
 def _empty_form() -> dict[str, Any]:
+    """The form fields of a section with no history rows: 0 played, every other field None."""
+
     return {
         "played": 0,
         "wins": None,
@@ -279,6 +283,11 @@ def _side_of(pair: tuple[int, int] | None, index: int) -> int | None:
 def _flatten_one(
     record: dict[str, Any] | None, subject_id: int | None, prefix: str
 ) -> dict[str, Any]:
+    """One history match as its `<prefix><field>` columns, seen from the subject team.
+
+    Every field is None when the match or the subject team is unknown.
+    """
+
     if record is None or subject_id is None:
         return {f"{prefix}{field}": None for field in PER_MATCH_FIELDS}
 
@@ -368,6 +377,8 @@ def parse_odds_1x2(soup: BeautifulSoup) -> dict[str, Any]:
 
 
 def _find_odds_table(soup: BeautifulSoup) -> Tag | None:
+    """The page's 1X2 odds table, None when the page has none."""
+
     for table in soup.select(DETAIL_ODDS_TABLE_CANDIDATES):
         text = table.get_text()
         if "1X2" in text and "Company" in text:
@@ -393,6 +404,8 @@ def _bookmaker_initial_rows(table: Tag) -> list[tuple[str, Tag]]:
 
 
 def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
+    """A bookmaker row's home, draw and away prices; all None when it has fewer than three."""
+
     cells = row.select(DETAIL_ODDS_1X2_CELLS)
     if len(cells) < 3:
         return None, None, None
@@ -475,6 +488,8 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
 
 
 def _team_id(tag: Tag) -> int | None:
+    """The team id in the tag's `onclick`, None when it has none."""
+
     found = _TEAM_ID_RE.search(attr(tag, "onclick") or "")
 
     return int(found.group(1)) if found else None

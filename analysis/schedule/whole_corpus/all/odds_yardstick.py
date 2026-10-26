@@ -146,6 +146,8 @@ def pivot(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Entry point: print the odds yardstick on the whole corpus."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

@@ -80,6 +80,8 @@ def goal_totals(card_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Entry point: print the card of the ALL level."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

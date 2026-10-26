@@ -90,6 +90,8 @@ def league_table(
 
 
 def main() -> None:
+    """Entry point: print the odds yardstick per league."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

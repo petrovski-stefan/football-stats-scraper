@@ -161,7 +161,7 @@ FIRST_LOAD_TIMEOUT = 45
 
 The docstring carries the documentation; a `#` comment is the exception. Both say what the code alone cannot.
 
-- **Every function and class has a docstring,** private and nested ones included. A `test_*` function needs none: its name is the sentence (§12).
+- **Every function and class has a docstring,** private and nested ones included. A `test_*` function needs none: its name is the sentence (§12). An entry point's `main` has one short sentence that starts with `Entry point:` (`"""Entry point: build every stage-2 schedule file."""`); the detail goes in the module docstring.
 - **Module docstring.** Every module opens with one: what it does and why it exists. A scraper or a stage builder also says what it reads, what it writes and which `notes/FIELDS/` doc defines its fields. An entry point ends with its command: `Run: uv run python -m features.schedule_row`.
 - **Function docstring.** It opens with one sentence of plain prose: what the function returns or does, and what `None` or an empty result means (`"""A price or line from the row, None when the page showed none."""`). In the rare case one sentence cannot say it, use up to 3. Add prose only for a rule, a limit or a side effect the reader cannot see.
 - **At most 3 lines of prose** in a function or class docstring, the opening sentences included; blank lines and `Args:` / `Returns:` entries do not count. A longer explanation goes to its field doc (`notes/FIELDS/`) or note, and the docstring cites it.
@@ -268,7 +268,7 @@ After:
 - [ ] Names say what the data is, in the project's words. One-letter names only `i`, `_` and a one-line comprehension; a DataFrame's name ends in `_df` (`df` alone only in an any-table helper).
 - [ ] Each function has one job, its guards first, its phases separated by one blank line, and one before its final `return`.
 - [ ] No dense expression where named steps read better.
-- [ ] Every function and class has a docstring: an opening sentence, at most 3 lines of prose, `Args:` / `Returns:` only for what names and types cannot say, a blank line below it.
+- [ ] Every function and class has a docstring (not a `test_*` function; an entry point's `main` has one `Entry point:` sentence): an opening sentence, at most 3 lines of prose, `Args:` / `Returns:` only for what names and types cannot say, a blank line below it.
 - [ ] `#` comments only for a why of one line or block; none is stale.
 - [ ] Each rule comes from its home (§9); missing values and failures are handled on purpose.
 - [ ] Errors are specific and name the input; no broad `except` outside the two cases of §10.

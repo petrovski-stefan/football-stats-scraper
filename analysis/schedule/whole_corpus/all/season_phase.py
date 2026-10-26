@@ -188,6 +188,8 @@ def show_phase(phased_df: pd.DataFrame, phase: str, title: str, labels: tuple[st
 
 
 def main() -> None:
+    """Entry point: print comebacks and 7+ by season phase."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

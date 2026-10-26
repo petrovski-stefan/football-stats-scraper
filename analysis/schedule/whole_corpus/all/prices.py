@@ -321,6 +321,8 @@ def show_returns(matches_df: pd.DataFrame, title: str) -> None:
 
 
 def main() -> None:
+    """Entry point: print the returns, the margins and lines, and the 7+ tail."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

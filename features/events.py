@@ -358,6 +358,8 @@ def _share(minutes: list[int], cutoff: int) -> float:
 
 
 def _count(flat: Events, kind: str, tag: str) -> float:
+    """How many of the events have this kind and this tag."""
+
     return float(sum(1 for e in flat if e.kind == kind and e.tag == tag))
 
 

@@ -124,6 +124,8 @@ def null_table(team_rows_df: pd.DataFrame, results: dict[str, units.Within]) -> 
 
 
 def main() -> None:
+    """Entry point: print the odds yardstick per team."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

@@ -64,4 +64,6 @@ class Event(BaseModel):
 
     @property
     def is_card(self) -> bool:
+        """True for a yellow or a red card."""
+
         return self.kind in (YELLOW_CARD, RED_CARD)

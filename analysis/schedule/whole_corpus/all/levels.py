@@ -108,6 +108,8 @@ def odds_shares(rows: dict[str, pd.DataFrame]) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Entry point: print which level the differences sit at."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

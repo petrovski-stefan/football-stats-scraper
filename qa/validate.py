@@ -358,7 +358,7 @@ def validate_archived() -> bool:
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Run the staged checks, or the archived ones with `--archived`; exit 1 on any failure."""
+    """Entry point: run the staged checks, or the archived ones, and exit 1 on any failure."""
 
     parser = argparse.ArgumentParser(description="Validate the scraped data.")
     parser.add_argument(

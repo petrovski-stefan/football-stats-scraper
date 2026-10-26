@@ -156,6 +156,8 @@ def detectable_tau(
     critical = chi2.isf(0.05, len(unit_variances) - member.shape[1])
 
     def found(between_unit_sd: float) -> float:
+        """The share of the simulated draws whose Cochran's Q is significant at this spread."""
+
         values = normal_draws * np.sqrt(unit_variances + between_unit_sd**2)
         means = ((values * weights) @ member) / (weights @ member)
         cochran_q = (weights * (values - means[:, codes]) ** 2).sum(axis=1)

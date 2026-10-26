@@ -96,6 +96,8 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _when(event: dict[str, Any]) -> tuple[int, int]:
+    """An event's sort key: its minute, then its stoppage."""
+
     return (event["minute"], event["stoppage"])
 
 

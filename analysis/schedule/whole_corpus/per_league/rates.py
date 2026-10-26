@@ -98,6 +98,8 @@ def league_table(card_df: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.D
 
 
 def main() -> None:
+    """Entry point: print the card per league."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

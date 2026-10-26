@@ -191,6 +191,8 @@ def gap_table(yardstick_df: pd.DataFrame, share: float, measured: dict[str, floa
 
 
 def main() -> None:
+    """Entry point: print the second-half score effects."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

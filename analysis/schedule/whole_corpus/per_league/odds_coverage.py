@@ -143,6 +143,8 @@ def award_shapes(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def main() -> None:
+    """Entry point: print the opening-odds coverage per league and the cause of each gap."""
+
     matches_df = with_markets(corpus.load())
     print(corpus.corpus_line(matches_df))
     print(

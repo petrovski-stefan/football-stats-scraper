@@ -58,6 +58,8 @@ class LiveRow:
 
     @property
     def text(self) -> str:
+        """The row's text, its parts joined by spaces."""
+
         return self.row.get_text(" ", strip=True)
 
     def content_cell(self) -> Tag | None:
@@ -125,6 +127,8 @@ def _side_of(cells: list[Tag]) -> str | None:
 
 
 def _populated(cells: list[Tag]) -> bool:
+    """Whether any of the cells has text or an event icon."""
+
     return any(cell.get_text(strip=True) or cell.select_one(LIVE_EVENT_ICON) for cell in cells)
 
 

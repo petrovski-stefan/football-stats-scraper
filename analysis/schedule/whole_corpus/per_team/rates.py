@@ -39,6 +39,8 @@ TOP = 20
 
 
 def main() -> None:
+    """Entry point: print the card per team."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

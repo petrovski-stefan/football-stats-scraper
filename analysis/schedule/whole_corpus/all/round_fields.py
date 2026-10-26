@@ -109,6 +109,8 @@ def line_against_model(yardstick_df: pd.DataFrame) -> dict[str, float]:
 
 
 def main() -> None:
+    """Entry point: print how often each value of the round-so-far fields occurs."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

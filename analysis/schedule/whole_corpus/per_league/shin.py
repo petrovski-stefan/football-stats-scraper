@@ -49,6 +49,8 @@ def cohort_stability(scored_df: pd.DataFrame, column: str) -> tuple[float, int]:
 
 
 def main() -> None:
+    """Entry point: print Shin's method per league."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

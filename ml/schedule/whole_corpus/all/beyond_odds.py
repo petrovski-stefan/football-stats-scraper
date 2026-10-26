@@ -195,7 +195,7 @@ def split_rows(matches_df: pd.DataFrame, grid: yardstick.Grid, train_cohort: int
 
 
 def main() -> None:
-    """Print the corpus, then the rows and the tables of each split."""
+    """Entry point: print the corpus, then the rows and the tables of each split."""
 
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))

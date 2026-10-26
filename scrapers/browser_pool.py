@@ -23,6 +23,8 @@ class BrowserPool:
     """Lazily creates one driver per thread and closes every one of them at the end."""
 
     def __init__(self) -> None:
+        """An empty pool: no browser starts until a thread asks for one."""
+
         self._local = threading.local()
         self._drivers: list[webdriver.Chrome] = []
         self._lock = threading.Lock()
@@ -53,7 +55,11 @@ class BrowserPool:
             driver.quit()
 
     def __enter__(self) -> "BrowserPool":
+        """The pool itself, so that `with` closes its browsers at the end."""
+
         return self
 
     def __exit__(self, *exc_info: object) -> None:
+        """Quit every browser, also when the block raised."""
+
         self.close_all()

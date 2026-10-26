@@ -251,6 +251,8 @@ def show_grouping(grouped_matches_df: pd.DataFrame, grouping: str, seed: int) ->
 
 
 def main() -> None:
+    """Entry point: print whether comebacks and 7+ collect on the same opening prices."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

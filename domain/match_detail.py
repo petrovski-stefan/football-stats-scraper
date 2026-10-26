@@ -75,19 +75,27 @@ class MatchDetail(BaseModel):
     @computed_field
     @property
     def implied_init_home(self) -> float | None:
+        """The home win's implied chance from the initial 1X2 price, None without a price."""
+
         return stats.implied_prob(self.odds1x2_init_home)
 
     @computed_field
     @property
     def implied_init_away(self) -> float | None:
+        """The away win's implied chance from the initial 1X2 price, None without a price."""
+
         return stats.implied_prob(self.odds1x2_init_away)
 
     @computed_field
     @property
     def implied_live_home(self) -> float | None:
+        """The home win's implied chance from the live 1X2 price, None without a price."""
+
         return stats.implied_prob(self.odds1x2_live_home)
 
     @computed_field
     @property
     def implied_live_away(self) -> float | None:
+        """The away win's implied chance from the live 1X2 price, None without a price."""
+
         return stats.implied_prob(self.odds1x2_live_away)

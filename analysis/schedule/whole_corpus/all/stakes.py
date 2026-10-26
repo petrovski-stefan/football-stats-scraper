@@ -175,6 +175,8 @@ def against_odds(states_df: pd.DataFrame, chance: "pd.Series[float]") -> pd.Data
 
 
 def main() -> None:
+    """Entry point: print the stakes test of the team behind at half-time."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

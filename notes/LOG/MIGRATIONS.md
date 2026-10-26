@@ -332,3 +332,8 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 
 - **`scripts/` deleted** (the user: "I didnt use a single time"). It held only `scripts/pipeline.sh`, a wrapper for schedule, detail, goals and enrich. The `README.md` lines about it went too. Run each stage with `uv run python -m <package>.<module>`, as root `CLAUDE.md` gives.
 - **The statistical review does not cover `notes/LOG/`** (the user: "Not running the stats-review for a LOG/MIGRATION change"). A Log entry records a change and holds no claim. The scope of 2026-10-22 had all of `notes/`. The pathspec `':!notes/LOG'` removes it in root `CLAUDE.md`, the `check` and `stats-review` skills and the `stats-reviewer` agent.
+
+## 2026-10-26
+
+- **Group 5 of `notes/WORKING/PLAN_2026-10-26_STYLE_FIXES.md` is done: every function and class has a docstring.** 35 functions had none. They have a one-sentence docstring now, with a blank line after it.
+- **An entry point's `main` has one short docstring sentence that starts with `Entry point:`** (the user). `CODING_STYLE.md` §7 and its §14 checklist say so now. 8 `main` functions had a docstring: `features/{enrich,schedule_row,schedule_multi}.py`, `ml/schedule/whole_corpus/all/beyond_odds.py`, `qa/validate.py`, `scrapers/{detail,goals,schedule}.py`. The ones of `beyond_odds.py` and `qa/validate.py` start with `Entry point:` now. The other 21 `main` functions got such a sentence: `features/chain.py`, `features/engine.py` and the 19 runners of `analysis/schedule/`.

@@ -136,6 +136,8 @@ EVENT_FEATURES = event_features.feature_names()
 
 
 def filter_feature_names() -> list[str]:
+    """Every feature of the exclusion-filter families, in family order."""
+
     return [name for names in FILTER_FAMILIES.values() for name in names]
 
 
@@ -336,6 +338,8 @@ def _rolling_form(matches_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
+    """Each side's rolling form, as `home_<field>` and `away_<field>` arrays in row order."""
+
     form_df = _rolling_form(matches_df)
     cols = [dst for _, dst in ROLLING_SPECS]
 
@@ -358,6 +362,8 @@ def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
 
 
 def _block(matches_df: pd.DataFrame, section: str, slot: int, field: str) -> "pd.Series[Any]":
+    """One field of a history slot, all NaN when the matrix has no such column."""
+
     col = f"{section}_last{slot}_{field}"
     if col in matches_df.columns:
         return matches_df[col]
@@ -488,6 +494,8 @@ def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
     """
 
     def col(name: str) -> "pd.Series[Any]":
+        """The column `name`, all NaN when the corpus has none."""
+
         return (
             matches_df[name]
             if name in matches_df.columns
@@ -617,6 +625,8 @@ def build_features(matches_df: pd.DataFrame | None = None) -> pd.DataFrame:
 
 
 def all_feature_names() -> list[str]:
+    """Every feature of the closed families, in family order."""
+
     return [name for names in FAMILIES.values() for name in names]
 
 
@@ -691,6 +701,8 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
 
 
 def summarize(matrix_df: pd.DataFrame) -> None:
+    """Print the matrix's rows and comebacks per split, then the fill rate of each feature."""
+
     print("=" * 78)
     print("FEATURE MATRIX")
     print("=" * 78)
@@ -741,6 +753,8 @@ def summarize(matrix_df: pd.DataFrame) -> None:
 
 
 def main() -> None:
+    """Entry point: print the feature matrix's summary, or prove the as-of-round invariant."""
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--self-check", action="store_true", help="prove the as-of-round invariant")
     parser.add_argument("--sample", type=int, default=100, help="matches to verify in --self-check")

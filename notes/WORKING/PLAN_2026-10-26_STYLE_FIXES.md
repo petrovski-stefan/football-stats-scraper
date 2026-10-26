@@ -6,7 +6,7 @@
 
 **Status: PARKED.** The user asked for this plan on 2026-10-26. No fix is made yet.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 1–4 break a Must rule (`CODING_STYLE.md` §1). Groups 5–9 break a Default rule.
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 1–4 break a Must rule (`CODING_STYLE.md` §1). Groups 6–9 break a Default rule. Group 5 is done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -60,14 +60,6 @@
 
 ## Default rules
 
-### 5. §7: missing docstrings (57)
-
-- All 20 `main` functions of the analysis runners.
-- `analysis/schedule/whole_corpus/all/prematch_screen.py:146` `per_game`, `analysis/stats.py:158` `found`.
-- `domain/match_detail.py:77–92`: the 4 `implied_*` computed fields.
-- `scrapers/browser_pool.py:25`, `:55`, `:58`: `__init__`, `__enter__`, `__exit__`.
-- Old pipeline, about 30 helpers, for example `features/engine.py:360` `_block`, `:490` `col`, `features/events.py:360` `_count`, `features/history.py:158` `_aggregates`, `:164` `_timelines`, `scrapers/goals.py:202` `_as_int`, `:235` `_stamp`, `:266` `scrape_goals`, `scrapers/detail.py:96` `enrich_league`, `:144` `enrich_finished`.
-
 ### 6. §3.1: names
 
 - Cryptic names in `features/engine.py:377–395`: `ch`, `ca`, `gh`, `ga`, `subj_c`, `tot_c`, `subj_g`, `tot_g`, `ok`, `mine_c`, `mine_g`.
@@ -101,5 +93,5 @@
 ## Order
 
 1. New-pipeline Musts: group 3 (all items) and the 2 docstrings of `domain/scope.py` (group 1). Then `/check` and `/stats-review`.
-2. New-pipeline Defaults: groups 5–9, file by file.
+2. New-pipeline Defaults: groups 6–9, file by file.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

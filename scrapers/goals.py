@@ -200,6 +200,8 @@ def build_work_list(sections: tuple[str, ...], depth: int) -> dict[str, int | No
 
 
 def _as_int(value: Any) -> int | None:
+    """The value as an int, None when it is missing or is not a number."""
+
     try:
         return None if value is None or pd.isna(value) else int(value)
     except (TypeError, ValueError):
@@ -233,6 +235,8 @@ def _scrape_one(
 
 
 def _stamp() -> str:
+    """The time now in UTC, to the second, in ISO format."""
+
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
@@ -266,6 +270,8 @@ def _store_rows(
 def scrape_goals(
     limit: int | None = None, sections: tuple[str, ...] = SECTIONS, depth: int = 6
 ) -> None:
+    """Scrape each pending live page, at most `limit`, into the stores that still miss it."""
+
     pending = build_work_list(sections, depth)
     ids = list(pending)[:limit] if limit is not None else list(pending)
     if not ids:

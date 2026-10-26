@@ -87,6 +87,8 @@ def top_n(yardstick_df: pd.DataFrame, observed: str, chance: str) -> pd.DataFram
 
 
 def main() -> None:
+    """Entry point: print the nine half-time/full-time results against the odds yardstick."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 

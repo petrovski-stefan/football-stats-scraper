@@ -88,6 +88,8 @@ def show(title: str, values: dict[str, float]) -> None:
 
 
 def main() -> None:
+    """Entry point: print Shin's method on the whole corpus."""
+
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
 
