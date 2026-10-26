@@ -21,6 +21,7 @@ def test_the_odds_card_reads_columns_of_the_yardstick_frame(
 ) -> None:
     yardstick_df = yardstick.frame(toy_priced_matches_df, yardstick.build_grid(COARSE))
     yardstick_df["one"] = 1.0
+
     for observed, denominator, model, _, kind in card.ODDS_CARD:
         assert {observed, denominator, model} <= set(yardstick_df.columns), (
             observed,

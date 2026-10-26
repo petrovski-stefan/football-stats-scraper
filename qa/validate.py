@@ -105,6 +105,7 @@ def validate_league_season(base_path: str) -> bool:
         report = Report(f"{subject} - joins")
         if detail_df is not None:
             universal.check_ids_covered(report, _ids(base_df), _ids(detail_df), "the detail file")
+
         if os.path.exists(enriched_path):
             enriched_df = pd.read_csv(enriched_path, low_memory=False)
             report.check(
@@ -115,6 +116,7 @@ def validate_league_season(base_path: str) -> bool:
             universal.check_ids_covered(
                 report, _ids(base_df), _ids(enriched_df), "the enriched file"
             )
+
         reports.append(report)
 
     # Flush every report before deciding — `all()` over a generator would short-circuit

@@ -186,6 +186,7 @@ def test_stage_three_is_held_to_stage_two_as_well() -> None:
 
 def test_only_stage_two_gets_the_odds_field_check() -> None:
     stage_2_df = pd.DataFrame([_stage_two_row(match_id="1", s2_has_odds=False)])
+
     for stage, checked in ((2, True), (3, False)):
         report = Report("test")
         validate(report, stage_2_df, stage, {})

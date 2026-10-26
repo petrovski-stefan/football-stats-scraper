@@ -183,6 +183,7 @@ def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAUL
     """
 
     open_page(driver, LIVE_URL.format(match_id=match_id))
+
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
             lambda browser: any(

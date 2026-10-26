@@ -62,10 +62,12 @@ def _season(teams: int = 4, legs: int = 2) -> pd.DataFrame:
 
 def test_the_test_season_is_a_real_round_robin() -> None:
     season_df = _season(teams=6, legs=2)
+
     pairs = combinations(range(1, 7), 2)
     met = dict.fromkeys(pairs, 0)
     for home, away in zip(season_df["s1_home_team_id"], season_df["s1_away_team_id"], strict=True):
         met[(min(home, away), max(home, away))] += 1
+
     assert set(met.values()) == {2}
 
 

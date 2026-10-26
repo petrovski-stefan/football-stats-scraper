@@ -36,6 +36,7 @@ def patterns(matches_df: pd.DataFrame) -> pd.DataFrame:
     names = pd.Series("", index=matches_df.index)
     for market, flag in MARKETS.items():
         names = names + np.where(matches_df[flag].astype(bool), f" {market}", "")
+
     names = names.str.strip().replace("", "none")
 
     return names.value_counts().rename_axis("markets").reset_index(name="matches")

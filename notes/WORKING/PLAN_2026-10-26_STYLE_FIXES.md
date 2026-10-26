@@ -6,7 +6,7 @@
 
 **Status: PARKED.** The user asked for this plan on 2026-10-26. No fix is made yet.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 1–4 break a Must rule (`CODING_STYLE.md` §1). Groups 6–9 break a Default rule. Group 5 is done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 1–4 break a Must rule (`CODING_STYLE.md` §1). Groups 6–8 break a Default rule. Group 5, group 9 and the §5 item are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -51,11 +51,6 @@
 - `features/history.py:113`: `n` in a comprehension with two `for`.
 - The exception for a comprehension variable is for a simple one-line comprehension only. Fix together with group 8.
 
-### §5: blank lines
-
-- `features/chain.py:180`: no blank line after the guard `if args.replicate_f11: raise SystemExit(...)`.
-- Heuristic: 116 functions of 10 or more lines have no blank line between phases. The sampled ones were correct (compute, then return). Do a check of each one only when you change its function.
-
 ---
 
 ## Default rules
@@ -84,14 +79,10 @@
 - Numbers in the code: `features/chain.py:70` has `1.72` and `1.27` next to its F11 constants; `features/chain.py:67` `60001`, `:106` `0.03`; `analysis/stats.py:136–166` `0.8`, `0.05`, `40`; `scrapers/goals.py:267` `depth=6` repeats `MATCHES_PER_SECTION`; `scrapers/detail_parsers.py:175` `[:6]`.
 - Heuristic: about 35 module constants have no comment that gives the source of the value. Examples: `analysis/schedule/whole_corpus/all/stakes.py:26` `ALPHA`, `per_team/rates.py:38` and `per_team/odds_yardstick.py:63` `TOP = 20`, `scrapers/detail.py:40` and `scrapers/goals.py:64` `WORKERS = 3`, `ml/boosting.py:32–33` `FOLDS`, `MAX_TREES`. The sweep did not see a comment further up over a group of constants. Do a check of each one.
 
-### 9. §12: tests
-
-- 4 tests of 8 or more lines have no blank lines between arrange, act and assert: `tests/analysis/test_card.py:19`, `tests/features/test_history.py:78`, `:89`, `tests/qa/test_stages.py:187`.
-
 ---
 
 ## Order
 
 1. New-pipeline Musts: group 3 (all items) and the 2 docstrings of `domain/scope.py` (group 1). Then `/check` and `/stats-review`.
-2. New-pipeline Defaults: groups 6–9, file by file.
+2. New-pipeline Defaults: groups 6–8, file by file.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

@@ -67,6 +67,7 @@ def test_a_league_missing_from_the_config_fails(
     corpus.append(_schedule(1, "other_league", "2025", ["c1"], league_id=2))
     for stage in (2, 3):
         _schedule(stage, "other_league", "2025", ["c1"], league_id=2)
+
     assert not validate_corpus(corpus)
     assert "league id not in" in capsys.readouterr().out
 

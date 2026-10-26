@@ -183,6 +183,7 @@ def main() -> None:
 
     if args.replicate_f11:
         raise SystemExit(0 if replicate_f11(usable_df) else 1)
+
     parser.print_help()
 
 
