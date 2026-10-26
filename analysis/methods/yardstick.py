@@ -20,11 +20,12 @@ import pandas as pd
 from scipy import stats as sps
 from scipy.spatial import cKDTree
 
+from analysis import stats
 from analysis.methods import shin
 from domain.stats import SEVEN_PLUS_GOALS
 
 RATE_STEP = 0.02
-RATES = np.arange(RATE_STEP, 6.0 + 1e-9, RATE_STEP)
+RATES = np.arange(RATE_STEP, 6.0 + stats.FLOAT_TOLERANCE, RATE_STEP)
 MAX_GOALS = 25  # per team, for the grid's win probabilities; the mass beyond is negligible
 MAX_DEFICIT = 11  # half-time deficits summed over for a comeback
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
@@ -75,8 +76,8 @@ def fair_over(total: np.ndarray, line: float) -> np.ndarray:
     win = np.zeros(np.shape(total))
     loss = np.zeros(np.shape(total))
     for part in parts:
-        floor = int(np.floor(part + 1e-9))
-        is_integer = abs(part - round(part)) < 1e-9
+        floor = int(np.floor(part + stats.FLOAT_TOLERANCE))
+        is_integer = abs(part - round(part)) < stats.FLOAT_TOLERANCE
         win += sps.poisson.sf(floor, total)
         loss += sps.poisson.cdf(floor - 1 if is_integer else floor, total)
 
@@ -141,7 +142,7 @@ def implied(
             "m_ht_decisive": 1.0 - sps.skellam.pmf(0, home_rate_1h, away_rate_1h),
             "m_home_behind": sps.skellam.cdf(-1, home_rate_1h, away_rate_1h),
             "m_away_behind": sps.skellam.sf(0, home_rate_1h, away_rate_1h),
-            "m_seven": sps.poisson.sf(6, total),
+            "m_seven": sps.poisson.sf(SEVEN_PLUS_GOALS - 1, total),
             "m_00": np.exp(-total),
             "m_11": lam_home * lam_away * np.exp(-total),
             "m_goals": total,

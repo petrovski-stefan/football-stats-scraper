@@ -32,7 +32,7 @@ import numpy as np
 import pandas as pd
 
 from domain import paths, stats
-from domain.clock import parse_instant
+from domain.clock import SECONDS_PER_DAY, parse_instant
 from domain.columns import (
     HTFT_RESULTS,
     SCHEDULE_MULTI_COLUMNS,
@@ -117,7 +117,7 @@ def round_offsets(schedule_df: pd.DataFrame) -> pd.DataFrame:
     median = kickoff.groupby([schedule_df[key] for key in _ROUND_KEY], dropna=False).transform(
         "median"
     )
-    days = (kickoff - median).dt.total_seconds() / 86400
+    days = (kickoff - median).dt.total_seconds() / SECONDS_PER_DAY
 
     return pd.DataFrame(
         {"s3_days_off_round": days, "s3_is_rescheduled": days.abs() >= RESCHEDULED_AFTER_DAYS},

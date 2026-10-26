@@ -16,7 +16,7 @@ Two kinds of output, as for goals:
 **One timeline per kind, not one per match.** Measured 2026-09-23 over 5,993 populated
 cells, a combined string averaged 12.1 entries and 62 characters, of which substitutions
 were 68.1% and red cards 0.6% — the rare event was buried behind the common one. The kind
-is implied by the column now, so an entry carries only the minute and F/A. Nothing is
+is implied by the column, so an entry carries only the minute and F/A. Nothing is
 lost: merging the four strings back into one match view is a sort on minute, and the raw
 stores keep `event_index` for the 1.19% of events that share a minute with a goal.
 
@@ -35,8 +35,8 @@ then extrapolated to the six-match depth these features actually have):
   - a trailing-conditioned first-substitution minute — split-half **-0.004**. Managers
     have no stable "how fast I react when behind"; the de-confounded feature is noise.
     Deliberately **not** built, and `first_sub_minute_avg` is kept only as the existing
-    unconditioned column (it correlates 0.428 with what this docstring used to claim it
-    measured). Do not "fix" it by conditioning it — that was measured and it is dead.
+    unconditioned column, not as a candidate (`features/CLAUDE.md` §5). Do not "fix" it by
+    conditioning it — that was measured and it is dead.
   - per-minute exposure denominators — 0.345 against 0.564 per match. Also rejected.
 
 **Honest prior, stated up front.** These are historical team-trait rates, which is the

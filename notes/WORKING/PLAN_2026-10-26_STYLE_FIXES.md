@@ -6,7 +6,7 @@
 
 **Status: IN PROGRESS.** The user asked for this plan on 2026-10-26, and gives the groups to fix one by one.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8 and 11–14 break a Default rule. Groups 1, 4, 5, 6 and 9, the §5 item and parts of groups 7 and 8 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item and parts of groups 3, 7, 8 and 14 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -33,9 +33,7 @@
 
 ### 3. §9: a rule outside its home
 
-- **7+:** `analysis/methods/yardstick.py:144` and `analysis/schedule/whole_corpus/all/prices.py:288` use `poisson.sf(6, …)`. Fix: `SEVEN_PLUS_GOALS - 1` from `domain/stats.py`. `yardstick.py` already imports it.
 - **Times:** `analysis/schedule/whole_corpus/all/prematch_screen.py:257`, `round_clusters.py:156` and `season_phase.py:42` parse `s1_date` with `pd.to_datetime`. `ml/rows.py:139` and `features/schedule_multi.py:116` use `clock.parse_instant`. Fix: one way, through `domain/clock.py`.
-- **Seconds per day:** `/ 86400` is in `features/engine.py:419`, `:426` and `features/schedule_multi.py:120`. Fix: one helper or constant in `domain/clock.py`.
 - **Clock:** `scrapers/goals.py:236` uses `datetime.now(UTC)`. The project clock is `domain/clock.py` (Berlin time with its offset).
 - **Comeback:** `features/chain.py:146–165` calculates "completed" by hand. Fix: use `domain/stats`.
 - These items touch `features/` and `analysis/`, so `/stats-review` is due after the fix.
@@ -68,13 +66,6 @@
 - Other short words: `ok` in `features/engine.py:437`, `:461` and `features/chain.py:145`; `avg`, `opp`, `src` and `dst` in `features/engine.py`; `agg` in `scrapers/detail.py:60` and `scrapers/detail_parsers.py:210`; `tr`, `nums`, `pcts`, `vals` and `bar` in `scrapers/detail_parsers.py`; `idx` in `qa/league.py:128`.
 - Missed by group 4 and group 6: `lo` and `hi` in `features/goals.py:60` (`BUCKETS`), and `sgf` and `sga` in `scrapers/detail_parsers.py:238` (`aggregate_h2h`).
 
-### 12. §6 and §9: the same chosen number in more than one place (about 12)
-
-- The 95% interval as `quantile([0.025, 0.975])`: `analysis/stats.py:81`, `ml/score.py:43` and `analysis/schedule/whole_corpus/all/odds_groups.py:134–135`. `analysis/stats.py` already has `Z95` for the same level.
-- The log-loss clip `1e-12` in `analysis/schedule/whole_corpus/all/prematch_screen.py:530` is the value of `ml/score.py:EPSILON`. `analysis/` cannot import `ml/`, so the constant must go to a lower layer.
-- The float tolerance `1e-9` has no name in `analysis/methods/yardstick.py:27`, `:78`, `:79`, `analysis/schedule/whole_corpus/all/prices.py:47`, `:48` and `features/engine.py:666`. `qa/` gives its own a name (`qa/stages.py:TOLERANCE`, `qa/odds.py:GRID_TOLERANCE`).
-- `analysis/schedule/whole_corpus/all/prematch_screen.py`: the logit clip `1e-6` (`:376`) and `maxiter=200` (`:516`) have no name.
-
 ### 13. §8: a check of what a contract already makes sure of (4)
 
 - `s1_stage.fillna("")` in `analysis/corpus.py:59`, `analysis/schedule/whole_corpus/all/prematch_screen.py:240`, `:263` and `season_phase.py:39`. These tables come from `features/stage_io.py:read_stage_csv`, which keeps an empty `s1_stage` as `""` (`features/CLAUDE.md` §0).
@@ -83,13 +74,11 @@
 
 - Nested comprehensions: `domain/standings.py:68`, `:96`, `:125`, `ml/schedule/whole_corpus/all/beyond_odds.py:99`, `features/history.py:177` (`_timelines`), `tests/features/test_schedule_multi.py:534`, `:626`.
 - A lambda with a long body: `qa/league.py:186`. Fix: a named function.
-- The history of a change in a docstring or comment (§7 says: it goes to `notes/LOG/MIGRATIONS.md`): the module docstring of `features/enrich.py` ("previously the only way…"), the module docstring of `features/events.py` ("what this docstring used to claim"), and the comment at `features/engine.py:44–46` about the deleted `modelling/` package.
-- A docstring that is not correct for the code: `analysis/stats.py:observed_expected` cites `frame.cluster`, but its parameter is `df`.
 
 ---
 
 ## Order
 
 1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`. Group 10 after the user's decision.
-2. New-pipeline Defaults: groups 7, 8 and 11–14, file by file.
+2. New-pipeline Defaults: groups 7, 8, 11, 13 and 14, file by file.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

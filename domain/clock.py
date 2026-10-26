@@ -18,6 +18,8 @@ from zoneinfo import ZoneInfo
 
 BERLIN = ZoneInfo("Europe/Berlin")
 
+SECONDS_PER_DAY = 86400
+
 
 def to_berlin(moment: datetime) -> str:
     """Format an aware datetime as Berlin time with its offset, to the minute."""

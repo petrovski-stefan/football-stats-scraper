@@ -15,7 +15,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import poisson
 
-from analysis import corpus, report, units
+from analysis import corpus, report, stats, units
 from analysis.methods import shin, yardstick
 
 BAND = 0.05  # the width of a chance band in the near grouping
@@ -131,8 +131,8 @@ def against_null(
                 "statistic": statistic,
                 "observed": observed_value,
                 "null mean": float(sims.mean()),
-                "null low": float(sims.quantile(0.025)),
-                "null high": float(sims.quantile(0.975)),
+                "null low": float(sims.quantile(stats.INTERVAL_LOW)),
+                "null high": float(sims.quantile(stats.INTERVAL_HIGH)),
                 "p": (int(extreme.sum()) + 1) / (draws + 1),
             }
         )

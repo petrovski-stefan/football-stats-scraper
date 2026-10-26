@@ -3,8 +3,7 @@
 The first derived artefact in the pipeline, and the reason it is here rather than in
 `scrapers/`: a left join adds no scraped information, so it is not a scrape. Splitting
 it out also means a stale or deleted `_enriched.csv` can be rebuilt from the raw files
-in seconds — previously the only way to regenerate one was to invoke the detail
-scraper, which starts Selenium even when there is nothing left to fetch.
+in seconds, without starting Selenium.
 
 Reads `data/archived/raw/`, writes `data/archived/processed/`. The enriched file is the base
 columns, then the detail feature columns, then — when the goal-timing store exists — the derived

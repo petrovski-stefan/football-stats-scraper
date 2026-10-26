@@ -17,6 +17,7 @@ from scipy import stats as sps
 
 from analysis import corpus, report, stats
 from analysis.methods import shin, yardstick
+from domain.stats import SEVEN_PLUS_GOALS
 
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
 MIN_LINE_MATCHES = 200  # an O/U line with fewer matches gets no row of its own
@@ -44,8 +45,8 @@ def settle(metric: np.ndarray, line: np.ndarray, price: np.ndarray) -> np.ndarra
     profit = np.zeros(len(line))
     for shift in (-0.25, 0.25):
         part = np.where(quarter, line + shift, line)
-        win = metric > part + 1e-9
-        push = np.abs(metric - part) < 1e-9
+        win = metric > part + stats.FLOAT_TOLERANCE
+        push = np.abs(metric - part) < stats.FLOAT_TOLERANCE
         profit += 0.5 * np.where(win, price - 1.0, np.where(push, 0.0, -1.0))
 
     return profit
@@ -285,7 +286,7 @@ def tail_oe(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     the share of the market's gap to the observed count that the calibration closes."""
 
     calibrated_df = yardstick_df.assign(
-        m_seven_calibrated=sps.poisson.sf(6, calibrated_totals(yardstick_df))
+        m_seven_calibrated=sps.poisson.sf(SEVEN_PLUS_GOALS - 1, calibrated_totals(yardstick_df))
     )
     tail_oe_df = stats.observed_expected_table(
         calibrated_df,

@@ -31,6 +31,8 @@ LATE_SEASON = 0.8  # a dead rubber is this far into the stage or later
 MID_TABLE = (0.3, 0.7)  # a dead rubber has both teams' rank shares in this range
 MIDWEEK = (1, 2, 3)  # Tuesday to Thursday, Berlin time
 TOP_N = (100, 250, 500, 1000)
+LOGIT_CLIP = 1e-6  # a 0 or 1 field value stays this far inside, so its log odds stay finite
+LOGIT_MAX_ITERATIONS = 200  # the most Newton steps the joint logit fit may take
 
 # field -> family
 FAMILIES = {
@@ -371,9 +373,9 @@ def last_season(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def logit(values: "pd.Series[float] | np.ndarray") -> np.ndarray:
-    """The log odds, with the chance kept inside (1e-6, 1 - 1e-6)."""
+    """The log odds, with the chance kept inside (`LOGIT_CLIP`, 1 - `LOGIT_CLIP`)."""
 
-    clipped = np.clip(np.asarray(values, dtype=float), 1e-6, 1 - 1e-6)
+    clipped = np.clip(np.asarray(values, dtype=float), LOGIT_CLIP, 1 - LOGIT_CLIP)
 
     return np.asarray(np.log(clipped / (1 - clipped)))
 
@@ -513,7 +515,7 @@ def out_of_sample(train_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, np
     fields = joint_fields()
     base = sm.Logit(train_comes_back, baseline(train_df, "m_cb")).fit(disp=0)
     joint = sm.Logit(train_comes_back, joint_design(train_df, train_df, fields)).fit(
-        disp=0, maxiter=200
+        disp=0, maxiter=LOGIT_MAX_ITERATIONS
     )
 
     return {
@@ -527,7 +529,7 @@ def out_of_sample(train_df: pd.DataFrame, test_df: pd.DataFrame) -> dict[str, np
 def log_loss(outcomes: np.ndarray, chances: np.ndarray) -> float:
     """The mean log loss of a chance for a 0/1 outcome."""
 
-    clipped = np.clip(chances, 1e-12, 1 - 1e-12)
+    clipped = np.clip(chances, stats.LOG_LOSS_CLIP, 1 - stats.LOG_LOSS_CLIP)
 
     return float(-np.mean(outcomes * np.log(clipped) + (1 - outcomes) * np.log(1 - clipped)))
 

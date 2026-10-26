@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 
 from domain import paths, scope
+from domain.clock import SECONDS_PER_DAY
 from domain.columns import MATCHES_PER_SECTION
 from features import events as event_features
 from features import goals as goal_features
@@ -40,10 +41,10 @@ FORM_WINDOW = 6
 BURN_IN_ROUNDS = 5
 CONGESTION_DAYS = 14
 
+# The self-check's two computations agree when they differ by less than float noise.
+SELF_CHECK_TOLERANCE = 1e-9
+
 # Rolling as-of-round team quantities: (source column in the long frame, output name).
-# The goal *levels* (h1/h2 gf and ga) were built for the exclusion filter's scoreline model,
-# the differences and rates for the F12 re-test's families A and B. Both consumers were in
-# `modelling/`, deleted on 2026-10-18 (notes/LOG/MIGRATIONS.md).
 ROLLING_SPECS: list[tuple[str, str]] = [
     ("ht_trail", "ht_trail_rate"),
     ("h1_gd", "h1_gd_avg"),
@@ -411,14 +412,14 @@ def _congestion(
     for slot in range(1, MATCHES_PER_SECTION + 1):
         when = pd.to_datetime(_block(matches_df, section, slot, "date"), errors="coerce")
         league = _block(matches_df, section, slot, "league").astype("string").str.lower()
-        gap_days = (matches_df["date"] - when).dt.total_seconds() / 86400.0
+        gap_days = (matches_df["date"] - when).dt.total_seconds() / SECONDS_PER_DAY
         competitive = ~league.str.contains(scope.FRIENDLY_MARKER, na=False)
 
         recent = competitive & gap_days.between(0, CONGESTION_DAYS)
         played += recent.fillna(False).astype("int64")
         most_recent = most_recent.where(most_recent.notna() | when.isna(), when)
 
-    days_since = (matches_df["date"] - most_recent).dt.total_seconds() / 86400.0
+    days_since = (matches_df["date"] - most_recent).dt.total_seconds() / SECONDS_PER_DAY
 
     return played.astype(float), days_since
 
@@ -663,7 +664,7 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
                 checks += 1
                 expected = float(window[src].mean())
                 actual = row[f"{side}_{dst}"]
-                if pd.isna(actual) or abs(float(actual) - expected) > 1e-9:
+                if pd.isna(actual) or abs(float(actual) - expected) > SELF_CHECK_TOLERANCE:
                     failures += 1
                     print(
                         f"  MISMATCH match {row['match_id']} {side} {dst}: "

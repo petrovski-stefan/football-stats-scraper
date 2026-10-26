@@ -8,8 +8,9 @@ from typing import Any
 import numpy as np
 import pandas as pd
 
+from analysis import stats
+
 DRAWS = 2000
-EPSILON = 1e-12
 
 
 def top_mask(score: np.ndarray, top_n: int) -> np.ndarray:
@@ -40,7 +41,7 @@ def resampled_sums(
 def interval(values: np.ndarray) -> tuple[float, float]:
     """The 95% interval of resampled values."""
 
-    low, high = np.nanquantile(values, [0.025, 0.975])
+    low, high = np.nanquantile(values, [stats.INTERVAL_LOW, stats.INTERVAL_HIGH])
 
     return float(low), float(high)
 
@@ -97,7 +98,7 @@ def top_n_table(
 def log_loss_rows(outcomes: np.ndarray, chances: np.ndarray) -> np.ndarray:
     """The log loss of each row's chance, with the chance kept inside (1e-12, 1 - 1e-12)."""
 
-    clipped = np.clip(chances, EPSILON, 1.0 - EPSILON)
+    clipped = np.clip(chances, stats.LOG_LOSS_CLIP, 1.0 - stats.LOG_LOSS_CLIP)
 
     return np.asarray(-(outcomes * np.log(clipped) + (1.0 - outcomes) * np.log(1.0 - clipped)))
 

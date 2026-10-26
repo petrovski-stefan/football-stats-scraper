@@ -9,7 +9,16 @@ import numpy as np
 import pandas as pd
 from scipy.stats import binomtest, chi2, norm
 
-Z95 = float(norm.ppf(0.975))
+# The 95% interval: its 2.5% and 97.5% quantiles, and the normal z of its upper end.
+INTERVAL_LOW = 0.025
+INTERVAL_HIGH = 0.975
+Z95 = float(norm.ppf(INTERVAL_HIGH))
+
+# A log loss keeps each chance this far from 0 and 1, so that log(0) never occurs.
+LOG_LOSS_CLIP = 1e-12
+
+# Two floats closer than this are equal: far below the step of any odds, line or goal count.
+FLOAT_TOLERANCE = 1e-9
 
 # The power search of `detectable_tau`: the conventional 80% power at p < 0.05, on 2000
 # simulated draws. The bisection starts at 10 times the largest unit's sd and halves the
@@ -78,13 +87,13 @@ def cluster_bootstrap_ratio_ci(
     bottoms = denominator.groupby(clusters).sum().to_numpy()
     picks = np.random.default_rng(seed).integers(0, len(tops), size=(n_boot, len(tops)))
     ratios = tops[picks].sum(axis=1) / bottoms[picks].sum(axis=1)
-    low, high = np.quantile(ratios, [0.025, 0.975])
+    low, high = np.quantile(ratios, [INTERVAL_LOW, INTERVAL_HIGH])
 
     return float(low), float(high)
 
 
 def observed_expected(df: pd.DataFrame, observed: str, expected: str) -> dict[str, float]:
-    """Observed and expected sums, their ratio (O/E), and its interval over `frame.cluster`."""
+    """Observed and expected sums, their ratio (O/E), and its interval over `df["cluster"]`."""
 
     obs, exp = float(df[observed].sum()), float(df[expected].sum())
     low, high = cluster_bootstrap_ratio_ci(df[observed], df[expected], df["cluster"])
