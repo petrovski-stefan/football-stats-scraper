@@ -171,7 +171,7 @@ def round_summary(common_rounds_df: pd.DataFrame) -> pd.DataFrame:
                 common_rounds_df,
                 "round",
                 (observed, expected, f"{label}, {reading}", kind),
-                luck=True,
+                has_luck_line=True,
             )
             rows.append(row)
 

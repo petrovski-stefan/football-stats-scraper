@@ -237,12 +237,12 @@ def switch_odds_type(driver: webdriver.Chrome, kind: str, timeout: int = DEFAULT
     if _odds_label(driver) == label:
         return True
 
-    items = driver.find_elements(By.CSS_SELECTOR, ODDS_TYPE_ITEM.format(kind=dom_type))
-    if not items:
+    type_items = driver.find_elements(By.CSS_SELECTOR, ODDS_TYPE_ITEM.format(kind=dom_type))
+    if not type_items:
         return False
 
     before = _first_row_odds(driver)
-    driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
+    driver.execute_script(_CLICK_JS, type_items[0])  # type: ignore[no-untyped-call]
     switched = True
     try:
         WebDriverWait(driver, timeout).until(lambda browser: _odds_label(browser) == label)
@@ -377,11 +377,11 @@ def _select_standings(
     False when the entry is absent or the table never shows it applied.
     """
 
-    items = driver.find_elements(*item)
-    if not items:
+    entries = driver.find_elements(*item)
+    if not entries:
         return False
 
-    driver.execute_script(_CLICK_JS, items[0])  # type: ignore[no-untyped-call]
+    driver.execute_script(_CLICK_JS, entries[0])  # type: ignore[no-untyped-call]
     is_applied = True
     try:
         WebDriverWait(driver, timeout).until(applied)

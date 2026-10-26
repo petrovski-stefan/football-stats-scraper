@@ -18,7 +18,7 @@ _BANDS = (
 
 
 def _row(**overrides: float | None) -> dict[str, float | None]:
-    """A fully priced row; `overrides` change prices."""
+    """A fully priced row; `overrides` change prices, None for a missing one."""
 
     row: dict[str, float | None] = {
         "h": 1.5, "d": 4.0, "a": 6.0,

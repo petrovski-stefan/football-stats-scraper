@@ -179,7 +179,7 @@ def test_frame_scores_every_priced_match(toy_priced_matches_df: pd.DataFrame) ->
 
 def test_frame_can_remove_the_margin_proportionally(toy_priced_matches_df: pd.DataFrame) -> None:
     yardstick_df = yardstick.frame(
-        toy_priced_matches_df, yardstick.build_grid(COARSE), proportional=True
+        toy_priced_matches_df, yardstick.build_grid(COARSE), is_proportional=True
     )
     priced_df = yardstick.priced(toy_priced_matches_df)
     assert yardstick_df["shin_p_home"].to_numpy() == pytest.approx(

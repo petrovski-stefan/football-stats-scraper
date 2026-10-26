@@ -39,6 +39,9 @@ _TEAM_ID_RE = re.compile(r"soccerDbPage\.team\((\d+)\)")
 _PCT_RE = re.compile(r"(\d+(?:\.\d+)?)\s*%")
 _DAYS_RE = re.compile(r"(\d+)\s*Day")
 
+# The `form` string keeps this many results (W, D or L), the most recent first.
+FORM_LENGTH = 6
+
 
 # --- history rows (recent form / H2H) ----------------------------------------
 def parse_history_row(row: Tag) -> dict[str, Any] | None:
@@ -94,7 +97,7 @@ def parse_history_row(row: Tag) -> dict[str, Any] | None:
 
 
 def _row_league_id(row: Tag) -> int | None:
-    """The competition id carried on a history row (36 = EPL, 90 = FA Cup)."""
+    """The competition id carried on a history row (36 = EPL, 90 = FA Cup), None without one."""
 
     raw = attr(row, HIST_LEAGUE_ID_ATTR)
 
@@ -104,7 +107,8 @@ def _row_league_id(row: Tag) -> int | None:
 def _parse_pair_cell(
     text: str,
 ) -> tuple[tuple[int, int] | None, tuple[int, int] | None]:
-    """Parse a 'FT (HT)' cell like '5-2 (2-0)' into ((5,2),(2,0))."""
+    """Parse a 'FT (HT)' cell like '5-2 (2-0)' into ((5,2),(2,0)); a part that does not parse
+    is None."""
 
     ft_part = text.split("(")[0]
     ht_part = text[text.find("(") + 1 : text.find(")")] if "(" in text else ""
@@ -121,7 +125,7 @@ def rows_to_records(rows: list[Tag]) -> list[dict[str, Any]]:
 
 
 def subject_team_id(records: list[dict[str, Any]]) -> int | None:
-    """The team common to (most of) the rows — the one whose form the table shows."""
+    """The team common to (most of) the rows, whose form the table shows; None without rows."""
 
     if not records:
         return None
@@ -139,23 +143,23 @@ def aggregate_form(
 ) -> dict[str, Any]:
     """Aggregate a subject team's mini-records (most-recent-first) into features."""
 
-    recs = records[:window] if window else records
-    played = len(recs)
+    window_records = records[:window] if window else records
+    played = len(window_records)
     if played == 0 or subject_id is None:
         return _empty_form()
 
     tally: Counter[str] = Counter()
     form_chars: list[str] = []
-    gf = ga = over25 = btts = pts = 0
-    for record in recs:
+    goals_for_total = goals_against_total = over25 = btts = points_total = 0
+    for record in window_records:
         subject_home = record["home_id"] == subject_id
-        sgf = record["ft_home"] if subject_home else record["ft_away"]
-        sga = record["ft_away"] if subject_home else record["ft_home"]
+        goals_for = record["ft_home"] if subject_home else record["ft_away"]
+        goals_against = record["ft_away"] if subject_home else record["ft_home"]
 
-        gf += sgf
-        ga += sga
-        pts += stats.points(sgf, sga)
-        outcome = stats.team_result(sgf, sga)
+        goals_for_total += goals_for
+        goals_against_total += goals_against
+        points_total += stats.points(goals_for, goals_against)
+        outcome = stats.team_result(goals_for, goals_against)
         tally[outcome] += 1
         form_chars.append(outcome)
 
@@ -169,12 +173,12 @@ def aggregate_form(
         "wins": tally["W"],
         "draws": tally["D"],
         "losses": tally["L"],
-        "ppg": round(pts / played, 3),
-        "gf_avg": round(gf / played, 3),
-        "ga_avg": round(ga / played, 3),
+        "ppg": round(points_total / played, 3),
+        "gf_avg": round(goals_for_total / played, 3),
+        "ga_avg": round(goals_against_total / played, 3),
         "over25_rate": round(over25 / played, 3),
         "btts_rate": round(btts / played, 3),
-        "form": "".join(form_chars[:6]),
+        "form": "".join(form_chars[:FORM_LENGTH]),
     }
 
 
@@ -292,20 +296,20 @@ def _flatten_one(
         return {f"{prefix}{field}": None for field in PER_MATCH_FIELDS}
 
     subject_home = record["home_id"] == subject_id
-    sgf = record["ft_home"] if subject_home else record["ft_away"]
-    sga = record["ft_away"] if subject_home else record["ft_home"]
+    goals_for = record["ft_home"] if subject_home else record["ft_away"]
+    goals_against = record["ft_away"] if subject_home else record["ft_home"]
     total = record["ft_home"] + record["ft_away"]
     corner_ft = record["corner_ft"]
-    result = stats.team_result(sgf, sga)
+    team_result = stats.team_result(goals_for, goals_against)
 
-    values = {
+    fields = {
         "match_id": record["match_id"],
         "league_id": record["league_id"],
         "date": record["date"],
         "league": record["league"],
         "is_home": subject_home,
         "opponent": record["away_name"] if subject_home else record["home_name"],
-        "result": result,
+        "result": team_result,
         "ht_score": record["ht_score"],
         "ft_score": record["ft_score"],
         "ht_home_goals": record["ht_home"],
@@ -330,7 +334,7 @@ def _flatten_one(
         "corners_total": (corner_ft[0] + corner_ft[1]) if corner_ft else None,
     }
 
-    return {f"{prefix}{field}": values[field] for field in PER_MATCH_FIELDS}
+    return {f"{prefix}{field}": fields[field] for field in PER_MATCH_FIELDS}
 
 
 # --- odds comparison ----------------------------------------------------------
@@ -419,7 +423,7 @@ def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
 def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
     """Strength split (home vs away) and H2H-comparison percentages."""
 
-    out: dict[str, Any] = {
+    strength: dict[str, Any] = {
         "strength_home": None,
         "strength_away": None,
         "h2h_compare_home_pct": None,
@@ -432,16 +436,16 @@ def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
 
         # The headline split is the first "NN NN" pair after the team names.
         if len(nums) >= 2:
-            out["strength_home"], out["strength_away"] = int(nums[0]), int(nums[1])
+            strength["strength_home"], strength["strength_away"] = int(nums[0]), int(nums[1])
 
     bar = soup.select_one(DETAIL_H2H_COMPARE_BAR)
     if bar is not None:
         pcts = _PCT_RE.findall(bar.get_text())
         if len(pcts) >= 2:
-            out["h2h_compare_home_pct"] = float(pcts[0])
-            out["h2h_compare_away_pct"] = float(pcts[1])
+            strength["h2h_compare_home_pct"] = float(pcts[0])
+            strength["h2h_compare_away_pct"] = float(pcts[1])
 
-    return out
+    return strength
 
 
 def parse_guess(soup: BeautifulSoup) -> dict[str, Any]:
@@ -465,7 +469,7 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
     In the "Fixture" widget: the first table of each class (`team-table-home`, `-guest`) with an
     "N Days" countdown, because other widgets reuse the classes; rows run soonest first."""
 
-    out: dict[str, Any] = {"home_next_fixture_days": None, "away_next_fixture_days": None}
+    fixture_days: dict[str, Any] = {"home_next_fixture_days": None, "away_next_fixture_days": None}
 
     for key, selector in (
         ("home_next_fixture_days", DETAIL_FIXTURE_HOME),
@@ -474,10 +478,10 @@ def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
         for table in soup.select(selector):
             found = _DAYS_RE.search(table.get_text())
             if found:
-                out[key] = int(found.group(1))
+                fixture_days[key] = int(found.group(1))
                 break
 
-    return out
+    return fixture_days
 
 
 def _team_id(tag: Tag) -> int | None:

@@ -117,8 +117,8 @@ def team_rows(
         )
         side_rows_df["season_cohort"] = matches_df["season_cohort"]
 
-        for name, values in (extra or {}).items():
-            side_rows_df[name] = values[index]
+        for name, side_values in (extra or {}).items():
+            side_rows_df[name] = side_values[index]
 
         sides.append(side_rows_df)
 
@@ -197,11 +197,16 @@ def top_teams(
     top_teams_df["shrunk - league"] = top_teams_df["shrunk"] - top_teams_df["owner_mean"]
     top_teams_df["comebacks in its matches"] = in_matches
 
-    observed, expected, value = names
+    observed_label, expected_label, value_label = names
     top_teams_df = top_teams_df.rename(
-        columns={"observed": observed, "expected": expected, "value": value, "owner_mean": "league"}
+        columns={
+            "observed": observed_label,
+            "expected": expected_label,
+            "value": value_label,
+            "owner_mean": "league",
+        }
     )
 
-    order = ["shrunk - league", value, "team_name"]
+    order = ["shrunk - league", value_label, "team_name"]
 
     return top_teams_df.sort_values(order, ascending=[False, False, True]).head(top)

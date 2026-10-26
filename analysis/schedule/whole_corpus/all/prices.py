@@ -153,11 +153,11 @@ def side_table(
 
         row: dict[str, float | str] = {"group": name, "matches": float(len(side_bets_df))}
         for side in sides:
-            values = roi(side_bets_df, side)
+            side_roi = roi(side_bets_df, side)
             row |= {
-                side: values["roi"],
-                f"{side} low": values["low"],
-                f"{side} high": values["high"],
+                side: side_roi["roi"],
+                f"{side} low": side_roi["low"],
+                f"{side} high": side_roi["high"],
             }
 
         row["margin cost"] = float(side_bets_df[cost].mean())
@@ -196,14 +196,14 @@ def margin_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     table = []
     for name, columns in markets.items():
         priced_df = matches_df.dropna(subset=columns)
-        values = margin(*(priced_df[c] for c in columns))
-        quantiles = values.quantile(list(MARGIN_QUANTILES))
+        margins = margin(*(priced_df[c] for c in columns))
+        quantiles = margins.quantile(list(MARGIN_QUANTILES))
 
         table.append(
             {
                 "market": name,
                 **{f"q{q:g}": float(v) for q, v in quantiles.items()},
-                "mean": float(values.mean()),
+                "mean": float(margins.mean()),
             }
         )
 

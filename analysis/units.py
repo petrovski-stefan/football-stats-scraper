@@ -133,17 +133,17 @@ def cohort_values(
     """
 
     sums_df = df.groupby([unit, "season_cohort"])[[observed, expected]].sum()
-    values = sums_df[observed] / sums_df[expected]
+    ratios = sums_df[observed] / sums_df[expected]
 
     if against is not None:
         group_sums_df = df.groupby([against, "season_cohort"])[[observed, expected]].sum()
         group_values = group_sums_df[observed] / group_sums_df[expected]
         owner = df.groupby(unit)[against].first()
-        units, cohorts = values.index.get_level_values(0), values.index.get_level_values(1)
+        units, cohorts = ratios.index.get_level_values(0), ratios.index.get_level_values(1)
         keys = list(zip(owner.loc[units], cohorts, strict=True))
-        values = values - group_values.loc[keys].to_numpy()
+        ratios = ratios - group_values.loc[keys].to_numpy()
 
-    return values.unstack().dropna()
+    return ratios.unstack().dropna()
 
 
 def cohort_agreement(
@@ -171,7 +171,7 @@ def repeat_test(
 
 
 def summary_row(
-    df: pd.DataFrame, unit: str, quantity: tuple[str, str, str, str], luck: bool = False
+    df: pd.DataFrame, unit: str, quantity: tuple[str, str, str, str], *, has_luck_line: bool = False
 ) -> tuple[dict[str, float | str], pd.DataFrame]:
     """One quantity's test as a row of the summary, and its unit values.
 
@@ -183,7 +183,7 @@ def summary_row(
     unit_values_df, het, dispersion_factor = tested(df, unit, observed, expected, kind)
 
     pooled = float(unit_values_df["observed"].sum() / unit_values_df["expected"].sum())
-    low, high = luck_line(unit_values_df["expected"], pooled) if luck else (np.nan, np.nan)
+    low, high = luck_line(unit_values_df["expected"], pooled) if has_luck_line else (np.nan, np.nan)
     cohort_correlation, cohort_count = cohort_agreement(df, unit, observed, expected)
     between_unit_sd, found = het.tau_squared**0.5, stats.detectable_tau(unit_values_df["variance"])
 
@@ -297,25 +297,25 @@ def within_row(
     """
 
     observed, expected, label, kind = quantity
-    result = within_tested(df, unit, part, observed, expected, kind)
+    tested = within_tested(df, unit, part, observed, expected, kind)
     repeat_correlation, repeat_count, repeat_p_value = repeat_test(
         df, part, observed, expected, unit
     )
 
-    part_values_df = result.part_values_df
+    part_values_df = tested.part_values_df
     pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
     against = part_values_df["shrunk"] - part_values_df["owner_mean"]
-    keep = result.tau_squared / (result.tau_squared + part_values_df["variance"])
+    keep = tested.tau_squared / (tested.tau_squared + part_values_df["variance"])
     found = stats.detectable_tau(part_values_df["variance"], groups=part_values_df["owner"])
 
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
-        "Q": result.cochran_q,
-        "df": float(result.degrees_of_freedom),
-        "p": f"{result.p_value:.3g}",
-        "tau": result.tau_squared**0.5,
-        "tau/pooled": result.tau_squared**0.5 / pooled,
+        "Q": tested.cochran_q,
+        "df": float(tested.degrees_of_freedom),
+        "p": f"{tested.p_value:.3g}",
+        "tau": tested.tau_squared**0.5,
+        "tau/pooled": tested.tau_squared**0.5 / pooled,
         "found 80%": found,
         "found/pooled": found / pooled,
         "keep median": float(keep.median()),
@@ -326,7 +326,7 @@ def within_row(
         "repeat p": f"{repeat_p_value:.3g}",
     }
 
-    return row, result
+    return row, tested
 
 
 def within_luck_row(label: str, result: Within) -> dict[str, float | str]:
@@ -457,14 +457,14 @@ def level_row(
     """
 
     observed, expected, label, kind = quantity
-    result = within_tested(df, unit, part, observed, expected, kind)
-    part_values_df = result.part_values_df
+    tested = within_tested(df, unit, part, observed, expected, kind)
+    part_values_df = tested.part_values_df
     pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
 
     cochran_qs = permuted_qs(df, unit, part, quantity, draws)
     null_mean = float(cochran_qs.mean())
     tau_squared = (
-        max(0.0, (result.cochran_q - null_mean) / result.scale) if result.scale > 0 else 0.0
+        max(0.0, (tested.cochran_q - null_mean) / tested.scale) if tested.scale > 0 else 0.0
     )
     found = stats.detectable_tau(part_values_df["variance"], groups=part_values_df["owner"])
 
@@ -472,12 +472,12 @@ def level_row(
         "quantity": label,
         "parts": float(len(part_values_df)),
         "pooled": pooled,
-        "Q": result.cochran_q,
-        "df": float(result.degrees_of_freedom),
-        "p chi2": f"{result.p_value:.3g}",
+        "Q": tested.cochran_q,
+        "df": float(tested.degrees_of_freedom),
+        "p chi2": f"{tested.p_value:.3g}",
         "shuffled mean": null_mean,
         "shuffled sd": float(cochran_qs.std()),
-        "p": f"{(1 + (cochran_qs >= result.cochran_q).sum()) / (1 + draws):.3g}",
+        "p": f"{(1 + (cochran_qs >= tested.cochran_q).sum()) / (1 + draws):.3g}",
         "tau/pooled": tau_squared**0.5 / pooled,
         "found/pooled": found / pooled,
         "share": variance_share(df, observed, expected, tau_squared),

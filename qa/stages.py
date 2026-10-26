@@ -157,16 +157,16 @@ def check_odds_fields(report: Report, stage_file_df: pd.DataFrame) -> None:
     when the market is, and the three margin-free 1X2 probabilities sum to 1."""
 
     markets = STAGED_ODDS.markets()
-    for kind, (flag, values) in _MARKET_FIELDS.items():
+    for kind, (flag, value_columns) in _MARKET_FIELDS.items():
         cells = markets[kind]
-        if not {flag, *cells, *values} <= set(stage_file_df.columns):
+        if not {flag, *cells, *value_columns} <= set(stage_file_df.columns):
             continue
 
         present = stage_file_df[list(cells)].notna().all(axis=1)
         flags = int((stage_file_df[flag].eq(True) != present).sum())
         report.check(flags == 0, f"{flags} rows where {flag} disagrees with the {kind} cells")
 
-        computed_df = stage_file_df[list(values)].notna()
+        computed_df = stage_file_df[list(value_columns)].notna()
         stray = int(computed_df.ne(present, axis=0).any(axis=1).sum())
         report.check(
             stray == 0,

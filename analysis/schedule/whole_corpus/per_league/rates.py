@@ -109,10 +109,12 @@ def main() -> None:
     card_df["stage"] = matches_df["s1_stage"]
     print(f"{card_df[LEAGUE].nunique()} leagues; each test: Cochran's Q across them")
 
-    rows, values = [], {}
+    rows, unit_values = [], {}
     for row_of_card in card.CARD:
         label = row_of_card[2]
-        row, values[label] = units.summary_row(card_df, LEAGUE, row_of_card, luck=label in MARKETS)
+        row, unit_values[label] = units.summary_row(
+            card_df, LEAGUE, row_of_card, has_luck_line=label in MARKETS
+        )
         rows.append(row)
 
     report.show("One test across the leagues for each quantity of the card", pd.DataFrame(rows))
@@ -123,7 +125,7 @@ def main() -> None:
     with_stage_df = card_df[card_df["stage"].isin(STAGES)]
     print(f"\nleagues that keep two stages: {with_stage_df[LEAGUE].nunique()}")
     report.show("Their two stages", stage_table(with_stage_df))
-    report.show("Leagues, by the shrunk comeback rate", league_table(card_df, values))
+    report.show("Leagues, by the shrunk comeback rate", league_table(card_df, unit_values))
 
 
 if __name__ == "__main__":

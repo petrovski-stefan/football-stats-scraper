@@ -344,9 +344,9 @@ def validate_archived() -> bool:
         print(f"no league CSVs found in {paths.RAW_DIR}/")
         return False
 
-    results = [validate_league_season(path) for path in base_paths]
-    failed = results.count(False)
-    print(f"\n{len(results) - failed}/{len(results)} league-seasons passed")
+    passed = [validate_league_season(path) for path in base_paths]
+    failed = passed.count(False)
+    print(f"\n{len(passed) - failed}/{len(passed)} league-seasons passed")
 
     goals_ok = validate_goals()
     if goals_ok is None:

@@ -47,9 +47,9 @@ def main() -> None:
     team_rows_df = card.team_rows(matches_df)
     print(card.team_line(team_rows_df))
 
-    summary, results = [], {}
+    summary, within_results = [], {}
     for quantity in QUANTITIES:
-        row, results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
+        row, within_results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
         summary.append(row)
 
     report.show(
@@ -57,13 +57,13 @@ def main() -> None:
     )
     report.show(
         "The luck line of the two roles",
-        pd.DataFrame([units.within_luck_row(label, results[label]) for label in RANKED]),
+        pd.DataFrame([units.within_luck_row(label, within_results[label]) for label in RANKED]),
     )
 
     for label in RANKED:
         report.show(
             f"Teams most above their league: {label}",
-            card.top_teams(team_rows_df, results[label].part_values_df, TOP),
+            card.top_teams(team_rows_df, within_results[label].part_values_df, TOP),
         )
 
 

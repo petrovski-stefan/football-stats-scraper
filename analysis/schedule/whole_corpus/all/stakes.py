@@ -102,21 +102,23 @@ FLAGS: tuple[tuple[str, Callable[[pd.DataFrame], pd.DataFrame]], ...] = (
 def mh_row(label: str, states_df: pd.DataFrame) -> dict[str, object]:
     """The Mantel-Haenszel comparison of one set of flagged states, as a row."""
 
-    result = stats.mantel_haenszel(states_df["flag"], states_df["win"], states_df["stratum"])
+    mantel_haenszel = stats.mantel_haenszel(
+        states_df["flag"], states_df["win"], states_df["stratum"]
+    )
 
     return {
         "states": label,
-        "flagged": result.flagged,
-        "wins": result.flagged_events,
-        "rate": result.flagged_events / result.flagged,
-        "rest": result.rest,
-        "rest wins": result.rest_events,
-        "rest rate": result.rest_events / result.rest,
-        "MH OR": result.odds_ratio,
-        "low": result.low,
-        "high": result.high,
-        "CMH p": result.p_value,
-        "strata": result.strata,
+        "flagged": mantel_haenszel.flagged,
+        "wins": mantel_haenszel.flagged_events,
+        "rate": mantel_haenszel.flagged_events / mantel_haenszel.flagged,
+        "rest": mantel_haenszel.rest,
+        "rest wins": mantel_haenszel.rest_events,
+        "rest rate": mantel_haenszel.rest_events / mantel_haenszel.rest,
+        "MH OR": mantel_haenszel.odds_ratio,
+        "low": mantel_haenszel.low,
+        "high": mantel_haenszel.high,
+        "CMH p": mantel_haenszel.p_value,
+        "strata": mantel_haenszel.strata,
     }
 
 

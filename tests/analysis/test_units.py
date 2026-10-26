@@ -105,7 +105,7 @@ def test_cohort_agreement_pairs_the_units_seen_in_both_cohorts(
 def test_summary_row_shrinks_toward_the_pool(toy_unit_matches_df: pd.DataFrame) -> None:
     quantity = ("goals", "m_goals", "goals O/E", "count")
 
-    row, unit_values_df = units.summary_row(toy_unit_matches_df, UNIT, quantity, luck=True)
+    row, unit_values_df = units.summary_row(toy_unit_matches_df, UNIT, quantity, has_luck_line=True)
 
     assert row["quantity"] == "goals O/E"
     assert row["pooled"] == pytest.approx(13 / 14.5)

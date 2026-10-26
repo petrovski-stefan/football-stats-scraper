@@ -56,13 +56,13 @@ def average_table(matches_df: pd.DataFrame) -> pd.DataFrame:
     }
 
     rows = []
-    for label, values in columns.items():
-        present = values.dropna()
+    for label, column_values in columns.items():
+        present = column_values.dropna()
         rows.append(
             {
                 "field": label,
                 "with a value": len(present),
-                "share with a value": len(present) / len(values),
+                "share with a value": len(present) / len(column_values),
                 "mean": float(present.mean()),
                 "p25": float(present.quantile(0.25)),
                 "median": float(present.median()),

@@ -11,6 +11,15 @@ from scipy.stats import binomtest, chi2, norm
 
 Z95 = float(norm.ppf(0.975))
 
+# The power search of `detectable_tau`: the conventional 80% power at p < 0.05, on 2000
+# simulated draws. The bisection starts at 10 times the largest unit's sd and halves the
+# bracket 40 times, far finer than any printed digit.
+DETECTION_POWER = 0.8
+DETECTION_ALPHA = 0.05
+DETECTION_DRAWS = 2000
+SEARCH_CEILING_SDS = 10
+BISECTION_STEPS = 40
+
 
 def log_loss_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
     """Per-match log loss of a three-way forecast: minus the log of the result's probability."""
@@ -133,8 +142,8 @@ def heterogeneity(means: "pd.Series[float]", variances: "pd.Series[float]") -> H
 
 def detectable_tau(
     variances: "pd.Series[float]",
-    power: float = 0.8,
-    draws: int = 2000,
+    power: float = DETECTION_POWER,
+    draws: int = DETECTION_DRAWS,
     seed: int = 0,
     groups: "pd.Series[Any] | None" = None,
 ) -> float:
@@ -153,19 +162,19 @@ def detectable_tau(
     member[np.arange(len(unit_variances)), codes] = 1.0
 
     normal_draws = np.random.default_rng(seed).standard_normal((draws, len(unit_variances)))
-    critical = chi2.isf(0.05, len(unit_variances) - member.shape[1])
+    critical = chi2.isf(DETECTION_ALPHA, len(unit_variances) - member.shape[1])
 
     def found(between_unit_sd: float) -> float:
         """The share of the simulated draws whose Cochran's Q is significant at this spread."""
 
-        values = normal_draws * np.sqrt(unit_variances + between_unit_sd**2)
-        means = ((values * weights) @ member) / (weights @ member)
-        cochran_q = (weights * (values - means[:, codes]) ** 2).sum(axis=1)
+        simulated = normal_draws * np.sqrt(unit_variances + between_unit_sd**2)
+        means = ((simulated * weights) @ member) / (weights @ member)
+        cochran_q = (weights * (simulated - means[:, codes]) ** 2).sum(axis=1)
 
         return float((cochran_q > critical).mean())
 
-    low, high = 0.0, 10 * float(np.sqrt(unit_variances.max()))
-    for _ in range(40):
+    low, high = 0.0, SEARCH_CEILING_SDS * float(np.sqrt(unit_variances.max()))
+    for _ in range(BISECTION_STEPS):
         middle = (low + high) / 2
         low, high = (middle, high) if found(middle) < power else (low, middle)
 

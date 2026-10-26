@@ -32,11 +32,11 @@ def cell(detail_df: pd.DataFrame, column: str, row: int) -> str:
     if column not in detail_df.columns:
         return ""
 
-    value = detail_df[column].iloc[row]
-    if value is None or pd.isna(value):
+    raw_value = detail_df[column].iloc[row]
+    if raw_value is None or pd.isna(raw_value):
         return ""
 
-    text = str(value).strip()
+    text = str(raw_value).strip()
 
     return text[:-2] if text.endswith(".0") else text
 
@@ -141,7 +141,9 @@ def build_frame[T](
 def _resolve_section[T](
     detail_df: pd.DataFrame, section: str, depth: int, resolve: Callable[[str, int], T | None]
 ) -> list[list[T | None]]:
-    """For each fixture row, that section's `depth` history matches, oldest slot last."""
+    """For each fixture row, that section's `depth` history matches, oldest slot last.
+
+    A match that `resolve` finds unusable is None."""
 
     per_row: list[list[T | None]] = []
     for row in range(len(detail_df)):

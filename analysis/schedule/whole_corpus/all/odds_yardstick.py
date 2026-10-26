@@ -244,7 +244,7 @@ def main() -> None:
 
     report.show("Comebacks under other first-half shares", pd.DataFrame(rows))
 
-    proportional_df = yardstick.frame(matches_df, grid, share=share, proportional=True)
+    proportional_df = yardstick.frame(matches_df, grid, share=share, is_proportional=True)
     report.show(
         "Proportional margin removal in place of Shin",
         stats.observed_expected_table(proportional_df, EVENTS[:1] + EVENTS[5:6]),

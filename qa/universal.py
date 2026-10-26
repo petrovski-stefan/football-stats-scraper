@@ -71,11 +71,11 @@ def check_unique_across(
     """
 
     files: dict[str, list[str]] = {}
-    for name, values in ids.items():
-        for value in set(values):
-            files.setdefault(value, []).append(name)
+    for name, ids_in_file in ids.items():
+        for key_value in set(ids_in_file):
+            files.setdefault(key_value, []).append(name)
 
-    shared = sorted((value, names) for value, names in files.items() if len(names) > 1)
+    shared = sorted((key_value, names) for key_value, names in files.items() if len(names) > 1)
     example = f", e.g. {shared[0][0]} in {shared[0][1]}" if shared else ""
     report.check(not shared, f"{len(shared)} {key} values in more than one file{example}")
 

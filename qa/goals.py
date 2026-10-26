@@ -233,7 +233,7 @@ def _per_match_totals(goals_df: pd.DataFrame) -> dict[str, _GoalCounts]:
 
 
 def second_half_share(goals_df: pd.DataFrame) -> float | None:
-    """Share of goals scored after half-time.
+    """Share of goals scored after half-time; None when there are no goals.
 
     The same quantity is computable from the stored ht/ft columns with no
     minute data at all, so agreement between the two is a real check, not a tautology.

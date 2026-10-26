@@ -330,9 +330,9 @@ def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Each side's rolling form, as `home_<field>` and `away_<field>` arrays in row order."""
 
     form_df = _rolling_form(matches_df)
-    cols = [dst for _, dst in ROLLING_SPECS]
+    form_columns = [dst for _, dst in ROLLING_SPECS]
 
-    out: dict[str, Any] = {}
+    side_columns: dict[str, Any] = {}
     for side in ("home", "away"):
         side_form_df = matches_df[["match_id", f"{side}_team_id"]].merge(
             form_df,
@@ -341,10 +341,10 @@ def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
             how="left",
         )
 
-        for column in cols:
-            out[f"{side}_{column}"] = side_form_df[column].to_numpy()
+        for column in form_columns:
+            side_columns[f"{side}_{column}"] = side_form_df[column].to_numpy()
 
-    return out
+    return side_columns
 
 
 # --- Per-match history blocks (families C, E, F) ------------------------------
@@ -353,9 +353,9 @@ def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
 def _block(matches_df: pd.DataFrame, section: str, slot: int, field: str) -> "pd.Series[Any]":
     """One field of a history slot, all NaN when the matrix has no such column."""
 
-    col = f"{section}_last{slot}_{field}"
-    if col in matches_df.columns:
-        return matches_df[col]
+    column = f"{section}_last{slot}_{field}"
+    if column in matches_df.columns:
+        return matches_df[column]
 
     return pd.Series(np.nan, index=matches_df.index)
 
@@ -365,28 +365,34 @@ def _corner_goal_share_gap(matches_df: pd.DataFrame, section: str) -> "pd.Series
     study, dropped 2026-10-13): comeback teams out-shoot even ordinary winners, so more corners
     than goals is dominance not yet converted. Corners are this corpus's pressure proxy."""
 
-    subj_c: pd.Series[Any] = pd.Series(0.0, index=matches_df.index)
-    tot_c = pd.Series(0.0, index=matches_df.index)
-    subj_g = pd.Series(0.0, index=matches_df.index)
-    tot_g = pd.Series(0.0, index=matches_df.index)
+    subject_corners: pd.Series[Any] = pd.Series(0.0, index=matches_df.index)
+    total_corners = pd.Series(0.0, index=matches_df.index)
+    subject_goals = pd.Series(0.0, index=matches_df.index)
+    total_goals = pd.Series(0.0, index=matches_df.index)
     for slot in range(1, MATCHES_PER_SECTION + 1):
         is_home = _block(matches_df, section, slot, "is_home").astype("boolean")
-        ch = _block(matches_df, section, slot, "corners_ft_home")
-        ca = _block(matches_df, section, slot, "corners_ft_away")
-        gh = _block(matches_df, section, slot, "ft_home_goals")
-        ga = _block(matches_df, section, slot, "ft_away_goals")
+        home_corners = _block(matches_df, section, slot, "corners_ft_home")
+        away_corners = _block(matches_df, section, slot, "corners_ft_away")
+        home_goals = _block(matches_df, section, slot, "ft_home_goals")
+        away_goals = _block(matches_df, section, slot, "ft_away_goals")
 
-        ok = is_home.notna() & ch.notna() & ca.notna() & gh.notna() & ga.notna()
-        mine_c = np.where(is_home.fillna(False), ch, ca)
-        mine_g = np.where(is_home.fillna(False), gh, ga)
+        is_known = (
+            is_home.notna()
+            & home_corners.notna()
+            & away_corners.notna()
+            & home_goals.notna()
+            & away_goals.notna()
+        )
+        own_corners = np.where(is_home.fillna(False), home_corners, away_corners)
+        own_goals = np.where(is_home.fillna(False), home_goals, away_goals)
 
-        subj_c += np.where(ok, mine_c, 0.0)
-        tot_c += np.where(ok, ch.fillna(0) + ca.fillna(0), 0.0)
-        subj_g += np.where(ok, mine_g, 0.0)
-        tot_g += np.where(ok, gh.fillna(0) + ga.fillna(0), 0.0)
+        subject_corners += np.where(is_known, own_corners, 0.0)
+        total_corners += np.where(is_known, home_corners.fillna(0) + away_corners.fillna(0), 0.0)
+        subject_goals += np.where(is_known, own_goals, 0.0)
+        total_goals += np.where(is_known, home_goals.fillna(0) + away_goals.fillna(0), 0.0)
 
-    corner_share = np.where(tot_c > 0, subj_c / tot_c, np.nan)
-    goal_share = np.where(tot_g > 0, subj_g / tot_g, np.nan)
+    corner_share = np.where(total_corners > 0, subject_corners / total_corners, np.nan)
+    goal_share = np.where(total_goals > 0, subject_goals / total_goals, np.nan)
     gap: pd.Series[Any] = pd.Series(corner_share - goal_share, index=matches_df.index)
 
     return gap
@@ -469,7 +475,7 @@ def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
     `abs_ah_line` is the mismatch measure (a positive line favours home). A corpus scraped
     before 2026-09-22 has none of these columns, so they come back NaN."""
 
-    def col(name: str) -> "pd.Series[Any]":
+    def column_or_nan(name: str) -> "pd.Series[Any]":
         """The column `name`, all NaN when the corpus has none."""
 
         return (
@@ -478,14 +484,14 @@ def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
             else pd.Series(np.nan, index=matches_df.index)
         )
 
-    ah_line = col("ah_line")
+    ah_line = column_or_nan("ah_line")
 
     return {
-        "ou_line": col("ou_line"),
-        "implied_over": col("implied_over"),
+        "ou_line": column_or_nan("ou_line"),
+        "implied_over": column_or_nan("implied_over"),
         "ah_line": ah_line,
         "abs_ah_line": ah_line.abs(),
-        "implied_ah_home": col("implied_ah_home"),
+        "implied_ah_home": column_or_nan("implied_ah_home"),
     }
 
 
@@ -671,7 +677,7 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
     return failures
 
 
-def summarize(matrix_df: pd.DataFrame) -> None:
+def summarise(matrix_df: pd.DataFrame) -> None:
     """Print the matrix's rows and comebacks per split, then the fill rate of each feature."""
 
     print("=" * 78)
@@ -689,10 +695,11 @@ def summarize(matrix_df: pd.DataFrame) -> None:
             print(f"    {split:8s} n=    0  (no league-season in this split)")
             continue
 
-        cb = int(split_df["is_comeback"].sum())
+        comebacks = int(split_df["is_comeback"].sum())
         nondraw = int((split_df["ht_home_goals"] != split_df["ht_away_goals"]).sum())
         print(
-            f"    {split:8s} n={len(split_df):5d}  comebacks={cb:4d} ({cb / len(split_df):.2%})  "
+            f"    {split:8s} n={len(split_df):5d}  "
+            f"comebacks={comebacks:4d} ({comebacks / len(split_df):.2%})  "
             f"HT non-draws={nondraw:4d} ({nondraw / len(split_df):.1%})"
         )
 
@@ -734,7 +741,7 @@ def main() -> None:
     if args.self_check:
         raise SystemExit(1 if self_check(args.sample) else 0)
 
-    summarize(build_features())
+    summarise(build_features())
 
 
 if __name__ == "__main__":

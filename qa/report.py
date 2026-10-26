@@ -15,10 +15,10 @@ class Report:
         self.label = label
         self.issues: list[str] = []
 
-    def check(self, ok: bool, message: str) -> None:
+    def check(self, passed: bool, message: str) -> None:
         """Record `message` as a failure when `ok` is false."""
 
-        if not ok:
+        if not passed:
             self.issues.append(message)
 
     def fail(self, message: str) -> None:

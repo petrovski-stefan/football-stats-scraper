@@ -111,9 +111,9 @@ def by_ht_score(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
 
         row: dict[str, object] = {"score": f"{home}-{away}", "matches": len(score_df)}
         for side in ("home", "away"):
-            result = stats.observed_expected(score_df, f"{side}_2h", f"e_{side}_2h")
-            row |= {f"{side} O/E": result["oe"], f"{side} low": result["low"]}
-            row |= {f"{side} high": result["high"]}
+            ratio = stats.observed_expected(score_df, f"{side}_2h", f"e_{side}_2h")
+            row |= {f"{side} O/E": ratio["oe"], f"{side} low": ratio["low"]}
+            row |= {f"{side} high": ratio["high"]}
 
         table.append(row)
 

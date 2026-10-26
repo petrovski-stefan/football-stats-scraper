@@ -17,7 +17,7 @@ def summary(scored_df: pd.DataFrame) -> dict[str, float]:
     """z, the margin, and both methods' mean scores with Shin's gain and its cluster CI."""
 
     shin_z = scored_df["shin_z"]
-    out = {
+    scores = {
         "matches": float(len(scored_df)),
         "z_median": float(shin_z.median()),
         "z_q1": float(shin_z.quantile(0.25)),
@@ -29,7 +29,7 @@ def summary(scored_df: pd.DataFrame) -> dict[str, float]:
 
     for score in ("ll", "brier"):
         low, high = stats.cluster_bootstrap_ci(scored_df[f"{score}_gain"], scored_df["cluster"])
-        out |= {
+        scores |= {
             f"{score}_prop": float(scored_df[f"{score}_prop"].mean()),
             f"{score}_shin": float(scored_df[f"{score}_shin"].mean()),
             f"{score}_gain": float(scored_df[f"{score}_gain"].mean()),
@@ -37,7 +37,7 @@ def summary(scored_df: pd.DataFrame) -> dict[str, float]:
             f"{score}_gain_high": high,
         }
 
-    return out
+    return scores
 
 
 def price_table(scored_df: pd.DataFrame) -> pd.DataFrame:

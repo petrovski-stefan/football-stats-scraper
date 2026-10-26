@@ -102,29 +102,33 @@ def main() -> None:
         f"first-half share {share:.4f}"
     )
 
-    rows, values = [], {}
+    rows, unit_values = [], {}
     for quantity in QUANTITIES:
-        row, values[quantity[2]] = units.summary_row(
-            yardstick_df, LEAGUE, quantity, luck=quantity[2] in LUCK
+        row, unit_values[quantity[2]] = units.summary_row(
+            yardstick_df, LEAGUE, quantity, has_luck_line=quantity[2] in LUCK
         )
         rows.append(row)
 
-    print(f"Each test: Cochran's Q on {len(values['goals O/E']) - 1} df")
+    print(f"Each test: Cochran's Q on {len(unit_values['goals O/E']) - 1} df")
     report.show("One test across the leagues for each quantity", pd.DataFrame(rows))
 
     comeback = next(q for q in QUANTITIES if q[2] == "comeback O/E")
     report.show(
         "Comeback O/E with each league's own first-half share",
         pd.DataFrame(
-            [units.summary_row(with_own_share(yardstick_df), LEAGUE, comeback, luck=True)[0]]
+            [
+                units.summary_row(
+                    with_own_share(yardstick_df), LEAGUE, comeback, has_luck_line=True
+                )[0]
+            ]
         ),
     )
 
     report.show(
         "Leagues: goals, comebacks, 7+ goals and the share",
-        league_table(yardstick_df, values, MAIN_COLUMNS),
+        league_table(yardstick_df, unit_values, MAIN_COLUMNS),
     )
-    report.show("Leagues: the two links", league_table(yardstick_df, values, LINK_COLUMNS))
+    report.show("Leagues: the two links", league_table(yardstick_df, unit_values, LINK_COLUMNS))
 
 
 if __name__ == "__main__":

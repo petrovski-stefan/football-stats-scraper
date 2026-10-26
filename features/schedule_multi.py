@@ -208,7 +208,9 @@ def _matches_by_kickoff(league_stage_df: pd.DataFrame) -> list[_Match]:
 
 
 def _lines(tables: dict[str, Standings], team: int, side: str) -> dict[str, int | None]:
-    """One team's stats in the FT and HT tables, as `s3_<side>_pre_<half>_<venue>_<stat>`."""
+    """One team's stats in the FT and HT tables, as `s3_<side>_pre_<half>_<venue>_<stat>`.
+
+    A rank is None when the table gives the team none."""
 
     team_fields: dict[str, int | None] = {}
     for half, table in tables.items():
@@ -227,7 +229,7 @@ def _lines(tables: dict[str, Standings], team: int, side: str) -> dict[str, int 
     return team_fields
 
 
-def _htft(record: HalfTimeFullTime, team: int, side: str) -> dict[str, int | None]:
+def _htft(record: HalfTimeFullTime, team: int, side: str) -> dict[str, int]:
     """One team's HT/FT record, as `s3_<side>_pre_htft_<venue>_<ht>_<ft>` (team view)."""
 
     return {
@@ -242,7 +244,8 @@ def _stakes(
     table: Standings, at_open: Standings, left: Counter[int], team: int, side: str
 ) -> dict[str, int | None]:
     """What is at stake for one team at kickoff, as `s3_<side>_<field>`: its matches left,
-    the points gaps around it, and how far its rank moved after the opening odds."""
+    the points gaps around it, and how far its rank moved after the opening odds. A gap is None
+    with no team above (or below) on points, the rank change when either rank is missing."""
 
     above, below = table.points_gaps("total", team)
     rank, rank_at_open = table.ranks("total").get(team), at_open.ranks("total").get(team)
@@ -270,7 +273,7 @@ def _finished_by(matches: list[_Match], start: int, instant: Any) -> int:
 
 def _stage_tables(league_stage_df: pd.DataFrame) -> Iterator[tuple[Any, dict[str, int | None]]]:
     """Each match of one stage with both teams' lines, HT/FT records and stakes at its
-    kickoff."""
+    kickoff; a value is None as in `_lines` and `_stakes`."""
 
     matches = _matches_by_kickoff(league_stage_df)
     teams = {m.home for m in matches} | {m.away for m in matches}

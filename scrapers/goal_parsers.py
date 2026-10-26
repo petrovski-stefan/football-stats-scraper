@@ -96,7 +96,7 @@ def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
 def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
     """Rows that carry both a minute and a running score — i.e. the goals."""
 
-    out: list[dict[str, Any]] = []
+    goal_rows: list[dict[str, Any]] = []
     for row in live_rows.iter_rows(soup):
         score = SCORE_RE.search(row.text)
         if score is None:
@@ -104,7 +104,7 @@ def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
         if row.minute > MAX_MINUTE or row.stoppage > MAX_STOPPAGE:
             continue
 
-        out.append(
+        goal_rows.append(
             {
                 "minute": row.minute,
                 "stoppage": row.stoppage,
@@ -114,7 +114,7 @@ def _score_rows(soup: BeautifulSoup) -> list[dict[str, Any]]:
             }
         )
 
-    return out
+    return goal_rows
 
 
 def _side_that_scored(home: int, away: int, new_home: int, new_away: int) -> str | None:

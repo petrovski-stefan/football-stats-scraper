@@ -84,15 +84,16 @@ def _done_ids(detail_path: str) -> set[str]:
     return set(pd.read_csv(detail_path, usecols=["match_id"])["match_id"].astype(str))
 
 
-def _scrape_one(mid: str) -> tuple[str, dict[str, Any] | None, Exception | None]:
-    """Run in a worker thread with that thread's own driver; errors come back,
-    not raised, so one bad match doesn't cancel the others already in flight."""
+def _scrape_one(match_id: str) -> tuple[str, dict[str, Any] | None, Exception | None]:
+    """One match scraped in a worker thread with that thread's own driver: (id, row, None), or
+    (id, None, error) when it failed. Errors come back, not raised, so one bad match does not
+    cancel the others already in flight."""
 
     driver = _POOL.driver()
     try:
-        return mid, scrape_match_detail(driver, mid), None
+        return match_id, scrape_match_detail(driver, match_id), None
     except Exception as exc:  # keep going; the id stays pending for the next run
-        return mid, None, exc
+        return match_id, None, exc
 
 
 def enrich_league(
@@ -111,7 +112,7 @@ def enrich_league(
     all_ids = list(dict.fromkeys(base_df["match_id"]))  # preserve order, dedup
 
     done = _done_ids(detail_path)
-    pending = [mid for mid in all_ids if mid not in done]
+    pending = [match_id for match_id in all_ids if match_id not in done]
     if limit is not None:
         pending = pending[:limit]
 
@@ -123,11 +124,11 @@ def enrich_league(
         len(pending),
     )
 
-    futures = {pool.submit(_scrape_one, mid): mid for mid in pending}
+    futures = {pool.submit(_scrape_one, match_id): match_id for match_id in pending}
     for i, future in enumerate(as_completed(futures), 1):
-        mid, row, exc = future.result()
+        match_id, row, exc = future.result()
         if row is None:
-            logger.warning("  [%d/%d] %s failed: %s", i, len(pending), mid, exc)
+            logger.warning("  [%d/%d] %s failed: %s", i, len(pending), match_id, exc)
             continue
 
         # Append each row immediately so an interrupted run stays resumable;
@@ -139,7 +140,7 @@ def enrich_league(
             "  [%d/%d] %s odds=%s h2h=%s",
             i,
             len(pending),
-            mid,
+            match_id,
             row.get("odds_bookmaker"),
             row.get("h2h_played"),
         )

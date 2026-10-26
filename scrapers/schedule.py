@@ -334,10 +334,10 @@ def drop_stale_odds(row: dict[str, Any]) -> list[str]:
 
 
 def _secondary_odds(driver: webdriver.Chrome) -> dict[str, dict[str, float | None]]:
-    """Read the O/U and AH columns of the round on screen, keyed by match id.
+    """Read the O/U and AH cells of the round on screen by match id, None where a cell is empty.
 
-    Each type means switching the page-wide header and re-reading; the header ends back on 1X2
-    for the caller's parse. A type the league does not carry is skipped: its columns stay empty.
+    Each type switches the page-wide header and re-reads; the header ends back on 1X2. A type
+    the league does not carry is skipped: its columns stay empty.
     """
 
     odds_by_match: dict[str, dict[str, float | None]] = {}

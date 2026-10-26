@@ -93,7 +93,7 @@ def scrape_match_live(
 
 
 def corpus_ids() -> dict[str, int | None]:
-    """Match ids from the base league CSVs, mapped to their league id."""
+    """Match ids from the base league CSVs, mapped to their league id (None when it is missing)."""
 
     found: dict[str, int | None] = {}
     for path in paths.base_league_csvs():
@@ -105,7 +105,7 @@ def corpus_ids() -> dict[str, int | None]:
 
 
 def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
-    """Match ids referenced by the detail files' per-match history blocks.
+    """Match ids in the detail files' history blocks, mapped to their league id (None if absent).
 
     Detail files scraped before 2026-09-22 have no `*_match_id` columns; those simply
     contribute nothing, and the caller reports the shortfall rather than failing.
@@ -169,7 +169,7 @@ def done_ids(path: str) -> set[str]:
 
 
 def build_work_list(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
-    """Everything that needs fetching, deduplicated.
+    """Everything that needs fetching, deduplicated: match id to league id, None when unknown.
 
     A match is pending when *either* store is missing it, because one render fills both.
     """
@@ -225,7 +225,8 @@ def _as_id(value: Any) -> str:
 def _scrape_one(
     match_id: str,
 ) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], Exception | None]:
-    """Run in a worker thread; errors come back rather than cancelling the batch."""
+    """One live page scraped in a worker thread: (id, goals, events, None), or (id, [], [],
+    error) when it failed. Errors come back rather than cancelling the batch."""
 
     try:
         goals, events = scrape_match_live(_POOL.driver(), match_id)
@@ -268,7 +269,7 @@ def _store_rows(
 
 
 def scrape_goals(
-    limit: int | None = None, sections: tuple[str, ...] = SECTIONS, depth: int = 6
+    limit: int | None = None, sections: tuple[str, ...] = SECTIONS, depth: int = MATCHES_PER_SECTION
 ) -> None:
     """Scrape each pending live page, at most `limit`, into the stores that still miss it."""
 
@@ -283,7 +284,7 @@ def scrape_goals(
     csv_lock = threading.Lock()
 
     with _POOL, ThreadPoolExecutor(max_workers=WORKERS) as pool:
-        futures = {pool.submit(_scrape_one, mid): mid for mid in ids}
+        futures = {pool.submit(_scrape_one, match_id): match_id for match_id in ids}
         for i, future in enumerate(as_completed(futures), 1):
             match_id, goals, events, exc = future.result()
             if exc is not None:

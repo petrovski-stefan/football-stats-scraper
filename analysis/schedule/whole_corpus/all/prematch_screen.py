@@ -397,12 +397,12 @@ def baseline(screen_rows_df: pd.DataFrame, key: str) -> np.ndarray:
     )
 
 
-def standardised(values: "pd.Series[float]", binary: bool) -> np.ndarray:
+def standardised(values: "pd.Series[float]", *, is_binary: bool) -> np.ndarray:
     """A field as one column: a 0/1 field as it is, any other in standard deviations."""
 
     numbers = values.to_numpy(dtype=float)
 
-    return numbers if binary else (numbers - numbers.mean()) / numbers.std()
+    return numbers if is_binary else (numbers - numbers.mean()) / numbers.std()
 
 
 def fit_logit(outcomes: np.ndarray, design: np.ndarray, clusters: "pd.Series[Any]") -> Any:
@@ -425,11 +425,14 @@ def field_test(screen_rows_df: pd.DataFrame, field: str, target: str) -> dict[st
         field_rows_df = field_rows_df[field_rows_df["behind"] == 1.0]
 
     design = np.column_stack(
-        [baseline(field_rows_df, key), standardised(field_rows_df[field], field in BINARY)]
+        [
+            baseline(field_rows_df, key),
+            standardised(field_rows_df[field], is_binary=field in BINARY),
+        ]
     )
     outcomes = field_rows_df[outcome].to_numpy(dtype=float)
-    result = fit_logit(outcomes, design, field_rows_df["cluster"])
-    coefficient, standard_error = float(result.params[-1]), float(result.bse[-1])
+    fit = fit_logit(outcomes, design, field_rows_df["cluster"])
+    coefficient, standard_error = float(fit.params[-1]), float(fit.bse[-1])
 
     return {
         "n": float(len(field_rows_df)),
@@ -437,7 +440,7 @@ def field_test(screen_rows_df: pd.DataFrame, field: str, target: str) -> dict[st
         "OR": float(np.exp(coefficient)),
         "low": float(np.exp(coefficient - stats.Z95 * standard_error)),
         "high": float(np.exp(coefficient + stats.Z95 * standard_error)),
-        "p": float(result.pvalues[-1]),
+        "p": float(fit.pvalues[-1]),
     }
 
 
@@ -454,7 +457,7 @@ def screen(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
     cohort, and for link 1 and link 2."""
 
     cohorts = sorted(screen_rows_df["season_cohort"].unique())
-    out = []
+    rows = []
     for field, family in FAMILIES.items():
         pooled = field_test(screen_rows_df, field, "comeback")
         row: dict[str, object] = {"field": field, "family": family, **pooled}
@@ -473,9 +476,9 @@ def screen(screen_rows_df: pd.DataFrame) -> pd.DataFrame:
             link = field_test(screen_rows_df, field, target)
             row[f"{target} OR"], row[f"{target} p"] = link["OR"], link["p"]
 
-        out.append(row)
+        rows.append(row)
 
-    results_df = pd.DataFrame(out)
+    results_df = pd.DataFrame(rows)
     holm = stats.holm(results_df["p"].tolist())
     results_df.insert(list(results_df.columns).index("p") + 1, "Holm", holm)
 

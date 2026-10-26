@@ -30,6 +30,14 @@ F11_DEFICIT = -1.27
 F11_VENUE = 0.001
 F11_INTERCEPT = 0.9591
 
+# The intercept search: steps of 0.0001 from -2 to 4, a range that holds `F11_INTERCEPT`.
+INTERCEPT_GRID_LOW = -2.0
+INTERCEPT_GRID_HIGH = 4.0
+INTERCEPT_GRID_POINTS = 60001
+
+# The import's bar: every octile of the curve within 3 percentage points of F4's table.
+OCTILE_TOLERANCE = 0.03
+
 # F4's published table: trailing team's median closing odds, n, observed completion.
 F4_OCTILES: list[tuple[float, int, float]] = [
     (1.65, 1303, 0.256),
@@ -64,12 +72,15 @@ def recover_intercept() -> float:
     odds = np.array([o for o, _, _ in F4_OCTILES])
     weights = np.array([n for _, n, _ in F4_OCTILES], dtype=float)
     observed = np.array([p for _, _, p in F4_OCTILES])
-    grid = np.linspace(-2.0, 4.0, 60001)
+    grid = np.linspace(INTERCEPT_GRID_LOW, INTERCEPT_GRID_HIGH, INTERCEPT_GRID_POINTS)
 
     def sse(intercept: float) -> float:
         """The weighted squared error against F4's octiles of the curve with this intercept."""
 
-        predicted = 1 / (1 + np.exp(-(intercept - 1.72 * np.log(odds) - 1.27)))
+        # F4's octiles are trailers one goal behind, away from home (venue 0).
+        predicted = 1 / (
+            1 + np.exp(-(intercept + F11_LOG_TRAILER_ODDS * np.log(odds) + F11_DEFICIT))
+        )
 
         return float(np.sum(weights * (predicted - observed) ** 2))
 
@@ -102,7 +113,7 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
         worst = max(worst, abs(obs - pred))
         print(f"     {octile_odds:11.2f}   {obs:8.1%}   {pred:13.1%}")
 
-    ok_published = worst < 0.03
+    ok_published = worst < OCTILE_TOLERANCE
     print(f"    max absolute error {worst:.1%} — {'PASS' if ok_published else 'FAIL'} (bar: <3pp)")
 
     trailing_df = trailing_states(matrix_df)

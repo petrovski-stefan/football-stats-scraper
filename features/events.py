@@ -183,7 +183,7 @@ def _usable_events(
     if is_home is None:
         return None
 
-    line = _score_line(detail_df, goal_store, prefix, row, match_id, is_home)
+    line = _score_line(detail_df, goal_store, prefix, row, match_id, is_home=is_home)
 
     return [
         TimedEvent(
@@ -203,6 +203,7 @@ def _score_line(
     prefix: str,
     row: int,
     match_id: str,
+    *,
     is_home: bool,
 ) -> list[tuple[int, int, int]] | None:
     """The subject's running goal difference after each goal; None when unknown.
@@ -228,7 +229,7 @@ def _score_line(
 
 
 def _state_at(line: list[tuple[int, int, int]] | None, minute: int, stoppage: int) -> int | None:
-    """The subject's goal difference immediately *before* (minute, stoppage).
+    """The subject's goal difference just before (minute, stoppage); None without a score line.
 
     Strictly before, so a card shown in the same minute as the goal that changed the score
     is attributed to the state that provoked it rather than to the one it produced.

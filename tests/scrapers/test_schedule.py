@@ -115,7 +115,7 @@ _Cells = tuple[float | None, float | None, float | None]
 
 
 def _odds(one_x_two: _Cells, ou: _Cells, ah: _Cells) -> dict[str, float | None]:
-    """A row's three markets, each as its three cells in page order."""
+    """A row's three markets, each as its three cells in page order, None for an empty cell."""
 
     fields = {
         ("s1_odds_1x2_open_home", "s1_odds_1x2_open_draw", "s1_odds_1x2_open_away"): one_x_two,

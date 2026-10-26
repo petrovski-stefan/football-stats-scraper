@@ -137,20 +137,22 @@ def main() -> None:
 
     report.show("Calibration by the team's own win chance (O/E)", calibration(team_rows_df))
 
-    summary, results = [], {}
+    summary, within_results = [], {}
     for quantity in QUANTITIES:
-        row, results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
+        row, within_results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
         summary.append(row)
 
     report.show("One test of the teams around their league, for each O/E", pd.DataFrame(summary))
-    report.show("Q against the test's own null (100 draws)", null_table(team_rows_df, results))
+    report.show(
+        "Q against the test's own null (100 draws)", null_table(team_rows_df, within_results)
+    )
     report.show(
         f"The goal tests against {units.NULL_DRAWS} shuffles of the team-matches in their league",
         shuffle_table(team_rows_df),
     )
     report.show(
         "The luck line of the two roles",
-        pd.DataFrame([units.within_luck_row(label, results[label]) for label in RANKED]),
+        pd.DataFrame([units.within_luck_row(label, within_results[label]) for label in RANKED]),
     )
 
     for label in RANKED:
@@ -158,7 +160,7 @@ def main() -> None:
             f"Teams most above their league: {label}",
             card.top_teams(
                 team_rows_df,
-                results[label].part_values_df,
+                within_results[label].part_values_df,
                 TOP,
                 names=("observed", "expected", "O/E"),
             ),

@@ -90,7 +90,8 @@ def parse_float(raw: str | None) -> float | None:
 
 
 def _odds_cells(row: Tag) -> tuple[str, str, str] | None:
-    """The row's three raw odds-cell strings, whichever odds type is displayed."""
+    """The row's three raw odds-cell strings, whichever odds type is displayed; None when the
+    row has fewer than three."""
 
     cells = row.select(ROW_ODDS_CELLS)
     if len(cells) < 3:
@@ -172,7 +173,8 @@ def parse_ah_odds(row: Tag) -> HandicapOdds:
 
 
 def attr(tag: Tag | None, name: str) -> str | None:
-    """Return a single-valued attribute as a str (bs4 attrs can be list-typed)."""
+    """A single-valued attribute as a str (bs4 attrs can be list-typed); None when the tag is
+    missing or the value is not one string."""
 
     if tag is None:
         return None

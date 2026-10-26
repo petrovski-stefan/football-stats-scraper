@@ -58,11 +58,11 @@ def scored(matches_df: pd.DataFrame) -> pd.DataFrame:
     scored_df["margin"] = (1.0 / priced_df[ODDS]).sum(axis=1) - 1.0
     scored_df["outcome"] = corpus.outcome_1x2(priced_df)
 
-    result = scored_df["outcome"].to_numpy()
+    outcomes = scored_df["outcome"].to_numpy()
     for name, columns in (("prop", PROPORTIONAL), ("shin", PROBS)):
         probs = scored_df[columns].to_numpy()
-        scored_df[f"ll_{name}"] = stats.log_loss_1x2(probs, result)
-        scored_df[f"brier_{name}"] = stats.brier_1x2(probs, result)
+        scored_df[f"ll_{name}"] = stats.log_loss_1x2(probs, outcomes)
+        scored_df[f"brier_{name}"] = stats.brier_1x2(probs, outcomes)
 
     scored_df["ll_gain"] = scored_df["ll_prop"] - scored_df["ll_shin"]
     scored_df["brier_gain"] = scored_df["brier_prop"] - scored_df["brier_shin"]

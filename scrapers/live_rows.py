@@ -63,7 +63,7 @@ class LiveRow:
         return self.row.get_text(" ", strip=True)
 
     def content_cell(self) -> Tag | None:
-        """The populated half of the row — where player links live."""
+        """The populated half of the row, where player links live; None when it cannot be found."""
 
         cells = self.row.find_all("td", recursive=False)
         index = _minute_index(cells)
@@ -102,7 +102,8 @@ def iter_rows(soup: BeautifulSoup) -> Iterator[LiveRow]:
 
 
 def _minute_index(cells: list[Tag]) -> int | None:
-    """Index of the cell holding the minute, which splits the row into home and away."""
+    """Index of the cell holding the minute, which splits the row into home and away; None
+    when no cell holds one."""
 
     for i, cell in enumerate(cells):
         if cell.select_one(LIVE_EVENT_MINUTE) is not None:
@@ -112,7 +113,7 @@ def _minute_index(cells: list[Tag]) -> int | None:
 
 
 def _side_of(cells: list[Tag]) -> str | None:
-    """Which half of the row carries the event."""
+    """Which half of the row carries the event; None when neither half or both do."""
 
     index = _minute_index(cells)
     if index is None:

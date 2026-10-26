@@ -122,14 +122,14 @@ def against_null(
     )
 
     rows = []
-    for statistic, value in observed.items():
+    for statistic, observed_value in observed.items():
         sims = null_df[statistic]
-        extreme = sims <= value if statistic == SMALLEST_TAIL else sims >= value
+        extreme = sims <= observed_value if statistic == SMALLEST_TAIL else sims >= observed_value
 
         rows.append(
             {
                 "statistic": statistic,
-                "observed": value,
+                "observed": observed_value,
                 "null mean": float(sims.mean()),
                 "null low": float(sims.quantile(0.025)),
                 "null high": float(sims.quantile(0.975)),
@@ -237,7 +237,7 @@ def show_grouping(grouped_matches_df: pd.DataFrame, grouping: str, seed: int) ->
         large_df = large_groups(grouped_matches_df, grouping, expected)
         if large_df[grouping].nunique() >= 2:
             quantity = (observed, expected, f"{label}, O/E", "event")
-            row, _ = units.summary_row(large_df, grouping, quantity, luck=True)
+            row, _ = units.summary_row(large_df, grouping, quantity, has_luck_line=True)
             group_table_df = pd.DataFrame([row])
             group_table_df.insert(1, "groups", large_df[grouping].nunique())
             group_table_df.insert(2, "matches", len(large_df))

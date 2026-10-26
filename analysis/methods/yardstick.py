@@ -229,7 +229,8 @@ def frame(
     matches_df: pd.DataFrame,
     grid: Grid,
     share: float | None = None,
-    proportional: bool = False,
+    *,
+    is_proportional: bool = False,
 ) -> pd.DataFrame:
     """Every match with both opening markets, with its fitted rates and the model's chances.
 
@@ -238,11 +239,11 @@ def frame(
 
     Args:
         share: the first-half share; None takes that of the priced matches.
-        proportional: remove the 1X2 margin proportionally, not by Shin's method.
+        is_proportional: remove the 1X2 margin proportionally, not by Shin's method.
     """
 
     priced_df = priced(matches_df)
-    if proportional:
+    if is_proportional:
         probabilities_df = priced_df[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
     else:
         probabilities_df = shin.shin_frame(priced_df)[shin.PROBS]
