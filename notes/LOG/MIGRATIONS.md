@@ -380,3 +380,6 @@ If code or a note cites a module, path or column that doesn't exist, it predates
   - `scrapers/detail_parsers.py:_row_1x2` gives a `_Prices1x2` (home, draw, away), and `vals` is gone. Two new tests of `parse_odds_1x2` use a made-up odds table. They passed on the code before the change too.
   - `scrapers/detail.py:_scrape_one` and `scrapers/goals.py:_scrape_one` give a `_Scraped` record in place of a tuple of 3 or 4 values.
   - `scrapers/goals.py:_store_rows` takes a `_Store` (store path and columns, log path and columns, count field), so it has 4 arguments, not 8. `scrape_goals` makes the goal store and the event store once, before its loop. The `paths` functions are pure, so the paths are the same.
+- **Group 14 of the same plan is done: its old-pipeline items too** (`CODING_STYLE.md` §6). No change alters what the code does.
+  - `features/history.py:_timelines` fills its columns in a loop now, as `_aggregates` does. Before, it was a nested comprehension.
+  - In `qa/league.py:_check_derived_columns`, the lambda with a long body is the named function `_row_is_comeback` now.

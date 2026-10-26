@@ -171,6 +171,14 @@ def _check_score_sanity(report: Report, base_df: pd.DataFrame) -> None:
     report.check(impossible_df.empty, f"{len(impossible_df)} rows with impossible HT/FT scores")
 
 
+def _row_is_comeback(row: "pd.Series[Any]") -> bool:
+    """Whether the row's HT and FT scores make a comeback, by `domain/stats.py`."""
+
+    return stats.is_comeback(
+        row.ht_home_goals, row.ht_away_goals, row.ft_home_goals, row.ft_away_goals
+    )
+
+
 def _check_derived_columns(report: Report, base_df: pd.DataFrame) -> None:
     """Stored derived columns still agree with the raw scores. They are recomputed with the
     `domain/stats.py` functions that wrote them, so only damage between write and read (a
@@ -182,12 +190,7 @@ def _check_derived_columns(report: Report, base_df: pd.DataFrame) -> None:
     ]
     report.check(bad_total_df.empty, f"{len(bad_total_df)} rows where total_goals != FT sum")
 
-    recomputed_comeback = base_df.apply(
-        lambda row: stats.is_comeback(
-            row.ht_home_goals, row.ht_away_goals, row.ft_home_goals, row.ft_away_goals
-        ),
-        axis=1,
-    )
+    recomputed_comeback = base_df.apply(_row_is_comeback, axis=1)
     mismatch_df = base_df[base_df["is_comeback"] != recomputed_comeback]
     report.check(
         mismatch_df.empty, f"{len(mismatch_df)} rows where is_comeback disagrees with raw scores"

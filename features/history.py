@@ -173,7 +173,8 @@ def _timelines[T](
 ) -> dict[str, Any]:
     """One column `<section>_last<slot>_<field>` per slot, each history match rendered."""
 
-    return {
-        f"{section}_last{slot}_{field}": [render(blocks[slot - 1]) for blocks in per_row]
-        for slot in range(1, depth + 1)
-    }
+    columns: dict[str, Any] = {}
+    for slot in range(1, depth + 1):
+        columns[f"{section}_last{slot}_{field}"] = [render(blocks[slot - 1]) for blocks in per_row]
+
+    return columns
