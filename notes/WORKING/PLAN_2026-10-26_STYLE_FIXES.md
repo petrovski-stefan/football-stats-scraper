@@ -6,7 +6,7 @@
 
 **Status: IN PROGRESS.** The user asked for this plan on 2026-10-26, and gives the groups to fix one by one.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 2–3 break a Must rule (`CODING_STYLE.md` §1). Groups 7–8 break a Default rule. Groups 1, 4, 5, 6 and 9, the §5 item and parts of groups 7 and 8 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8 and 11–14 break a Default rule. Groups 1, 4, 5, 6 and 9, the §5 item and parts of groups 7 and 8 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -18,6 +18,9 @@
 - Three AST and token sweeps found the candidates. Claude read each flagged site by hand and removed the false positives.
 - These rules had 0 breaches: a blank line after each docstring, a blank line before each final `return`, the `_df` suffix (the 16 flags were functions with the same name), `_private` names across modules, wildcard imports, `raise` without `from` in an `except`, bare `except`, `# type: ignore` without an error code, test names as sentences, named Hypothesis strategies, assert messages in loops.
 - Some counts come from a heuristic. Each such count says so. Do a check of each site before you change it.
+- The second check ran on 2026-10-26, at commit `7658109`. It did all the sweeps of the first check again, and these sweeps too: names of 2 or 3 letters and short forms, nested comprehensions, nesting depth, fills with a fixed value, `except` blocks that return an empty value, arguments that a function changes, dynamic dispatch, and project numbers written again in tests.
+- In the second check, these rules had 0 breaches: every function has a docstring, no docstring has more than 3 lines of prose, every `main` docstring starts with `Entry point:`, the blank lines after a docstring and before a final `return`, and one-letter names.
+- In the second check, these flags were correct code: a parser that gives `None` for a page cell without a number, `fillna(0)` inside a sum that a mask limits, `rng`, `report.check(passed)`, `getattr` with a fixed field name, and the numbers in test data.
 
 ---
 
@@ -37,6 +40,12 @@
 - **Comeback:** `features/chain.py:146–165` calculates "completed" by hand. Fix: use `domain/stats`.
 - These items touch `features/` and `analysis/`, so `/stats-review` is due after the fix.
 
+### 10. §9 and §10: a value that does not parse is read as missing
+
+- `scrapers/goals.py:_as_int` catches `TypeError` and `ValueError` and returns `None`. Thus a `league_id` in a CSV that is not a number counts as missing, and nothing fails. §9 says: a file that does not parse raises.
+- Decision for the user: does a bad id stop the run, or is it logged and skipped as one failed job (§10)?
+- Do a check of `scrapers/detail_parsers.py:77` and `:89`: `attr(...) or ""` changes a missing id or date into `""` (old pipeline).
+
 ---
 
 ## Default rules
@@ -53,10 +62,34 @@
 - Lambdas with logic: `scrapers/driver.py:188` (`any(...)`), `:356`, `:362` (`or`). Fix: a named function.
 - Heuristic: about 35 module constants have no comment that gives the source of the value. Examples: `analysis/schedule/whole_corpus/all/stakes.py:26` `ALPHA`, `per_team/rates.py:38` and `per_team/odds_yardstick.py:63` `TOP = 20`, `scrapers/detail.py:40` and `scrapers/goals.py:64` `WORKERS = 3`, `ml/boosting.py:32–33` `FOLDS`, `MAX_TREES`. The sweep did not see a comment further up over a group of constants. Do a check of each one.
 
+### 11. §3.1: short forms in names (about 40)
+
+- Statistical quantities with a short name (§3.1 says: name it after what it is): `het` in `analysis/units.py:102`, `:183`, `analysis/stats.py:185`, `analysis/schedule/whole_corpus/all/season_phase.py:135`, `per_league/shin.py:62` and `tests/analysis/test_stats.py`, `test_units.py`; `obs` and `exp` in `analysis/stats.py:89` (`observed_expected`); `ci` in `analysis/stats.py:45`; `probs` and `PROBS` in `analysis/methods/shin.py:19`, `:63` and `analysis/stats.py:24`, `:30`; `obs` and `pred` in `features/chain.py:112`.
+- Other short words: `ok` in `features/engine.py:437`, `:461` and `features/chain.py:145`; `avg`, `opp`, `src` and `dst` in `features/engine.py`; `agg` in `scrapers/detail.py:60` and `scrapers/detail_parsers.py:210`; `tr`, `nums`, `pcts`, `vals` and `bar` in `scrapers/detail_parsers.py`; `idx` in `qa/league.py:128`.
+- Missed by group 4 and group 6: `lo` and `hi` in `features/goals.py:60` (`BUCKETS`), and `sgf` and `sga` in `scrapers/detail_parsers.py:238` (`aggregate_h2h`).
+
+### 12. §6 and §9: the same chosen number in more than one place (about 12)
+
+- The 95% interval as `quantile([0.025, 0.975])`: `analysis/stats.py:81`, `ml/score.py:43` and `analysis/schedule/whole_corpus/all/odds_groups.py:134–135`. `analysis/stats.py` already has `Z95` for the same level.
+- The log-loss clip `1e-12` in `analysis/schedule/whole_corpus/all/prematch_screen.py:530` is the value of `ml/score.py:EPSILON`. `analysis/` cannot import `ml/`, so the constant must go to a lower layer.
+- The float tolerance `1e-9` has no name in `analysis/methods/yardstick.py:27`, `:78`, `:79`, `analysis/schedule/whole_corpus/all/prices.py:47`, `:48` and `features/engine.py:666`. `qa/` gives its own a name (`qa/stages.py:TOLERANCE`, `qa/odds.py:GRID_TOLERANCE`).
+- `analysis/schedule/whole_corpus/all/prematch_screen.py`: the logit clip `1e-6` (`:376`) and `maxiter=200` (`:516`) have no name.
+
+### 13. §8: a check of what a contract already makes sure of (4)
+
+- `s1_stage.fillna("")` in `analysis/corpus.py:59`, `analysis/schedule/whole_corpus/all/prematch_screen.py:240`, `:263` and `season_phase.py:39`. These tables come from `features/stage_io.py:read_stage_csv`, which keeps an empty `s1_stage` as `""` (`features/CLAUDE.md` §0).
+
+### 14. §6 and §7: other items (about 12)
+
+- Nested comprehensions: `domain/standings.py:68`, `:96`, `:125`, `ml/schedule/whole_corpus/all/beyond_odds.py:99`, `features/history.py:177` (`_timelines`), `tests/features/test_schedule_multi.py:534`, `:626`.
+- A lambda with a long body: `qa/league.py:186`. Fix: a named function.
+- The history of a change in a docstring or comment (§7 says: it goes to `notes/LOG/MIGRATIONS.md`): the module docstring of `features/enrich.py` ("previously the only way…"), the module docstring of `features/events.py` ("what this docstring used to claim"), and the comment at `features/engine.py:44–46` about the deleted `modelling/` package.
+- A docstring that is not correct for the code: `analysis/stats.py:observed_expected` cites `frame.cluster`, but its parameter is `df`.
+
 ---
 
 ## Order
 
-1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`.
-2. New-pipeline Defaults: groups 7–8, file by file.
+1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`. Group 10 after the user's decision.
+2. New-pipeline Defaults: groups 7, 8 and 11–14, file by file.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.
