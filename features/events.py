@@ -170,14 +170,10 @@ def _usable_events(
     prefix: str,
     row: int,
 ) -> Events | None:
-    """One history match's events, oriented to the subject team. None when unusable.
+    """One history match's events, from the subject team's view; None when unusable.
 
-    Unusable means not scraped, out of scope, or a match whose venue is unknown — the same
-    three tests `features/goals.py` applies. Its fourth test, score reconciliation, is
-    applied only to the *scoreline* here rather than to the events themselves: a match
-    whose goals do not reconcile still has trustworthy cards, so it keeps its aggregates
-    and timelines and loses only its state.
-    """
+    Unusable: not scraped, out of scope or venue unknown, as in `features/goals.py`. Goals that
+    do not reconcile cost only the running score (`_score_line`): the cards stay trustworthy."""
 
     match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:
@@ -209,13 +205,10 @@ def _score_line(
     match_id: str,
     is_home: bool,
 ) -> list[tuple[int, int, int]] | None:
-    """The subject's running goal difference after each goal. None when unknown.
+    """The subject's running goal difference after each goal; None when unknown.
 
-    None means the match's goals were never scraped, or they do not reproduce the score the
-    history block records — the same reconciliation `features/goals.py` applies, and for
-    the same reason: a state computed from half the goals is a wrong scoreline rather than
-    a missing one, and it would silently flip "leading" to "trailing".
-    """
+    Unknown: goals never scraped, or not reproducing the history block's score. A state from
+    half the goals is wrong, not missing, and could flip "leading" to "trailing"."""
 
     goals = goal_store.get(match_id)
     if goals is None:
@@ -276,14 +269,10 @@ def _timeline(events: Events | None, kind: str) -> str:
 
 
 def _rates(blocks: list[Events | None]) -> dict[str, float]:
-    """Fold one fixture's usable history matches into event rates.
+    """Fold one fixture's usable history matches into event rates, NaN when none is usable.
 
-    Counting rules worth stating: the card averages are **per usable match**, not per
-    event, so a side with no usable history gets NaN rather than 0; the red-card figures
-    are the share of matches containing at least one, which is the quantity a sparse
-    event supports; and `first_sub_minute_avg` averages each match's earliest subject
-    substitution, skipping matches with none rather than treating them as minute 90.
-    """
+    Card averages are per usable match; red cards are the share of matches with one; the first
+    substitution minute skips a match without one instead of reading it as minute 90."""
 
     usable = [b for b in blocks if b is not None]
     if not usable:
@@ -308,16 +297,10 @@ def _rates(blocks: list[Events | None]) -> dict[str, float]:
 
 
 def _while_leading(usable: list[Events]) -> float:
-    """Subject yellows collected while ahead, per match whose scoreline is known.
+    """Subject yellows collected while ahead, per match whose scoreline is known; NaN when none.
 
-    The denominator is matches with a usable goal timeline rather than all usable matches:
-    a match whose goals are missing cannot say what the scoreline was, and scoring it zero
-    would dilute the rate instead of leaving it unmeasured. NaN when none is known.
-
-    Per match, not per minute-leading. The exposure-normalised version was measured at
-    split-half 0.345 against 0.564 for this one — dividing by minutes spent ahead adds
-    noise faster than it adds meaning.
-    """
+    Only matches whose events all have a known score state count, not unknown goals as 0. Per
+    match, not per minute ahead: split-half 0.564 against 0.345 (`features/CLAUDE.md` §5)."""
 
     known = [b for b in usable if all(event.state is not None for event in b)]
     if not known:

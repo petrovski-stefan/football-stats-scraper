@@ -180,25 +180,19 @@ ROUND_GROUP = ["league_name", "season", "stage", "round"]
 
 
 def round_position(matches_df: pd.DataFrame) -> pd.DataFrame:
-    """Tie-aware position of each match within its round, derived from kickoff time.
+    """Tie-aware position of each match in its round, from kickoff (`features/CLAUDE.md` §6).
 
-    `match_index_in_round` is a strict 1..N ordering with an alphabetical tiebreak, so
-    `match_index_in_round == 1` names one arbitrary match among the 15.6% that share
-    their round's earliest kickoff. These columns are the ones that carry meaning:
+    In no preregistered family: FAMILIES and FILTER_FAMILIES are closed lists
+    (`notes/RECORD/PREREGISTRATION.md` §4).
 
-      earlier  matches in the round kicking off strictly before this one (0 = joint first)
-      later    matches kicking off strictly after  (0 = joint last)
-      slot     which wave of kickoffs this match belongs to, 1..slots
-      slots    distinct kickoff times in the round
-
-    Derived rather than stored: they are pure functions of `date`, which is already a
-    column. Note they see only the rows present in the frame, so for a partially-played
-    round they describe the finished subset — `matches_in_round` is the scrape-time count.
-
-    Deliberately wired into no preregistered family: FAMILIES and FILTER_FAMILIES are
-    closed lists (notes/RECORD/PREREGISTRATION.md S4).
+    Returns:
+        `earlier`: the round's matches that kick off strictly before this one (0 = joint first);
+        `later`: the same, strictly after (0 = joint last); `slot`: this match's wave of
+        kickoffs, 1..`slots`; `slots`: the round's distinct kickoff times.
     """
 
+    # Only the frame's rows count: for a partly played round that is the finished subset,
+    # while `matches_in_round` is the count at scrape time.
     dates = pd.to_datetime(matches_df["date"], errors="coerce")
     group = dates.groupby([matches_df[c] for c in ROUND_GROUP], dropna=False)
 
@@ -239,15 +233,10 @@ def load_enriched() -> pd.DataFrame:
 
 
 def _warn_unassigned(matches_df: pd.DataFrame) -> None:
-    """Announce league-seasons that fall in neither split, instead of dropping them mutely.
+    """Warn about league-seasons in neither split, instead of dropping them in silence.
 
-    `TRAIN_SEASONS` / `TEST_SEASONS` are literal labels fixed by
-    `notes/RECORD/PREREGISTRATION.md` §2, so a newly scraped league-season — and in particular a
-    calendar-year league, whose labels ("2025") can never match a cross-year list —
-    correctly lands outside both. That exclusion is the *right* behaviour: the
-    preregistered corpus is closed. Silence about it is not, because a whole league can
-    then sit in `data/` contributing nothing to any result with no sign it was ignored.
-    """
+    Their exclusion is right, because the preregistered corpus is closed (`features/CLAUDE.md`
+    §7); the silence is not."""
 
     unassigned_df = matches_df.loc[
         matches_df["split"] == "", ["league_name", "season"]
@@ -372,13 +361,9 @@ def _block(matches_df: pd.DataFrame, section: str, slot: int, field: str) -> "pd
 
 
 def _corner_goal_share_gap(matches_df: pd.DataFrame, section: str) -> "pd.Series[Any]":
-    """Last-6 corner share minus goal share, from the subject team's perspective.
-
-    F7 of the old league study (dropped 2026-10-13): comeback teams out-shoot even
-    ordinary winners, so a team
-    winning the corner count by more than the scoreline is the "deserved dominance
-    not yet converted" candidate. Corners are the pressure proxy this corpus has.
-    """
+    """Last-6 corner share minus goal share, from the subject team's view (F7 of the old league
+    study, dropped 2026-10-13): comeback teams out-shoot even ordinary winners, so more corners
+    than goals is dominance not yet converted. Corners are this corpus's pressure proxy."""
 
     subj_c: pd.Series[Any] = pd.Series(0.0, index=matches_df.index)
     tot_c = pd.Series(0.0, index=matches_df.index)
@@ -412,10 +397,8 @@ def _congestion(
 ) -> tuple["pd.Series[Any]", "pd.Series[Any]"]:
     """Competitive matches in the last 14 days, and days since the last match.
 
-    Genuinely nowgoal-exclusive: the history blocks carry cup and European
-    fixtures that league-only schedules omit, so this is a different variable
-    from league-only rest days.
-    """
+    Nowgoal-exclusive: the history blocks carry the cup and European fixtures that league-only
+    schedules omit, so this differs from league-only rest days."""
 
     played = pd.Series(0, index=matches_df.index, dtype="int64")
     most_recent = pd.Series(pd.NaT, index=matches_df.index, dtype="datetime64[ns]")
@@ -437,10 +420,8 @@ def _congestion(
 def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     """Mean total half-time goals in past meetings of this fixture.
 
-    The exclusion filter needs the fixture's *first-half* goal environment, not just
-    its full-time one: a fixture that reliably reaches the break goalless cannot
-    build the half-time lead a comeback has to reverse.
-    """
+    The exclusion filter needs the first-half goal environment: a fixture that reliably
+    reaches the break goalless cannot build the lead a comeback has to reverse."""
 
     total = pd.Series(0.0, index=matches_df.index)
     seen = pd.Series(0.0, index=matches_df.index)
@@ -483,15 +464,10 @@ def _h2h_ht_nondraw_rate(matches_df: pd.DataFrame) -> "pd.Series[Any]":
 
 
 def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
-    """The schedule page's Asian goal line and handicap, plus the handicap magnitude.
+    """The schedule page's Asian goal line and handicap, and the handicap's size.
 
-    `abs_ah_line` is the match-mismatch measure. Sign convention: here
-    **positive means the home side is favoured**, so the absolute value is the comparable
-    quantity, not the raw line.
-
-    A corpus scraped before 2026-09-22 has none of these columns; they come back NaN
-    rather than raising, so the engine still builds on an older `data/` tree.
-    """
+    `abs_ah_line` is the mismatch measure (a positive line favours home). A corpus scraped
+    before 2026-09-22 has none of these columns, so they come back NaN."""
 
     def col(name: str) -> "pd.Series[Any]":
         """The column `name`, all NaN when the corpus has none."""
@@ -514,12 +490,10 @@ def _market_lines(matches_df: pd.DataFrame) -> dict[str, Any]:
 
 
 def _goal_timings(matches_df: pd.DataFrame) -> dict[str, Any]:
-    """Pass the goal-timing aggregates through, or NaN when they were never built.
+    """Pass the goal-timing and event aggregates through, NaN when they were never built.
 
-    `features/enrich.py` computes these from the global store, so a corpus enriched before
-    `scrapers.goals` ran has none of the columns. They come back NaN rather than raising,
-    the same contract as `_market_lines`.
-    """
+    `features/enrich.py` builds them from the global stores, so a corpus enriched before
+    `scrapers.goals` ran has none; NaN rather than an error, as in `_market_lines`."""
 
     return {
         name: matches_df[name]
@@ -551,11 +525,8 @@ def _vig_free(matches_df: pd.DataFrame) -> dict[str, Any]:
 def _closing_odds(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Raw decimal closing odds per side, for the imported F11 completion curve.
 
-    F11's coefficients are defined on the trailing team's *closing* price. The
-    detail page's "live" column is cleared for this use in PREREGISTRATION.md S9
-    (it behaves as a pre-kickoff drift, not a settled price); the opening price is
-    the fallback where it is missing.
-    """
+    F11 is defined on the trailer's closing price; the detail page's "live" column stands in
+    for it (`notes/RECORD/PREREGISTRATION.md` §9), the opening price where it is missing."""
 
     return {
         f"close_odds_{side}": matches_df[f"odds1x2_live_{side}"].fillna(

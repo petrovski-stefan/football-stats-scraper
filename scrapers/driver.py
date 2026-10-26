@@ -171,19 +171,14 @@ def get_detail_page(
 
 
 def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAULT_TIMEOUT) -> None:
-    """Load a match's live page and wait for its event list to be injected.
-
-    Events are rendered by JavaScript well after the document is ready, so the readiness
-    signal is an actual minute cell, not the page load. Waiting on that instead of sleeping
-    blindly takes the page from ~4.5s to ~3.4s.
-
-    A goalless, event-free match simply times out with nothing rendered and the caller sees
-    zero goals — the right answer for a 0-0. Telling "no events" apart from "failed to
-    load" is done by reconciling against the stored score in `qa/goals.py`, not here.
-    """
+    """Load a match's live page and wait until its event list shows, or the timeout passes."""
 
     open_page(driver, LIVE_URL.format(match_id=match_id))
 
+    # JavaScript renders the events well after the document is ready, so the wait is on a
+    # minute cell: about 3.4 s a page, against 4.5 s with a blind sleep. A goalless, event-free
+    # match times out with nothing rendered; `qa/goals.py` tells that apart from a failed load
+    # by reconciling against the stored score.
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
             lambda browser: any(

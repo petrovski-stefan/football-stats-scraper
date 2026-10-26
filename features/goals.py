@@ -87,12 +87,10 @@ def timeline_names(depth: int = MATCHES_PER_SECTION) -> list[str]:
 
 
 def load_store(goals_path: str) -> dict[str, Goals]:
-    """match_id -> [(minute, stoppage, side), ...].
+    """The goal store by match: `match_id -> [(minute, stoppage, side), ...]`.
 
-    Stoppage is carried so the timeline can be written losslessly; the aggregate windows
-    ignore it, because a goal at 45+3' is minute 45 for every window here and adding the
-    stoppage would push it past a 45 boundary it belongs inside.
-    """
+    Stoppage is kept for the lossless timeline only. The windows ignore it: 45+3' is minute 45
+    and belongs inside every window that ends at 45."""
 
     goals_df = pd.read_csv(goals_path, usecols=["match_id", "minute", "stoppage", "side"])
     store: dict[str, Goals] = {}
@@ -128,15 +126,10 @@ def build(
 def _usable_goals(
     detail_df: pd.DataFrame, store: dict[str, Goals], prefix: str, row: int
 ) -> Goals | None:
-    """One history match's goals, oriented to the subject team. None when unusable.
+    """One history match's goals, from the subject team's view; None when unusable.
 
-    Unusable means: not scraped, out of scope (`domain/scope.py` — friendlies carry no
-    timings, pre-2023 pages are truncated), the subject's venue is unknown, or the stored
-    goals do not reproduce the score the detail page records for that match. Roughly 0.5%
-    fail that last test, and including them would be worse than dropping them: a match
-    where two of four goals were found reports a late-goal rate computed from half the
-    evidence, which is a wrong number rather than a missing one.
-    """
+    Unusable: not scraped, out of scope (`domain/scope.py`), venue unknown, or about 0.5% whose
+    goals miss the stored score: half the goals would give a wrong rate, not a missing one."""
 
     match_id = history.match_key(detail_df, prefix, row)
     if match_id is None or match_id not in store:

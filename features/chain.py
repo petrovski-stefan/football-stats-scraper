@@ -80,12 +80,9 @@ def recover_intercept() -> float:
 
 
 def replicate_f11(matrix_df: pd.DataFrame) -> bool:
-    """Prove the imported completion stage is valid before anything is built on it.
-
-    Two checks: the recovered intercept must reproduce F4's published octiles, and
-    applying the curve to this corpus's own trailing states must come out monotone
-    in trailer strength and calibrated against what actually happened.
-    """
+    """Prove the imported completion stage valid before anything is built on it: the recovered
+    intercept must reproduce F4's published octiles, and the curve on this corpus's trailing
+    states must be monotone in trailer strength and calibrated."""
 
     print("=" * 78)
     print("F11 IMPORT VALIDATION")

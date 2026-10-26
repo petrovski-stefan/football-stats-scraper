@@ -89,10 +89,8 @@ def build_enriched(base_path: str) -> str | None:
 def _goal_timing_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
     """Derived timing aggregates, or None when goal timings have not been scraped yet.
 
-    An absent store is the normal state until `scrapers.goals` has run, so this returns
-    None rather than a frame of NaNs — that keeps the enriched file's column set honest
-    about what has actually been collected.
-    """
+    None, not a frame of NaNs, keeps the enriched file's columns honest about what was
+    collected: an absent store is normal until `scrapers.goals` has run."""
 
     store_path = paths.goals_path()
     if not os.path.exists(store_path):
@@ -116,10 +114,7 @@ def _goal_timing_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
 def _event_features(enriched_df: pd.DataFrame) -> pd.DataFrame | None:
     """Card and substitution aggregates, or None when events have not been scraped yet.
 
-    Same contract as `_goal_timing_features`: an absent store yields no columns rather
-    than a block of NaNs, so the enriched file's column set stays honest about what has
-    actually been collected.
-    """
+    Same contract as `_goal_timing_features`: no store gives no columns, not NaNs."""
 
     store_path = paths.events_path()
     if not os.path.exists(store_path):

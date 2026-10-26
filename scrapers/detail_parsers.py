@@ -460,17 +460,10 @@ def parse_guess(soup: BeautifulSoup) -> dict[str, Any]:
 
 
 def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:
-    """Days until each team's next fixture (congestion/rest), best-effort.
+    """Days until each team's next fixture (congestion and rest), best effort.
 
-    The "Fixture" widget renders a home table (``table.team-table-home``) and an
-    away table (``table.team-table-guest``); rows are ordered soonest-first, so the
-    first "N Days" countdown in each table is that team's next match. The home/guest
-    classes are reused by other widgets (recent form, standings), so we pick the first
-    table of each class that actually carries a "N Days" countdown — that is the
-    Fixture widget's. This is orientation-proof: the old positional ``div.team-div``
-    approach picked a non-fixture block for home (always None) and mislabeled the home
-    team's countdown as the away value.
-    """
+    In the "Fixture" widget: the first table of each class (`team-table-home`, `-guest`) with an
+    "N Days" countdown, because other widgets reuse the classes; rows run soonest first."""
 
     out: dict[str, Any] = {"home_next_fixture_days": None, "away_next_fixture_days": None}
 

@@ -40,30 +40,23 @@ def is_friendly(league_name: str | None) -> bool:
 
 
 def match_year(date_text: str | None) -> int | None:
-    """The year from a history row's date, or None when it does not start with one.
+    """The year from a history row's date, or None when it does not start with one."""
 
-    History dates arrive as "2025-08-09 10:30:00"; a leading four-digit year is the only
-    part needed, so this avoids a full datetime parse and the formats it would have to
-    cover.
-    """
-
+    # History dates arrive as "2025-08-09 10:30:00": the leading year is all that is needed, so
+    # there is no full datetime parse and no list of formats to cover.
     found = _YEAR_RE.match(str(date_text or ""))
 
     return int(found.group(1)) if found else None
 
 
 def in_scope(league_name: str | None, date_text: str | None) -> bool:
-    """Whether a referenced historical match is worth fetching and using.
-
-    An unparseable date is treated as in scope: dropping a match because its date could
-    not be read would silently shrink the corpus for a formatting reason rather than a
-    substantive one, and the reconciliation check in `qa/goals.py` catches anything whose
-    timings are actually wrong.
-    """
+    """Whether a referenced history match is worth fetching and using: no friendly, no old page."""
 
     if is_friendly(league_name):
         return False
 
     year = match_year(date_text)
 
+    # An unparseable date counts as in scope: dropping it would shrink the corpus for a
+    # formatting reason, and `qa/goals.py` catches a match whose timings are really wrong.
     return year is None or year >= HISTORY_FROM_YEAR

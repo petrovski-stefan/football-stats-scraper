@@ -34,10 +34,12 @@ SUB_OUT_ALT = "Sub out"
 def parse_match_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
     """Every card and substitution on the page, ordered by when it happened.
 
-    Returns one dict per event with `event_index`, `minute`, `stoppage`, `side`, `kind`,
-    `player` and `player_off`. An empty list means a match with no cards or substitutions
-    *or* a page whose events never rendered; the caller distinguishes those the same way
-    the goal scrape does, by whether anything at all came back for the match.
+    An empty list is a match without either or a page whose events never rendered; the caller
+    tells them apart as the goal scrape does, by whether anything came back for the match.
+
+    Returns:
+        One dict per event: `event_index`, `minute`, `stoppage`, `side`, `kind`, `player` and
+        `player_off`.
     """
 
     found: list[dict[str, Any]] = []
@@ -69,19 +71,13 @@ def parse_match_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
 def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Collapse the same event reported twice, then order by when it happened.
 
-    Some live pages render the event list twice — a summary block and a commentary feed
-    both sit in the DOM — so one booking arrives as two `<tr>` elements with identical
-    content, which de-duplicating by node identity cannot catch.
-
-    Goals collapse on their running score, which is unique within a match. Cards have no
-    such key: two players on the same side can be booked in the same minute, and
-    collapsing on (minute, side, kind) alone would silently merge them into one. Including
-    the players makes the key exact — a genuine pair differs in the name, a double-render
-    does not.
-    """
+    Some pages render the event list twice (a summary and a commentary feed), so one booking
+    arrives as two identical rows, which de-duplicating by node identity cannot catch."""
 
     unique: dict[tuple[Any, ...], dict[str, Any]] = {}
     for event in sorted(events, key=_when):
+        # Two players of one side can be booked in the same minute, so the players are part of
+        # the key: a real pair differs in a name, a double render does not.
         key = (
             event["minute"],
             event["stoppage"],
@@ -102,13 +98,10 @@ def _when(event: dict[str, Any]) -> tuple[int, int]:
 
 
 def _players(row: live_rows.LiveRow) -> tuple[str, str]:
-    """(subject, player_off). For a card the subject is the booked player.
+    """(subject, player_off); for a card the subject is the booked player.
 
-    For a substitution the content cell interleaves markers and links as
-    `4.png` "Sub in", <a>on</a>, `5.png` "Sub out", <a>off</a>, so each link is attributed
-    to whichever marker most recently preceded it rather than to its position. Pages that
-    omit a marker fall back to document order, which is in/out on every page observed.
-    """
+    A substitution's links go to the marker ("Sub in", "Sub out") that last preceded them, not
+    to their position; a page without markers falls back to document order, in then out."""
 
     cell = row.content_cell()
     if cell is None:

@@ -6,7 +6,7 @@
 
 **Status: PARKED.** The user asked for this plan on 2026-10-26. No fix is made yet.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 1–4 break a Must rule (`CODING_STYLE.md` §1). Groups 6–8 break a Default rule. Group 5, group 9 and the §5 item are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. Groups 2–4 break a Must rule (`CODING_STYLE.md` §1). Groups 6–8 break a Default rule. Groups 1, 5 and 9 and the §5 item are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -22,13 +22,6 @@
 ---
 
 ## Must rules
-
-### 1. §7: docstrings with more than 3 lines of prose (30)
-
-- New pipeline: `domain/scope.py:42` `match_year` (4 lines), `domain/scope.py:55` `in_scope` (5 lines).
-- Old pipeline, the longest: `features/engine.py:180` `round_position` (13), `features/history.py:116` `build_frame` (9), `scrapers/event_parsers.py:69` `_dedupe` (9), `scrapers/goal_parsers.py:78` `_dedupe` (9), `scrapers/detail_parsers.py:449` `parse_fixtures` (9).
-- Old pipeline, the others: `features/chain.py:80` `replicate_f11`; `features/engine.py:239` `_warn_unassigned`, `:368` `_corner_goal_share_gap`, `:404` `_congestion`, `:431` `_h2h_ht_goals_avg`, `:479` `_market_lines`, `:508` `_goal_timings`, `:543` `_closing_odds`; `features/enrich.py:89` `_goal_timing_features`, `:116` `_event_features`; `features/events.py:166` `_usable_events`, `:204` `_score_line`, `:278` `_rates`, `:310` `_while_leading`; `features/goals.py:89` `load_store`, `:128` `_usable_goals`; `features/history.py:44` `subject_is_home`, `:59` `match_key`, `:78` `score_matches`; `scrapers/driver.py:173` `get_live_page`; `scrapers/event_parsers.py:34` `parse_match_events`, `:102` `_players`; `scrapers/goal_parsers.py:39` `parse_goal_events`.
-- Fix: keep at most 3 lines of prose. Move the longer text to its field doc or note, and cite it.
 
 ### 2. §10: errors
 
@@ -83,6 +76,6 @@
 
 ## Order
 
-1. New-pipeline Musts: group 3 (all items) and the 2 docstrings of `domain/scope.py` (group 1). Then `/check` and `/stats-review`.
+1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`.
 2. New-pipeline Defaults: groups 6–8, file by file.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

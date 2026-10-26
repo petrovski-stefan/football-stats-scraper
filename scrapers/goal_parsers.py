@@ -39,10 +39,12 @@ MAX_STOPPAGE = 20
 def parse_goal_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
     """Every goal on the page, ordered by when it was scored.
 
-    Returns one dict per goal with `minute`, `stoppage`, `side`, `home_score_after`,
-    `away_score_after`, `kind` and a 1-based `goal_index`. An empty list means a goalless
-    match *or* a page whose events never rendered — the caller distinguishes those by
-    reconciling against the stored score.
+    An empty list is a goalless match or a page whose events never rendered; the caller tells
+    them apart by reconciling against the stored score.
+
+    Returns:
+        One dict per goal: `minute`, `stoppage`, `side`, `home_score_after`, `away_score_after`,
+        `kind` and a 1-based `goal_index`.
     """
 
     events = _dedupe(_score_rows(soup))
@@ -78,17 +80,12 @@ def parse_goal_events(soup: BeautifulSoup) -> list[dict[str, Any]]:
 def _dedupe(events: list[dict[str, Any]]) -> list[dict[str, Any]]:
     """Collapse the same goal reported more than once, then order by when it was scored.
 
-    Some pages render the event list twice — a summary block and a live commentary feed
-    both appear in the DOM — so a goal arrives as two distinct `<tr>` elements with
-    identical content. Deduplicating by node identity does not catch that.
+    Some pages render the event list twice, which node identity cannot catch. The running score
+    is the exact key: it advances by one per goal, so no two goals share it."""
 
-    The running score is what identifies a goal: it advances by exactly one per goal, so
-    no two goals in a match can share it. Collapsing on it is therefore exact, not a
-    heuristic. Without this, the second copy looks like a score that failed to advance,
-    the fold in `parse_goal_events` stops, and every later goal is silently lost —
-    Liverpool 1-1 Brentford (match 2789503) was stored as 1-0 for exactly this reason.
-    """
-
+    # Without this, the second copy reads as a score that failed to advance: the fold in
+    # `parse_goal_events` stops and every later goal is lost (match 2789503, a 1-1, was
+    # stored as 1-0).
     unique: dict[tuple[int, int], dict[str, Any]] = {}
     for event in sorted(events, key=lambda goal: (goal["minute"], goal["stoppage"])):
         unique.setdefault((event["home_score_after"], event["away_score_after"]), event)

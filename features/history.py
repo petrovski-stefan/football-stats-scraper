@@ -44,10 +44,8 @@ def cell(detail_df: pd.DataFrame, column: str, row: int) -> str:
 def subject_is_home(detail_df: pd.DataFrame, prefix: str, row: int) -> bool | None:
     """Whether the section's subject team played at home in that history match.
 
-    None when the venue is unknown, which is what makes the match unusable: without it
-    there is no way to orient "for" and "against", and guessing would silently invert
-    half the rows.
-    """
+    None when the venue is unknown, which makes the match unusable: "for" and "against" then
+    have no orientation, and a guess would invert half the rows."""
 
     raw = cell(detail_df, f"{prefix}is_home", row)
     if raw == "":
@@ -59,10 +57,8 @@ def subject_is_home(detail_df: pd.DataFrame, prefix: str, row: int) -> bool | No
 def match_key(detail_df: pd.DataFrame, prefix: str, row: int) -> str | None:
     """The referenced match's id, or None when it is missing or out of scope.
 
-    Out of scope means a friendly (no minute data anywhere) or a pre-2023 page (truncated
-    event lists) — see `domain/scope.py`, where both exclusions were established by
-    measurement rather than assumption.
-    """
+    Out of scope: a friendly (no minute data) or a pre-2023 page (truncated event lists), both
+    found by measurement (`domain/scope.py`)."""
 
     match_id = cell(detail_df, f"{prefix}match_id", row)
     if not match_id:
@@ -78,13 +74,8 @@ def match_key(detail_df: pd.DataFrame, prefix: str, row: int) -> str | None:
 def score_matches(detail_df: pd.DataFrame, prefix: str, row: int, home: int, away: int) -> bool:
     """Do `home`-`away` reproduce the score the history block records for that match?
 
-    True when the block carries no score to check against, so an unknown score is treated
-    as usable rather than silently dropping every match that is missing one.
-
-    Both feature builders need this and for the same reason: a match where two of four
-    goals were found yields a wrong scoreline rather than a missing one, whether it is
-    being read for goal timings or for the state a card was collected in.
-    """
+    True when the block has no score to check. Both builders need it: two of four goals found
+    give a wrong scoreline, not a missing one, for goal timings and card states alike."""
 
     stored_home = cell(detail_df, f"{prefix}ft_home_goals", row)
     stored_away = cell(detail_df, f"{prefix}ft_away_goals", row)
@@ -123,15 +114,14 @@ def build_frame[T](
 ) -> pd.DataFrame:
     """One row per fixture: every section's aggregates, then every timeline.
 
-    `resolve(prefix, row)` returns one history match's contents oriented to the subject
-    team, or None when unusable. Every output is read off that single resolution, which is
-    what guarantees a timeline is non-empty exactly when that match fed the aggregate
-    beside it.
+    One resolution per history match feeds every output, so a timeline is non-empty exactly
+    when its match fed the aggregate, and the event kinds cannot drift apart on what counted.
 
-    `timelines` is a `(column field, renderer)` pair per string to emit. Goals need one;
-    events need one per kind, so a red card is not buried in a list of substitutions. They
-    share a resolution rather than taking one each, because re-resolving per kind would
-    let the three drift apart on which matches counted.
+    Args:
+        timelines: a `(column field, renderer)` pair per string to emit: one for goals, one per
+            kind for events, so a red card is not buried among substitutions.
+        resolve: `(prefix, row)` to one history match's contents from the subject team's view,
+            None when unusable.
     """
 
     built: dict[str, Any] = {}
