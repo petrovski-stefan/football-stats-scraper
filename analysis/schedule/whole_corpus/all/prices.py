@@ -293,8 +293,8 @@ def tail_oe(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     tail_oe_df = stats.observed_expected_table(
         calibrated_df,
         (
-            ("seven", "m_seven", "Poisson, market totals"),
-            ("seven", "m_seven_calibrated", "Poisson, calibrated totals"),
+            stats.Ratio("seven", "m_seven", "Poisson, market totals"),
+            stats.Ratio("seven", "m_seven_calibrated", "Poisson, calibrated totals"),
         ),
     )
 

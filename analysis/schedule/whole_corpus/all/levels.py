@@ -23,15 +23,15 @@ LEAGUE = "league"
 LEAGUE_SEASON = "cluster"
 ROUND = "round"
 TEAM_SEASON = "team_season"
-# (observed column, denominator column, yardstick column, label, kind): the team card, on the
-# rows of `card.team_yardstick_rows`.
+# The team card, on the rows of `card.team_yardstick_rows`. Each row:
+# card.OddsQuantity(observed column, denominator column, yardstick column, label, kind).
 TEAM_QUANTITIES = (
-    ("comes_back", "one", "m_comes_back", "comes back", "event"),
-    ("loses_lead", "one", "m_loses_lead", "loses a lead", "event"),
-    ("behind", "one", "m_behind", "behind at half-time", "event"),
-    ("comes_back", "behind", "m_wins_from_behind", "behind, then wins", "event"),
-    ("goals_for", "one", "m_goals_for", "goals scored", "count"),
-    ("goals_against", "one", "m_goals_against", "goals conceded", "count"),
+    card.OddsQuantity("comes_back", "one", "m_comes_back", "comes back", "event"),
+    card.OddsQuantity("loses_lead", "one", "m_loses_lead", "loses a lead", "event"),
+    card.OddsQuantity("behind", "one", "m_behind", "behind at half-time", "event"),
+    card.OddsQuantity("comes_back", "behind", "m_wins_from_behind", "behind, then wins", "event"),
+    card.OddsQuantity("goals_for", "one", "m_goals_for", "goals scored", "count"),
+    card.OddsQuantity("goals_against", "one", "m_goals_against", "goals conceded", "count"),
 )
 # (level, unit, part, rows): each level's parts around their unit. "match" rows are the
 # yardstick's frame, "team" rows its team rows.
@@ -75,11 +75,10 @@ def level_tests(
             continue
 
         level_rows_df = rows[kind_of_rows]
-        for observed, denominator, model, label, kind in quantities[kind_of_rows]:
+        for quantity in quantities[kind_of_rows]:
             for reading in readings:
-                expected = denominator if reading == "raw" else model
-                quantity = (observed, expected, label, kind)
-                row = units.level_row(level_rows_df, unit, part, quantity, draws)
+                expected = quantity.denominator if reading == "raw" else quantity.yardstick
+                row = units.level_row(level_rows_df, unit, part, quantity.against(expected), draws)
                 table.append({"level": level, "reading": reading, **row})
 
     return pd.DataFrame(table)
@@ -92,15 +91,17 @@ def odds_shares(rows: dict[str, pd.DataFrame]) -> pd.DataFrame:
     table = []
     for kind_of_rows, quantities in (("match", card.ODDS_CARD), ("team", TEAM_QUANTITIES)):
         level_rows_df = rows[kind_of_rows]
-        for observed, denominator, model, label, _ in quantities:
-            counted = level_rows_df.loc[level_rows_df[denominator] > 0, observed]
+        for quantity in quantities:
+            counted = level_rows_df.loc[level_rows_df[quantity.denominator] > 0, quantity.observed]
             table.append(
                 {
                     "rows": kind_of_rows,
-                    "quantity": label,
+                    "quantity": quantity.label,
                     "counted": float(len(counted)),
                     "variance": float(np.var(counted.to_numpy(dtype=float), ddof=1)),
-                    "odds share": odds_share(level_rows_df, observed, denominator, model),
+                    "odds share": odds_share(
+                        level_rows_df, quantity.observed, quantity.denominator, quantity.yardstick
+                    ),
                 }
             )
 

@@ -16,20 +16,20 @@ from analysis import corpus, report, units
 from analysis.methods import yardstick
 
 LEAGUE = "s1_league_id"
-# (observed column, expected column, label, kind). A league's value is sum(observed) /
-# sum(expected): against `one` a raw rate, against `goals` the first-half share, else an O/E.
-# The kind gives one match's variance if every league had the pooled value
+# Each row: units.Quantity(observed column, expected column, label, kind). A league's value is
+# sum(observed) / sum(expected): against `one` a raw rate, against `goals` the first-half
+# share, else an O/E. The kind gives one match's variance if every league had the pooled value
 # (`units.match_variance`).
 QUANTITIES = (
-    ("goals", "one", "goals per match", "count"),
-    ("goals", "m_goals", "goals O/E", "count"),
-    ("is_comeback", "one", "comeback rate", "event"),
-    ("is_comeback", "m_cb", "comeback O/E", "event"),
-    ("ht_decisive", "m_ht_decisive", "link 1 O/E", "event"),
-    ("is_comeback", "m_completion", "link 2 O/E", "event"),
-    ("seven", "one", "7+ rate", "event"),
-    ("seven", "m_seven", "7+ O/E", "event"),
-    ("goals_1h", "goals", "first-half share", "share"),
+    units.Quantity("goals", "one", "goals per match", "count"),
+    units.Quantity("goals", "m_goals", "goals O/E", "count"),
+    units.Quantity("is_comeback", "one", "comeback rate", "event"),
+    units.Quantity("is_comeback", "m_cb", "comeback O/E", "event"),
+    units.Quantity("ht_decisive", "m_ht_decisive", "link 1 O/E", "event"),
+    units.Quantity("is_comeback", "m_completion", "link 2 O/E", "event"),
+    units.Quantity("seven", "one", "7+ rate", "event"),
+    units.Quantity("seven", "m_seven", "7+ O/E", "event"),
+    units.Quantity("goals_1h", "goals", "first-half share", "share"),
 )
 LUCK = ("goals O/E", "comeback O/E", "7+ O/E")  # counts and rare events: Poisson draws fit them
 # (quantity, column of its league values, header) for the two league tables.
@@ -104,15 +104,15 @@ def main() -> None:
 
     rows, unit_values = [], {}
     for quantity in QUANTITIES:
-        row, unit_values[quantity[2]] = units.summary_row(
-            yardstick_df, LEAGUE, quantity, has_luck_line=quantity[2] in LUCK
+        row, unit_values[quantity.label] = units.summary_row(
+            yardstick_df, LEAGUE, quantity, has_luck_line=quantity.label in LUCK
         )
         rows.append(row)
 
     print(f"Each test: Cochran's Q on {len(unit_values['goals O/E']) - 1} df")
     report.show("One test across the leagues for each quantity", pd.DataFrame(rows))
 
-    comeback = next(q for q in QUANTITIES if q[2] == "comeback O/E")
+    comeback = next(quantity for quantity in QUANTITIES if quantity.label == "comeback O/E")
     report.show(
         "Comeback O/E with each league's own first-half share",
         pd.DataFrame(

@@ -35,10 +35,10 @@ TABLE_COLUMNS = (
 )
 
 
-def quantity(label: str) -> tuple[str, str, str, str]:
+def quantity(label: str) -> units.Quantity:
     """The card's row with this label."""
 
-    return next(row for row in card.CARD if row[2] == label)
+    return next(row for row in card.CARD if row.label == label)
 
 
 def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
@@ -46,8 +46,7 @@ def season_tests(card_df: pd.DataFrame) -> pd.DataFrame:
 
     rows = []
     for label in SLICED:
-        numerator, denominator, _, kind = quantity(label)
-        within = units.within_tested(card_df, LEAGUE, "cluster", numerator, denominator, kind)
+        within = units.within_tested(card_df, LEAGUE, "cluster", quantity(label))
         rows.append(
             {
                 "quantity": label,
@@ -68,8 +67,10 @@ def stage_table(card_df: pd.DataFrame) -> pd.DataFrame:
     rows = []
     for name, league_stage_df in card_df.groupby(stage):
         for label in SLICED:
-            numerator, denominator, _, _ = quantity(label)
-            ratio = stats.observed_expected(league_stage_df, numerator, denominator)
+            row_of_card = quantity(label)
+            ratio = stats.observed_expected(
+                league_stage_df, row_of_card.observed, row_of_card.expected
+            )
             rows.append(
                 {
                     "stage": name,
@@ -109,7 +110,7 @@ def main() -> None:
 
     rows, unit_values = [], {}
     for row_of_card in card.CARD:
-        label = row_of_card[2]
+        label = row_of_card.label
         row, unit_values[label] = units.summary_row(
             card_df, LEAGUE, row_of_card, has_luck_line=label in MARKETS
         )

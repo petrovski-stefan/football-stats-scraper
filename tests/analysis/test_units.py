@@ -7,6 +7,9 @@ import pytest
 from analysis import card, units
 
 UNIT = "unit"
+GOALS_OE = units.Quantity("goals", "m_goals", "goals O/E", "count")
+GOALS_PER_MATCH = units.Quantity("goals", "one", "goals", "count")
+GOALS_SCORED = units.Quantity("goals_for", "one", "goals scored", "count")
 
 
 @pytest.fixture
@@ -42,16 +45,15 @@ def test_dispersion_compares_the_spread_with_the_kind() -> None:
     unit_rows_df = pd.DataFrame(
         {UNIT: [1, 1, 2, 2], "observed": [1.0, 3.0, 0.0, 4.0], "expected": [2.0, 2.0, 1.0, 1.0]}
     )
+    quantity = units.Quantity("observed", "expected", "goals", "count")
 
     # Unit 1: own value 1, residuals -1 and 1, Poisson variance 2 + 2. Unit 2: own value 2,
     # residuals -2 and 2, variance 2 + 2. So (2 + 8) / (4 + 4).
-    assert units.dispersion(unit_rows_df, UNIT, "observed", "expected", "count") == pytest.approx(
-        1.25
-    )
+    assert units.dispersion(unit_rows_df, UNIT, quantity) == pytest.approx(1.25)
 
 
 def test_unit_values_are_ratios_of_sums(toy_unit_matches_df: pd.DataFrame) -> None:
-    unit_values_df = units.unit_values(toy_unit_matches_df, UNIT, "goals", "m_goals", "count")
+    unit_values_df = units.unit_values(toy_unit_matches_df, UNIT, GOALS_OE)
 
     assert unit_values_df["observed"].tolist() == [6.0, 7.0]
     assert unit_values_df["expected"].tolist() == [7.0, 7.5]
@@ -60,9 +62,7 @@ def test_unit_values_are_ratios_of_sums(toy_unit_matches_df: pd.DataFrame) -> No
     pooled = 13 / 14.5
     assert unit_values_df["variance"].tolist() == pytest.approx([pooled / 7, pooled / 7.5])
 
-    doubled_df = units.unit_values(
-        toy_unit_matches_df, UNIT, "goals", "m_goals", "count", dispersion_factor=2.0
-    )
+    doubled_df = units.unit_values(toy_unit_matches_df, UNIT, GOALS_OE, dispersion_factor=2.0)
     assert doubled_df["variance"].tolist() == pytest.approx(
         (2 * unit_values_df["variance"]).tolist()
     )
@@ -73,7 +73,7 @@ def test_equal_units_show_no_spread_and_keep_the_pooled_value() -> None:
         {UNIT: [1, 1, 2, 2], "hit": [1.0, 0.0, 1.0, 0.0], "chance": [0.5, 0.5, 0.5, 0.5]}
     )
 
-    across = units.tested(unit_rows_df, UNIT, "hit", "chance", "event")
+    across = units.tested(unit_rows_df, UNIT, units.Quantity("hit", "chance", "hit O/E", "event"))
 
     heterogeneity = across.heterogeneity
     assert (heterogeneity.cochran_q, heterogeneity.tau_squared) == pytest.approx((0.0, 0.0))
@@ -102,9 +102,7 @@ def test_cohort_agreement_pairs_the_units_seen_in_both_cohorts(
 
 
 def test_summary_row_shrinks_toward_the_pool(toy_unit_matches_df: pd.DataFrame) -> None:
-    quantity = ("goals", "m_goals", "goals O/E", "count")
-
-    row, unit_values_df = units.summary_row(toy_unit_matches_df, UNIT, quantity, has_luck_line=True)
+    row, unit_values_df = units.summary_row(toy_unit_matches_df, UNIT, GOALS_OE, has_luck_line=True)
 
     assert row["quantity"] == "goals O/E"
     assert row["pooled"] == pytest.approx(13 / 14.5)
@@ -114,7 +112,7 @@ def test_summary_row_shrinks_toward_the_pool(toy_unit_matches_df: pd.DataFrame) 
     for raw, shrunk in zip(unit_values_df["value"], unit_values_df["shrunk"], strict=True):
         assert min(raw, 13 / 14.5) - 1e-12 <= shrunk <= max(raw, 13 / 14.5) + 1e-12, (raw, shrunk)
 
-    no_luck, _ = units.summary_row(toy_unit_matches_df, UNIT, quantity)
+    no_luck, _ = units.summary_row(toy_unit_matches_df, UNIT, GOALS_OE)
     assert pd.isna(no_luck["luck min"])
 
 
@@ -137,9 +135,9 @@ def seasons_df() -> pd.DataFrame:
 def test_within_tested_uses_each_units_value_and_shrinks_toward_it(
     seasons_df: pd.DataFrame,
 ) -> None:
-    result = units.within_tested(seasons_df, UNIT, "part", "goals", "one", "count")
+    result = units.within_tested(seasons_df, UNIT, "part", GOALS_PER_MATCH)
     part_values_df = result.part_values_df
-    dispersion = units.dispersion(seasons_df, "part", "goals", "one", "count")
+    dispersion = units.dispersion(seasons_df, "part", GOALS_PER_MATCH)
 
     # Unit 1 has the value 2 and unit 2 the value 3.25; each part has 2 matches.
     assert part_values_df.loc["1a", "variance"] == pytest.approx(dispersion * 2.0 / 2)
@@ -181,14 +179,12 @@ def test_cohort_values_against_a_group_and_the_repeat_test() -> None:
 
 
 def test_within_tested_sums_the_parts_of_each_unit(seasons_df: pd.DataFrame) -> None:
-    within = units.within_tested(seasons_df, UNIT, "part", "goals", "one", "count")
+    within = units.within_tested(seasons_df, UNIT, "part", GOALS_PER_MATCH)
 
     assert within.degrees_of_freedom == 2  # two units with two parts each
     assert within.cochran_q > 0
 
-    alone = units.within_tested(
-        seasons_df[seasons_df[UNIT] == 1], UNIT, "part", "goals", "one", "count"
-    )
+    alone = units.within_tested(seasons_df[seasons_df[UNIT] == 1], UNIT, "part", GOALS_PER_MATCH)
     assert alone.cochran_q == pytest.approx(0.0)
     assert alone.degrees_of_freedom == 1
     assert 0.0 <= within.p_value <= 1.0
@@ -196,9 +192,8 @@ def test_within_tested_sums_the_parts_of_each_unit(seasons_df: pd.DataFrame) -> 
 
 def test_within_row_tests_the_teams_around_their_league(round_robin_df: pd.DataFrame) -> None:
     team_rows_df = card.team_rows(round_robin_df)
-    quantity = ("goals_for", "one", "goals scored", "count")
 
-    row, result = units.within_row(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity)
+    row, result = units.within_row(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, GOALS_SCORED)
 
     assert row["df"] == 8.0 - 2.0  # 8 teams in 2 leagues
     assert row["repeat n"] == 8.0
@@ -213,26 +208,24 @@ def test_within_row_tests_the_teams_around_their_league(round_robin_df: pd.DataF
 
 def test_null_q_has_the_mean_of_its_df(round_robin_df: pd.DataFrame) -> None:
     team_rows_df = card.team_rows(round_robin_df)
-    quantity = ("goals_for", "one", "goals scored", "count")
 
     mean, standard_deviation = units.null_q(
-        team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200
+        team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, GOALS_SCORED, draws=200
     )
 
     assert mean == pytest.approx(6.0, abs=1.0)  # 8 teams in 2 leagues
     assert standard_deviation > 0
 
+    share = units.Quantity("goals_1h", "goals", "x", "share")
     with pytest.raises(ValueError, match="no null draws"):
-        units.null_q(
-            team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, ("goals_1h", "goals", "x", "share")
-        )
+        units.null_q(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, share)
 
 
 def test_null_q_of_an_event_has_the_mean_of_its_df(round_robin_df: pd.DataFrame) -> None:
     # The 0/1 draws of an event. Comebacks are too rare in these toy leagues to test this with;
     # being behind at half-time is not.
     team_rows_df = card.team_rows(round_robin_df)
-    quantity = ("behind", "one", "behind at half-time", "event")
+    quantity = units.Quantity("behind", "one", "behind at half-time", "event")
 
     mean, standard_deviation = units.null_q(
         team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=200
@@ -252,8 +245,9 @@ def test_within_tested_leaves_out_the_parts_that_tell_nothing() -> None:
             "behind": [1.0, 1.0, 1.0, 1.0, 0.0, 1.0, 1.0],
         }
     )
+    quantity = units.Quantity("won", "behind", "behind, then wins", "event")
 
-    result = units.within_tested(unit_rows_df, UNIT, "part", "won", "behind", "event")
+    result = units.within_tested(unit_rows_df, UNIT, "part", quantity)
 
     assert result.part_values_df.index.tolist() == ["1a", "1b"]
     assert result.degrees_of_freedom == 1
@@ -283,12 +277,11 @@ def test_permuted_qs_fall_below_the_q_of_parts_that_really_differ() -> None:
         }
     )
 
-    quantity = ("goals", "one", "goals", "count")
-    cochran_qs = units.permuted_qs(unit_rows_df, UNIT, "part", quantity, draws=30)
+    cochran_qs = units.permuted_qs(unit_rows_df, UNIT, "part", GOALS_PER_MATCH, draws=30)
 
     assert cochran_qs.shape == (30,)
 
-    real = units.within_tested(unit_rows_df, UNIT, "part", "goals", "one", "count").cochran_q
+    real = units.within_tested(unit_rows_df, UNIT, "part", GOALS_PER_MATCH).cochran_q
     assert (cochran_qs < real).all()
 
 
@@ -303,9 +296,8 @@ def test_variance_share_scales_tau2_by_the_expected_values() -> None:
 
 def test_level_row_tests_the_parts_against_their_shuffles(round_robin_df: pd.DataFrame) -> None:
     team_rows_df = card.team_rows(round_robin_df)
-    quantity = ("goals_for", "one", "goals scored", "count")
 
-    row = units.level_row(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity, draws=20)
+    row = units.level_row(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, GOALS_SCORED, draws=20)
 
     assert row["parts"] == 8.0
     assert row["df"] == 6.0  # 8 teams in 2 leagues

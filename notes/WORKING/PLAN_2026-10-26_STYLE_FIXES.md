@@ -50,7 +50,7 @@
 
 ### 7. §4 and §8: function shape and contracts
 
-- **The quantity specs of `analysis/` (next, the user's go of 2026-10-26).** About 80 sites in about 20 files of `analysis/` and `tests/analysis/` pass a quantity as a tuple of 3 to 5 strings: the rows of `card.CARD` (4) and `card.ODDS_CARD` (5), and the `(observed, expected, label)` triples of the runners. Some sites read them by index, for example `quantity[3]` in `season_phase.py` and `q[2] == "comeback O/E"` in `per_league/odds_yardstick.py`. Fix: frozen dataclasses. This also fixes `per_league/rates.py:quantity` and the 7 arguments of `analysis/units.py:unit_values`.
+- Tables of tuples of 3 or 4 values in `analysis/` (6). Each site unpacks a row into names at once, so no site reads them by index: `all/levels.py:LEVELS`, `all/prices.py:AH_BANDS`, `all/rates.py:DEFICITS`, `per_league/odds_yardstick.py:MAIN_COLUMNS` and `LINK_COLUMNS`, `per_league/rates.py:TABLE_COLUMNS`. Fix: a frozen dataclass.
 - Old pipeline: the tuples of `scrapers/detail_parsers.py:_row_1x2`, and of `scrapers/detail.py` and `scrapers/goals.py` `_scrape_one`. The 8 arguments of `scrapers/goals.py:_store_rows`.
 
 ### 8. §6: expressions and numbers

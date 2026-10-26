@@ -11,9 +11,9 @@ COARSE = np.round(np.arange(0.1, 4.01, 0.1), 2)
 
 
 def test_each_card_row_has_a_known_kind_and_one_label() -> None:
-    labels = [label for _, _, label, _ in card.CARD]
+    labels = [quantity.label for quantity in card.CARD]
     assert len(labels) == len(set(labels))
-    assert {kind for *_, kind in card.CARD} <= {"event", "count"}
+    assert {quantity.kind for quantity in card.CARD} <= {"event", "count"}
 
 
 def test_the_odds_card_reads_columns_of_the_yardstick_frame(
@@ -22,14 +22,20 @@ def test_the_odds_card_reads_columns_of_the_yardstick_frame(
     yardstick_df = yardstick.frame(toy_priced_matches_df, yardstick.build_grid(COARSE))
     yardstick_df["one"] = 1.0
 
-    for observed, denominator, model, _, kind in card.ODDS_CARD:
-        assert {observed, denominator, model} <= set(yardstick_df.columns), (
-            observed,
-            denominator,
-            model,
-            kind,
-        )
-        assert kind in {"event", "count"}, (observed, denominator, model, kind)
+    for quantity in card.ODDS_CARD:
+        columns = {quantity.observed, quantity.denominator, quantity.yardstick}
+        assert columns <= set(yardstick_df.columns), quantity
+        assert quantity.kind in {"event", "count"}, quantity
+
+
+def test_an_odds_quantity_is_read_against_the_column_given() -> None:
+    comeback = card.ODDS_CARD[0]
+
+    against_odds = comeback.against(comeback.yardstick)
+
+    assert against_odds == units.Quantity(
+        comeback.observed, comeback.yardstick, comeback.label, comeback.kind
+    )
 
 
 def test_card_frame_reads_the_stage_columns(toy_priced_matches_df: pd.DataFrame) -> None:
@@ -50,8 +56,8 @@ def test_card_frame_reads_the_stage_columns(toy_priced_matches_df: pd.DataFrame)
     ]
 
     columns: set[str] = set()
-    for row in card.CARD:
-        columns.update(row[:2])
+    for quantity in card.CARD:
+        columns.update((quantity.observed, quantity.expected))
 
     assert columns <= set(card_df.columns)
 
@@ -137,7 +143,7 @@ def test_the_completion_counts_only_from_the_right_half_time_state(
 
 def test_top_teams_rank_by_the_distance_from_the_league(round_robin_df: pd.DataFrame) -> None:
     team_rows_df = card.team_rows(round_robin_df)
-    quantity = ("goals_for", "one", "goals scored", "count")
+    quantity = units.Quantity("goals_for", "one", "goals scored", "count")
     _, result = units.within_row(team_rows_df, card.TEAM_LEAGUE, card.TEAM_UNIT, quantity)
 
     top_teams_df = card.top_teams(team_rows_df, result.part_values_df, top=3)
@@ -148,7 +154,12 @@ def test_top_teams_rank_by_the_distance_from_the_league(round_robin_df: pd.DataF
     assert set(top_teams_df.columns) >= {"team_name", "league_name", "rate", "league", "shrunk"}
 
     renamed_df = card.top_teams(
-        team_rows_df, result.part_values_df, top=3, names=("observed", "expected", "O/E")
+        team_rows_df,
+        result.part_values_df,
+        top=3,
+        observed_label="observed",
+        expected_label="expected",
+        value_label="O/E",
     )
     assert "O/E" in renamed_df.columns
 

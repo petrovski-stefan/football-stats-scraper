@@ -16,34 +16,34 @@ import pandas as pd
 from analysis import corpus, report, stats
 from analysis.methods import yardstick
 
-# (observed column, expected column, label): each row of an observed / expected table.
-# No row per half: one first-half share, taken from these goals, splits the expected goals,
-# so the O/E of each half equals the O/E of all goals by construction.
+# Each row of an observed / expected table: stats.Ratio(observed column, expected column,
+# label). No row per half: one first-half share, taken from these goals, splits the expected
+# goals, so the O/E of each half equals the O/E of all goals by construction.
 GOALS = (
-    ("goals", "m_goals", "goals per match"),
-    ("goals_home", "lam_home", "home goals"),
-    ("goals_away", "lam_away", "away goals"),
+    stats.Ratio("goals", "m_goals", "goals per match"),
+    stats.Ratio("goals_home", "lam_home", "home goals"),
+    stats.Ratio("goals_away", "lam_away", "away goals"),
 )
 POOR_FIT = 0.05  # a fit error above this is listed
 POOR_FITS_LISTED = 5  # the worst fits printed, chosen on 2026-10-18
 FIT_ERROR_QUANTILES = (0.5, 0.9, 0.99, 1.0)  # the quantiles printed, chosen on 2026-10-18
 EVENTS = (
-    ("is_comeback", "m_cb", "comeback, either side"),
-    ("is_comeback_home", "m_cb_home", "comeback, home side"),
-    ("is_comeback_away", "m_cb_away", "comeback, away side"),
-    ("ht_decisive", "m_ht_decisive", "decisive half-time (link 1)"),
-    ("is_comeback", "m_completion", "completion from the HT score (link 2)"),
-    ("seven", "m_seven", "7+ goals"),
-    ("is00", "m_00", "0-0"),
-    ("is11", "m_11", "1-1"),
+    stats.Ratio("is_comeback", "m_cb", "comeback, either side"),
+    stats.Ratio("is_comeback_home", "m_cb_home", "comeback, home side"),
+    stats.Ratio("is_comeback_away", "m_cb_away", "comeback, away side"),
+    stats.Ratio("ht_decisive", "m_ht_decisive", "decisive half-time (link 1)"),
+    stats.Ratio("is_comeback", "m_completion", "completion from the HT score (link 2)"),
+    stats.Ratio("seven", "m_seven", "7+ goals"),
+    stats.Ratio("is00", "m_00", "0-0"),
+    stats.Ratio("is11", "m_11", "1-1"),
 )
 BANDED = (
-    ("goals", "m_goals", "goals per match"),
-    ("is_comeback", "m_cb", "comeback"),
-    ("ht_decisive", "m_ht_decisive", "link 1"),
-    ("is_comeback", "m_completion", "link 2"),
-    ("seven", "m_seven", "7+ goals"),
-    ("goals_1h", "goals", "first-half share (observed / all goals)"),
+    stats.Ratio("goals", "m_goals", "goals per match"),
+    stats.Ratio("is_comeback", "m_cb", "comeback"),
+    stats.Ratio("ht_decisive", "m_ht_decisive", "link 1"),
+    stats.Ratio("is_comeback", "m_completion", "link 2"),
+    stats.Ratio("seven", "m_seven", "7+ goals"),
+    stats.Ratio("goals_1h", "goals", "first-half share (observed / all goals)"),
 )
 # The shift of the first-half share in the check of C9, chosen on 2026-10-18. The share changes
 # by about 0.01 between bands (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ODDS_YARDSTICK.md`).
@@ -56,16 +56,16 @@ def banded(
     yardstick_df: pd.DataFrame,
     column: str,
     edges: tuple[float, ...],
-    rows: tuple[tuple[str, str, str], ...],
+    rows: tuple[stats.Ratio, ...],
 ) -> pd.DataFrame:
     """The same rows inside each band of `column`."""
 
     bands = pd.cut(yardstick_df[column], edges)
     table = []
     for band, band_df in yardstick_df.groupby(bands, observed=True):
-        for observed_column, expected_column, label in rows:
-            band_ratio = stats.observed_expected(band_df, observed_column, expected_column)
-            table.append({"band": str(band), "quantity": label, **band_ratio})
+        for row in rows:
+            band_ratio = stats.observed_expected(band_df, row.observed, row.expected)
+            table.append({"band": str(band), "quantity": row.label, **band_ratio})
 
     return pd.DataFrame(table)
 

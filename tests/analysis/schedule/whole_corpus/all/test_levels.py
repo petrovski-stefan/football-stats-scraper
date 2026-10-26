@@ -71,7 +71,7 @@ def test_odds_share_counts_only_the_rows_with_a_denominator() -> None:
 def test_odds_shares_cover_both_cards(rows: dict[str, pd.DataFrame]) -> None:
     odds_shares_df = runner.odds_shares(rows)
     assert len(odds_shares_df) == len(card.ODDS_CARD) + len(runner.TEAM_QUANTITIES)
-    link_2_df = odds_shares_df[odds_shares_df["quantity"] == card.ODDS_CARD[2][3]]
+    link_2_df = odds_shares_df[odds_shares_df["quantity"] == card.ODDS_CARD[2].label]
     assert float(link_2_df["counted"].iloc[0]) == rows["match"]["ht_decisive"].sum()
 
 

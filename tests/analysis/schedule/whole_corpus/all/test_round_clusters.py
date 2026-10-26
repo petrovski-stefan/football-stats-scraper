@@ -12,19 +12,19 @@ def test_each_quantity_is_read_three_ways() -> None:
     comeback = card.ODDS_CARD[0]
     readings = runner.readings(comeback)
 
-    assert [unit for _, unit, _ in readings] == [
+    assert [reading.unit for reading in readings] == [
         runner.EVERYTHING,
         runner.LEAGUE_SEASON,
         runner.LEAGUE_SEASON,
     ]
-    assert [expected for *_, expected in readings] == ["one", "one", "m_cb"]
-    assert readings[-1][0] == runner.ODDS_READING
+    assert [reading.expected for reading in readings] == ["one", "one", "m_cb"]
+    assert readings[-1].name == runner.ODDS_READING
 
 
 def test_tests_give_one_row_per_quantity_and_reading(toy_rounds_df: pd.DataFrame) -> None:
     tests_df = runner.tests(toy_rounds_df, draws=2)
     assert len(tests_df) == 3 * len(card.ODDS_CARD)
-    assert set(tests_df["quantity"]) == {label for *_, label, _ in card.ODDS_CARD}
+    assert set(tests_df["quantity"]) == {quantity.label for quantity in card.ODDS_CARD}
     odds_tests_df = runner.tests(toy_rounds_df, only=(runner.ODDS_READING,), draws=2)
     assert odds_tests_df["reading"].tolist() == [runner.ODDS_READING] * len(card.ODDS_CARD)
 

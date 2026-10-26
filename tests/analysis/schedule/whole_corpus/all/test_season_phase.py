@@ -81,15 +81,14 @@ def test_the_league_season_reading_expects_what_each_league_season_has(
     phased_df: pd.DataFrame,
 ) -> None:
     for quantity in runner.QUANTITIES:
-        observed, denominator, _, label, _ = quantity
-        expected = phased_df[runner.league_season_column(label)]
-        sums_df = pd.DataFrame({"observed": phased_df[observed], "expected": expected})
+        expected = phased_df[runner.league_season_column(quantity.label)]
+        sums_df = pd.DataFrame({"observed": phased_df[quantity.observed], "expected": expected})
         sums_df = sums_df.groupby(phased_df["cluster"]).sum()
 
         assert sums_df["expected"].to_numpy() == pytest.approx(sums_df["observed"].to_numpy()), (
             quantity
         )
-        assert (expected[phased_df[denominator] == 0] == 0).all(), quantity
+        assert (expected[phased_df[quantity.denominator] == 0] == 0).all(), quantity
 
 
 def test_readings_are_raw_then_the_league_season_then_the_odds() -> None:

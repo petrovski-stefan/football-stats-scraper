@@ -10,7 +10,7 @@ from shuffles of the parts inside their units and its spread as a share of a mat
 variance.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 import numpy as np
@@ -22,6 +22,17 @@ from analysis import stats
 LUCK_DRAWS = 2000  # the draws of the luck line, chosen on 2026-10-19
 NULL_Q_DRAWS = 100  # the draws of `null_q`, chosen on 2026-10-19
 NULL_DRAWS = 200  # the shuffles of `level_row` (`permuted_qs`)
+
+
+@dataclass(frozen=True)
+class Quantity:
+    """A unit's value is sum(observed) / sum(expected) over its matches. The kind is the
+    variance model of one match (`match_variance`): "event", "count" or "share"."""
+
+    observed: str
+    expected: str
+    label: str
+    kind: str
 
 
 def match_variance(
@@ -41,26 +52,25 @@ def match_variance(
     raise ValueError(f"unknown kind {kind!r}")
 
 
-def dispersion(df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str) -> float:
+def dispersion(df: pd.DataFrame, unit: str, quantity: Quantity) -> float:
     """How far the matches spread around their unit's value, against what the kind says.
 
     The squared residuals around each unit's own value, summed, over the summed variance
     that the kind gives at that value. 1 means that the kind's variance fits the matches.
     """
 
+    observed, expected = quantity.observed, quantity.expected
     sums_df = df.groupby(unit)[[observed, expected]].transform("sum")
     own = sums_df[observed] / sums_df[expected]
     residual = df[observed] - own * df[expected]
 
-    return float((residual**2).sum() / match_variance(kind, own, df[expected]).sum())
+    return float((residual**2).sum() / match_variance(quantity.kind, own, df[expected]).sum())
 
 
 def unit_values(
     df: pd.DataFrame,
     unit: str,
-    observed: str,
-    expected: str,
-    kind: str,
+    quantity: Quantity,
     dispersion_factor: float = 1.0,
     within: str | None = None,
 ) -> pd.DataFrame:
@@ -72,6 +82,7 @@ def unit_values(
         within: a group column (such as a team's league) whose pooled value each match takes.
     """
 
+    observed, expected = quantity.observed, quantity.expected
     if within is None:
         null: float | pd.Series[float] = float(df[observed].sum() / df[expected].sum())
     else:
@@ -82,7 +93,7 @@ def unit_values(
         {
             "observed": df[observed],
             "expected": df[expected],
-            "variance": dispersion_factor * match_variance(kind, null, df[expected]),
+            "variance": dispersion_factor * match_variance(quantity.kind, null, df[expected]),
         }
     )
 
@@ -102,11 +113,11 @@ class Across:
     dispersion_factor: float
 
 
-def tested(df: pd.DataFrame, unit: str, observed: str, expected: str, kind: str) -> Across:
+def tested(df: pd.DataFrame, unit: str, quantity: Quantity) -> Across:
     """The unit values with their shrunk values, the one test, and the dispersion used."""
 
-    dispersion_factor = dispersion(df, unit, observed, expected, kind)
-    unit_values_df = unit_values(df, unit, observed, expected, kind, dispersion_factor)
+    dispersion_factor = dispersion(df, unit, quantity)
+    unit_values_df = unit_values(df, unit, quantity, dispersion_factor)
     heterogeneity = stats.heterogeneity(unit_values_df["value"], unit_values_df["variance"])
     unit_values_df["shrunk"] = stats.shrink(
         unit_values_df["value"], unit_values_df["variance"], heterogeneity
@@ -194,27 +205,25 @@ def repeat_test(df: pd.DataFrame, unit: str, observed: str, expected: str, again
 
 
 def summary_row(
-    df: pd.DataFrame, unit: str, quantity: tuple[str, str, str, str], *, has_luck_line: bool = False
+    df: pd.DataFrame, unit: str, quantity: Quantity, *, has_luck_line: bool = False
 ) -> tuple[dict[str, float | str], pd.DataFrame]:
-    """One quantity's test as a row of the summary, and its unit values.
+    """One quantity's test as a row of the summary, and its unit values. The luck line uses
+    Poisson draws, so ask for it only for counts and rare events."""
 
-    `quantity` is (observed column, expected column, label, kind). The luck line uses
-    Poisson draws, so ask for it only for counts and rare events.
-    """
-
-    observed, expected, label, kind = quantity
-    across = tested(df, unit, observed, expected, kind)
+    across = tested(df, unit, quantity)
     unit_values_df = across.unit_values_df
     heterogeneity = across.heterogeneity
 
     pooled = float(unit_values_df["observed"].sum() / unit_values_df["expected"].sum())
     low, high = luck_line(unit_values_df["expected"], pooled) if has_luck_line else (np.nan, np.nan)
-    cohort_correlation, cohort_count = cohort_agreement(df, unit, observed, expected)
+    cohort_correlation, cohort_count = cohort_agreement(
+        df, unit, quantity.observed, quantity.expected
+    )
     between_unit_sd = heterogeneity.tau_squared**0.5
     found = stats.detectable_tau(unit_values_df["variance"])
 
     row: dict[str, float | str] = {
-        "quantity": label,
+        "quantity": quantity.label,
         "pooled": pooled,
         "dispersion": across.dispersion_factor,
         "Q": heterogeneity.cochran_q,
@@ -249,9 +258,7 @@ class Within:
     scale: float  # tau^2 = (Q - df) / scale, the method of moments (DerSimonian-Laird)
 
 
-def within_tested(
-    df: pd.DataFrame, unit: str, part: str, observed: str, expected: str, kind: str
-) -> Within:
+def within_tested(df: pd.DataFrame, unit: str, part: str, quantity: Quantity) -> Within:
     """Do the parts of a unit (its seasons, or its teams) differ by more than noise?
 
     Each unit's Cochran's Q of its parts around their precision-weighted mean, summed over
@@ -262,8 +269,8 @@ def within_tested(
         the mean of its unit.
     """
 
-    dispersion_factor = dispersion(df, part, observed, expected, kind)
-    part_values_df = unit_values(df, part, observed, expected, kind, dispersion_factor, within=unit)
+    dispersion_factor = dispersion(df, part, quantity)
+    part_values_df = unit_values(df, part, quantity, dispersion_factor, within=unit)
     part_values_df["owner"] = df.groupby(part)[unit].first()
 
     # A part that expects nothing, or of a unit with no events, tells nothing: it leaves the
@@ -302,19 +309,14 @@ def within_tested(
 
 
 def within_row(
-    df: pd.DataFrame, unit: str, part: str, quantity: tuple[str, str, str, str]
+    df: pd.DataFrame, unit: str, part: str, quantity: Quantity
 ) -> tuple[dict[str, float | str], Within]:
     """One quantity's test of the parts around their unit (`within_tested`) as a row of a
     summary, and its result: the spread that the test finds at 80%, the median share that a
-    part keeps after shrinkage, and the repeat test of the parts against their unit.
+    part keeps after shrinkage, and the repeat test of the parts against their unit."""
 
-    Args:
-        quantity: (observed column, expected column, label, kind).
-    """
-
-    observed, expected, label, kind = quantity
-    tested = within_tested(df, unit, part, observed, expected, kind)
-    repeat = repeat_test(df, part, observed, expected, unit)
+    tested = within_tested(df, unit, part, quantity)
+    repeat = repeat_test(df, part, quantity.observed, quantity.expected, unit)
 
     part_values_df = tested.part_values_df
     pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
@@ -323,7 +325,7 @@ def within_row(
     found = stats.detectable_tau(part_values_df["variance"], groups=part_values_df["owner"])
 
     row: dict[str, float | str] = {
-        "quantity": label,
+        "quantity": quantity.label,
         "pooled": pooled,
         "Q": tested.cochran_q,
         "df": float(tested.degrees_of_freedom),
@@ -364,7 +366,7 @@ def null_q(
     df: pd.DataFrame,
     unit: str,
     part: str,
-    quantity: tuple[str, str, str, str],
+    quantity: Quantity,
     draws: int = NULL_Q_DRAWS,
     seed: int = 0,
 ) -> tuple[float, float]:
@@ -374,23 +376,24 @@ def null_q(
     If the method is right, the mean is near the df, so a real Q far from it comes from the data.
     """
 
-    observed, expected, _, kind = quantity
-    if kind not in ("event", "count"):
-        raise ValueError(f"no null draws for kind {kind!r}")
+    observed, expected = quantity.observed, quantity.expected
+    if quantity.kind not in ("event", "count"):
+        raise ValueError(f"no null draws for kind {quantity.kind!r}")
 
     sums_df = df.groupby(unit)[[observed, expected]].transform("sum")
     means = (sums_df[observed] / sums_df[expected] * df[expected]).to_numpy(dtype=float)
+    drawn_quantity = replace(quantity, observed="drawn")
 
     rng = np.random.default_rng(seed)
     cochran_qs = []
     for _ in range(draws):
-        if kind == "event":
+        if quantity.kind == "event":
             drawn = (rng.random(len(means)) < np.clip(means, 0.0, 1.0)).astype(float)
         else:
             drawn = rng.poisson(means).astype(float)
 
         drawn_df = df.assign(drawn=drawn)
-        cochran_qs.append(within_tested(drawn_df, unit, part, "drawn", expected, kind).cochran_q)
+        cochran_qs.append(within_tested(drawn_df, unit, part, drawn_quantity).cochran_q)
 
     return float(np.mean(cochran_qs)), float(np.std(cochran_qs))
 
@@ -399,7 +402,7 @@ def permuted_qs(
     df: pd.DataFrame,
     unit: str,
     part: str,
-    quantity: tuple[str, str, str, str],
+    quantity: Quantity,
     draws: int = NULL_DRAWS,
     seed: int = 0,
 ) -> np.ndarray:
@@ -409,15 +412,11 @@ def permuted_qs(
     the outcomes; a bias of the method is in the real Q and in the shuffled ones alike.
     """
 
-    observed, expected, _, kind = quantity
-
     rng = np.random.default_rng(seed)
     cochran_qs = []
     for _ in range(draws):
         shuffled_df = df.assign(**{part: shuffled_parts(df[unit], df[part], rng)})
-        cochran_qs.append(
-            within_tested(shuffled_df, unit, part, observed, expected, kind).cochran_q
-        )
+        cochran_qs.append(within_tested(shuffled_df, unit, part, quantity).cochran_q)
 
     return np.asarray(cochran_qs)
 
@@ -456,7 +455,7 @@ def level_row(
     df: pd.DataFrame,
     unit: str,
     part: str,
-    quantity: tuple[str, str, str, str],
+    quantity: Quantity,
     draws: int = NULL_DRAWS,
 ) -> dict[str, float | str]:
     """One test of the parts around their unit (`within_tested`) as a row of a summary.
@@ -470,8 +469,8 @@ def level_row(
         a match's variance (`variance_share`).
     """
 
-    observed, expected, label, kind = quantity
-    tested = within_tested(df, unit, part, observed, expected, kind)
+    observed, expected = quantity.observed, quantity.expected
+    tested = within_tested(df, unit, part, quantity)
     part_values_df = tested.part_values_df
     pooled = float(part_values_df["observed"].sum() / part_values_df["expected"].sum())
 
@@ -483,7 +482,7 @@ def level_row(
     found = stats.detectable_tau(part_values_df["variance"], groups=part_values_df["owner"])
 
     return {
-        "quantity": label,
+        "quantity": quantity.label,
         "parts": float(len(part_values_df)),
         "pooled": pooled,
         "Q": tested.cochran_q,

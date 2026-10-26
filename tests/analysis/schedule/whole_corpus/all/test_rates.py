@@ -40,7 +40,7 @@ def card_df() -> pd.DataFrame:
 def test_card_table_has_one_row_per_quantity_as_a_ratio_of_sums(card_df: pd.DataFrame) -> None:
     card_table_df = runner.card_table(card_df).set_index("quantity")
 
-    assert list(card_table_df.index) == [label for _, _, label, _ in card.CARD]
+    assert list(card_table_df.index) == [quantity.label for quantity in card.CARD]
     assert card_table_df.loc["comeback", "value"] == pytest.approx(2 / 6)
     assert card_table_df.loc["link 1: a team is behind at half-time", "value"] == pytest.approx(
         4 / 6

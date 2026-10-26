@@ -3,6 +3,7 @@
 import pandas as pd
 import pytest
 
+from analysis import stats
 from analysis.schedule.whole_corpus.all import odds_yardstick as runner
 
 
@@ -30,7 +31,7 @@ def toy_yardstick_df() -> pd.DataFrame:
 
 def test_banded_splits_the_rows_by_band(toy_yardstick_df: pd.DataFrame) -> None:
     banded_df = runner.banded(
-        toy_yardstick_df, "m_goals", (0.0, 2.8, 10.0), (("is_comeback", "m_cb", "cb"),)
+        toy_yardstick_df, "m_goals", (0.0, 2.8, 10.0), (stats.Ratio("is_comeback", "m_cb", "cb"),)
     )
     assert banded_df["n"].tolist() == [2.0, 2.0]
     assert banded_df["oe"].tolist() == pytest.approx([1.0, 2.0])

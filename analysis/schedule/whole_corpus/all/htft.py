@@ -16,8 +16,11 @@ from analysis.methods import yardstick
 # The sizes of the yardstick's top-N tables, chosen on 2026-10-19. A rule is judged by its top N
 # (`notes/ANALYSIS/CLAUDE.md` §6, the candidate protocol).
 TOP_N = (100, 250, 500, 1000, 2000, 5000)
-# (observed column, the yardstick's chance, label) for the top-N tables.
-TARGETS = (("is_comeback", "m_cb", "comeback"), ("seven", "m_seven", "7+ goals"))
+# The top-N tables: the observed column against the yardstick's chance.
+TARGETS = (
+    stats.Ratio("is_comeback", "m_cb", "comeback"),
+    stats.Ratio("seven", "m_seven", "7+ goals"),
+)
 
 
 def with_cells(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
@@ -48,7 +51,7 @@ def with_cells(yardstick_df: pd.DataFrame, share: float) -> pd.DataFrame:
 def cell_table(yardstick_df: pd.DataFrame) -> pd.DataFrame:
     """Each HT/FT result: observed and expected counts, O/E with its interval, observed share."""
 
-    rows = tuple((f"o_{cell}", f"m_{cell}", cell) for cell in yardstick.HTFT)
+    rows = tuple(stats.Ratio(f"o_{cell}", f"m_{cell}", cell) for cell in yardstick.HTFT)
     cell_table_df = stats.observed_expected_table(yardstick_df, rows).rename(
         columns={"quantity": "HT/FT"}
     )
@@ -111,10 +114,11 @@ def main() -> None:
     for cohort, cohort_df in yardstick_df.groupby("season_cohort"):
         report.show(f"Season cohort {cohort} ({len(cohort_df):,} matches)", cell_table(cohort_df))
 
-    for observed, chance, label in TARGETS:
-        print(f"\nbase rate of {label}: {yardstick_df[observed].mean():.4f}")
+    for target in TARGETS:
+        print(f"\nbase rate of {target.label}: {yardstick_df[target.observed].mean():.4f}")
         report.show(
-            f"Top N by the yardstick's chance of {label}", top_n(yardstick_df, observed, chance)
+            f"Top N by the yardstick's chance of {target.label}",
+            top_n(yardstick_df, target.observed, target.expected),
         )
 
 

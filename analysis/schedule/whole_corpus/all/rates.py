@@ -22,11 +22,11 @@ def card_table(card_df: pd.DataFrame) -> pd.DataFrame:
     """Each row of the card: its two sums, their ratio, and the interval over league-seasons."""
 
     rows = []
-    for numerator, denominator, label, _ in card.CARD:
-        ratio = stats.observed_expected(card_df, numerator, denominator)
+    for quantity in card.CARD:
+        ratio = stats.observed_expected(card_df, quantity.observed, quantity.expected)
         rows.append(
             {
-                "quantity": label,
+                "quantity": quantity.label,
                 "count": ratio["observed"],
                 "of": ratio["expected"],
                 "value": ratio["oe"],

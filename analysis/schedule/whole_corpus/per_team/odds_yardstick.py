@@ -21,21 +21,22 @@ from analysis.methods import yardstick
 
 UNIT = card.TEAM_UNIT  # a team in one league
 LEAGUE = card.TEAM_LEAGUE
-# (observed column, expected column, label, kind): a team's O/E is sum(observed) /
-# sum(expected) over its rows. The expected columns are the yardstick's chances for the team.
+# Each row: units.Quantity(observed column, expected column, label, kind). A team's O/E is
+# sum(observed) / sum(expected) over its rows. The expected columns are the yardstick's chances
+# for the team.
 QUANTITIES = (
-    ("comes_back", "m_comes_back", "comes back", "event"),
-    ("comes_back_home", "m_comes_back_home", "comes back at home", "event"),
-    ("comes_back_away", "m_comes_back_away", "comes back away", "event"),
-    ("behind", "m_behind", "behind at half-time", "event"),
-    ("comes_back", "m_wins_from_behind", "behind, then wins", "event"),
-    ("loses_lead", "m_loses_lead", "loses a lead", "event"),
-    ("loses_lead_home", "m_loses_lead_home", "loses a lead at home", "event"),
-    ("loses_lead_away", "m_loses_lead_away", "loses a lead away", "event"),
-    ("ahead", "m_ahead", "ahead at half-time", "event"),
-    ("loses_lead", "m_loses_from_ahead", "ahead, then loses", "event"),
-    ("goals_for", "m_goals_for", "goals scored", "count"),
-    ("goals_against", "m_goals_against", "goals conceded", "count"),
+    units.Quantity("comes_back", "m_comes_back", "comes back", "event"),
+    units.Quantity("comes_back_home", "m_comes_back_home", "comes back at home", "event"),
+    units.Quantity("comes_back_away", "m_comes_back_away", "comes back away", "event"),
+    units.Quantity("behind", "m_behind", "behind at half-time", "event"),
+    units.Quantity("comes_back", "m_wins_from_behind", "behind, then wins", "event"),
+    units.Quantity("loses_lead", "m_loses_lead", "loses a lead", "event"),
+    units.Quantity("loses_lead_home", "m_loses_lead_home", "loses a lead at home", "event"),
+    units.Quantity("loses_lead_away", "m_loses_lead_away", "loses a lead away", "event"),
+    units.Quantity("ahead", "m_ahead", "ahead at half-time", "event"),
+    units.Quantity("loses_lead", "m_loses_from_ahead", "ahead, then loses", "event"),
+    units.Quantity("goals_for", "m_goals_for", "goals scored", "count"),
+    units.Quantity("goals_against", "m_goals_against", "goals conceded", "count"),
 )
 RANKED = ("comes back", "loses a lead")
 GOALS = ("goals scored", "goals conceded")  # the counts, tested against shuffles too
@@ -71,13 +72,13 @@ def calibration(team_rows_df: pd.DataFrame) -> pd.DataFrame:
 
     table = []
     for band, band_df in team_rows_df.groupby(bands, observed=True):
-        for observed, expected, label, _ in QUANTITIES:
-            if label in CALIBRATED:
+        for quantity in QUANTITIES:
+            if quantity.label in CALIBRATED:
                 table.append(
                     {
                         "win chance": str(band),
-                        "quantity": label,
-                        **stats.observed_expected(band_df, observed, expected),
+                        "quantity": quantity.label,
+                        **stats.observed_expected(band_df, quantity.observed, quantity.expected),
                     }
                 )
 
@@ -92,7 +93,7 @@ def shuffle_table(team_rows_df: pd.DataFrame) -> pd.DataFrame:
         [
             units.level_row(team_rows_df, LEAGUE, UNIT, quantity)
             for quantity in QUANTITIES
-            if quantity[2] in GOALS
+            if quantity.label in GOALS
         ]
     )
 
@@ -103,7 +104,7 @@ def null_table(team_rows_df: pd.DataFrame, results: dict[str, units.Within]) -> 
 
     table = []
     for quantity in QUANTITIES:
-        label = quantity[2]
+        label = quantity.label
         if label not in ROLES:
             continue
 
@@ -139,7 +140,7 @@ def main() -> None:
 
     summary, within_results = [], {}
     for quantity in QUANTITIES:
-        row, within_results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
+        row, within_results[quantity.label] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
         summary.append(row)
 
     report.show("One test of the teams around their league, for each O/E", pd.DataFrame(summary))
@@ -162,7 +163,9 @@ def main() -> None:
                 team_rows_df,
                 within_results[label].part_values_df,
                 TOP,
-                names=("observed", "expected", "O/E"),
+                observed_label="observed",
+                expected_label="expected",
+                value_label="O/E",
             ),
         )
 

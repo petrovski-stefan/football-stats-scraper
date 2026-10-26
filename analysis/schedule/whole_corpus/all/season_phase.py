@@ -11,13 +11,14 @@ across the phases for each quantity and reading.
 Run: `uv run python -m analysis.schedule.whole_corpus.all.season_phase`
 """
 
+from dataclasses import replace
+
 import numpy as np
 import pandas as pd
 
 from analysis import card, corpus, report, stats, units
 from analysis.methods import yardstick
 
-# (observed column, denominator column, yardstick column, label, kind)
 QUANTITIES = card.ODDS_CARD
 # The quantities of the round-number section: the luck line there needs counts or rare events.
 ROUND_QUANTITIES = ("comeback", "7+ goals", "goals per match")
@@ -71,35 +72,32 @@ def with_league_season(phased_df: pd.DataFrame) -> pd.DataFrame:
     denominator times its league-season's value, so phase changes nothing inside it."""
 
     with_league_season_df = phased_df.copy()
-    for observed, denominator, _, label, _ in QUANTITIES:
+    for quantity in QUANTITIES:
+        observed, denominator = quantity.observed, quantity.denominator
         sums_df = phased_df.groupby("cluster")[[observed, denominator]].transform("sum")
-        with_league_season_df[league_season_column(label)] = (
+        with_league_season_df[league_season_column(quantity.label)] = (
             phased_df[denominator] * sums_df[observed] / sums_df[denominator]
         )
 
     return with_league_season_df
 
 
-def readings(quantity: tuple[str, str, str, str, str]) -> tuple[tuple[str, str], ...]:
+def readings(quantity: card.OddsQuantity) -> tuple[tuple[str, str], ...]:
     """(reading, expected column) of each way to read a quantity: raw, against its
     league-season, and against the odds."""
 
-    _, denominator, model, label, _ = quantity
-
     return (
-        ("raw", denominator),
-        ("league-season", league_season_column(label)),
-        ("odds", model),
+        ("raw", quantity.denominator),
+        ("league-season", league_season_column(quantity.label)),
+        ("odds", quantity.yardstick),
     )
 
 
-def phase_values(
-    phased_df: pd.DataFrame, phase: str, quantity: tuple[str, str, str, str, str]
-) -> pd.DataFrame:
+def phase_values(phased_df: pd.DataFrame, phase: str, quantity: card.OddsQuantity) -> pd.DataFrame:
     """Per phase: the matches, the count, and the value of each reading (an O/E but for the
     raw one); the raw and odds values with their intervals over league-seasons."""
 
-    observed = quantity[0]
+    observed = quantity.observed
 
     rows = []
     for key, phase_df in phased_df.groupby(phase):
@@ -126,19 +124,17 @@ def phase_tests(phased_df: pd.DataFrame, phase: str) -> pd.DataFrame:
 
     rows = []
     for quantity in QUANTITIES:
-        observed, _, _, label, kind = quantity
         for reading, expected in readings(quantity):
-            dispersion_factor = units.dispersion(phased_df, phase, observed, expected, kind)
-            phase_values_df = units.unit_values(
-                phased_df, phase, observed, expected, kind, dispersion_factor
-            )
+            read_quantity = quantity.against(expected)
+            dispersion_factor = units.dispersion(phased_df, phase, read_quantity)
+            phase_values_df = units.unit_values(phased_df, phase, read_quantity, dispersion_factor)
             heterogeneity = stats.heterogeneity(
                 phase_values_df["value"], phase_values_df["variance"]
             )
 
             rows.append(
                 {
-                    "quantity": label,
+                    "quantity": quantity.label,
                     "reading": reading,
                     "dispersion": dispersion_factor,
                     "Q": heterogeneity.cochran_q,
@@ -164,17 +160,14 @@ def round_summary(common_rounds_df: pd.DataFrame) -> pd.DataFrame:
 
     rows = []
     for quantity in QUANTITIES:
-        observed, _, _, label, kind = quantity
-        if label not in ROUND_QUANTITIES:
+        if quantity.label not in ROUND_QUANTITIES:
             continue
 
         for reading, expected in readings(quantity):
-            row, _ = units.summary_row(
-                common_rounds_df,
-                "round",
-                (observed, expected, f"{label}, {reading}", kind),
-                has_luck_line=True,
+            read_quantity = replace(
+                quantity.against(expected), label=f"{quantity.label}, {reading}"
             )
+            row, _ = units.summary_row(common_rounds_df, "round", read_quantity, has_luck_line=True)
             rows.append(row)
 
     return pd.DataFrame(rows)
@@ -184,8 +177,8 @@ def show_phase(phased_df: pd.DataFrame, phase: str, title: str, labels: tuple[st
     """The values of the quantities named in `labels` by phase, then the tests of all."""
 
     for quantity in QUANTITIES:
-        if quantity[3] in labels:
-            report.show(f"{title}: {quantity[3]}", phase_values(phased_df, phase, quantity))
+        if quantity.label in labels:
+            report.show(f"{title}: {quantity.label}", phase_values(phased_df, phase, quantity))
     report.show(f"{title}: one test across the phases", phase_tests(phased_df, phase))
 
 
@@ -201,7 +194,7 @@ def main() -> None:
     phased_df["season_cohort"] = matches_df["season_cohort"]
 
     print(f"priced matches (both opening markets): {len(phased_df):,}")
-    every = tuple(quantity[3] for quantity in QUANTITIES)
+    every = tuple(quantity.label for quantity in QUANTITIES)
     show_phase(phased_df, "third", "Thirds by round", every)
     show_phase(phased_df, "third_kickoff", "Thirds by kickoff order", ROUND_QUANTITIES)
     show_phase(phased_df, "edge", "First and last rounds", ROUND_QUANTITIES)

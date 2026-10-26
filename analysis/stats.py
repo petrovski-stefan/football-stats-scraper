@@ -114,14 +114,23 @@ def observed_expected(df: pd.DataFrame, observed: str, expected: str) -> dict[st
     }
 
 
-def observed_expected_table(
-    df: pd.DataFrame, rows: tuple[tuple[str, str, str], ...]
-) -> pd.DataFrame:
-    """One O/E row per (observed column, expected column, label)."""
+@dataclass(frozen=True)
+class Ratio:
+    """One row of an observed / expected table: sum(observed) / sum(expected), and its label."""
 
-    return pd.DataFrame(
-        [{"quantity": label, **observed_expected(df, o, e)} for o, e, label in rows]
-    )
+    observed: str
+    expected: str
+    label: str
+
+
+def observed_expected_table(df: pd.DataFrame, rows: tuple[Ratio, ...]) -> pd.DataFrame:
+    """One O/E row per `Ratio`."""
+
+    table = []
+    for row in rows:
+        table.append({"quantity": row.label, **observed_expected(df, row.observed, row.expected)})
+
+    return pd.DataFrame(table)
 
 
 @dataclass(frozen=True)

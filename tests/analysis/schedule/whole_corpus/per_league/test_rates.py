@@ -3,6 +3,7 @@
 import pandas as pd
 import pytest
 
+from analysis import units
 from analysis.schedule.whole_corpus.per_league import rates as runner
 
 
@@ -28,7 +29,7 @@ def card_df() -> pd.DataFrame:
 
 
 def test_quantity_finds_the_card_row() -> None:
-    assert runner.quantity("comeback") == ("is_comeback", "one", "comeback", "event")
+    assert runner.quantity("comeback") == units.Quantity("is_comeback", "one", "comeback", "event")
     with pytest.raises(StopIteration):
         runner.quantity("no such row")
 

@@ -70,7 +70,7 @@ def test_observed_expected_is_the_ratio_of_the_sums(observed_df: pd.DataFrame) -
 def test_observed_expected_table_has_one_row_per_comparison(
     observed_df: pd.DataFrame,
 ) -> None:
-    rows = (("hit", "chance", "one"), ("hit", "other", "two"))
+    rows = (stats.Ratio("hit", "chance", "one"), stats.Ratio("hit", "other", "two"))
     assert stats.observed_expected_table(observed_df, rows)["quantity"].tolist() == [
         "one",
         "two",

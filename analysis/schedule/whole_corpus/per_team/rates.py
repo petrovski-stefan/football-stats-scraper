@@ -17,22 +17,22 @@ from analysis import card, corpus, report, units
 
 UNIT = card.TEAM_UNIT  # a team in one league
 LEAGUE = card.TEAM_LEAGUE
-# (numerator column, denominator column, label, kind): sum(numerator) / sum(denominator) over
-# the rows of a team. The two roles: the team comes back (behind at half-time, then wins),
-# and the team loses a lead (ahead at half-time, then loses).
+# Each row: units.Quantity(numerator column, denominator column, label, kind), sum(numerator) /
+# sum(denominator) over the rows of a team. The two roles: the team comes back (behind at
+# half-time, then wins), and the team loses a lead (ahead at half-time, then loses).
 QUANTITIES = (
-    ("comes_back", "one", "comes back", "event"),
-    ("comes_back_home", "home", "comes back at home", "event"),
-    ("comes_back_away", "away", "comes back away", "event"),
-    ("behind", "one", "behind at half-time", "event"),
-    ("comes_back", "behind", "behind, then wins", "event"),
-    ("loses_lead", "one", "loses a lead", "event"),
-    ("loses_lead_home", "home", "loses a lead at home", "event"),
-    ("loses_lead_away", "away", "loses a lead away", "event"),
-    ("ahead", "one", "ahead at half-time", "event"),
-    ("loses_lead", "ahead", "ahead, then loses", "event"),
-    ("goals_for", "one", "goals scored", "count"),
-    ("goals_against", "one", "goals conceded", "count"),
+    units.Quantity("comes_back", "one", "comes back", "event"),
+    units.Quantity("comes_back_home", "home", "comes back at home", "event"),
+    units.Quantity("comes_back_away", "away", "comes back away", "event"),
+    units.Quantity("behind", "one", "behind at half-time", "event"),
+    units.Quantity("comes_back", "behind", "behind, then wins", "event"),
+    units.Quantity("loses_lead", "one", "loses a lead", "event"),
+    units.Quantity("loses_lead_home", "home", "loses a lead at home", "event"),
+    units.Quantity("loses_lead_away", "away", "loses a lead away", "event"),
+    units.Quantity("ahead", "one", "ahead at half-time", "event"),
+    units.Quantity("loses_lead", "ahead", "ahead, then loses", "event"),
+    units.Quantity("goals_for", "one", "goals scored", "count"),
+    units.Quantity("goals_against", "one", "goals conceded", "count"),
 )
 RANKED = ("comes back", "loses a lead")
 TOP = 20  # the teams in each list of the top teams, chosen on 2026-10-19
@@ -49,7 +49,7 @@ def main() -> None:
 
     summary, within_results = [], {}
     for quantity in QUANTITIES:
-        row, within_results[quantity[2]] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
+        row, within_results[quantity.label] = units.within_row(team_rows_df, LEAGUE, UNIT, quantity)
         summary.append(row)
 
     report.show(

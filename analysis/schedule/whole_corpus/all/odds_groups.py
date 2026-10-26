@@ -30,8 +30,11 @@ GROUPINGS = (
 )
 KEY_COLUMNS = list(dict.fromkeys(chain.from_iterable(by for _, by in GROUPINGS)))
 LISTED = "exact 9 prices"  # its groups are small, so its groups of 2+ events are listed
-# (observed column, the yardstick's expected column, label)
-QUANTITIES = (("is_comeback", "m_cb", "comeback"), ("seven", "m_seven", "7+ goals"))
+# The observed column against the yardstick's expected column.
+QUANTITIES = (
+    stats.Ratio("is_comeback", "m_cb", "comeback"),
+    stats.Ratio("seven", "m_seven", "7+ goals"),
+)
 THRESHOLDS = (2, 3)  # groups that hold at least this many events
 SMALLEST_TAIL = "smallest tail p"
 NULL_DRAWS = 1000  # the draws of the null, chosen on 2026-10-19
@@ -51,8 +54,8 @@ def group_frame(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.Data
     ah_matches_df["p_away_band"] = (ah_matches_df["s2_mkt_p_away"] / BAND).round()
 
     columns: list[str] = []
-    for observed, expected, _ in QUANTITIES:
-        columns += [observed, expected]
+    for quantity in QUANTITIES:
+        columns += [quantity.observed, quantity.expected]
 
     grouped_matches_df = yardstick_df.loc[ah_matches_df.index, [*columns, "cluster"]].copy()
     grouped_matches_df["season_cohort"] = ah_matches_df["season_cohort"]
@@ -223,8 +226,9 @@ def show_grouping(grouped_matches_df: pd.DataFrame, grouping: str, seed: int) ->
     """Every table of one grouping, for each quantity."""
 
     groups = grouped_matches_df[grouping].to_numpy()
-    for observed, expected, label in QUANTITIES:
-        title = f"{grouping}, {label}"
+    for quantity in QUANTITIES:
+        observed, expected = quantity.observed, quantity.expected
+        title = f"{grouping}, {quantity.label}"
         chance = null_chance(grouped_matches_df[observed], grouped_matches_df[expected])
         events = grouped_matches_df[observed].to_numpy(dtype=float)
 
@@ -241,8 +245,8 @@ def show_grouping(grouped_matches_df: pd.DataFrame, grouping: str, seed: int) ->
 
         large_df = large_groups(grouped_matches_df, grouping, expected)
         if large_df[grouping].nunique() >= 2:
-            quantity = (observed, expected, f"{label}, O/E", "event")
-            row, _ = units.summary_row(large_df, grouping, quantity, has_luck_line=True)
+            tested_quantity = units.Quantity(observed, expected, f"{quantity.label}, O/E", "event")
+            row, _ = units.summary_row(large_df, grouping, tested_quantity, has_luck_line=True)
             group_table_df = pd.DataFrame([row])
             group_table_df.insert(1, "groups", large_df[grouping].nunique())
             group_table_df.insert(2, "matches", len(large_df))

@@ -14,6 +14,8 @@ that the odds and the league-season expect.
 Run: `uv run python -m analysis.schedule.whole_corpus.all.round_clusters`
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 
@@ -33,15 +35,23 @@ RAW_READING = "raw, around its league-season"
 ODDS_READING = "odds, around its league-season"
 
 
-def readings(quantity: tuple[str, str, str, str, str]) -> tuple[tuple[str, str, str], ...]:
-    """(reading, unit, expected column) of each way to read a quantity of `card.ODDS_CARD`."""
+@dataclass(frozen=True)
+class Reading:
+    """One way to read a quantity: its name, the unit that the rounds sit in, and the expected
+    column."""
 
-    _, denominator, model, _, _ = quantity
+    name: str
+    unit: str
+    expected: str
+
+
+def readings(quantity: card.OddsQuantity) -> tuple[Reading, ...]:
+    """Each way to read a quantity of `card.ODDS_CARD`."""
 
     return (
-        ("raw, around all matches", EVERYTHING, denominator),
-        (RAW_READING, LEAGUE_SEASON, denominator),
-        (ODDS_READING, LEAGUE_SEASON, model),
+        Reading("raw, around all matches", EVERYTHING, quantity.denominator),
+        Reading(RAW_READING, LEAGUE_SEASON, quantity.denominator),
+        Reading(ODDS_READING, LEAGUE_SEASON, quantity.yardstick),
     )
 
 
@@ -53,28 +63,27 @@ def tests(
 
     rows = []
     for quantity in card.ODDS_CARD:
-        observed, _, _, label, kind = quantity
-        for reading, unit, expected in readings(quantity):
-            if only and reading not in only:
+        for reading in readings(quantity):
+            if only and reading.name not in only:
                 continue
 
             row = units.level_row(
-                yardstick_df, unit, ROUND, (observed, expected, label, kind), draws
+                yardstick_df, reading.unit, ROUND, quantity.against(reading.expected), draws
             )
-            rows.append({"reading": reading, **row})
+            rows.append({"reading": reading.name, **row})
 
     return pd.DataFrame(rows)
 
 
 def largest_rounds(
-    yardstick_df: pd.DataFrame, quantity: tuple[str, str, str, str, str], top: int = TOP_ROUNDS
+    yardstick_df: pd.DataFrame, quantity: card.OddsQuantity, top: int = TOP_ROUNDS
 ) -> pd.DataFrame:
     """The rounds with the largest part of Q against the odds: each round's squared distance
     from its league-season, over its variance (`units.within_tested`)."""
 
-    observed, _, model, _, kind = quantity
+    against_odds = quantity.against(quantity.yardstick)
     part_values_df = units.within_tested(
-        yardstick_df, LEAGUE_SEASON, ROUND, observed, model, kind
+        yardstick_df, LEAGUE_SEASON, ROUND, against_odds
     ).part_values_df
 
     rounds = yardstick_df.groupby(ROUND)
@@ -191,17 +200,19 @@ def main() -> None:
         )
 
     for quantity in card.ODDS_CARD:
-        if quantity[3] in LARGEST:
+        if quantity.label in LARGEST:
             report.show(
-                f"The rounds with the largest part of Q against the odds: {quantity[3]}",
+                f"The rounds with the largest part of Q against the odds: {quantity.label}",
                 largest_rounds(yardstick_df, quantity),
             )
 
-    for observed, _, model, label, _ in card.ODDS_CARD:
-        if label in COUNTED:
-            chances = league_season_chance(yardstick_df, observed, model)
+    for quantity in card.ODDS_CARD:
+        if quantity.label in COUNTED:
+            observed = quantity.observed
+            chances = league_season_chance(yardstick_df, observed, quantity.yardstick)
             report.show(
-                f"Rounds by their count of {label}: expected from the odds and the league-season",
+                f"Rounds by their count of {quantity.label}: expected from the odds and the "
+                "league-season",
                 count_table(yardstick_df[observed], chances, yardstick_df[ROUND]),
             )
 

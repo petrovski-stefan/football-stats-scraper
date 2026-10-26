@@ -8,38 +8,62 @@ level reads `team_rows`: two rows per match, one per team, with the yardstick's 
 each team in `team_yardstick_rows`.
 """
 
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
 
+from analysis import units
 from domain.stats import SEVEN_PLUS_GOALS
 
-# (numerator column, denominator column, label, kind)
+# Each row: units.Quantity(numerator column, denominator column, label, kind).
 CARD = (
-    ("is_comeback", "one", "comeback", "event"),
-    ("ht_decisive", "one", "link 1: a team is behind at half-time", "event"),
-    ("is_comeback", "ht_decisive", "link 2: the team behind wins", "event"),
-    ("is_comeback_home", "one", "home comeback", "event"),
-    ("home_behind", "one", "home team behind at half-time", "event"),
-    ("is_comeback_home", "home_behind", "home team behind wins", "event"),
-    ("is_comeback_away", "one", "away comeback", "event"),
-    ("away_behind", "one", "away team behind at half-time", "event"),
-    ("is_comeback_away", "away_behind", "away team behind wins", "event"),
-    ("seven", "one", "7+ goals", "event"),
-    ("goals_1h", "one", "goals in the first half", "count"),
-    ("goals_2h", "one", "goals in the second half", "count"),
-    ("goals", "one", "goals per match", "count"),
+    units.Quantity("is_comeback", "one", "comeback", "event"),
+    units.Quantity("ht_decisive", "one", "link 1: a team is behind at half-time", "event"),
+    units.Quantity("is_comeback", "ht_decisive", "link 2: the team behind wins", "event"),
+    units.Quantity("is_comeback_home", "one", "home comeback", "event"),
+    units.Quantity("home_behind", "one", "home team behind at half-time", "event"),
+    units.Quantity("is_comeback_home", "home_behind", "home team behind wins", "event"),
+    units.Quantity("is_comeback_away", "one", "away comeback", "event"),
+    units.Quantity("away_behind", "one", "away team behind at half-time", "event"),
+    units.Quantity("is_comeback_away", "away_behind", "away team behind wins", "event"),
+    units.Quantity("seven", "one", "7+ goals", "event"),
+    units.Quantity("goals_1h", "one", "goals in the first half", "count"),
+    units.Quantity("goals_2h", "one", "goals in the second half", "count"),
+    units.Quantity("goals", "one", "goals per match", "count"),
 )
 
+
+@dataclass(frozen=True)
+class OddsQuantity:
+    """A quantity with two ways to read it: against its denominator (the raw value) or
+    against the odds yardstick's column (an O/E)."""
+
+    observed: str
+    denominator: str
+    yardstick: str
+    label: str
+    kind: str
+
+    def against(self, expected: str) -> units.Quantity:
+        """This quantity as sum(observed) / sum(`expected`) over the matches of a unit."""
+
+        return units.Quantity(self.observed, expected, self.label, self.kind)
+
+
 # The main rows of the card with the column of the odds yardstick (`analysis/methods/
-# yardstick.py`) that each is read against, on the yardstick's frame:
-# (observed column, denominator column, yardstick column, label, kind).
+# yardstick.py`) that each is read against, on the yardstick's frame.
+# Each row: OddsQuantity(observed column, denominator column, yardstick column, label, kind).
 ODDS_CARD = (
-    ("is_comeback", "one", "m_cb", "comeback", "event"),
-    ("ht_decisive", "one", "m_ht_decisive", "link 1: a team is behind at half-time", "event"),
-    ("is_comeback", "ht_decisive", "m_completion", "link 2: the team behind wins", "event"),
-    ("seven", "one", "m_seven", "7+ goals", "event"),
-    ("goals", "one", "m_goals", "goals per match", "count"),
+    OddsQuantity("is_comeback", "one", "m_cb", "comeback", "event"),
+    OddsQuantity(
+        "ht_decisive", "one", "m_ht_decisive", "link 1: a team is behind at half-time", "event"
+    ),
+    OddsQuantity(
+        "is_comeback", "ht_decisive", "m_completion", "link 2: the team behind wins", "event"
+    ),
+    OddsQuantity("seven", "one", "m_seven", "7+ goals", "event"),
+    OddsQuantity("goals", "one", "m_goals", "goals per match", "count"),
 )
 
 
@@ -182,11 +206,14 @@ def top_teams(
     team_rows_df: pd.DataFrame,
     unit_values_df: pd.DataFrame,
     top: int,
-    names: tuple[str, str, str] = ("events", "of", "rate"),
+    *,
+    observed_label: str = "events",
+    expected_label: str = "of",
+    value_label: str = "rate",
 ) -> pd.DataFrame:
     """The teams most above their league after shrinkage, then by the raw value, with the
     comebacks in all their matches. `unit_values_df` holds the team values of
-    `analysis/units.py:within_tested`; `names` label their observed, expected and value."""
+    `analysis/units.py:within_tested`; the three labels name their columns."""
 
     team_names_df = team_rows_df.groupby(TEAM_UNIT)[["team_name", "league_name"]].first()
     in_matches = team_rows_df.groupby(TEAM_UNIT)[["comes_back", "loses_lead"]].sum().sum(axis=1)
@@ -197,7 +224,6 @@ def top_teams(
     top_teams_df["shrunk - league"] = top_teams_df["shrunk"] - top_teams_df["owner_mean"]
     top_teams_df["comebacks in its matches"] = in_matches
 
-    observed_label, expected_label, value_label = names
     top_teams_df = top_teams_df.rename(
         columns={
             "observed": observed_label,
