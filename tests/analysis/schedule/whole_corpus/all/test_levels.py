@@ -78,7 +78,7 @@ def test_odds_shares_cover_both_cards(rows: dict[str, pd.DataFrame]) -> None:
 def test_level_tests_give_one_row_per_level_quantity_and_reading(
     rows: dict[str, pd.DataFrame],
 ) -> None:
-    every = tuple(level for level, *_ in runner.LEVELS)
+    every = tuple(level.name for level in runner.LEVELS)
     level_tests_df = runner.level_tests(rows, every, draws=2)
 
     per_reading = 3 * len(card.ODDS_CARD) + len(runner.TEAM_QUANTITIES)

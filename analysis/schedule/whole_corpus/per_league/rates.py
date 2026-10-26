@@ -20,18 +20,19 @@ SLICED = ("comeback", "7+ goals", "goals per match")  # the season and stage sli
 # The stages of a league that keeps two, one after the other. Apertura-B is a part of the
 # Apertura of one league.
 STAGES = {"Apertura": "Apertura", "Apertura-B": "Apertura", "Clausura": "Clausura"}
-# (quantity, column of its league values, header) of the league table.
+# The league table. Each column: report.ValueColumn(quantity, column of its league values,
+# header).
 TABLE_COLUMNS = (
-    ("comeback", "observed", "comebacks"),
-    ("comeback", "value", "rate"),
-    ("comeback", "shrunk", "shrunk"),
-    ("link 1: a team is behind at half-time", "shrunk", "link 1 shrunk"),
-    ("link 2: the team behind wins", "shrunk", "link 2 shrunk"),
-    ("7+ goals", "observed", "7+"),
-    ("7+ goals", "value", "7+ rate"),
-    ("7+ goals", "shrunk", "7+ shrunk"),
-    ("goals in the first half", "value", "goals 1H"),
-    ("goals in the second half", "value", "goals 2H"),
+    report.ValueColumn("comeback", "observed", "comebacks"),
+    report.ValueColumn("comeback", "value", "rate"),
+    report.ValueColumn("comeback", "shrunk", "shrunk"),
+    report.ValueColumn("link 1: a team is behind at half-time", "shrunk", "link 1 shrunk"),
+    report.ValueColumn("link 2: the team behind wins", "shrunk", "link 2 shrunk"),
+    report.ValueColumn("7+ goals", "observed", "7+"),
+    report.ValueColumn("7+ goals", "value", "7+ rate"),
+    report.ValueColumn("7+ goals", "shrunk", "7+ shrunk"),
+    report.ValueColumn("goals in the first half", "value", "goals 1H"),
+    report.ValueColumn("goals in the second half", "value", "goals 2H"),
 )
 
 
@@ -90,8 +91,8 @@ def league_table(card_df: pd.DataFrame, values: dict[str, pd.DataFrame]) -> pd.D
 
     grouped = card_df.groupby(LEAGUE)
     league_table_df = pd.DataFrame({"league": grouped["league"].first(), "matches": grouped.size()})
-    for label, column, header in TABLE_COLUMNS:
-        league_table_df[header] = values[label][column]
+    for value_column in TABLE_COLUMNS:
+        league_table_df[value_column.header] = values[value_column.quantity][value_column.column]
 
     return league_table_df.sort_values(["shrunk", "league"], ascending=[False, True])
 

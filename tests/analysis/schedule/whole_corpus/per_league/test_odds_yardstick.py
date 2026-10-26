@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from analysis import report
 from analysis.methods import yardstick
 from analysis.schedule.whole_corpus.per_league import odds_yardstick as runner
 
@@ -52,7 +53,8 @@ def test_with_own_share_uses_each_league_share(toy_yardstick_df: pd.DataFrame) -
 
 def test_league_table_is_in_the_order_of_the_names(toy_yardstick_df: pd.DataFrame) -> None:
     values = {"x": pd.DataFrame({"value": [0.9, 1.1]}, index=pd.Index([2, 1]))}
-    league_table_df = runner.league_table(toy_yardstick_df, values, (("x", "value", "x O/E"),))
+    columns = (report.ValueColumn("x", "value", "x O/E"),)
+    league_table_df = runner.league_table(toy_yardstick_df, values, columns)
     assert league_table_df["league"].tolist() == ["A", "B"]
     assert league_table_df["matches"].tolist() == [3, 3]
     assert league_table_df["x O/E"].tolist() == [1.1, 0.9]

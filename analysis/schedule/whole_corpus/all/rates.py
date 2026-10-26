@@ -9,12 +9,23 @@ total. The count against the odds is in `ALL/ODDS_YARDSTICK.md`.
 Run: `uv run python -m analysis.schedule.whole_corpus.all.rates`
 """
 
+from dataclasses import dataclass
+
 import pandas as pd
 
 from analysis import card, corpus, report, stats
 
-# (smallest deficit, largest deficit, label) of the half-time deficit bands.
-DEFICITS = ((1, 1, "1"), (2, 2, "2"), (3, 99, "3 or more"))
+
+@dataclass(frozen=True)
+class DeficitBand:
+    """The half-time deficits from `smallest` to `largest` goals, both included."""
+
+    smallest: int
+    largest: int
+    label: str
+
+
+DEFICITS = (DeficitBand(1, 1, "1"), DeficitBand(2, 2, "2"), DeficitBand(3, 99, "3 or more"))
 MANY_GOALS = 10  # totals of this many goals or more share one row
 
 
@@ -43,15 +54,15 @@ def by_deficit(card_df: pd.DataFrame) -> pd.DataFrame:
     half-time in it gets no row."""
 
     rows = []
-    for smallest, largest, label in DEFICITS:
-        deficit_df = card_df[card_df["ht_deficit"].between(smallest, largest)]
+    for band in DEFICITS:
+        deficit_df = card_df[card_df["ht_deficit"].between(band.smallest, band.largest)]
         if deficit_df.empty:
             continue
 
         ratio = stats.observed_expected(deficit_df, "is_comeback", "one")
         rows.append(
             {
-                "deficit": label,
+                "deficit": band.label,
                 "half-times": ratio["n"],
                 "share of matches": ratio["n"] / len(card_df),
                 "comebacks": ratio["observed"],

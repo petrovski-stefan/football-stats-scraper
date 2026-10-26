@@ -32,26 +32,27 @@ QUANTITIES = (
     units.Quantity("goals_1h", "goals", "first-half share", "share"),
 )
 LUCK = ("goals O/E", "comeback O/E", "7+ O/E")  # counts and rare events: Poisson draws fit them
-# (quantity, column of its league values, header) for the two league tables.
+# The two league tables. Each column: report.ValueColumn(quantity, column of its league
+# values, header).
 MAIN_COLUMNS = (
-    ("goals O/E", "value", "goals O/E"),
-    ("goals O/E", "shrunk", "goals shrunk"),
-    ("comeback O/E", "observed", "cb obs"),
-    ("comeback O/E", "expected", "cb exp"),
-    ("comeback O/E", "value", "cb O/E"),
-    ("comeback O/E", "shrunk", "cb shrunk"),
-    ("7+ O/E", "observed", "7+ obs"),
-    ("7+ O/E", "expected", "7+ exp"),
-    ("7+ O/E", "value", "7+ O/E"),
-    ("7+ O/E", "shrunk", "7+ shrunk"),
-    ("first-half share", "value", "share"),
-    ("first-half share", "shrunk", "share shrunk"),
+    report.ValueColumn("goals O/E", "value", "goals O/E"),
+    report.ValueColumn("goals O/E", "shrunk", "goals shrunk"),
+    report.ValueColumn("comeback O/E", "observed", "cb obs"),
+    report.ValueColumn("comeback O/E", "expected", "cb exp"),
+    report.ValueColumn("comeback O/E", "value", "cb O/E"),
+    report.ValueColumn("comeback O/E", "shrunk", "cb shrunk"),
+    report.ValueColumn("7+ O/E", "observed", "7+ obs"),
+    report.ValueColumn("7+ O/E", "expected", "7+ exp"),
+    report.ValueColumn("7+ O/E", "value", "7+ O/E"),
+    report.ValueColumn("7+ O/E", "shrunk", "7+ shrunk"),
+    report.ValueColumn("first-half share", "value", "share"),
+    report.ValueColumn("first-half share", "shrunk", "share shrunk"),
 )
 LINK_COLUMNS = (
-    ("link 1 O/E", "value", "link 1 O/E"),
-    ("link 1 O/E", "shrunk", "link 1 shrunk"),
-    ("link 2 O/E", "value", "link 2 O/E"),
-    ("link 2 O/E", "shrunk", "link 2 shrunk"),
+    report.ValueColumn("link 1 O/E", "value", "link 1 O/E"),
+    report.ValueColumn("link 1 O/E", "shrunk", "link 1 shrunk"),
+    report.ValueColumn("link 2 O/E", "value", "link 2 O/E"),
+    report.ValueColumn("link 2 O/E", "shrunk", "link 2 shrunk"),
 )
 
 
@@ -75,7 +76,7 @@ def with_own_share(yardstick_df: pd.DataFrame) -> pd.DataFrame:
 def league_table(
     yardstick_df: pd.DataFrame,
     values: dict[str, pd.DataFrame],
-    columns: tuple[tuple[str, str, str], ...],
+    columns: tuple[report.ValueColumn, ...],
 ) -> pd.DataFrame:
     """Per league, in the order of the names: its matches and each column asked for."""
 
@@ -83,8 +84,8 @@ def league_table(
     league_table_df = pd.DataFrame(
         {"league": grouped["s1_league_name"].first(), "matches": grouped.size()}
     )
-    for label, column, header in columns:
-        league_table_df[header] = values[label][column]
+    for value_column in columns:
+        league_table_df[value_column.header] = values[value_column.quantity][value_column.column]
 
     return league_table_df.sort_values("league")
 

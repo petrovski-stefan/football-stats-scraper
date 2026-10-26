@@ -11,6 +11,8 @@ season cohort.
 Run: `uv run python -m analysis.schedule.whole_corpus.all.prices`
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 from scipy import stats as sps
@@ -19,16 +21,26 @@ from analysis import corpus, report, stats
 from analysis.methods import shin, yardstick
 from domain.stats import SEVEN_PLUS_GOALS
 
+
+@dataclass(frozen=True)
+class HandicapBand:
+    """The opening AH lines from `lowest` to `highest`, both included, under one label."""
+
+    label: str
+    lowest: float
+    highest: float
+
+
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
 MIN_LINE_MATCHES = 200  # an O/U line with fewer matches gets no row of its own
 # The AH line is positive when the home team gives the handicap (S1.22).
-# (label, lowest line, highest line); a line is a multiple of 0.25.
+# A line is a multiple of 0.25. Each band: HandicapBand(label, lowest line, highest line).
 AH_BANDS = (
-    ("home gives 1 or more", 1.0, np.inf),
-    ("home gives 0.25 to 0.75", 0.25, 0.75),
-    ("level", 0.0, 0.0),
-    ("away gives 0.25 to 0.75", -0.75, -0.25),
-    ("away gives 1 or more", -np.inf, -1.0),
+    HandicapBand("home gives 1 or more", 1.0, np.inf),
+    HandicapBand("home gives 0.25 to 0.75", 0.25, 0.75),
+    HandicapBand("level", 0.0, 0.0),
+    HandicapBand("away gives 0.25 to 0.75", -0.75, -0.25),
+    HandicapBand("away gives 1 or more", -np.inf, -1.0),
 )
 # The quantiles of the margin table and the goal totals of the tail table (7+ and its
 # neighbours), chosen on 2026-10-19.
@@ -184,7 +196,7 @@ def ah_groups(bets_df: pd.DataFrame) -> dict[str, "pd.Series[bool]"]:
     """Each band of the opening handicap, and all bands together."""
 
     groups = {
-        name: bets_df["ah_line"].between(lowest, highest) for name, lowest, highest in AH_BANDS
+        band.label: bets_df["ah_line"].between(band.lowest, band.highest) for band in AH_BANDS
     }
     groups["all lines"] = pd.Series(True, index=bets_df.index)
 

@@ -6,7 +6,7 @@
 
 **Status: IN PROGRESS.** The user asked for this plan on 2026-10-26, and gives the groups to fix one by one.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item, the new-pipeline items of groups 8, 11 and 14, and parts of groups 3 and 7 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item, the new-pipeline items of groups 7, 8, 11 and 14, and part of group 3 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -50,8 +50,9 @@
 
 ### 7. §4 and §8: function shape and contracts
 
-- Tables of tuples of 3 or 4 values in `analysis/` (6). Each site unpacks a row into names at once, so no site reads them by index: `all/levels.py:LEVELS`, `all/prices.py:AH_BANDS`, `all/rates.py:DEFICITS`, `per_league/odds_yardstick.py:MAIN_COLUMNS` and `LINK_COLUMNS`, `per_league/rates.py:TABLE_COLUMNS`. Fix: a frozen dataclass.
-- Old pipeline: the tuples of `scrapers/detail_parsers.py:_row_1x2`, and of `scrapers/detail.py` and `scrapers/goals.py` `_scrape_one`. The 8 arguments of `scrapers/goals.py:_store_rows`.
+Only old-pipeline items are open.
+
+- The tuples of `scrapers/detail_parsers.py:_row_1x2`, and of `scrapers/detail.py` and `scrapers/goals.py` `_scrape_one`. The 8 arguments of `scrapers/goals.py:_store_rows`.
 
 ### 8. §6: expressions and numbers
 
@@ -84,5 +85,5 @@ Only old-pipeline items are open.
 ## Order
 
 1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`. Group 10 after the user's decision.
-2. New-pipeline Defaults: groups 7 and 13, file by file. Groups 8, 11 and 14 have no new-pipeline items left.
+2. New-pipeline Defaults: group 13. Groups 7, 8, 11 and 14 have no new-pipeline items left.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

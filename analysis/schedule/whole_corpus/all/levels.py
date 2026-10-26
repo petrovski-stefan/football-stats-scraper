@@ -12,11 +12,25 @@ season cohort.
 Run: `uv run python -m analysis.schedule.whole_corpus.all.levels`
 """
 
+from dataclasses import dataclass
+
 import numpy as np
 import pandas as pd
 
 from analysis import card, corpus, report, units
 from analysis.methods import yardstick
+
+
+@dataclass(frozen=True)
+class Level:
+    """One level: its parts tested around their unit, on the "match" rows (the yardstick's
+    frame) or the "team" rows (its team rows)."""
+
+    name: str
+    unit: str
+    part: str
+    rows: str
+
 
 EVERYTHING = "all"  # the column of one unit that holds every match
 LEAGUE = "league"
@@ -33,13 +47,12 @@ TEAM_QUANTITIES = (
     card.OddsQuantity("goals_for", "one", "m_goals_for", "goals scored", "count"),
     card.OddsQuantity("goals_against", "one", "m_goals_against", "goals conceded", "count"),
 )
-# (level, unit, part, rows): each level's parts around their unit. "match" rows are the
-# yardstick's frame, "team" rows its team rows.
+# Each level's parts around their unit: Level(name, unit, part, rows).
 LEVELS = (
-    ("league", EVERYTHING, LEAGUE, "match"),
-    ("league-season", LEAGUE, LEAGUE_SEASON, "match"),
-    ("round", LEAGUE_SEASON, ROUND, "match"),
-    ("team-season", LEAGUE_SEASON, TEAM_SEASON, "team"),
+    Level("league", EVERYTHING, LEAGUE, "match"),
+    Level("league-season", LEAGUE, LEAGUE_SEASON, "match"),
+    Level("round", LEAGUE_SEASON, ROUND, "match"),
+    Level("team-season", LEAGUE_SEASON, TEAM_SEASON, "team"),
 )
 COHORT_LEVELS = ("league", "round", "team-season")  # a league has one season in each cohort
 READINGS = ("raw", "odds")
@@ -70,16 +83,18 @@ def level_tests(
     quantities = {"match": card.ODDS_CARD, "team": TEAM_QUANTITIES}
 
     table = []
-    for level, unit, part, kind_of_rows in LEVELS:
-        if level not in levels:
+    for level in LEVELS:
+        if level.name not in levels:
             continue
 
-        level_rows_df = rows[kind_of_rows]
-        for quantity in quantities[kind_of_rows]:
+        level_rows_df = rows[level.rows]
+        for quantity in quantities[level.rows]:
             for reading in readings:
                 expected = quantity.denominator if reading == "raw" else quantity.yardstick
-                row = units.level_row(level_rows_df, unit, part, quantity.against(expected), draws)
-                table.append({"level": level, "reading": reading, **row})
+                row = units.level_row(
+                    level_rows_df, level.unit, level.part, quantity.against(expected), draws
+                )
+                table.append({"level": level.name, "reading": reading, **row})
 
     return pd.DataFrame(table)
 
@@ -136,7 +151,7 @@ def main() -> None:
     print(f"each p: {units.NULL_DRAWS} shuffles of the parts inside their units")
     report.show("The share of a match's variance that the odds carry", odds_shares(rows))
 
-    every = tuple(level for level, *_ in LEVELS)
+    every = tuple(level.name for level in LEVELS)
     report.show("One test of each level around the level above it", level_tests(rows, every))
 
     for cohort in sorted(yardstick_df["season_cohort"].unique()):

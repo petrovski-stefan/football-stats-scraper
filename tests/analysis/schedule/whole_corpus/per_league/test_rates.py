@@ -57,7 +57,7 @@ def test_league_table_ranks_by_the_shrunk_comeback_rate(card_df: pd.DataFrame) -
             index=pd.Index([1, 2]),
         )
 
-    by_label = {label: values([0.3, 0.4]) for label, _, _ in runner.TABLE_COLUMNS}
+    by_label = {column.quantity: values([0.3, 0.4]) for column in runner.TABLE_COLUMNS}
     by_label["comeback"] = values([0.2, 0.6])
 
     league_table_df = runner.league_table(card_df, by_label)
