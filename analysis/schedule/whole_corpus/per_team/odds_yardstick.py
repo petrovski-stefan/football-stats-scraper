@@ -60,7 +60,7 @@ CALIBRATED = (
     "goals scored",
     "goals conceded",
 )
-TOP = 20
+TOP = 20  # the teams in each list of the top teams, chosen on 2026-10-19
 
 
 def calibration(team_rows_df: pd.DataFrame) -> pd.DataFrame:

@@ -11,6 +11,8 @@ groups at the top in one season cohort stay above the others in the other cohort
 Run: `uv run python -m analysis.schedule.whole_corpus.all.odds_groups`
 """
 
+from itertools import chain
+
 import numpy as np
 import pandas as pd
 from scipy.stats import poisson
@@ -26,13 +28,13 @@ GROUPINGS = (
     ("AH line and O/U line", [corpus.AH[0], yardstick.OU[0]]),
     ("1X2 chances to 0.05 and O/U line", ["p_home_band", "p_away_band", yardstick.OU[0]]),
 )
-KEY_COLUMNS = list(dict.fromkeys(column for _, by in GROUPINGS for column in by))
+KEY_COLUMNS = list(dict.fromkeys(chain.from_iterable(by for _, by in GROUPINGS)))
 LISTED = "exact 9 prices"  # its groups are small, so its groups of 2+ events are listed
 # (observed column, the yardstick's expected column, label)
 QUANTITIES = (("is_comeback", "m_cb", "comeback"), ("seven", "m_seven", "7+ goals"))
 THRESHOLDS = (2, 3)  # groups that hold at least this many events
 SMALLEST_TAIL = "smallest tail p"
-NULL_DRAWS = 1000
+NULL_DRAWS = 1000  # the draws of the null, chosen on 2026-10-19
 MIN_EXPECTED = 5.0  # a group with fewer expected events gets no place in the test across groups
 COHORT_FLOOR = 3.0  # the expected events a group needs in each cohort to be carried over
 TOP_SHARE = 0.2  # the share of groups chosen in one cohort
@@ -48,7 +50,10 @@ def group_frame(matches_df: pd.DataFrame, yardstick_df: pd.DataFrame) -> pd.Data
     ah_matches_df["p_home_band"] = (ah_matches_df["s2_mkt_p_home"] / BAND).round()
     ah_matches_df["p_away_band"] = (ah_matches_df["s2_mkt_p_away"] / BAND).round()
 
-    columns = [column for observed, expected, _ in QUANTITIES for column in (observed, expected)]
+    columns: list[str] = []
+    for observed, expected, _ in QUANTITIES:
+        columns += [observed, expected]
+
     grouped_matches_df = yardstick_df.loc[ah_matches_df.index, [*columns, "cluster"]].copy()
     grouped_matches_df["season_cohort"] = ah_matches_df["season_cohort"]
     grouped_matches_df["league"] = ah_matches_df["s1_league_name"]

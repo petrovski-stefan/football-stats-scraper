@@ -14,6 +14,8 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
+# The settings that `tune` does not search, chosen on 2026-10-19. The tuned models stopped after
+# 54 to 146 trees, far below `MAX_TREES` (`notes/ML/SCHEDULE/WHOLE_CORPUS/ALL/BEYOND_ODDS.md`).
 BASE: dict[str, Any] = {
     "objective": "binary",
     "learning_rate": 0.03,
@@ -29,8 +31,8 @@ GRID: tuple[dict[str, Any], ...] = tuple(
     {"num_leaves": leaves, "min_data_in_leaf": leaf_rows, "feature_fraction": share}
     for leaves, leaf_rows, share in product((4, 8, 16), (300, 1000), (0.5, 1.0))
 )
-FOLDS = 4
-MAX_TREES = 3000
+FOLDS = 4  # the folds of league-seasons, chosen on 2026-10-19
+MAX_TREES = 3000  # the most trees of a model: see the comment of `BASE`
 PATIENCE = 100  # early stopping: the trees after the best one that the search waits for
 CV_LOSS = "valid binary_logloss-mean"
 

@@ -30,6 +30,8 @@ AH_BANDS = (
     ("away gives 0.25 to 0.75", -0.75, -0.25),
     ("away gives 1 or more", -np.inf, -1.0),
 )
+# The quantiles of the margin table and the goal totals of the tail table (7+ and its
+# neighbours), chosen on 2026-10-19.
 MARGIN_QUANTILES = (0.01, 0.05, 0.5, 0.95, 0.99)
 TAIL_GOALS = (5, 6, 7, 8)
 

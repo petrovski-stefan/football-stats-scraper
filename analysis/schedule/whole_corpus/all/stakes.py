@@ -22,8 +22,8 @@ from analysis.methods import yardstick
 LATE = 5  # F1: matches left, this one included
 CLOSE = 3  # F1: points behind the nearest team above
 FELL = 2  # F2: places lost since the odds opened
-FIFTHS = (0.2, 0.4, 0.6, 0.8)
-ALPHA = 0.05
+FIFTHS = (0.2, 0.4, 0.6, 0.8)  # the cut points of the five bands of the opening win chance
+ALPHA = 0.05  # the conventional level, for the Holm-adjusted p
 SIDES = (("home", "away"), ("away", "home"))
 
 

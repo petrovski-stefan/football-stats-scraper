@@ -14,6 +14,7 @@ rates, so the fit is a least-squares compromise, and `fit_error` says how far it
 """
 
 from dataclasses import dataclass
+from itertools import product
 
 import numpy as np
 import pandas as pd
@@ -24,13 +25,16 @@ from analysis import stats
 from analysis.methods import shin
 from domain.stats import SEVEN_PLUS_GOALS
 
+# The grid of goal rates for the fit, chosen on 2026-10-18. The fit error that it gives is in
+# `notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ODDS_YARDSTICK.md`.
 RATE_STEP = 0.02
-RATES = np.arange(RATE_STEP, 6.0 + stats.FLOAT_TOLERANCE, RATE_STEP)
+MAX_RATE = 6.0
+RATES = np.arange(RATE_STEP, MAX_RATE + stats.FLOAT_TOLERANCE, RATE_STEP)
 MAX_GOALS = 25  # per team, for the grid's win probabilities; the mass beyond is negligible
 MAX_DEFICIT = 11  # half-time deficits summed over for a comeback
 OU = ["s1_odds_ou_open_line", "s1_odds_ou_open_over", "s1_odds_ou_open_under"]
 MAX_MARGIN = 12  # goal margins summed over in each half for the HT/FT cells
-HTFT = tuple(f"{ht}/{ft}" for ht in "1X2" for ft in "1X2")
+HTFT = tuple(f"{ht}/{ft}" for ht, ft in product("1X2", repeat=2))
 # Bands of a match's expected goals (the sum of its two rates), for tables by goal level.
 TOTAL_EDGES = (0.0, 2.2, 2.5, 2.8, 3.1, 3.4, 10.0)
 

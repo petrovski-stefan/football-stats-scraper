@@ -17,6 +17,9 @@ Z95 = float(norm.ppf(INTERVAL_HIGH))
 # A log loss keeps each chance this far from 0 and 1, so that log(0) never occurs.
 LOG_LOSS_CLIP = 1e-12
 
+# The resamples of a cluster bootstrap, chosen on 2026-10-18.
+BOOTSTRAP_DRAWS = 2000
+
 # Two floats closer than this are equal: far below the step of any odds, line or goal count.
 FLOAT_TOLERANCE = 1e-9
 
@@ -57,7 +60,10 @@ def wilson_ci(successes: int, trials: int) -> tuple[float, float]:
 
 
 def cluster_bootstrap_ci(
-    values: "pd.Series[float]", clusters: "pd.Series[Any]", n_boot: int = 2000, seed: int = 0
+    values: "pd.Series[float]",
+    clusters: "pd.Series[Any]",
+    draws: int = BOOTSTRAP_DRAWS,
+    seed: int = 0,
 ) -> tuple[float, float]:
     """95% interval for the mean of `values`, resampling whole clusters.
 
@@ -67,14 +73,14 @@ def cluster_bootstrap_ci(
 
     counted = values.notna().astype(float)
 
-    return cluster_bootstrap_ratio_ci(values, counted, clusters, n_boot=n_boot, seed=seed)
+    return cluster_bootstrap_ratio_ci(values, counted, clusters, draws=draws, seed=seed)
 
 
 def cluster_bootstrap_ratio_ci(
     numerator: "pd.Series[float]",
     denominator: "pd.Series[float]",
     clusters: "pd.Series[Any]",
-    n_boot: int = 2000,
+    draws: int = BOOTSTRAP_DRAWS,
     seed: int = 0,
 ) -> tuple[float, float]:
     """95% interval for sum(numerator) / sum(denominator), resampling whole clusters.
@@ -85,7 +91,7 @@ def cluster_bootstrap_ratio_ci(
 
     tops = numerator.groupby(clusters).sum().to_numpy()
     bottoms = denominator.groupby(clusters).sum().to_numpy()
-    picks = np.random.default_rng(seed).integers(0, len(tops), size=(n_boot, len(tops)))
+    picks = np.random.default_rng(seed).integers(0, len(tops), size=(draws, len(tops)))
     ratios = tops[picks].sum(axis=1) / bottoms[picks].sum(axis=1)
     low, high = np.quantile(ratios, [INTERVAL_LOW, INTERVAL_HIGH])
 

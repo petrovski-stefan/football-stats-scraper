@@ -20,13 +20,13 @@ import lightgbm as lgb
 import numpy as np
 import pandas as pd
 
-from analysis import corpus, report
+from analysis import corpus, report, stats
 from analysis.methods import yardstick
 from ml import boosting, rows, score
 
 SPLITS = ((2024, 2025), (2025, 2024))  # (training cohort, test cohort)
-TOP_N = (100, 250, 500, 1000)
-SHAP_TOP = 25
+TOP_N = (100, 250, 500, 1000)  # the N of `notes/WORKING/PLAN_2026-10-19_ML_TEST.md` step 5
+SHAP_TOP = 25  # the fields listed by their SHAP values, chosen on 2026-10-19
 YARDSTICK = "m_comes_back"  # the yardstick's comeback chance of the side
 
 
@@ -199,7 +199,8 @@ def main() -> None:
 
     matches_df = corpus.load()
     print(corpus.corpus_line(matches_df))
-    print(f"each interval: {score.DRAWS} resamples of whole league-seasons of the test cohort")
+    draws = stats.BOOTSTRAP_DRAWS
+    print(f"each interval: {draws} resamples of whole league-seasons of the test cohort")
 
     grid = yardstick.build_grid()
     for train_cohort, test_cohort in SPLITS:

@@ -10,7 +10,8 @@ import pandas as pd
 
 from analysis import stats
 
-DRAWS = 2000
+# The rows of a calibration table go in deciles of their chance.
+CALIBRATION_BINS = 10
 
 
 def top_mask(score: np.ndarray, top_n: int) -> np.ndarray:
@@ -23,7 +24,10 @@ def top_mask(score: np.ndarray, top_n: int) -> np.ndarray:
 
 
 def resampled_sums(
-    values: np.ndarray, clusters: "pd.Series[Any]", draws: int = DRAWS, seed: int = 0
+    values: np.ndarray,
+    clusters: "pd.Series[Any]",
+    draws: int = stats.BOOTSTRAP_DRAWS,
+    seed: int = 0,
 ) -> np.ndarray:
     """The column sums of `values` (rows by columns) in each of `draws` resamples of whole
     clusters: an array of draws by columns. All columns share each resample, so a difference
@@ -52,7 +56,7 @@ def top_n_table(
     clusters: "pd.Series[Any]",
     top_n_sizes: tuple[int, ...],
     reference: str,
-    draws: int = DRAWS,
+    draws: int = stats.BOOTSTRAP_DRAWS,
 ) -> pd.DataFrame:
     """For each N and each ranking: the comebacks in its top N, their share with its interval,
     and the difference to the share of the `reference` ranking with its interval. Each
@@ -108,7 +112,7 @@ def loss_table(
     chances: dict[str, np.ndarray],
     clusters: "pd.Series[Any]",
     reference: str,
-    draws: int = DRAWS,
+    draws: int = stats.BOOTSTRAP_DRAWS,
 ) -> pd.DataFrame:
     """For each model: its mean log loss, its observed over expected count (O/E), and its
     log loss minus that of the `reference` model, with the interval of the difference."""
@@ -137,7 +141,9 @@ def loss_table(
     return pd.DataFrame(table_rows)
 
 
-def calibration_table(outcomes: np.ndarray, chances: np.ndarray, bins: int = 10) -> pd.DataFrame:
+def calibration_table(
+    outcomes: np.ndarray, chances: np.ndarray, bins: int = CALIBRATION_BINS
+) -> pd.DataFrame:
     """The rows in `bins` groups of equal size by their chance: the mean chance, the observed
     rate and their ratio (O/E) in each."""
 

@@ -30,7 +30,7 @@ TEAM_PRIOR_WEIGHT = 40.0  # pseudo-matches of a team's comeback rate last season
 LATE_SEASON = 0.8  # a dead rubber is this far into the stage or later
 MID_TABLE = (0.3, 0.7)  # a dead rubber has both teams' rank shares in this range
 MIDWEEK = (1, 2, 3)  # Tuesday to Thursday, Berlin time
-TOP_N = (100, 250, 500, 1000)
+TOP_N = (100, 250, 500, 1000)  # the N of `notes/WORKING/PLAN_2026-10-19_ML_TEST.md` step 5
 LOGIT_CLIP = 1e-6  # a 0 or 1 field value stays this far inside, so its log odds stay finite
 LOGIT_MAX_ITERATIONS = 200  # the most Newton steps the joint logit fit may take
 

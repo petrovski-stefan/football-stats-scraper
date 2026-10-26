@@ -35,7 +35,7 @@ QUANTITIES = (
     ("goals_against", "one", "goals conceded", "count"),
 )
 RANKED = ("comes back", "loses a lead")
-TOP = 20
+TOP = 20  # the teams in each list of the top teams, chosen on 2026-10-19
 
 
 def main() -> None:

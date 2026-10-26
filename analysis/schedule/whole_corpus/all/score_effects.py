@@ -24,6 +24,8 @@ STATES = (
     "ahead by 2",
     "ahead by 3+",
 )
+# The half-time scores of the second-half table: every score with at most 2 goals for one side
+# and at most 3 in all (chosen on 2026-10-18).
 COMMON_SCORES = ((0, 0), (1, 0), (0, 1), (1, 1), (2, 0), (0, 2), (2, 1), (1, 2))
 FIRST_HALF_CAP = 4  # first-half goal totals of 4 or more form one group
 

@@ -6,6 +6,7 @@ as having a market when all of its prices (and line) are present.
 """
 
 from dataclasses import dataclass
+from itertools import chain
 
 import pandas as pd
 
@@ -79,7 +80,7 @@ class OddsColumns:
     def cells(self) -> list[str]:
         """All nine cells, market by market."""
 
-        return [cell for market in self.markets().values() for cell in market]
+        return list(chain.from_iterable(self.markets().values()))
 
 
 def _present(df: pd.DataFrame, *columns: str) -> pd.DataFrame:

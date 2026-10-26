@@ -180,12 +180,7 @@ def get_live_page(driver: webdriver.Chrome, match_id: str, timeout: int = DEFAUL
     # match times out with nothing rendered; `qa/goals.py` tells that apart from a failed load
     # by reconciling against the stored score.
     with contextlib.suppress(TimeoutException):
-        WebDriverWait(driver, timeout).until(
-            lambda browser: any(
-                _MINUTE_RE.match(minute_cell.text.strip())
-                for minute_cell in browser.find_elements(By.CSS_SELECTOR, LIVE_EVENT_MINUTE)
-            )
-        )
+        WebDriverWait(driver, timeout).until(_shows_a_minute)
 
 
 def _scroll_page(driver: webdriver.Chrome) -> None:
@@ -345,7 +340,7 @@ def _click_schedule_tab(
     if _has_class(span, active_class):
         return
 
-    prev_first_id = _first_row_match_id(driver)
+    first_id_before = _first_row_match_id(driver)
     driver.execute_script(_CLICK_JS, span)  # type: ignore[no-untyped-call]
 
     WebDriverWait(driver, timeout).until(
@@ -355,10 +350,7 @@ def _click_schedule_tab(
     # Wait for the row list to actually swap.
     with contextlib.suppress(TimeoutException):
         WebDriverWait(driver, timeout).until(
-            lambda browser: (
-                _first_row_match_id(browser) != prev_first_id
-                or _first_row_match_id(browser) is None
-            )
+            lambda browser: _rows_swapped(browser, first_id_before)
         )
 
     wait_for_schedule_rows(driver, timeout)
@@ -412,6 +404,23 @@ def _first_row_match_id(driver: webdriver.Chrome) -> str | None:
     rows = driver.find_elements(By.CSS_SELECTOR, SCHEDULE_ROWS)
 
     return rows[0].get_attribute("matchid") if rows else None
+
+
+def _rows_swapped(driver: webdriver.Chrome, first_id_before: str | None) -> bool:
+    """Whether the first schedule row is now another match than `first_id_before`, or no
+    row is on screen."""
+
+    first_id = _first_row_match_id(driver)
+
+    return first_id != first_id_before or first_id is None
+
+
+def _shows_a_minute(driver: webdriver.Chrome) -> bool:
+    """Whether a minute cell of the live page's event list shows a match minute."""
+
+    minute_cells = driver.find_elements(By.CSS_SELECTOR, LIVE_EVENT_MINUTE)
+
+    return any(_MINUTE_RE.match(minute_cell.text.strip()) for minute_cell in minute_cells)
 
 
 def _has_class(element: WebElement, name: str) -> bool:

@@ -43,6 +43,8 @@ BANDED = (
     ("seven", "m_seven", "7+ goals"),
     ("goals_1h", "goals", "first-half share (observed / all goals)"),
 )
+# The shift of the first-half share in the check of C9, chosen on 2026-10-18. The share changes
+# by about 0.01 between bands (`notes/ANALYSIS/SCHEDULE/WHOLE_CORPUS/ALL/ODDS_YARDSTICK.md`).
 SHARE_SHIFT = 0.02
 # The favourite's Shin win chance. The bands of expected goals are `yardstick.TOTAL_EDGES`.
 FAV_EDGES = (0.0, 0.40, 0.45, 0.50, 0.55, 0.60, 0.70, 1.0)
@@ -57,15 +59,11 @@ def banded(
     """The same rows inside each band of `column`."""
 
     bands = pd.cut(yardstick_df[column], edges)
-    table = [
-        {
-            "band": str(band),
-            "quantity": label,
-            **stats.observed_expected(band_df, observed_column, expected_column),
-        }
-        for band, band_df in yardstick_df.groupby(bands, observed=True)
-        for observed_column, expected_column, label in rows
-    ]
+    table = []
+    for band, band_df in yardstick_df.groupby(bands, observed=True):
+        for observed_column, expected_column, label in rows:
+            band_ratio = stats.observed_expected(band_df, observed_column, expected_column)
+            table.append({"band": str(band), "quantity": label, **band_ratio})
 
     return pd.DataFrame(table)
 

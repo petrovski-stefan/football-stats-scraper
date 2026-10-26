@@ -19,7 +19,8 @@ from scipy.stats import chi2, spearmanr
 
 from analysis import stats
 
-LUCK_DRAWS = 2000
+LUCK_DRAWS = 2000  # the draws of the luck line, chosen on 2026-10-19
+NULL_Q_DRAWS = 100  # the draws of `null_q`, chosen on 2026-10-19
 NULL_DRAWS = 200  # the shuffles of `level_row` (`permuted_qs`)
 
 
@@ -351,7 +352,7 @@ def null_q(
     unit: str,
     part: str,
     quantity: tuple[str, str, str, str],
-    draws: int = 100,
+    draws: int = NULL_Q_DRAWS,
     seed: int = 0,
 ) -> tuple[float, float]:
     """The mean and sd of Q of `within_tested` when the outcomes come from the test's own null.

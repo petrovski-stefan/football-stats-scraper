@@ -21,7 +21,7 @@ from analysis.methods import yardstick
 QUANTITIES = card.ODDS_CARD
 # The quantities of the round-number section: the luck line there needs counts or rare events.
 ROUND_QUANTITIES = ("comeback", "7+ goals", "goals per match")
-THIRDS = 3
+THIRDS = 3  # the phases of a stage, by round and by kickoff order (chosen on 2026-10-19)
 EDGE_ROUNDS = 3  # the first and the last rounds of a stage
 EDGES = ("1: first 3 rounds", "2: middle", "3: last 3 rounds")
 MIN_ROUND_MATCHES = 600  # a round number played in fewer matches is a mix of a few leagues

@@ -13,6 +13,8 @@ import pandas as pd
 from analysis import corpus, report, stats
 from analysis.methods import yardstick
 
+# The sizes of the yardstick's top-N tables, chosen on 2026-10-19. A rule is judged by its top N
+# (`notes/ANALYSIS/CLAUDE.md` §6, the candidate protocol).
 TOP_N = (100, 250, 500, 1000, 2000, 5000)
 # (observed column, the yardstick's chance, label) for the top-N tables.
 TARGETS = (("is_comeback", "m_cb", "comeback"), ("seven", "m_seven", "7+ goals"))
