@@ -33,19 +33,19 @@ SEARCH_CEILING_SDS = 10
 BISECTION_STEPS = 40
 
 
-def log_loss_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
+def log_loss_1x2(probabilities: np.ndarray, outcome: np.ndarray) -> np.ndarray:
     """Per-match log loss of a three-way forecast: minus the log of the result's probability."""
 
-    return np.asarray(-np.log(probs[np.arange(len(outcome)), outcome]))
+    return np.asarray(-np.log(probabilities[np.arange(len(outcome)), outcome]))
 
 
-def brier_1x2(probs: np.ndarray, outcome: np.ndarray) -> np.ndarray:
+def brier_1x2(probabilities: np.ndarray, outcome: np.ndarray) -> np.ndarray:
     """Per-match Brier score of a three-way forecast: sum of (p - hit)^2, from 0 to 2."""
 
-    hits = np.zeros_like(probs)
+    hits = np.zeros_like(probabilities)
     hits[np.arange(len(outcome)), outcome] = 1.0
 
-    return np.asarray(((probs - hits) ** 2).sum(axis=1))
+    return np.asarray(((probabilities - hits) ** 2).sum(axis=1))
 
 
 def wilson_ci(successes: int, trials: int) -> tuple[float, float]:
@@ -54,9 +54,9 @@ def wilson_ci(successes: int, trials: int) -> tuple[float, float]:
     if trials == 0:
         return (0.0, 0.0)
 
-    ci = binomtest(successes, trials).proportion_ci(confidence_level=0.95, method="wilson")
+    interval = binomtest(successes, trials).proportion_ci(confidence_level=0.95, method="wilson")
 
-    return float(ci.low), float(ci.high)
+    return float(interval.low), float(interval.high)
 
 
 def cluster_bootstrap_ci(
@@ -101,14 +101,14 @@ def cluster_bootstrap_ratio_ci(
 def observed_expected(df: pd.DataFrame, observed: str, expected: str) -> dict[str, float]:
     """Observed and expected sums, their ratio (O/E), and its interval over `df["cluster"]`."""
 
-    obs, exp = float(df[observed].sum()), float(df[expected].sum())
+    observed_sum, expected_sum = float(df[observed].sum()), float(df[expected].sum())
     low, high = cluster_bootstrap_ratio_ci(df[observed], df[expected], df["cluster"])
 
     return {
         "n": float(len(df)),
-        "observed": obs,
-        "expected": exp,
-        "oe": obs / exp,
+        "observed": observed_sum,
+        "expected": expected_sum,
+        "oe": observed_sum / expected_sum,
         "low": low,
         "high": high,
     }
@@ -197,16 +197,16 @@ def detectable_tau(
 
 
 def shrink(
-    means: "pd.Series[float]", variances: "pd.Series[float]", het: Heterogeneity
+    means: "pd.Series[float]", variances: "pd.Series[float]", heterogeneity: Heterogeneity
 ) -> "pd.Series[float]":
     """Empirical-Bayes normal shrinkage of each unit's mean toward the pooled mean, the
     continuous form of the Beta-Binomial rule (`notes/REFERENCE/STATS_PRIMER.md` §1): a unit
     keeps tau^2 / (tau^2 + its variance) of its deviation, so none at tau^2 = 0.
     """
 
-    keep = het.tau_squared / (het.tau_squared + variances)
+    keep = heterogeneity.tau_squared / (heterogeneity.tau_squared + variances)
 
-    return het.pooled + keep * (means - het.pooled)
+    return heterogeneity.pooled + keep * (means - heterogeneity.pooled)
 
 
 @dataclass(frozen=True)

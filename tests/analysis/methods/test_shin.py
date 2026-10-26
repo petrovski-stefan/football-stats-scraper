@@ -28,7 +28,7 @@ def test_shin_frame_keeps_the_index(toy_matches_df: pd.DataFrame) -> None:
     reindexed_df = toy_matches_df.set_index(pd.Index([10, 20, 30, 40, 50]))
     shin_df = shin.shin_frame(reindexed_df)
     assert shin_df.index.tolist() == [10, 20, 30, 40, 50]
-    assert shin_df.columns.tolist() == [*shin.PROBS, "shin_z"]
+    assert shin_df.columns.tolist() == [*shin.PROBABILITIES, "shin_z"]
 
 
 def test_scored_drops_unpriced_matches_and_defines_the_gain(toy_matches_df: pd.DataFrame) -> None:

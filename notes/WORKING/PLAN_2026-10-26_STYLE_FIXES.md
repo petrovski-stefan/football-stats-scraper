@@ -6,7 +6,7 @@
 
 **Status: IN PROGRESS.** The user asked for this plan on 2026-10-26, and gives the groups to fix one by one.
 
-**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item and parts of groups 3, 7, 8 and 14 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
+**Why:** a strict, read-only check of all `.py` files against `CODING_STYLE.md` found 9 groups of breaches. A second strict check found groups 10–14. Groups 2, 3 and 10 break a Must rule (`CODING_STYLE.md` §1). Groups 7, 8, 11, 13 and 14 break a Default rule. Groups 1, 4, 5, 6, 9 and 12, the §5 item, the new-pipeline items of groups 8 and 11, and parts of groups 3, 7 and 14 are done (`notes/LOG/MIGRATIONS.md`, 2026-10-26).
 
 **Scope:** about 80 % of the breaches are in the old pipeline. The old pipeline is `features/{engine,enrich,events,goals,history,chain}.py`, `scrapers/{detail,detail_parsers,goals,goal_parsers,event_parsers,live_rows,browser_pool}.py`, `domain/{match_detail,goal,event}.py` and `qa/{league,detail,goals,events}.py`. Root `CLAUDE.md` keeps it until the steps P4–P5 of `PLAN_2026-10-05_STAGED_PIPELINE.md`. `CODING_STYLE.md` §1 says: code that nobody changes stays as it is. Thus, fix an old-pipeline item when P4–P5 change its function, or in a clean-up pass of its own.
 
@@ -56,13 +56,16 @@
 
 ### 8. §6: expressions and numbers
 
-- 12 comprehensions with more than one `for`: `analysis/methods/yardstick.py:32`, `analysis/schedule/whole_corpus/all/odds_groups.py:29`, `:51`, `odds_yardstick.py:60`, `features/engine.py:141`, `:601`, `features/events.py:123`, `features/goals.py:59`, `features/history.py:98`, `qa/odds.py:82`, `scrapers/goals.py:114`, `:120`.
-- Lambdas with logic: `scrapers/driver.py:188` (`any(...)`), `:356`, `:362` (`or`). Fix: a named function.
-- Heuristic: about 35 module constants have no comment that gives the source of the value. Examples: `analysis/schedule/whole_corpus/all/stakes.py:26` `ALPHA`, `per_team/rates.py:38` and `per_team/odds_yardstick.py:63` `TOP = 20`, `scrapers/detail.py:40` and `scrapers/goals.py:64` `WORKERS = 3`, `ml/boosting.py:32–33` `FOLDS`, `MAX_TREES`. The sweep did not see a comment further up over a group of constants. Do a check of each one.
+Only old-pipeline items are open.
 
-### 11. §3.1: short forms in names (about 40)
+- 7 comprehensions with more than one `for`: `features/engine.py:142`, `:608`, `features/events.py:123`, `features/goals.py:59`, `features/history.py:98`, `scrapers/goals.py:114`, `:120`.
+- Heuristic: 17 module constants have no comment on their line or on the line above. Some can have a comment further up, over a group. Examples: `scrapers/detail.py:40` and `scrapers/goals.py:64` `WORKERS`, `features/engine.py:41–42`, `features/chain.py:29–36`, `qa/goals.py:31–32`, `qa/events.py:36–38`, `:51`. Do a check of each one.
 
-- Statistical quantities with a short name (§3.1 says: name it after what it is): `het` in `analysis/units.py:102`, `:183`, `analysis/stats.py:185`, `analysis/schedule/whole_corpus/all/season_phase.py:135`, `per_league/shin.py:62` and `tests/analysis/test_stats.py`, `test_units.py`; `obs` and `exp` in `analysis/stats.py:89` (`observed_expected`); `ci` in `analysis/stats.py:45`; `probs` and `PROBS` in `analysis/methods/shin.py:19`, `:63` and `analysis/stats.py:24`, `:30`; `obs` and `pred` in `features/chain.py:112`.
+### 11. §3.1: short forms in names
+
+Only old-pipeline items are open.
+
+- Statistical quantities with a short name (§3.1 says: name it after what it is): `obs` and `pred` in `features/chain.py:112`.
 - Other short words: `ok` in `features/engine.py:437`, `:461` and `features/chain.py:145`; `avg`, `opp`, `src` and `dst` in `features/engine.py`; `agg` in `scrapers/detail.py:60` and `scrapers/detail_parsers.py:210`; `tr`, `nums`, `pcts`, `vals` and `bar` in `scrapers/detail_parsers.py`; `idx` in `qa/league.py:128`.
 - Missed by group 4 and group 6: `lo` and `hi` in `features/goals.py:60` (`BUCKETS`), and `sgf` and `sga` in `scrapers/detail_parsers.py:238` (`aggregate_h2h`).
 
@@ -80,5 +83,5 @@
 ## Order
 
 1. New-pipeline Musts: group 3 (all items). Then `/check` and `/stats-review`. Group 10 after the user's decision.
-2. New-pipeline Defaults: groups 7, 8, 11, 13 and 14, file by file.
+2. New-pipeline Defaults: groups 7, 13 and 14, file by file. Groups 8 and 11 have no new-pipeline items left.
 3. Old-pipeline items: with P4–P5, or in a clean-up pass of their own.

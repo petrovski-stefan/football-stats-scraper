@@ -11,8 +11,8 @@ from analysis import stats
 
 
 def test_log_loss_1x2_is_minus_the_log_of_the_result() -> None:
-    probs = np.array([[0.5, 0.3, 0.2], [0.2, 0.3, 0.5]])
-    losses = stats.log_loss_1x2(probs, np.array([0, 2]))
+    probabilities = np.array([[0.5, 0.3, 0.2], [0.2, 0.3, 0.5]])
+    losses = stats.log_loss_1x2(probabilities, np.array([0, 2]))
     assert losses.tolist() == pytest.approx([math.log(2), math.log(2)])
 
 
@@ -78,16 +78,20 @@ def test_observed_expected_table_has_one_row_per_comparison(
 
 
 def test_equal_units_show_no_heterogeneity() -> None:
-    het = stats.heterogeneity(pd.Series([0.5, 0.5, 0.5]), pd.Series([0.01, 0.02, 0.04]))
-    assert (het.cochran_q, het.degrees_of_freedom, het.tau_squared) == (0.0, 2, 0.0)
-    assert het.p_value == pytest.approx(1.0)
-    assert het.pooled == pytest.approx(0.5)
+    heterogeneity = stats.heterogeneity(pd.Series([0.5, 0.5, 0.5]), pd.Series([0.01, 0.02, 0.04]))
+    assert (
+        heterogeneity.cochran_q,
+        heterogeneity.degrees_of_freedom,
+        heterogeneity.tau_squared,
+    ) == (0.0, 2, 0.0)
+    assert heterogeneity.p_value == pytest.approx(1.0)
+    assert heterogeneity.pooled == pytest.approx(0.5)
 
 
 def test_spread_units_show_heterogeneity() -> None:
-    het = stats.heterogeneity(pd.Series([0.0, 1.0, 2.0]), pd.Series([0.01, 0.01, 0.01]))
-    assert het.p_value < 1e-6
-    assert het.tau_squared > 0
+    heterogeneity = stats.heterogeneity(pd.Series([0.0, 1.0, 2.0]), pd.Series([0.01, 0.01, 0.01]))
+    assert heterogeneity.p_value < 1e-6
+    assert heterogeneity.tau_squared > 0
 
 
 def test_detectable_tau_matches_the_closed_form_for_equal_variances() -> None:
@@ -119,18 +123,18 @@ def test_detectable_tau_grows_with_the_noise() -> None:
 
 
 def test_shrink_without_spread_gives_the_pooled_mean() -> None:
-    het = stats.Heterogeneity(
+    heterogeneity = stats.Heterogeneity(
         cochran_q=0.0, degrees_of_freedom=1, p_value=1.0, tau_squared=0.0, pooled=0.3
     )
-    shrunk = stats.shrink(pd.Series([0.2, 0.4]), pd.Series([0.01, 0.01]), het)
+    shrunk = stats.shrink(pd.Series([0.2, 0.4]), pd.Series([0.01, 0.01]), heterogeneity)
     assert shrunk.tolist() == pytest.approx([0.3, 0.3])
 
 
 def test_shrink_keeps_a_precise_unit_near_its_own_mean() -> None:
-    het = stats.Heterogeneity(
+    heterogeneity = stats.Heterogeneity(
         cochran_q=0.0, degrees_of_freedom=1, p_value=1.0, tau_squared=0.01, pooled=0.3
     )
-    shrunk = stats.shrink(pd.Series([0.2, 0.4]), pd.Series([1e-9, 1.0]), het)
+    shrunk = stats.shrink(pd.Series([0.2, 0.4]), pd.Series([1e-9, 1.0]), heterogeneity)
     assert shrunk[0] == pytest.approx(0.2, abs=1e-6)
     assert abs(shrunk[1] - 0.3) < abs(0.4 - 0.3)
 

@@ -73,11 +73,11 @@ def test_equal_units_show_no_spread_and_keep_the_pooled_value() -> None:
         {UNIT: [1, 1, 2, 2], "hit": [1.0, 0.0, 1.0, 0.0], "chance": [0.5, 0.5, 0.5, 0.5]}
     )
 
-    unit_values_df, het, dispersion_factor = units.tested(
+    unit_values_df, heterogeneity, dispersion_factor = units.tested(
         unit_rows_df, UNIT, "hit", "chance", "event"
     )
 
-    assert (het.cochran_q, het.tau_squared) == pytest.approx((0.0, 0.0))
+    assert (heterogeneity.cochran_q, heterogeneity.tau_squared) == pytest.approx((0.0, 0.0))
     assert dispersion_factor == pytest.approx(1.0)
     assert unit_values_df["shrunk"].tolist() == pytest.approx([1.0, 1.0])
 

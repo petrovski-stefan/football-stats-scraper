@@ -59,14 +59,14 @@ def main() -> None:
     print(f"Priced: {len(scored_df):,} matches in {len(league_table_df)} leagues")
 
     for name, column in QUANTITIES.items():
-        het, shrunk = tests[name], league_table_df[f"{name}_shrunk"]
+        heterogeneity, shrunk = tests[name], league_table_df[f"{name}_shrunk"]
         cohort_correlation, cohort_count = cohort_stability(scored_df, column)
 
         print(f"\n== {name} ({column})")
         print(
-            f"pooled {het.pooled:.6f}; Cochran's Q {het.cochran_q:.1f} on "
-            f"{het.degrees_of_freedom} df, "
-            f"p = {het.p_value:.3g}; tau {het.tau_squared**0.5:.6f}"
+            f"pooled {heterogeneity.pooled:.6f}; Cochran's Q {heterogeneity.cochran_q:.1f} on "
+            f"{heterogeneity.degrees_of_freedom} df, "
+            f"p = {heterogeneity.p_value:.3g}; tau {heterogeneity.tau_squared**0.5:.6f}"
         )
         print(
             f"shrunk league values: min {shrunk.min():.6f}, median {shrunk.median():.6f}, "

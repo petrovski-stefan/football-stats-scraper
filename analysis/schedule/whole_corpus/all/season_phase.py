@@ -132,16 +132,18 @@ def phase_tests(phased_df: pd.DataFrame, phase: str) -> pd.DataFrame:
             phase_values_df = units.unit_values(
                 phased_df, phase, observed, expected, kind, dispersion_factor
             )
-            het = stats.heterogeneity(phase_values_df["value"], phase_values_df["variance"])
+            heterogeneity = stats.heterogeneity(
+                phase_values_df["value"], phase_values_df["variance"]
+            )
 
             rows.append(
                 {
                     "quantity": label,
                     "reading": reading,
                     "dispersion": dispersion_factor,
-                    "Q": het.cochran_q,
-                    "df": het.degrees_of_freedom,
-                    "p": f"{het.p_value:.3g}",
+                    "Q": heterogeneity.cochran_q,
+                    "df": heterogeneity.degrees_of_freedom,
+                    "p": f"{heterogeneity.p_value:.3g}",
                 }
             )
 

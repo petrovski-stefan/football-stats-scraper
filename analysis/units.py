@@ -100,12 +100,12 @@ def tested(
 
     dispersion_factor = dispersion(df, unit, observed, expected, kind)
     unit_values_df = unit_values(df, unit, observed, expected, kind, dispersion_factor)
-    het = stats.heterogeneity(unit_values_df["value"], unit_values_df["variance"])
+    heterogeneity = stats.heterogeneity(unit_values_df["value"], unit_values_df["variance"])
     unit_values_df["shrunk"] = stats.shrink(
-        unit_values_df["value"], unit_values_df["variance"], het
+        unit_values_df["value"], unit_values_df["variance"], heterogeneity
     )
 
-    return unit_values_df, het, dispersion_factor
+    return unit_values_df, heterogeneity, dispersion_factor
 
 
 def luck_line(
@@ -181,19 +181,20 @@ def summary_row(
     """
 
     observed, expected, label, kind = quantity
-    unit_values_df, het, dispersion_factor = tested(df, unit, observed, expected, kind)
+    unit_values_df, heterogeneity, dispersion_factor = tested(df, unit, observed, expected, kind)
 
     pooled = float(unit_values_df["observed"].sum() / unit_values_df["expected"].sum())
     low, high = luck_line(unit_values_df["expected"], pooled) if has_luck_line else (np.nan, np.nan)
     cohort_correlation, cohort_count = cohort_agreement(df, unit, observed, expected)
-    between_unit_sd, found = het.tau_squared**0.5, stats.detectable_tau(unit_values_df["variance"])
+    between_unit_sd = heterogeneity.tau_squared**0.5
+    found = stats.detectable_tau(unit_values_df["variance"])
 
     row: dict[str, float | str] = {
         "quantity": label,
         "pooled": pooled,
         "dispersion": dispersion_factor,
-        "Q": het.cochran_q,
-        "p": f"{het.p_value:.3g}",
+        "Q": heterogeneity.cochran_q,
+        "p": f"{heterogeneity.p_value:.3g}",
         "tau": between_unit_sd,
         "tau/pooled": between_unit_sd / pooled,
         "found 80%": found,

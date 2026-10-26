@@ -249,9 +249,9 @@ def frame(
 
     priced_df = priced(matches_df)
     if is_proportional:
-        probabilities_df = priced_df[shin.PROPORTIONAL].set_axis(shin.PROBS, axis=1)
+        probabilities_df = priced_df[shin.PROPORTIONAL].set_axis(shin.PROBABILITIES, axis=1)
     else:
-        probabilities_df = shin.shin_frame(priced_df)[shin.PROBS]
+        probabilities_df = shin.shin_frame(priced_df)[shin.PROBABILITIES]
 
     lines = priced_df["s1_odds_ou_open_line"].to_numpy(dtype=float)
     lam_home, lam_away, error = fit_rates(
@@ -265,7 +265,7 @@ def frame(
     share = first_half_share(priced_df) if share is None else share
 
     yardstick_df = priced_df[shin.KEYS].copy()
-    yardstick_df[shin.PROBS] = probabilities_df.to_numpy()
+    yardstick_df[shin.PROBABILITIES] = probabilities_df.to_numpy()
     yardstick_df["line"] = lines
     yardstick_df["lam_home"], yardstick_df["lam_away"], yardstick_df["fit_error"] = (
         lam_home,
