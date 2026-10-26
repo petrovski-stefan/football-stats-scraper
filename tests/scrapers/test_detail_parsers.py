@@ -1,16 +1,32 @@
-"""`scrapers/detail_parsers.py`: the record-level helpers that need no page.
+"""`scrapers/detail_parsers.py`: the record-level helpers, and the 1X2 odds of a page fragment.
 
-They turn parsed history rows ("mini-records") into aggregates and per-match column blocks.
-Team 1 is the subject team throughout; teams 2-4 are its opponents.
+The helpers turn parsed history rows ("mini-records") into aggregates and per-match column
+blocks. Team 1 is the subject team throughout; teams 2-4 are its opponents.
 """
 
 from itertools import product
 from typing import Any
 
 import pytest
+from bs4 import BeautifulSoup
 
 from domain.columns import MATCHES_PER_SECTION, PER_MATCH_FIELDS
 from scrapers import detail_parsers
+from scrapers.constants import PREFERRED_BOOKMAKER
+
+# A made-up odds table in the page's layout: a header, then each bookmaker's initial row with
+# the live row after it. The preferred bookmaker is the second block.
+_ODDS_TABLE = f"""
+<table class="team-table-other">
+  <tr><td>Company</td><td>1X2</td></tr>
+  <tr><td>Other</td><td data-e="1">1.50</td><td data-e="1">4.00</td><td data-e="1">6.00</td></tr>
+  <tr><td>Live</td><td data-e="1">1.55</td><td data-e="1">3.90</td><td data-e="1">5.80</td></tr>
+  <tr><td>{PREFERRED_BOOKMAKER}</td>
+    <td data-e="1" data-o="2.10">x</td><td data-e="1" data-o="3.40">x</td>
+    <td data-e="1" data-o="3.25">x</td></tr>
+  <tr><td>Live</td><td data-e="1">1.95</td><td data-e="1">3.60</td><td data-e="1">3.80</td></tr>
+</table>
+"""
 
 
 def _record(
@@ -145,3 +161,31 @@ def test_flatten_history_orients_each_block_to_the_subject() -> None:
 def test_flatten_history_without_subject_is_empty() -> None:
     flat = detail_parsers.flatten_history(RECORDS, subject_id=None, section="h2h")
     assert all(value is None for value in flat.values())
+
+
+def test_odds_1x2_reads_the_preferred_bookmaker_and_its_live_row() -> None:
+    odds = detail_parsers.parse_odds_1x2(BeautifulSoup(_ODDS_TABLE, "html.parser"))
+
+    assert odds == {
+        "odds_bookmaker": PREFERRED_BOOKMAKER,
+        "odds1x2_init_home": 2.10,
+        "odds1x2_init_draw": 3.40,
+        "odds1x2_init_away": 3.25,
+        "odds1x2_live_home": 1.95,
+        "odds1x2_live_draw": 3.60,
+        "odds1x2_live_away": 3.80,
+    }
+
+
+def test_odds_1x2_of_a_row_with_too_few_cells_is_empty() -> None:
+    table = """
+    <table class="team-table-other">
+      <tr><td>Company</td><td>1X2</td></tr>
+      <tr><td>Other</td><td data-e="1">1.50</td><td data-e="1">4.00</td></tr>
+    </table>
+    """
+
+    odds = detail_parsers.parse_odds_1x2(BeautifulSoup(table, "html.parser"))
+
+    assert odds["odds_bookmaker"] == "Other"
+    assert [odds["odds1x2_init_home"], odds["odds1x2_live_home"]] == [None, None]

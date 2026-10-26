@@ -376,3 +376,7 @@ If code or a note cites a module, path or column that doesn't exist, it predates
 - **The new-pipeline items of group 7 of the same plan are done: part 3, the last 6 tables of tuples in `analysis/`** (`CODING_STYLE.md` §8). No change alters what the code does.
   - `all/levels.py:LEVELS` holds `Level`s (name, unit, part, rows). `all/prices.py:AH_BANDS` holds `HandicapBand`s (label, lowest, highest). `all/rates.py:DEFICITS` holds `DeficitBand`s (smallest, largest, label).
   - `per_league/odds_yardstick.py:MAIN_COLUMNS` and `LINK_COLUMNS`, and `per_league/rates.py:TABLE_COLUMNS`, hold `analysis/report.py:ValueColumn`s (quantity, column, header). Both `league_table` functions read them.
+- **Group 7 of the same plan is done: its old-pipeline items too** (`CODING_STYLE.md` §4, §8; the user gave the go on 2026-10-26). No change alters what the code does.
+  - `scrapers/detail_parsers.py:_row_1x2` gives a `_Prices1x2` (home, draw, away), and `vals` is gone. Two new tests of `parse_odds_1x2` use a made-up odds table. They passed on the code before the change too.
+  - `scrapers/detail.py:_scrape_one` and `scrapers/goals.py:_scrape_one` give a `_Scraped` record in place of a tuple of 3 or 4 values.
+  - `scrapers/goals.py:_store_rows` takes a `_Store` (store path and columns, log path and columns, count field), so it has 4 arguments, not 8. `scrape_goals` makes the goal store and the event store once, before its loop. The `paths` functions are pure, so the paths are the same.

@@ -8,6 +8,7 @@ best-effort and nullable — a section may be missing on a given page.
 
 import re
 from collections import Counter
+from dataclasses import dataclass
 from typing import Any
 
 from bs4 import BeautifulSoup, Tag
@@ -367,16 +368,16 @@ def parse_odds_1x2(soup: BeautifulSoup) -> dict[str, Any]:
 
     init = _row_1x2(init_row)
     live_row = init_row.find_next_sibling("tr")
-    live = _row_1x2(live_row) if isinstance(live_row, Tag) else (None, None, None)
+    live = _row_1x2(live_row) if isinstance(live_row, Tag) else _Prices1x2(None, None, None)
 
     return {
         "odds_bookmaker": bookmaker,
-        "odds1x2_init_home": init[0],
-        "odds1x2_init_draw": init[1],
-        "odds1x2_init_away": init[2],
-        "odds1x2_live_home": live[0],
-        "odds1x2_live_draw": live[1],
-        "odds1x2_live_away": live[2],
+        "odds1x2_init_home": init.home,
+        "odds1x2_init_draw": init.draw,
+        "odds1x2_init_away": init.away,
+        "odds1x2_live_home": live.home,
+        "odds1x2_live_draw": live.draw,
+        "odds1x2_live_away": live.away,
     }
 
 
@@ -407,16 +408,25 @@ def _bookmaker_initial_rows(table: Tag) -> list[tuple[str, Tag]]:
     return out
 
 
-def _row_1x2(row: Tag) -> tuple[float | None, float | None, float | None]:
+@dataclass(frozen=True)
+class _Prices1x2:
+    """One bookmaker row's home, draw and away prices; None where a cell holds no number."""
+
+    home: float | None
+    draw: float | None
+    away: float | None
+
+
+def _row_1x2(row: Tag) -> _Prices1x2:
     """A bookmaker row's home, draw and away prices; all None when it has fewer than three."""
 
     cells = row.select(DETAIL_ODDS_1X2_CELLS)
     if len(cells) < 3:
-        return None, None, None
+        return _Prices1x2(None, None, None)
 
-    vals = [parse_float(attr(c, "data-o") or tag_text(c)) for c in cells[:3]]
+    home, draw, away = (parse_float(attr(cell, "data-o") or tag_text(cell)) for cell in cells[:3])
 
-    return vals[0], vals[1], vals[2]
+    return _Prices1x2(home=home, draw=draw, away=away)
 
 
 # --- analysis blocks (best-effort) -------------------------------------------

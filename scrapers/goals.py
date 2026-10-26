@@ -36,6 +36,7 @@ import logging
 import os
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -222,17 +223,38 @@ def _as_id(value: Any) -> str:
 # --- orchestration ------------------------------------------------------------
 
 
-def _scrape_one(
-    match_id: str,
-) -> tuple[str, list[dict[str, Any]], list[dict[str, Any]], Exception | None]:
-    """One live page scraped in a worker thread: (id, goals, events, None), or (id, [], [],
-    error) when it failed. Errors come back rather than cancelling the batch."""
+@dataclass(frozen=True)
+class _Scraped:
+    """One live page's result: its goal and event rows, or the error that stopped it (both
+    lists empty)."""
+
+    match_id: str
+    goals: list[dict[str, Any]]
+    events: list[dict[str, Any]]
+    error: Exception | None
+
+
+@dataclass(frozen=True)
+class _Store:
+    """Where one kind of row goes: its store and columns, its attempt log and columns, and
+    the log's field that counts the rows."""
+
+    path: str
+    columns: list[str]
+    log_path: str
+    log_columns: list[str]
+    count_field: str
+
+
+def _scrape_one(match_id: str) -> _Scraped:
+    """One live page scraped in a worker thread. Errors come back rather than cancelling the
+    batch."""
 
     try:
         goals, events = scrape_match_live(_POOL.driver(), match_id)
-        return match_id, goals, events, None
+        return _Scraped(match_id=match_id, goals=goals, events=events, error=None)
     except Exception as exc:  # the id stays pending for the next run
-        return match_id, [], [], exc
+        return _Scraped(match_id=match_id, goals=[], events=[], error=exc)
 
 
 def _stamp() -> str:
@@ -242,14 +264,7 @@ def _stamp() -> str:
 
 
 def _store_rows(
-    rows: list[dict[str, Any]],
-    league_id: int | None,
-    match_id: str,
-    store_path: str,
-    store_columns: list[str],
-    log_path: str,
-    log_columns: list[str],
-    count_field: str,
+    rows: list[dict[str, Any]], league_id: int | None, match_id: str, store: _Store
 ) -> None:
     """Append one match's rows and its attempt-log entry.
 
@@ -260,11 +275,11 @@ def _store_rows(
     for row in rows:
         row["league_id"] = league_id
 
-    append_rows(rows, store_path, store_columns)
+    append_rows(rows, store.path, store.columns)
     append_rows(
-        [{"match_id": match_id, "scraped_at": _stamp(), count_field: len(rows)}],
-        log_path,
-        log_columns,
+        [{"match_id": match_id, "scraped_at": _stamp(), store.count_field: len(rows)}],
+        store.log_path,
+        store.log_columns,
     )
 
 
@@ -281,14 +296,29 @@ def scrape_goals(
 
     goals_done = done_ids(paths.goals_done_path())
     events_done = done_ids(paths.events_done_path())
+    goal_store = _Store(
+        path=paths.goals_path(),
+        columns=GOALS_ORDERED_COLUMNS,
+        log_path=paths.goals_done_path(),
+        log_columns=GOALS_DONE_COLUMNS,
+        count_field="n_goals",
+    )
+    event_store = _Store(
+        path=paths.events_path(),
+        columns=EVENTS_ORDERED_COLUMNS,
+        log_path=paths.events_done_path(),
+        log_columns=EVENTS_DONE_COLUMNS,
+        count_field="n_events",
+    )
     csv_lock = threading.Lock()
 
     with _POOL, ThreadPoolExecutor(max_workers=WORKERS) as pool:
         futures = {pool.submit(_scrape_one, match_id): match_id for match_id in ids}
         for i, future in enumerate(as_completed(futures), 1):
-            match_id, goals, events, exc = future.result()
-            if exc is not None:
-                logger.warning("  [%d/%d] %s failed: %s", i, len(ids), match_id, exc)
+            scraped = future.result()
+            match_id = scraped.match_id
+            if scraped.error is not None:
+                logger.warning("  [%d/%d] %s failed: %s", i, len(ids), match_id, scraped.error)
                 continue
 
             league_id = pending.get(match_id)
@@ -297,36 +327,18 @@ def scrape_goals(
             # purely to backfill events does not duplicate its goal rows.
             with csv_lock:
                 if match_id not in goals_done:
-                    _store_rows(
-                        goals,
-                        league_id,
-                        match_id,
-                        paths.goals_path(),
-                        GOALS_ORDERED_COLUMNS,
-                        paths.goals_done_path(),
-                        GOALS_DONE_COLUMNS,
-                        "n_goals",
-                    )
+                    _store_rows(scraped.goals, league_id, match_id, goal_store)
 
                 if match_id not in events_done:
-                    _store_rows(
-                        events,
-                        league_id,
-                        match_id,
-                        paths.events_path(),
-                        EVENTS_ORDERED_COLUMNS,
-                        paths.events_done_path(),
-                        EVENTS_DONE_COLUMNS,
-                        "n_events",
-                    )
+                    _store_rows(scraped.events, league_id, match_id, event_store)
 
             logger.info(
                 "  [%d/%d] %s -> %d goals, %d events",
                 i,
                 len(ids),
                 match_id,
-                len(goals),
-                len(events),
+                len(scraped.goals),
+                len(scraped.events),
             )
 
     logger.info("done — run `python -m features.enrich` to rebuild the enriched join")

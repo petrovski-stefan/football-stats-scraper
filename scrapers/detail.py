@@ -16,6 +16,7 @@ import os
 import sys
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from dataclasses import dataclass
 from typing import Any
 
 import pandas as pd
@@ -84,16 +85,24 @@ def _done_ids(detail_path: str) -> set[str]:
     return set(pd.read_csv(detail_path, usecols=["match_id"])["match_id"].astype(str))
 
 
-def _scrape_one(match_id: str) -> tuple[str, dict[str, Any] | None, Exception | None]:
-    """One match scraped in a worker thread with that thread's own driver: (id, row, None), or
-    (id, None, error) when it failed. Errors come back, not raised, so one bad match does not
-    cancel the others already in flight."""
+@dataclass(frozen=True)
+class _Scraped:
+    """One detail page's result: its row, or the error that stopped it (row None)."""
+
+    match_id: str
+    row: dict[str, Any] | None
+    error: Exception | None
+
+
+def _scrape_one(match_id: str) -> _Scraped:
+    """One match scraped in a worker thread with that thread's own driver. Errors come back,
+    not raised, so one bad match does not cancel the others already in flight."""
 
     driver = _POOL.driver()
     try:
-        return match_id, scrape_match_detail(driver, match_id), None
+        return _Scraped(match_id=match_id, row=scrape_match_detail(driver, match_id), error=None)
     except Exception as exc:  # keep going; the id stays pending for the next run
-        return match_id, None, exc
+        return _Scraped(match_id=match_id, row=None, error=exc)
 
 
 def enrich_league(
@@ -126,9 +135,10 @@ def enrich_league(
 
     futures = {pool.submit(_scrape_one, match_id): match_id for match_id in pending}
     for i, future in enumerate(as_completed(futures), 1):
-        match_id, row, exc = future.result()
+        scraped = future.result()
+        match_id, row = scraped.match_id, scraped.row
         if row is None:
-            logger.warning("  [%d/%d] %s failed: %s", i, len(pending), match_id, exc)
+            logger.warning("  [%d/%d] %s failed: %s", i, len(pending), match_id, scraped.error)
             continue
 
         # Append each row immediately so an interrupted run stays resumable;
