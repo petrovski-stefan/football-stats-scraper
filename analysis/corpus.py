@@ -56,7 +56,7 @@ def round_key(matches_df: pd.DataFrame) -> "pd.Series[str]":
         + " "
         + matches_df["s1_season"]
         + " "
-        + matches_df["s1_stage"].fillna("")
+        + matches_df["s1_stage"]
         + " "
         + matches_df["s1_round"].astype(str)
     )

@@ -7,7 +7,7 @@ import pytest
 from analysis.schedule.whole_corpus.all import season_phase as runner
 
 
-def stage_matches(rounds: int, stage: object = "League") -> pd.DataFrame:
+def stage_matches(rounds: int, stage: str = "League") -> pd.DataFrame:
     """One match per round of one stage, kicked off a week apart in round order."""
 
     return pd.DataFrame(
@@ -71,7 +71,7 @@ def test_phases_split_a_stage_into_thirds_by_round_and_by_kickoff() -> None:
 def test_phases_count_the_rounds_of_each_stage_on_its_own() -> None:
     apertura_df = stage_matches(3, "Apertura")
     clausura_df = stage_matches(6, "Clausura")
-    no_tabs_df = stage_matches(2, np.nan).assign(s1_league_id=2)
+    no_tabs_df = stage_matches(2, "").assign(s1_league_id=2)
     phases_df = runner.phases(pd.concat([apertura_df, clausura_df, no_tabs_df], ignore_index=True))
     assert phases_df["rounds"].tolist() == [3] * 3 + [6] * 6 + [2] * 2
     assert phases_df["third"].tolist() == [1, 2, 3, 1, 1, 2, 2, 3, 3, 2, 3]

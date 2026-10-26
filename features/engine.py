@@ -39,6 +39,8 @@ TEST_SEASONS = ("2025-2026",)
 # Preregistered: last-6 form window, 5-round burn-in (rounds 1-5 carry no features).
 FORM_WINDOW = 6
 BURN_IN_ROUNDS = 5
+# Preregistered: family E counts competitive matches in the last 14 days
+# (notes/RECORD/PREREGISTRATION.md §4).
 CONGESTION_DAYS = 14
 
 # The self-check's two computations agree when they differ by less than float noise.
@@ -139,7 +141,11 @@ EVENT_FEATURES = event_features.feature_names()
 def filter_feature_names() -> list[str]:
     """Every feature of the exclusion-filter families, in family order."""
 
-    return [name for names in FILTER_FAMILIES.values() for name in names]
+    names: list[str] = []
+    for family_names in FILTER_FAMILIES.values():
+        names.extend(family_names)
+
+    return names
 
 
 # Mandatory controls, present in every model on both sides of every comparison.
@@ -262,7 +268,7 @@ def _team_match_long(matches_df: pd.DataFrame) -> pd.DataFrame:
     """One row per team per match, from that team's own perspective."""
 
     frames = []
-    for side, opp in (("home", "away"), ("away", "home")):
+    for side, other in (("home", "away"), ("away", "home")):
         frames.append(
             pd.DataFrame(
                 {
@@ -272,11 +278,11 @@ def _team_match_long(matches_df: pd.DataFrame) -> pd.DataFrame:
                     "match_id": matches_df["match_id"],
                     "team_id": matches_df[f"{side}_team_id"],
                     "h1_gf": matches_df[f"ht_{side}_goals"],
-                    "h1_ga": matches_df[f"ht_{opp}_goals"],
+                    "h1_ga": matches_df[f"ht_{other}_goals"],
                     "h2_gf": matches_df[f"{side}_2h_goals"],
-                    "h2_ga": matches_df[f"{opp}_2h_goals"],
+                    "h2_ga": matches_df[f"{other}_2h_goals"],
                     "ft_gf": matches_df[f"ft_{side}_goals"],
-                    "ft_ga": matches_df[f"ft_{opp}_goals"],
+                    "ft_ga": matches_df[f"ft_{other}_goals"],
                 }
             )
         )
@@ -298,7 +304,7 @@ def _team_match_long(matches_df: pd.DataFrame) -> pd.DataFrame:
 def _rolling_form(matches_df: pd.DataFrame) -> pd.DataFrame:
     """Last-`FORM_WINDOW` team form, strictly from earlier rounds.
 
-    Each team plays once per round here (asserted), so shifting one row inside a
+    Each team plays once per round here (checked), so shifting one row inside a
     team's own chronological sequence is exactly a `round < current` cutoff.
     """
 
@@ -306,7 +312,7 @@ def _rolling_form(matches_df: pd.DataFrame) -> pd.DataFrame:
 
     per_round = team_matches_df.groupby(["league_name", "season", "round", "team_id"]).size()
     if int(per_round.max()) != 1:
-        raise AssertionError(
+        raise ValueError(
             "as-of invariant unsafe: a team plays more than once in a round "
             f"(max={int(per_round.max())}) — shift(1) no longer implies round < current"
         )
@@ -315,9 +321,9 @@ def _rolling_form(matches_df: pd.DataFrame) -> pd.DataFrame:
     grouped = team_matches_df.groupby(["league_name", "season", "team_id"], sort=False)
 
     form_df = team_matches_df[["match_id", "team_id"]].copy()
-    for src, dst in ROLLING_SPECS:
-        shifted = grouped[src].shift(1)
-        form_df[dst] = shifted.groupby(
+    for source_column, form_column in ROLLING_SPECS:
+        shifted = grouped[source_column].shift(1)
+        form_df[form_column] = shifted.groupby(
             [team_matches_df["league_name"], team_matches_df["season"], team_matches_df["team_id"]],
             sort=False,
         ).transform(
@@ -331,7 +337,7 @@ def _attach_rolling(matches_df: pd.DataFrame) -> dict[str, Any]:
     """Each side's rolling form, as `home_<field>` and `away_<field>` arrays in row order."""
 
     form_df = _rolling_form(matches_df)
-    form_columns = [dst for _, dst in ROLLING_SPECS]
+    form_columns = [form_column for _, form_column in ROLLING_SPECS]
 
     side_columns: dict[str, Any] = {}
     for side in ("home", "away"):
@@ -435,16 +441,16 @@ def _h2h_ht_goals_avg(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     for slot in range(1, MATCHES_PER_SECTION + 1):
         home_goals = _block(matches_df, "h2h", slot, "ht_home_goals")
         away_goals = _block(matches_df, "h2h", slot, "ht_away_goals")
-        ok = home_goals.notna() & away_goals.notna()
+        both_known = home_goals.notna() & away_goals.notna()
 
-        total += (home_goals.fillna(0) + away_goals.fillna(0)).where(ok, 0.0)
-        seen += ok.astype(float)
+        total += (home_goals.fillna(0) + away_goals.fillna(0)).where(both_known, 0.0)
+        seen += both_known.astype(float)
 
-    avg: pd.Series[Any] = pd.Series(
+    mean_goals: pd.Series[Any] = pd.Series(
         np.where(seen > 0, total / seen, np.nan), index=matches_df.index
     )
 
-    return avg
+    return mean_goals
 
 
 def _h2h_ht_nondraw_rate(matches_df: pd.DataFrame) -> "pd.Series[Any]":
@@ -459,10 +465,10 @@ def _h2h_ht_nondraw_rate(matches_df: pd.DataFrame) -> "pd.Series[Any]":
     for slot in range(1, MATCHES_PER_SECTION + 1):
         home_goals = _block(matches_df, "h2h", slot, "ht_home_goals")
         away_goals = _block(matches_df, "h2h", slot, "ht_away_goals")
-        ok = home_goals.notna() & away_goals.notna()
+        both_known = home_goals.notna() & away_goals.notna()
 
-        hits += (ok & (home_goals != away_goals)).astype(float)
-        seen += ok.astype(float)
+        hits += (both_known & (home_goals != away_goals)).astype(float)
+        seen += both_known.astype(float)
 
     return pd.Series(np.where(seen > 0, hits / seen, np.nan), index=matches_df.index)
 
@@ -605,7 +611,11 @@ def build_features(matches_df: pd.DataFrame | None = None) -> pd.DataFrame:
 def all_feature_names() -> list[str]:
     """Every feature of the closed families, in family order."""
 
-    return [name for names in FAMILIES.values() for name in names]
+    names: list[str] = []
+    for family_names in FAMILIES.values():
+        names.extend(family_names)
+
+    return names
 
 
 def _dedupe(names: list[str]) -> list[str]:
@@ -649,25 +659,25 @@ def self_check(sample: int = 100, seed: int = 0) -> int:
     checks = 0
     for _, row in picks_df.iterrows():
         for side in ("home", "away"):
-            history = team_matches_df[
+            history_df = team_matches_df[
                 (team_matches_df["league_name"] == row["league_name"])
                 & (team_matches_df["season"] == row["season"])
                 & (team_matches_df["team_id"] == row[f"{side}_team_id"])
                 & (team_matches_df["round"] < row["round"])
             ].sort_values("round")
 
-            window = history.tail(FORM_WINDOW)
-            if len(window) < BURN_IN_ROUNDS:
+            window_df = history_df.tail(FORM_WINDOW)
+            if len(window_df) < BURN_IN_ROUNDS:
                 continue
 
-            for src, dst in ROLLING_SPECS:
+            for source_column, form_column in ROLLING_SPECS:
                 checks += 1
-                expected = float(window[src].mean())
-                actual = row[f"{side}_{dst}"]
+                expected = float(window_df[source_column].mean())
+                actual = row[f"{side}_{form_column}"]
                 if pd.isna(actual) or abs(float(actual) - expected) > SELF_CHECK_TOLERANCE:
                     failures += 1
                     print(
-                        f"  MISMATCH match {row['match_id']} {side} {dst}: "
+                        f"  MISMATCH match {row['match_id']} {side} {form_column}: "
                         f"vectorised={actual} slow-recompute={expected}"
                     )
 

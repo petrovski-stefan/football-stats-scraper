@@ -62,7 +62,7 @@ def test_round_key_names_the_league_season_stage_and_round() -> None:
         {
             "s1_league_id": [7, 7, 7],
             "s1_season": ["2025", "2025", "2025"],
-            "s1_stage": ["Apertura", "Clausura", None],
+            "s1_stage": ["Apertura", "Clausura", ""],
             "s1_round": [3, 3, 3],
         }
     )

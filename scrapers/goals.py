@@ -62,6 +62,7 @@ from scrapers.goal_parsers import parse_goal_events
 
 logger = logging.getLogger(__name__)
 
+# Matches scraped at once, each worker with its own Chrome, as in `scrapers/detail.py`.
 WORKERS = 3
 SECTIONS = ("home", "away", "h2h")
 
@@ -112,21 +113,23 @@ def history_ids(sections: tuple[str, ...], depth: int) -> dict[str, int | None]:
     contribute nothing, and the caller reports the shortfall rather than failing.
     """
 
-    wanted = {
-        f"{section}_last{slot}_{field}"
-        for section in sections
-        for slot in range(1, depth + 1)
-        for field in ("match_id", "league_id", "league", "date")
-    }
-    prefixes = [f"{section}_last{slot}_" for section in sections for slot in range(1, depth + 1)]
+    prefixes: list[str] = []
+    for section in sections:
+        prefixes.extend(f"{section}_last{slot}_" for slot in range(1, depth + 1))
+
+    wanted: set[str] = set()
+    for prefix in prefixes:
+        wanted.update(f"{prefix}{field}" for field in ("match_id", "league_id", "league", "date"))
 
     found: dict[str, int | None] = {}
-    for base in paths.base_league_csvs():
-        detail = paths.detail_path(base)
-        if not os.path.exists(detail):
+    for base_path in paths.base_league_csvs():
+        detail_path = paths.detail_path(base_path)
+        if not os.path.exists(detail_path):
             continue
 
-        detail_df = pd.read_csv(detail, usecols=lambda column: column in wanted, low_memory=False)
+        detail_df = pd.read_csv(
+            detail_path, usecols=lambda column: column in wanted, low_memory=False
+        )
         for prefix in prefixes:
             _collect_block_ids(detail_df, prefix, found)
 

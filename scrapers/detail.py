@@ -38,6 +38,7 @@ from scrapers.driver import get_detail_page
 
 logger = logging.getLogger(__name__)
 
+# Matches scraped at once, each worker with its own Chrome (`scrapers/CLAUDE.md`).
 WORKERS = 3
 
 # One Chrome per worker thread, spanning the whole run rather than one league, so a
@@ -58,15 +59,15 @@ def scrape_match_detail(driver: webdriver.Chrome, match_id: str) -> dict[str, An
     away_id = dp.subject_team_id(away_records)
 
     # Aggregate + odds/strength features go through the validated MatchDetail model.
-    agg: dict[str, Any] = {"match_id": str(match_id)}
-    agg.update(dp.parse_odds_1x2(soup))
-    agg.update(dp.aggregate_recent(home_records, home_id, "home"))
-    agg.update(dp.aggregate_recent(away_records, away_id, "away"))
-    agg.update(dp.aggregate_h2h(h2h_records, home_id))
-    agg.update(dp.parse_strength(soup))
-    agg.update(dp.parse_guess(soup))
-    agg.update(dp.parse_fixtures(soup))
-    row = MatchDetail(**agg).model_dump()
+    detail_fields: dict[str, Any] = {"match_id": str(match_id)}
+    detail_fields.update(dp.parse_odds_1x2(soup))
+    detail_fields.update(dp.aggregate_recent(home_records, home_id, "home"))
+    detail_fields.update(dp.aggregate_recent(away_records, away_id, "away"))
+    detail_fields.update(dp.aggregate_h2h(h2h_records, home_id))
+    detail_fields.update(dp.parse_strength(soup))
+    detail_fields.update(dp.parse_guess(soup))
+    detail_fields.update(dp.parse_fixtures(soup))
+    row = MatchDetail(**detail_fields).model_dump()
 
     # Per-match column blocks (home_lastN_/away_lastN_/h2h_lastN_) are plain data.
     row.update(dp.flatten_history(home_records, home_id, "home"))

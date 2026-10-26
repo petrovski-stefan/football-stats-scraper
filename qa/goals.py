@@ -29,6 +29,8 @@ from qa.report import Report
 # 2026-10-13. Re-derive it from our own HT and FT scores at plan step P5.
 SECOND_HALF_SHARE_MIN = 0.52
 SECOND_HALF_SHARE_MAX = 0.59
+# The fewest goals for which the share is checked, not only printed (set with the check,
+# 2026-09-23).
 MIN_GOALS_FOR_SHARE = 500
 # Share of matches allowed to disagree on the half-time split alone (full time reconciles,
 # the sequence is monotone, one goal sits on the wrong side of 45'). That is nowgoal

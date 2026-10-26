@@ -20,7 +20,7 @@ from scipy import stats as sps
 
 from analysis import card, corpus, report, stats
 from analysis.methods import shin, yardstick
-from domain.clock import BERLIN
+from domain.clock import BERLIN, parse_instant
 
 MIN_PLAYED = 5  # both teams have played this many matches of the stage
 PRIOR_WEIGHT = 10.0  # pseudo-counts of a shrunk HT/FT record rate
@@ -239,7 +239,7 @@ def season(matches_df: pd.DataFrame, side: str, other: str) -> pd.DataFrame:
     played = stat(matches_df, side, "ft", "total", "played")
     progress = played / (played + matches_df[f"s3_{side}_pre_matches_left"].astype(float))
 
-    keys = [matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"].fillna("")]
+    keys = [matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"]]
     teams = matches_df["s1_home_team_id"].groupby(keys).transform("nunique").astype(float)
 
     low, high = MID_TABLE
@@ -258,11 +258,12 @@ def calendar(matches_df: pd.DataFrame) -> pd.DataFrame:
     """The calendar family: a kickoff from Tuesday to Thursday (Berlin time), and the last
     kickoff of a round that has more than one kickoff time."""
 
-    kickoff = pd.to_datetime(matches_df["s1_date"], utc=True).dt.tz_convert(BERLIN)
+    kickoff_utc = pd.to_datetime(matches_df["s1_date"].map(parse_instant), utc=True)
+    kickoff = kickoff_utc.dt.tz_convert(BERLIN)
     keys = [
         matches_df["s1_league_id"],
         matches_df["s1_season"],
-        matches_df["s1_stage"].fillna(""),
+        matches_df["s1_stage"],
         matches_df["s1_round"],
     ]
 

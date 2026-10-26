@@ -21,6 +21,7 @@ import pandas as pd
 
 from analysis import card, corpus, report, units
 from analysis.methods import yardstick
+from domain.clock import parse_instant
 
 ROUND = "round"
 LEAGUE_SEASON = "cluster"
@@ -164,7 +165,9 @@ def main() -> None:
     yardstick_df["round_number"] = matches_df["s1_round"]
     yardstick_df["season_cohort"] = matches_df["season_cohort"]
 
-    kickoff = pd.to_datetime(matches_df.loc[yardstick_df.index, "s1_date"], utc=True)
+    kickoff = pd.to_datetime(
+        matches_df.loc[yardstick_df.index, "s1_date"].map(parse_instant), utc=True
+    )
     yardstick_df["days"] = days_from_round(kickoff, yardstick_df[ROUND])
 
     sizes = yardstick_df.groupby(ROUND).size()

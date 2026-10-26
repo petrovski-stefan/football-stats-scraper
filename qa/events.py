@@ -35,6 +35,8 @@ MAX_SUBS_PER_SIDE = 6
 YELLOW_PER_MATCH = (2.0, 7.0)
 RED_PER_MATCH = (0.0, 0.5)
 SUBS_PER_MATCH = (4.0, 11.0)
+# The fewest matches for which the bands are checked, not only printed (set with the check,
+# 2026-09-23).
 MIN_MATCHES_FOR_RATES = 200
 
 # Every league gives both teams the same substitution allowance, so the home/away split of
@@ -48,6 +50,7 @@ MIN_MATCHES_FOR_RATES = 200
 # +4.01pp on yellows here, a well-documented asymmetry) and the size of that varies by
 # league, so a tolerance tight enough to be useful would fire on real football.
 SUB_SIDE_TOLERANCE = 0.05
+# The fewest substitutions for which the split is checked (set with the check, 2026-09-23).
 MIN_SUBS_FOR_SIDE_CHECK = 500
 
 

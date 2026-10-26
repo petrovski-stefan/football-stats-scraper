@@ -56,9 +56,19 @@ GOALLESS = "-"
 # partition of each other and are not meant to be.
 BUCKETS = ((0, 15), (16, 30), (31, 45), (46, 60), (61, 75), (76, 90))
 
-BUCKET_SUFFIXES = tuple(
-    f"{direction}_{lo:02d}_{hi}" for direction in ("gf", "ga") for lo, hi in BUCKETS
-)
+
+def _bucket_suffixes() -> tuple[str, ...]:
+    """`<gf|ga>_<first minute>_<last minute>` for every bucket, goals for first."""
+
+    suffixes: list[str] = []
+    for direction in ("gf", "ga"):
+        for first_minute, last_minute in BUCKETS:
+            suffixes.append(f"{direction}_{first_minute:02d}_{last_minute}")
+
+    return tuple(suffixes)
+
+
+BUCKET_SUFFIXES = _bucket_suffixes()
 
 FEATURE_SUFFIXES = (
     "goal_minute_avg",

@@ -18,6 +18,7 @@ import pandas as pd
 
 from analysis import card, corpus, report, stats, units
 from analysis.methods import yardstick
+from domain.clock import parse_instant
 
 QUANTITIES = card.ODDS_CARD
 # The quantities of the round-number section: the luck line there needs counts or rare events.
@@ -37,10 +38,10 @@ def phases(matches_df: pd.DataFrame) -> pd.DataFrame:
         played) and `edge` (the first or last `EDGE_ROUNDS` rounds of the stage, or the middle).
     """
 
-    keys = [matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"].fillna("")]
+    keys = [matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"]]
     rounds = matches_df["s1_round"].groupby(keys).transform("max")
 
-    kickoff = pd.to_datetime(matches_df["s1_date"], utc=True)
+    kickoff = pd.to_datetime(matches_df["s1_date"].map(parse_instant), utc=True)
     order = kickoff.groupby(keys).rank(method="first", pct=True)
 
     edge = np.select(

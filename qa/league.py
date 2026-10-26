@@ -125,13 +125,15 @@ def _round_size(report: Report, label: str, round_df: pd.DataFrame) -> int | Non
     return int(sizes[0])
 
 
-def _check_index_range(report: Report, label: str, idx: "pd.Series[Any]", total: int) -> None:
+def _check_index_range(
+    report: Report, label: str, match_index: "pd.Series[Any]", total: int
+) -> None:
     """Check 2: indices are unique and lie in 1..matches_in_round."""
 
-    if idx.duplicated().any():
+    if match_index.duplicated().any():
         report.fail(f"{label}: duplicate match_index_in_round")
 
-    out_of_range = idx[(idx < 1) | (idx > total)]
+    out_of_range = match_index[(match_index < 1) | (match_index > total)]
     if len(out_of_range):
         report.fail(f"{label}: {len(out_of_range)} index outside 1..{total}")
 

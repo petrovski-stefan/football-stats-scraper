@@ -109,12 +109,17 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
     print("     trailer odds   published   imported model")
 
     worst = 0.0
-    for octile_odds, obs, pred in zip(odds, observed, predicted, strict=True):
-        worst = max(worst, abs(obs - pred))
-        print(f"     {octile_odds:11.2f}   {obs:8.1%}   {pred:13.1%}")
+    for octile_odds, observed_completion, predicted_completion in zip(
+        odds, observed, predicted, strict=True
+    ):
+        worst = max(worst, abs(observed_completion - predicted_completion))
+        print(
+            f"     {octile_odds:11.2f}   {observed_completion:8.1%}   {predicted_completion:13.1%}"
+        )
 
-    ok_published = worst < OCTILE_TOLERANCE
-    print(f"    max absolute error {worst:.1%} — {'PASS' if ok_published else 'FAIL'} (bar: <3pp)")
+    matches_published = worst < OCTILE_TOLERANCE
+    verdict = "PASS" if matches_published else "FAIL"
+    print(f"    max absolute error {worst:.1%} — {verdict} (bar: <3pp)")
 
     trailing_df = trailing_states(matrix_df)
     print(f"\n  applied to this corpus's {len(trailing_df)} trailing states:")
@@ -138,14 +143,15 @@ def replicate_f11(matrix_df: pd.DataFrame) -> bool:
         )
 
     monotone = all(a <= b for a, b in pairwise(rates))
-    overall_pred, overall_obs = trailing_df["p"].mean(), trailing_df["completed"].mean()
-    print(f"\n     overall predicted {overall_pred:.1%} vs observed {overall_obs:.1%}")
+    overall_predicted = trailing_df["p"].mean()
+    overall_observed = trailing_df["completed"].mean()
+    print(f"\n     overall predicted {overall_predicted:.1%} vs observed {overall_observed:.1%}")
     print(f"     monotone in predicted risk: {'PASS' if monotone else 'FAIL'}")
 
-    ok = ok_published and monotone
-    print(f"\n  IMPORT {'VALID' if ok else 'INVALID — the plan pauses here'}")
+    is_valid = matches_published and monotone
+    print(f"\n  IMPORT {'VALID' if is_valid else 'INVALID — the plan pauses here'}")
 
-    return ok
+    return is_valid
 
 
 def trailing_states(matrix_df: pd.DataFrame) -> pd.DataFrame:

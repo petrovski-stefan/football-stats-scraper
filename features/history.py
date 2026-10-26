@@ -95,7 +95,11 @@ def score_matches(detail_df: pd.DataFrame, prefix: str, row: int, home: int, awa
 def feature_names(suffixes: Sequence[str]) -> list[str]:
     """`<section>_<suffix>` for every section, in order."""
 
-    return [f"{section}_{suffix}" for section in SECTIONS for suffix in suffixes]
+    names: list[str] = []
+    for section in SECTIONS:
+        names.extend(f"{section}_{suffix}" for suffix in suffixes)
+
+    return names
 
 
 def timeline_names(field: str, depth: int) -> list[str]:

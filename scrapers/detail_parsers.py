@@ -43,6 +43,10 @@ _DAYS_RE = re.compile(r"(\d+)\s*Day")
 # The `form` string keeps this many results (W, D or L), the most recent first.
 FORM_LENGTH = 6
 
+# The recent-form fields read a side's last 10 history matches (set with the detail scraper,
+# 2026-07-26).
+RECENT_WINDOW = 10
+
 
 # --- history rows (recent form / H2H) ----------------------------------------
 def parse_history_row(row: Tag) -> dict[str, Any] | None:
@@ -206,15 +210,15 @@ def aggregate_recent(
     """Recent-form aggregate features for one side ('home'/'away')."""
 
     venue_is_home = side == "home"
-    venue_recs = [r for r in records if (r["home_id"] == subject_id) == venue_is_home]
+    venue_records = [r for r in records if (r["home_id"] == subject_id) == venue_is_home]
 
-    agg = aggregate_form(records, subject_id, window=10)
-    venue_agg = aggregate_form(venue_recs, subject_id, window=10)
-    out = {f"{side}_recent_{k}": v for k, v in agg.items()}
-    out[f"{side}_recent_venue_ppg"] = venue_agg["ppg"]
-    out[f"{side}_recent_venue_over25_rate"] = venue_agg["over25_rate"]
+    form = aggregate_form(records, subject_id, window=RECENT_WINDOW)
+    venue_form = aggregate_form(venue_records, subject_id, window=RECENT_WINDOW)
+    recent = {f"{side}_recent_{name}": value for name, value in form.items()}
+    recent[f"{side}_recent_venue_ppg"] = venue_form["ppg"]
+    recent[f"{side}_recent_venue_over25_rate"] = venue_form["over25_rate"]
 
-    return out
+    return recent
 
 
 def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict[str, Any]:
@@ -235,13 +239,13 @@ def aggregate_h2h(records: list[dict[str, Any]], subject_id: int | None) -> dict
 
     home_wins = draws = away_wins = over25 = btts = total = 0
     for record in records:
-        subject_home = record["home_id"] == subject
-        sgf = record["ft_home"] if subject_home else record["ft_away"]
-        sga = record["ft_away"] if subject_home else record["ft_home"]
+        subject_is_home = record["home_id"] == subject
+        subject_goals_for = record["ft_home"] if subject_is_home else record["ft_away"]
+        subject_goals_against = record["ft_away"] if subject_is_home else record["ft_home"]
 
-        if sgf > sga:
+        if subject_goals_for > subject_goals_against:
             home_wins += 1
-        elif sgf == sga:
+        elif subject_goals_for == subject_goals_against:
             draws += 1
         else:
             away_wins += 1
@@ -395,17 +399,17 @@ def _find_odds_table(soup: BeautifulSoup) -> Tag | None:
 def _bookmaker_initial_rows(table: Tag) -> list[tuple[str, Tag]]:
     """(company_name, initial_row) for each bookmaker block in the odds table."""
 
-    out: list[tuple[str, Tag]] = []
-    for tr in table.select("tr"):
-        if not tr.select(DETAIL_ODDS_1X2_CELLS):
+    initial_rows: list[tuple[str, Tag]] = []
+    for table_row in table.select("tr"):
+        if not table_row.select(DETAIL_ODDS_1X2_CELLS):
             continue
 
-        first = tr.find("td")
+        first = table_row.find("td")
         name = tag_text(first if isinstance(first, Tag) else None)
         if name and name not in ("Live", "In-Play"):
-            out.append((name, tr))
+            initial_rows.append((name, table_row))
 
-    return out
+    return initial_rows
 
 
 @dataclass(frozen=True)
@@ -442,18 +446,19 @@ def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
 
     block = soup.select_one(DETAIL_STRENGTH_BLOCK)
     if block is not None:
-        nums = re.findall(r"\b(\d{1,3})\b", block.get_text())
+        numbers = re.findall(r"\b(\d{1,3})\b", block.get_text())
 
         # The headline split is the first "NN NN" pair after the team names.
-        if len(nums) >= 2:
-            strength["strength_home"], strength["strength_away"] = int(nums[0]), int(nums[1])
+        if len(numbers) >= 2:
+            strength["strength_home"] = int(numbers[0])
+            strength["strength_away"] = int(numbers[1])
 
-    bar = soup.select_one(DETAIL_H2H_COMPARE_BAR)
-    if bar is not None:
-        pcts = _PCT_RE.findall(bar.get_text())
-        if len(pcts) >= 2:
-            strength["h2h_compare_home_pct"] = float(pcts[0])
-            strength["h2h_compare_away_pct"] = float(pcts[1])
+    compare_bar = soup.select_one(DETAIL_H2H_COMPARE_BAR)
+    if compare_bar is not None:
+        percentages = _PCT_RE.findall(compare_bar.get_text())
+        if len(percentages) >= 2:
+            strength["h2h_compare_home_pct"] = float(percentages[0])
+            strength["h2h_compare_away_pct"] = float(percentages[1])
 
     return strength
 
@@ -461,16 +466,16 @@ def parse_strength(soup: BeautifulSoup) -> dict[str, Any]:
 def parse_guess(soup: BeautifulSoup) -> dict[str, Any]:
     """Crowd 'Who will win?' percentages (home / away)."""
 
-    out: dict[str, Any] = {"guess_home_pct": None, "guess_away_pct": None}
+    guess: dict[str, Any] = {"guess_home_pct": None, "guess_away_pct": None}
 
     box = soup.select_one(DETAIL_GUESS_BOX)
     if box is not None:
-        pcts = _PCT_RE.findall(box.get_text())
-        if len(pcts) >= 2:
-            out["guess_home_pct"] = float(pcts[0])
-            out["guess_away_pct"] = float(pcts[-1])
+        percentages = _PCT_RE.findall(box.get_text())
+        if len(percentages) >= 2:
+            guess["guess_home_pct"] = float(percentages[0])
+            guess["guess_away_pct"] = float(percentages[-1])
 
-    return out
+    return guess
 
 
 def parse_fixtures(soup: BeautifulSoup) -> dict[str, Any]:

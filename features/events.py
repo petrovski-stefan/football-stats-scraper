@@ -120,7 +120,11 @@ def feature_names() -> list[str]:
 def timeline_names(depth: int = MATCHES_PER_SECTION) -> list[str]:
     """The per-history-match timeline columns, in order — one block per event kind."""
 
-    return [name for field, _ in TIMELINE_FIELDS for name in history.timeline_names(field, depth)]
+    names: list[str] = []
+    for field, _ in TIMELINE_FIELDS:
+        names.extend(history.timeline_names(field, depth))
+
+    return names
 
 
 def load_store(events_path: str) -> dict[str, list[tuple[int, int, str, str]]]:

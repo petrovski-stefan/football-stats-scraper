@@ -146,7 +146,7 @@ def test_season_gives_the_share_played_and_a_dead_rubber() -> None:
     matches_df["s3_home_pre_ft_total_rank"] = [2.0, 1.0]
     matches_df["s3_away_pre_ft_total_rank"] = [2.0, 1.0]
     matches_df["s3_home_pre_matches_left"] = [4, 4]
-    matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"] = 1, "2024", np.nan
+    matches_df["s1_league_id"], matches_df["s1_season"], matches_df["s1_stage"] = 1, "2024", ""
     matches_df["s1_home_team_id"] = [11, 12]  # 2 teams seen: a rank of 1 is a share of 0.5
 
     season_fields_df = runner.season(matches_df, "home", "away")
